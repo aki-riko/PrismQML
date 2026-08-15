@@ -2,41 +2,39 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import QtQuick as QtQ  // 原生ListView别名:去前缀后库ListView会覆盖原生,用QtQ.ListView断循环依赖
-import QtQuick.Effects
+import QtQuick as QtQ
 import QtQuick.Layouts
 import "../.."
-import "../../effects"
-import "../data"
-import "../containers/ScrollBar"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import "_internal"
+import QtQuick
 
 // DataWidgetCore - Base class for ListWidget/TableWidget 数据组件基类
-// Refactored to use SmoothScrollHelper 重构为使用SmoothScrollHelper
+// Orchestrates model and scrolling state while DataWidgetContent owns rendering.
+// 编排模型与滚动状态，渲染由 DataWidgetContent 负责。
 Rectangle {
     id: root
-    
+
     // ==================== Public Props 公开属性 ====================
     // Layout attached properties for parent layouts 供父布局使用的附加属性
     property bool layoutFillWidth: true
     property bool layoutFillHeight: true
     property int layoutAlignment: 0
 
-    property string emptyText: ""  // Empty state text 空状态文本
-    property string footerText: ""  // Footer text template ({count} placeholder) 底部文本模板
-    property bool showFooter: false  // Whether to show the count footer 是否显示底部计数栏
-    property int rowHeight: Enums.controlSize.tableHeaderHeight  // Row height 行高
+    property string emptyText: ""
+    property string footerText: ""
+    property bool showFooter: false
+    property int rowHeight: Enums.controlSize.tableHeaderHeight
 
     // Item count defaults to the internally maintained ListView count 项目数默认由内部 ListView 自维护
     property int itemCount: _autoItemCount
 
     // Header 表头
-    property bool showHeader: false  // Show header 显示表头
+    property bool showHeader: false
     property int headerHeight: Enums.controlSize.tableHeaderHeight
-    property Component headerContent: null  // Header content component 表头内容组件
+    property Component headerContent: null
 
     // Horizontal scroll 横向滚动
-    // 子类计算所有列总像素宽度赋给该属性；大于 listView.width 时启用横向滚动。
+    // Subclasses publish their total column width here. 子类在此提供列总宽度。
     property real contentTotalWidth: 0
 
     // Scrollbars 滚动条
@@ -66,11 +64,11 @@ Rectangle {
     property bool loading: false
     property int staggerDelay: Enums.duration.stagger
 
-    // ListView access ListView访问
-    property alias listView: listView
-    property alias contentDelegate: listView.delegate
-    property alias listModel: listView.model
-    property alias spacing: listView.spacing  // Expose local ListView spacing 暴露本地 ListView 间距
+    // ListView access ListView 访问
+    property alias listView: contentLayer.listView
+    property alias contentDelegate: contentLayer.contentDelegate
+    property alias listModel: contentLayer.listModel
+    property alias spacing: contentLayer.spacing
 
     // ==================== Internal Props 内部属性 ====================
     property int _autoItemCount: 0
@@ -79,17 +77,20 @@ Rectangle {
     property Item _horizontalScrollMixin: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property alias _needsVerticalScrollBar: scrollViewportState.needsVertical
-    readonly property alias _needsHorizontalScrollBar: scrollViewportState.needsHorizontal
+    readonly property alias _needsVerticalScrollBar:
+        contentLayer.needsVerticalScrollBar
+    readonly property alias _needsHorizontalScrollBar:
+        contentLayer.needsHorizontalScrollBar
     readonly property alias _reserveVerticalScrollBarGutter:
-        scrollViewportState.reserveVerticalGutter
+        contentLayer.reserveVerticalScrollBarGutter
     readonly property alias _reserveHorizontalScrollBarGutter:
-        scrollViewportState.reserveHorizontalGutter
+        contentLayer.reserveHorizontalScrollBarGutter
     readonly property bool _hasHorizontalScroll:
         listView.width > 0 && contentTotalWidth > listView.width
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
-    readonly property real _effectiveContentWidth: _hasHorizontalScroll ? contentTotalWidth : listView.width
+    readonly property real _effectiveContentWidth:
+        _hasHorizontalScroll ? contentTotalWidth : listView.width
     readonly property color headerColor: Enums.headerColor
     readonly property color borderColor: Enums.stateColor.borderLight
     readonly property color textColor: Enums.textColor.primary
@@ -99,8 +100,8 @@ Rectangle {
     readonly property color _headerEdgeShadowColor: Enums.stateColor.edgeShadow
 
     // ==================== Public Methods 公开方法 ====================
-    function smoothScrollBy(delta) { scrollHelper.scrollBy(delta) }
-    function smoothScrollTo(targetY) { scrollHelper.scrollTo(targetY) }
+    function smoothScrollBy(delta) { contentLayer.scrollHelper.scrollBy(delta) }
+    function smoothScrollTo(targetY) { contentLayer.scrollHelper.scrollTo(targetY) }
 
     function scrollToIndex(idx) {
         listView.positionViewAtIndex(idx, QtQ.ListView.Center)
@@ -125,11 +126,11 @@ Rectangle {
         Qt.callLater(function() { root._autoItemCount = listView.count })
     }
 
-    // Coalesce geometry-dependent scrollbar state to avoid a binding loop between
-    // viewport width, delegate layout, and contentHeight.
-    // 合并依赖几何的滚动条状态，避免视口宽度、委托布局与 contentHeight 形成绑定环。
+    // Coalesce geometry-dependent scrollbar state to avoid a binding loop.
+    // 合并依赖几何的滚动条状态，避免视口与委托布局形成绑定环。
     function _scheduleScrollBarUpdate() {
-        if (scrollViewportState) scrollViewportState.invalidate()
+        if (contentLayer.scrollViewportState)
+            contentLayer.scrollViewportState.invalidate()
     }
 
     // Create the horizontal branch synchronously on first real overflow, then retain it.
@@ -137,7 +138,7 @@ Rectangle {
     function _ensureHorizontalScrollMixin() {
         if (!_horizontalScrollLifecycleReady
                 || !_hasHorizontalScroll || _horizontalScrollRequested) return
-        _horizontalScrollMixin = horizontalScrollMixinComponent.createObject(contentArea)
+        _horizontalScrollMixin = contentLayer.createHorizontalScrollMixin()
         if (!_horizontalScrollMixin) return
         _horizontalScrollRequested = true
     }
@@ -153,18 +154,17 @@ Rectangle {
     Layout.fillHeight: layoutFillHeight
     Layout.alignment: layoutAlignment
 
-    color: Enums.transparent  // Transparent background avoids square corners 透明背景避免直角露出圆角卡片外
+    color: Enums.transparent
+    implicitWidth: 200
+    implicitHeight: 150
 
     onShowScrollBarChanged: _scheduleScrollBarUpdate()
     onScrollBarWidthChanged: _scheduleScrollBarUpdate()
     onWidthChanged: _scheduleScrollBarUpdate()
     onHeightChanged: _scheduleScrollBarUpdate()
     on_HasHorizontalScrollChanged: _ensureHorizontalScrollMixin()
-    // ==================== Size 尺寸 ====================
-    implicitWidth: 200
-    implicitHeight: 150
-
     onListModelChanged: _refreshItemCount()
+
     Component.onCompleted: {
         _scheduleScrollBarUpdate()
         Qt.callLater(_finishHorizontalScrollInitialization)
@@ -179,409 +179,17 @@ Rectangle {
         function onCountChanged() { root._refreshItemCount() }
 
         // Subscribe only to QObject/QAbstractItemModel-style models 仅订阅 QObject/QAbstractItemModel 模型
-        target: (listView.model && typeof listView.model === 'object'
-                 && typeof listView.model.length !== 'number'
-                 && (typeof listView.model.rowCount === 'function'
+        target: (listView.model && typeof listView.model === "object"
+                 && typeof listView.model.length !== "number"
+                 && (typeof listView.model.rowCount === "function"
                      || listView.model.modelReset !== undefined))
                 ? listView.model : null
         ignoreUnknownSignals: true
     }
 
+    DataWidgetContent {
+        id: contentLayer
 
-    // Wheel handler 滚轮处理
-    MouseArea {
-        id: wheelArea
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: hoverElevation
-
-        onWheel: (event) => {
-            if (listView.contentHeight <= listView.height) {
-                event.accepted = false
-                return
-            }
-            scrollHelper.scrollBy(-event.angleDelta.y / 120 * scrollHelper.step)
-            event.accepted = true
-        }
-    }
-
-    // Shadow 阴影
-    RectangularShadow {
-        id: shadowEffect
-
-        // Active shadow fallback lifecycle 主动阴影兜底生命周期
-        // Enums._metrics may be destroyed before this shadow during engine teardown.
-        // 引擎销毁期间，Enums._metrics 可能先于当前阴影对象销毁。
-        // Cache the public token after construction so teardown no longer reads the singleton.
-        // 构造完成后缓存公开 token，销毁期不再读取 singleton。
-        property var _staticFallbackShadow: null
-        property var _resolvedLevel: hoverElevation && wheelArea.containsMouse
-                                   ? (Enums.shadow ? Enums.shadow.level4 : null) : shadowLevel
-        property var _activeLevel: _resolvedLevel
-                                 || (Enums.shadow ? Enums.shadow.level2 : null)
-                                 || _staticFallbackShadow
-
-        anchors.fill: card
-        radius: card.radius
-        visible: showShadow && Enums.usesSoftElevation && !Enums.isNeumorphism
-
-        Component.onCompleted: _staticFallbackShadow = ({
-            color: Enums.transparent,
-            blur: 0,
-            offset: 0
-        })
-
-        color: _activeLevel && _activeLevel.color !== undefined
-               ? _activeLevel.color
-               : (_staticFallbackShadow ? _staticFallbackShadow.color : Enums.transparent)
-        blur: _activeLevel && _activeLevel.blur !== undefined
-              ? _activeLevel.blur
-              : (_staticFallbackShadow ? _staticFallbackShadow.blur : 0)
-        offset.x: 0
-        offset.y: _activeLevel && _activeLevel.offset !== undefined
-                  ? _activeLevel.offset
-                  : (_staticFallbackShadow ? _staticFallbackShadow.offset : 0)
-
-        HoverBehavior on blur {
-            active: wheelArea.containsMouse
-            animationEnabled: root.animated && hoverElevation
-            enterDuration: Enums.duration.elevation
-            easingType: Easing.OutCubic
-        }
-        HoverBehavior on offset {
-            active: wheelArea.containsMouse
-            animationEnabled: root.animated && hoverElevation
-            enterDuration: Enums.duration.elevation
-            easingType: Easing.OutCubic
-        }
-    }
-
-    NeumorphicShadow {
-        target: card
-        visible: showShadow && Enums.isNeumorphism
-        z: card.z - 1
-    }
-
-    // neo 硬阴影
-    NeoShadow {
-        target: card
-        visible: showShadow && Enums.isNeobrutalism
-        z: card.z - 1
-    }
-
-    // Card container 卡片容器
-    Rectangle {
-        id: card
-        anchors.fill: parent
-        anchors.margins: cardMargin
-        color: cardColor
-        radius: root._effectiveBorderRadius
-        // neo: 粗黑边(neo 下始终显边, 靠边+硬阴影区分)
-        border.width: Enums.hasOutlinedSurfaces
-                      ? Enums.surfaceBorderWidth(Enums.border.thin)
-                      : (borderVisible ? Enums.border.thin : 0)
-        border.color: Enums.hasOutlinedSurfaces
-                      ? Enums.stateColor.border
-                      : (borderVisible ? Enums.stateColor.borderLight : Enums.transparent)
-
-        Loader {
-            anchors.fill: parent
-            active: Enums.isVintageTicket && card.color.a > 0
-            source: Qt.resolvedUrl("../../effects/TicketPaper.qml")
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Enums.spacing.micro
-            spacing: Enums.spacing.none
-            
-            // Header 表头
-            Rectangle {
-                Layout.fillWidth: true
-                height: root.headerHeight
-                color: headerColor
-                radius: root._effectiveBorderRadius
-                visible: showHeader
-                
-                // Bottom half fill 底部半圆填充
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: parent.height / 2
-                    color: parent.color
-                }
-                
-                // Header content loader 表头内容加载器
-                // 横向滚动激活时, mixin 自动绑定 headerLoader.x = -listView.contentX
-                Item {
-                    anchors.fill: parent
-                    clip: true
-                    Loader {
-                        id: headerLoader
-                        y: 0
-                        width: root.contentTotalWidth > listView.width ? root.contentTotalWidth : listView.width
-                        height: parent.height
-                        sourceComponent: headerContent
-                    }
-                }
-            }
-            
-            // Header separator 表头分隔线
-            Rectangle {
-                Layout.fillWidth: true
-                height: Enums.border.thin
-                color: borderColor
-                visible: showHeader
-            }
-
-            // Header floating shadow 表头浮起阴影
-            Rectangle {
-                Layout.fillWidth: true
-                height: 4
-                visible: !Enums.isVintageTicket && showHeader && listView.contentY > 0
-                opacity: Math.min(1, listView.contentY / 20)
-                gradient: Gradient {
-                    GradientStop { position: 0; color: root._headerEdgeShadowColor }
-                    GradientStop { position: 1; color: Enums.transparent }
-                }
-                Behavior on opacity {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.fast }
-                }
-            }
-            
-            // Body (constant stretch container) 主体区（恒定伸缩容器）
-            // contentArea / emptyArea / skeletonArea 三者互斥, 原先各自用
-            // Layout.fillHeight 绑 itemCount/loading 在 ColumnLayout 里抢高度。
-            // 但 QtQuick.Layouts 在 fillHeight 绑定值**异步变化**(QAbstractListModel
-            // 延迟注入 → itemCount 经 Connections+callLater 迟到更新)时不重新分配尺寸,
-            // 导致内容区塌成 0 高(实测复现)。故包一个恒定 fillHeight:true 的容器,
-            // Layout 永远只有这一个伸缩项尺寸恒定; 三区改用 anchors.fill + visible
-            // 切换(anchors 对 visible 异步变化可靠响应)。
-            Item {
-                id: bodyContainer
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-            // Content area 内容区域
-            Item {
-                id: contentArea
-                anchors.fill: parent
-                visible: itemCount > 0 || loading
-                opacity: loading ? 0 : 1
-                Behavior on opacity {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.enter; easing.type: Easing.OutCubic }
-                }
-                
-                QtQ.ListView {
-                    id: listView
-                    anchors.fill: parent
-                    anchors.rightMargin: root._reserveVerticalScrollBarGutter
-                        ? Math.min(root._scrollBarGutter, Math.max(0, parent.width)) : 0
-                    anchors.bottomMargin: root._reserveHorizontalScrollBarGutter
-                        ? Math.min(root._scrollBarGutter, Math.max(0, parent.height)) : 0
-                    clip: true
-                    boundsBehavior: Flickable.DragAndOvershootBounds
-                    interactive: false
-                    cacheBuffer: 600
-                    reuseItems: true
-                    contentWidth: root.contentTotalWidth > width ? root.contentTotalWidth : width
-
-                    // Transitions 过渡动画
-                    add: Transition {
-                        enabled: root.animated
-                        ParallelAnimation {
-                            NumberAnimation {
-                                property: "opacity"; from: 0; to: 1
-                                duration: Enums.duration.enter
-                                easing.type: Easing.OutCubic
-                            }
-                            NumberAnimation {
-                                property: "y"; from: listView.contentY + 12
-                                duration: Enums.duration.enter
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                    }
-
-                    remove: Transition {
-                        enabled: root.animated
-                        ParallelAnimation {
-                            NumberAnimation {
-                                property: "opacity"; to: 0
-                                duration: Enums.duration.exit
-                                easing.type: Easing.InCubic
-                            }
-                            NumberAnimation {
-                                property: "x"; to: 40
-                                duration: Enums.duration.exit
-                                easing.type: Easing.InCubic
-                            }
-                        }
-                    }
-
-                    displaced: Transition {
-                        enabled: root.animated
-                        NumberAnimation {
-                            properties: "y"
-                            duration: Enums.duration.medium
-                            easing.type: Easing.OutQuart
-                        }
-                    }
-                }
-
-                ScrollViewportState {
-                    id: scrollViewportState
-                    target: listView
-                    scrollBarsEnabled: root.showScrollBar
-                    verticalEnabled: true
-                    horizontalEnabled: true
-                    itemCount: root.itemCount
-                }
-                
-                // Smooth scroll helper 平滑滚动助手
-                SmoothScrollHelper {
-                    id: scrollHelper
-                    target: listView
-                    orientation: Qt.Vertical
-                    enabled: root.smoothScroll
-                    duration: root.scrollDuration
-                    step: root.scrollStep
-                    easing: root.scrollEasing
-                    bounceEnabled: true
-                }
-                
-                // Custom scrollbar 自定义滚动条
-                ScrollBar {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.rightMargin: Enums.spacing.xxs
-                    anchors.bottomMargin: root._reserveHorizontalScrollBarGutter
-                        ? Math.min(root._scrollBarGutter, Math.max(0, parent.height)) : 0
-
-                    target: listView
-                    scrollHelper: scrollHelper
-                    orientation: Qt.Vertical
-                    barWidth: Math.max(0, root.scrollBarWidth)
-                    visible: root._needsVerticalScrollBar
-                    z: Enums.zIndex.controlsAbove
-                }
-
-                // Horizontal scroll mixin 横向滚动
-                // mixin 内部封装 hScrollHelper / 横向 ScrollBar / Shift+wheel 路由,
-                // 与 TableView 等其他可横向滚动组件共用同一套实现.
-                Component {
-                    id: horizontalScrollMixinComponent
-
-                    HorizontalScrollMixin {
-                        target: listView
-                        headerContainer: headerLoader
-                        smoothScroll: root.smoothScroll
-                        scrollDuration: root.scrollDuration
-                        scrollStep: root.scrollStep
-                        scrollEasing: root.scrollEasing
-                        barWidth: Math.max(0, root.scrollBarWidth)
-                        showScrollBar: root.showScrollBar
-                        rightInset: root._reserveVerticalScrollBarGutter
-                            ? Math.min(root._scrollBarGutter,
-                                       Math.max(0, contentArea.width)) : 0
-                    }
-                }
-            }
-
-            // Empty state 空状态
-            Item {
-                id: emptyArea
-                anchors.fill: parent
-                visible: itemCount === 0 && !loading
-
-                opacity: visible ? 1 : 0
-                scale: visible ? 1 : 0.95
-                Behavior on opacity {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.enter; easing.type: Easing.OutCubic }
-                }
-                Behavior on scale {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.enter; easing.type: Easing.OutCubic }
-                }
-
-                Label {
-                    anchors.centerIn: parent
-                    type: Enums.label.type_body
-                    text: emptyText
-                    color: secondaryColor
-                }
-            }
-
-            // Loading skeleton 骨架屏
-            Item {
-                id: skeletonArea
-                anchors.fill: parent
-                visible: loading
-
-                opacity: loading ? 1 : 0
-                Behavior on opacity {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.enter; easing.type: Easing.OutCubic }
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: Enums.spacing.m
-                    spacing: Enums.spacing.s
-
-                    Repeater {
-                        model: root.loading ? Math.min(
-                            5,
-                            Math.max(3, Math.floor(
-                                (skeletonArea.height - Enums.spacing.m * 2)
-                                / (root.rowHeight + Enums.spacing.s)
-                            ))
-                        ) : 0
-                        Skeleton {
-                            width: parent ? parent.width : 0
-                            height: root.rowHeight - Enums.spacing.s
-                            loading: root.loading
-                        }
-                    }
-                }
-            }
-            }  // bodyContainer (恒定 fillHeight 容器, 包 contentArea/emptyArea/skeletonArea)
-
-            // Footer 底栏
-            Rectangle {
-                id: footerBar
-                Layout.fillWidth: true
-                height: Enums.controlSize.inputHeightCompact
-                color: headerColor
-                radius: root._effectiveBorderRadius
-                visible: showFooter && itemCount > 0
-
-                opacity: visible ? 1 : 0
-                Behavior on opacity {
-                    enabled: root.animated
-                    NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
-                }
-
-                // Top half fill 顶部半圆填充
-                Rectangle {
-                    anchors.top: parent.top
-                    width: parent.width
-                    height: parent.height / 2
-                    color: parent.color
-                }
-
-                Label {
-                    anchors.centerIn: parent
-                    type: Enums.label.type_caption
-                    text: footerText ? footerText.replace("{count}", itemCount) : Enums.trCount("total_items", itemCount)
-                    font.pixelSize: Enums.typography.captionCompact
-                    color: secondaryColor
-                }
-            }
-        }
+        dataControl: root
     }
 }

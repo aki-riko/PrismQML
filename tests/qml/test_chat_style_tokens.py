@@ -48,7 +48,13 @@ SOURCE_TOKEN_REFERENCES = {
 COMPACT_CAPTION_CONSUMERS = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "menus" / "Action.qml",
     ROOT / "prismqml" / "PrismQML" / "navigation" / "NavigationBarItem.qml",
-    ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "DataWidgetCore.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "_internal"
+    / "DataWidgetContent.qml",
     ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Badge" / "Badge.qml",
     ROOT / "examples" / "pages" / "MenuPage.qml",
 )

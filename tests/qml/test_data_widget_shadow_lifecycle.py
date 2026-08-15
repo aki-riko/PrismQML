@@ -180,6 +180,6 @@ def test_data_widget_default_shadow_process_exit_has_no_teardown_warning():
     assert result.returncode == 0, output
     assert "Unable to assign [undefined] to QColor" not in output
     assert not re.search(
-        r"DataWidgetCore\.qml:\d+:\d+:\s+\[QtContext\]",
+        r"DataWidget(?:Core|Content)\.qml:\d+:\d+:\s+\[QtContext\]",
         output,
     ), output

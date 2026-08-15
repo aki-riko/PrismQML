@@ -83,6 +83,33 @@ def test_login_window_keeps_visual_content_modularized():
     assert 'objectName: "loginModeToggleArea"' not in source
 
 
+def test_data_widget_core_keeps_visual_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/DataWidgetCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/_internal/DataWidgetContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 500
+    assert 'import "_internal"' in source
+    assert "DataWidgetContent {" in source
+    assert "required property var dataControl" in helper_source
+    assert "property alias listView: listView" in helper_source
+    assert "property alias scrollViewportState: scrollViewportState" in helper_source
+    assert "contentLayer.needsVerticalScrollBar" in source
+    assert "function createHorizontalScrollMixin()" in helper_source
+    assert "horizontalScrollMixinComponent.createObject(contentArea)" in helper_source
+    assert "contentLayer.createHorizontalScrollMixin()" in source
+    assert "RectangularShadow {" not in source
+    assert "QtQ.ListView {" not in source
+    assert "HorizontalScrollMixin {" not in source
+
+
 def test_navigation_window_core_keeps_orchestration_modularized():
     entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
     loading = _source(

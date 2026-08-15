@@ -8,8 +8,14 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA_WIDGET = (
-    ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "DataWidgetCore.qml"
+DATA_WIDGET_CONTENT = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "data"
+    / "_internal"
+    / "DataWidgetContent.qml"
 )
 DATE_TIME_PICKER = (
     ROOT
@@ -29,9 +35,9 @@ def _section(path: Path, start: str, end: str) -> str:
 
 def test_data_widget_skeleton_delegate_guards_parent_teardown():
     """A destroyed Column may clear a live Repeater delegate parent. 销毁列时委托父项可先置空。"""
-    section = _section(DATA_WIDGET, "// Loading skeleton", "// Footer")
+    section = _section(DATA_WIDGET_CONTENT, "// Loading skeleton", "// Footer")
 
-    assert "model: root.loading ? Math.min(" in section
+    assert "model: control.loading ? Math.min(" in section
     assert "width: parent ? parent.width : 0" in section
     assert "width: parent.width" not in section
 

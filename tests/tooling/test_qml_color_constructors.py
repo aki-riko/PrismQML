@@ -20,6 +20,9 @@ DATA_PATHS = (
 )
 REMEDIATED_TARGETS = (
     PurePosixPath("prismqml/PrismQML/controls/data/DataWidgetCore.qml"),
+    PurePosixPath(
+        "prismqml/PrismQML/controls/data/_internal/DataWidgetContent.qml"
+    ),
 )
 
 

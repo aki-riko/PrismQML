@@ -85,7 +85,7 @@ HOVER_POLICY_COUNTS = {
     "controls/data/FlipView/PipsPagerCore.qml": 2,
     "controls/data/Chart/_internal/BarChartBar.qml": 1,
     "controls/inputs/Toggle/ToggleCheckIndicator.qml": 2,
-    "controls/data/DataWidgetCore.qml": 2,
+    "controls/data/_internal/DataWidgetContent.qml": 2,
     "controls/inputs/Toggle/ToggleRadioIndicator.qml": 2,
 }
 
