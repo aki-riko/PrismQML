@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # PyPI 分发名为 prismqml(pip install prismqml);导入名 prismqml(import prismqml)
 name = "prismqml"
-version = "0.4.0.2"
+version = "0.4.0.3"
 description = "A pure QML multi-skin component engine (Fluent Design + Neobrutalism + Vintage Ticket) with 120fps+ smooth animations"
 readme = "README.md"
 license = {file = "LICENSE"}
