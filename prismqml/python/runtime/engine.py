@@ -25,6 +25,16 @@ def is_published_qml_engine(engine: QQmlApplicationEngine) -> bool:
     return EngineManager._engine is engine
 
 
+def get_published_qml_engine() -> QQmlApplicationEngine:
+    """Return the published QML engine. 获取已发布的 QML 引擎。"""
+    return EngineManager.get_engine()
+
+
+def register_qml_engine_binding(engine: QQmlApplicationEngine, binding) -> None:
+    """Keep one binding alive with the QML engine. 保活引擎绑定对象。"""
+    EngineManager.register_engine_binding(engine, binding)
+
+
 def release_qml_engine_bindings(
     engine: QQmlApplicationEngine, *, include_lazy: bool = True
 ) -> None:

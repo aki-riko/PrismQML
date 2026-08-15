@@ -50,6 +50,24 @@ def test_engine_lifecycle_ports_delegate_to_engine_manager(monkeypatch):
     assert calls == [("release", engine, False), "reset"]
 
 
+def test_engine_access_ports_delegate_to_engine_manager(monkeypatch):
+    engine = object()
+    binding = object()
+    calls = []
+    manager = SimpleNamespace(
+        get_engine=lambda: calls.append("get") or engine,
+        register_engine_binding=lambda value, item: calls.append(
+            ("register", value, item)
+        ),
+    )
+    monkeypatch.setattr(runtime_engine, "EngineManager", manager)
+
+    assert runtime_engine.get_published_qml_engine() is engine
+    runtime_engine.register_qml_engine_binding(engine, binding)
+
+    assert calls == ["get", ("register", engine, binding)]
+
+
 def test_get_or_create_qml_engine_creates_and_publishes_missing_engine(
     monkeypatch,
 ):

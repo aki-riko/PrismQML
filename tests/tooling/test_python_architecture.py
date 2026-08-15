@@ -359,6 +359,8 @@ def test_qml_engine_composition_has_one_runtime_owner():
         "create_qml_engine",
         "publish_qml_engine",
         "is_published_qml_engine",
+        "get_published_qml_engine",
+        "register_qml_engine_binding",
         "release_qml_engine_bindings",
         "reset_qml_engine",
         "get_or_create_qml_engine",
@@ -398,6 +400,16 @@ def test_qml_engine_composition_has_one_runtime_owner():
                 )
 
     assert violations == []
+
+    window_engine_violations = []
+    for path in sorted(WINDOW_PACKAGE.rglob("*.py")):
+        for name in ("get_engine", "register_engine_binding"):
+            for line in _attribute_function_calls(path, "EngineManager", name):
+                window_engine_violations.append(
+                    f"{path.relative_to(REPO_ROOT)}:{line}: "
+                    f"EngineManager.{name}()"
+                )
+    assert window_engine_violations == []
 
 
 def test_application_startup_composition_has_one_runtime_owner():

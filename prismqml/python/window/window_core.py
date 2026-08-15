@@ -41,7 +41,6 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtGui import QGuiApplication, QIcon
 
-from ..core.engine import EngineManager
 from ..core.logger import warning, exception, debug
 
 # ==================== 窗口类型枚举 ====================

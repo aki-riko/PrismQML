@@ -15,6 +15,8 @@ __all__ = [
     "create_qml_engine",
     "publish_qml_engine",
     "is_published_qml_engine",
+    "get_published_qml_engine",
+    "register_qml_engine_binding",
     "release_qml_engine_bindings",
     "reset_qml_engine",
     "get_or_create_qml_engine",
@@ -42,6 +44,11 @@ _LAZY_EXPORTS = {
     "create_qml_engine": (".engine", "create_qml_engine"),
     "publish_qml_engine": (".engine", "publish_qml_engine"),
     "is_published_qml_engine": (".engine", "is_published_qml_engine"),
+    "get_published_qml_engine": (".engine", "get_published_qml_engine"),
+    "register_qml_engine_binding": (
+        ".engine",
+        "register_qml_engine_binding",
+    ),
     "release_qml_engine_bindings": (
         ".engine",
         "release_qml_engine_bindings",

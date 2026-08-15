@@ -12,7 +12,6 @@ from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
-from ..core.engine import EngineManager
 from ..core.logger import error
 from ..core.utils import qml_path
 
@@ -80,7 +79,9 @@ class AsyncQmlPage(QObject):
             raise RuntimeError("AsyncQmlPage host rejected loadRequested")
 
     def _create_host(self) -> None:
-        engine = EngineManager.get_engine()
+        from ..runtime import get_published_qml_engine
+
+        engine = get_published_qml_engine()
         host_url = QUrl.fromLocalFile(str(qml_path(_ASYNC_PAGE_HOST)))
         component = QQmlComponent(engine, host_url)
         self._qml_component = component

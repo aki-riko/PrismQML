@@ -34,7 +34,6 @@ from PySide6.QtQml import QQmlComponent
 from ..core.logger import info, warning, error
 from ..core.icons import Icon
 from ..core._icon_path import resolve_icon_path
-from ..core.engine import EngineManager
 from ..core.utils import qml_path
 
 
@@ -177,7 +176,9 @@ class SystemTrayIcon(QObject):
         if self._qml_menu is not None:
             return
         try:
-            self._create_qml_menu(EngineManager.get_engine())
+            from ..runtime import get_published_qml_engine
+
+            self._create_qml_menu(get_published_qml_engine())
         except RuntimeError as e:
             warning(f"QML engine not ready: {e}")
 
@@ -189,7 +190,9 @@ class SystemTrayIcon(QObject):
             QUrl.fromLocalFile(str(menu_path)),
             parent=engine,
         )
-        EngineManager.register_engine_binding(engine, self)
+        from ..runtime import register_qml_engine_binding
+
+        register_qml_engine_binding(engine, self)
         if self._component.isError():
             errors = "\n".join(error.toString() for error in self._component.errors())
             error(f"Failed to load SystemTrayMenu: {errors}")
