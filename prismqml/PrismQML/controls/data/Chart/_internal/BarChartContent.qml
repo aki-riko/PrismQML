@@ -420,89 +420,11 @@ Item {
         
         Repeater {
             model: !root.isMultiSeries && !root.isHorizontal ? root.chartData : []
-            
-            Item {
-                id: verticalBarItem
-
-                property bool hovered: root.hoveredIndex === index
-                property real barValue: modelData && modelData.value !== undefined ? modelData.value : 0
-                property bool isPositiveValue: root.isPositive(barValue)
-                property real barRatio: root.getBarRatio(barValue)
-                property real zeroY: root.zeroLineRatio * height
-
-                width: (verticalBarRow.width - verticalBarRow.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
-                height: verticalBarRow.height
-
-                // Fluent Design: simple bar with rounded top corners 简洁柱子+顶部圆角
-                Canvas {
-                    id: verticalBarRect
-
-                    property color barColor: root.getColor(index)
-                    property bool barHovered: verticalBarItem.hovered
-
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.min(parent.width * 0.7, Enums.spacing.xxxl)
-                    y: verticalBarItem.isPositiveValue ? verticalBarItem.zeroY - height : verticalBarItem.zeroY
-                    height: root.animated ? 0 : verticalBarItem.barRatio * parent.height
-                    
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        if (height <= 0) return
-                        
-                        var r = Math.min(Enums.radius.small, width / 2, height / 2)
-                        
-                        // Fluent Design: solid color with subtle hover lightening 纯色+微妙悬停变亮
-                        ctx.fillStyle = barHovered ? Qt.lighter(barColor, 1.1) : barColor
-                        
-                        // Draw rounded rect (top corners only) 绘制圆角矩形（仅顶部圆角）
-                        ctx.beginPath()
-                        ctx.moveTo(r, 0)
-                        ctx.lineTo(width - r, 0)
-                        ctx.arcTo(width, 0, width, r, r)
-                        ctx.lineTo(width, height)
-                        ctx.lineTo(0, height)
-                        ctx.lineTo(0, r)
-                        ctx.arcTo(0, 0, r, 0, r)
-                        ctx.closePath()
-                        ctx.fill()
-                    }
-                    
-                    onBarColorChanged: requestPaint()
-                    onBarHoveredChanged: requestPaint()
-                    onHeightChanged: requestPaint()
-                    
-                    Behavior on height {
-                        enabled: root.animated
-                        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutQuint }
-                    }
-                    
-                    Component.onCompleted: {
-                        if (root.animated) height = verticalBarItem.barRatio * parent.height
-                    }
-                }
-                
-                Label {
-                    type: Enums.label.type_caption
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: verticalBarItem.isPositiveValue ? verticalBarRect.y - height - Enums.spacing.xs : verticalBarRect.y + verticalBarRect.height + Enums.spacing.xs
-                    text: verticalBarItem.barValue
-                    font.weight: verticalBarItem.hovered ? Font.DemiBold : Font.Normal
-                    color: verticalBarItem.hovered ? Enums.textColor.primary : Enums.textColor.secondary
-                    visible: root.showValues
-                    HoverBehavior on color {
-                        active: verticalBarItem.hovered
-                        enterDuration: Enums.duration.fast
-                    }
-                }
-                
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onEntered: root.barHovered(index)
-                    onExited: root.barHovered(-1)
-                    onClicked: root.barClicked(index, modelData)
-                }
+            BarChartBar {
+                chart: root
+                horizontal: false
+                onBarHovered: root.barHovered(index)
+                onBarClicked: (clickedIndex, data) => root.barClicked(clickedIndex, data)
             }
         }
     }
@@ -516,123 +438,11 @@ Item {
         
         Repeater {
             model: !root.isMultiSeries && root.isHorizontal ? root.chartData : []
-            
-            Item {
-                id: horizontalBarItem
-
-                property bool hovered: root.hoveredIndex === index
-                property real barValue: modelData && modelData.value !== undefined ? modelData.value : 0
-                property bool isPositiveValue: root.isPositive(barValue)
-                property real barRatio: root.getBarRatio(barValue)
-                property real zeroX: {
-                    var range = root.valueRange
-                    if (!range.hasNegative) return 0
-                    if (!range.hasPositive) return width
-                    return Math.abs(range.min) / (range.max - range.min) * width
-                }
-
-                width: horizontalBarColumn.width
-                height: (horizontalBarColumn.height - horizontalBarColumn.spacing * (root.chartData.length - 1)) / Math.max(root.chartData.length, 1)
-
-                // Fluent Design: simple horizontal bar 简洁水平柱子
-                Canvas {
-                    id: horizontalBarRect
-
-                    property color barColor: root.getColor(index)
-                    property bool barHovered: horizontalBarItem.hovered
-                    property bool isPositive: horizontalBarItem.isPositiveValue
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: Math.min(parent.height * 0.7, Enums.spacing.xxl)
-                    x: horizontalBarItem.isPositiveValue ? horizontalBarItem.zeroX : horizontalBarItem.zeroX - width
-                    width: root.animated ? 0 : horizontalBarItem.barRatio * parent.width
-                    
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.clearRect(0, 0, width, height)
-                        if (width <= 0) return
-                        
-                        var r = Math.min(Enums.radius.small, width / 2, height / 2)
-                        
-                        // Fluent Design: solid color with subtle hover lightening 纯色+微妙悬停变亮
-                        ctx.fillStyle = barHovered ? Qt.lighter(barColor, 1.1) : barColor
-                        
-                        // Horizontal gradient fill 水平渐变填充
-                        var gradient = ctx.createLinearGradient(0, 0, width, 0)
-                        if (isPositive) {
-                            gradient.addColorStop(0, barHovered ? Qt.lighter(barColor, 1.05) : barColor)
-                            gradient.addColorStop(1, barHovered ? Qt.lighter(barColor, 1.2) : Qt.lighter(barColor, 1.1))
-                        } else {
-                            gradient.addColorStop(0, barHovered ? Qt.lighter(barColor, 1.2) : Qt.lighter(barColor, 1.1))
-                            gradient.addColorStop(1, barHovered ? Qt.lighter(barColor, 1.05) : barColor)
-                        }
-                        ctx.fillStyle = gradient
-                        
-                        // Draw rounded rect (end corners only) 绘制圆角矩形（仅末端圆角）
-                        ctx.beginPath()
-                        if (isPositive) {
-                            // Right end rounded 右端圆角
-                            ctx.moveTo(0, 0)
-                            ctx.lineTo(width - r, 0)
-                            ctx.arcTo(width, 0, width, r, r)
-                            ctx.lineTo(width, height - r)
-                            ctx.arcTo(width, height, width - r, height, r)
-                            ctx.lineTo(0, height)
-                            ctx.closePath()
-                        } else {
-                            // Left end rounded 左端圆角
-                            ctx.moveTo(r, 0)
-                            ctx.lineTo(width, 0)
-                            ctx.lineTo(width, height)
-                            ctx.lineTo(r, height)
-                            ctx.arcTo(0, height, 0, height - r, r)
-                            ctx.lineTo(0, r)
-                            ctx.arcTo(0, 0, r, 0, r)
-                            ctx.closePath()
-                        }
-                        ctx.fill()
-                    }
-                    
-                    onBarColorChanged: requestPaint()
-                    onBarHoveredChanged: requestPaint()
-                    onWidthChanged: requestPaint()
-                    
-                    Behavior on width {
-                        enabled: root.animated
-                        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutQuint }
-                    }
-                    
-                    Component.onCompleted: {
-                        if (root.animated) {
-                            // Defer until layout is complete 延迟到布局完成后执行
-                            Qt.callLater(function() {
-                                horizontalBarRect.width = horizontalBarItem.barRatio * horizontalBarItem.width
-                            })
-                        }
-                    }
-                }
-                
-                Label {
-                    type: Enums.label.type_caption
-                    anchors.verticalCenter: parent.verticalCenter
-                    x: horizontalBarItem.isPositiveValue ? horizontalBarRect.x + horizontalBarRect.width + Enums.spacing.xs : horizontalBarRect.x - width - Enums.spacing.xs
-                    text: horizontalBarItem.barValue
-                    font.weight: horizontalBarItem.hovered ? Font.DemiBold : Font.Normal
-                    color: horizontalBarItem.hovered ? Enums.textColor.primary : Enums.textColor.secondary
-                    visible: root.showValues
-                    HoverBehavior on color {
-                        active: horizontalBarItem.hovered
-                        enterDuration: Enums.duration.fast
-                    }
-                }
-                
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onEntered: root.barHovered(index)
-                    onExited: root.barHovered(-1)
-                    onClicked: root.barClicked(index, modelData)
-                }
+            BarChartBar {
+                chart: root
+                horizontal: true
+                onBarHovered: root.barHovered(index)
+                onBarClicked: (clickedIndex, data) => root.barClicked(clickedIndex, data)
             }
         }
     }

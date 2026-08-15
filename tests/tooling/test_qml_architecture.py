@@ -96,3 +96,17 @@ def test_tab_widget_keeps_tab_delegate_modularized():
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
     assert "TabItem {" in entry.read_text(encoding="utf-8")
+
+
+def test_bar_chart_keeps_single_series_delegate_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/BarChartContent.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/BarChartBar.qml"
+    )
+
+    assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
+    assert helper.exists()
+    assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+    assert entry.read_text(encoding="utf-8").count("BarChartBar {") == 2
