@@ -8,8 +8,11 @@
 from PySide6.QtQml import QQmlEngine
 
 from ..core.icon_provider import get_icon_provider
+from .context_registry import register_context_property
 
 
 def register_icon_provider(engine: QQmlEngine) -> None:
     """Inject the explicit Icon context property. 注入显式 Icon context 属性。"""
-    engine.rootContext().setContextProperty("Icon", get_icon_provider())
+    register_context_property(
+        engine.rootContext(), "Icon", get_icon_provider()
+    )

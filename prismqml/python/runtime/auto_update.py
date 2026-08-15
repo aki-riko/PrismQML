@@ -5,6 +5,8 @@
 
 """Application auto-update composition. 应用自动更新运行时装配。"""
 
+from .context_registry import register_context_property
+
 
 def enable_auto_update(
     owner,
@@ -31,5 +33,7 @@ def enable_auto_update(
         install_strategy=install_strategy,
     )
     owner._updater.set_require_artifact_digest(True)
-    owner._engine.rootContext().setContextProperty("appUpdater", owner._updater)
+    register_context_property(
+        owner._engine.rootContext(), "appUpdater", owner._updater
+    )
     return owner._updater

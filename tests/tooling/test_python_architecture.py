@@ -233,6 +233,9 @@ def test_icon_context_registration_has_one_composition_owner():
     root_exports = _lazy_exports(root_init)
     core_exports = _lazy_exports(core_init)
     runtime_exports = _lazy_exports(runtime_init)
+    icon_registry_imports = {
+        target for _line, target in _resolved_imports(runtime_icon_registry)
+    }
 
     assert root_exports["register_icon_provider"] == (
         ".python.runtime",
@@ -251,7 +254,11 @@ def test_icon_context_registration_has_one_composition_owner():
     assert ("setContextProperty", "Icon") not in {
         (method, name) for _line, method, name in core_icon_calls
     }
-    assert ("setContextProperty", "Icon") in {
+    assert (
+        "prismqml.python.runtime.context_registry.register_context_property"
+        in icon_registry_imports
+    )
+    assert ("setContextProperty", "Icon") not in {
         (method, name)
         for _line, method, name in _literal_method_calls(runtime_icon_registry)
     }
@@ -263,6 +270,9 @@ def test_app_updater_composition_has_one_runtime_owner():
     runtime_auto_update = PYTHON_PACKAGE / "runtime" / "auto_update.py"
     runtime_exports = _lazy_exports(runtime_init)
     app_imports = {target for _line, target in _resolved_imports(app_path)}
+    auto_update_imports = {
+        target for _line, target in _resolved_imports(runtime_auto_update)
+    }
 
     assert runtime_exports["enable_auto_update"] == (
         ".auto_update",
@@ -278,7 +288,11 @@ def test_app_updater_composition_has_one_runtime_owner():
         for _line, method, name in _literal_method_calls(path)
     }
     assert ("setContextProperty", "appUpdater") not in window_calls
-    assert ("setContextProperty", "appUpdater") in {
+    assert (
+        "prismqml.python.runtime.context_registry.register_context_property"
+        in auto_update_imports
+    )
+    assert ("setContextProperty", "appUpdater") not in {
         (method, name)
         for _line, method, name in _literal_method_calls(runtime_auto_update)
     }
