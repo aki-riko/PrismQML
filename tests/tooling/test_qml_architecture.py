@@ -285,6 +285,29 @@ def test_chart_view_keeps_render_layer_modularized():
         ) in source
 
 
+def test_settings_card_keeps_render_layer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/settings/SettingsCard/SettingsCard.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/settings/SettingsCard/_internal/"
+        "SettingsCardRenderLayer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 500
+    assert 'import "_internal"' in source
+    assert "SettingsCardRenderLayer {" in source
+    assert "required property var cardControl" in helper_source
+    assert "property alias cardLoader: cardLoader" in helper_source
+    assert "readonly property var control: cardControl" in helper_source
+    assert "Component {" not in source
+    assert "FolderDialog {" not in source
+
+
 def test_chat_message_list_keeps_slot_delegate_modularized():
     entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
     helper = _source(
