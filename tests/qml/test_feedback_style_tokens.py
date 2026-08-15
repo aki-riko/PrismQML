@@ -373,7 +373,7 @@ def test_splash_finish_exits_without_waiting_for_an_intro(qapp):
         assert splash.property("visible") is True
         assert splash.property("opacity") > 0.1
 
-        _pump(520)
+        _pump(root.property("splashRevealDuration") + 50)
         assert splash.property("visible") is False
     finally:
         root.deleteLater()
@@ -459,7 +459,7 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert frame.pixelColor(frame.width() // 2, frame.height() // 2) == underlying_color
         assert frame.pixelColor(8, frame.height() - 8) != underlying_color
 
-        _pump(520)
+        _pump(root.property("splashRevealDuration") + 50)
         assert splash.property("visible") is False
         assert QQmlProperty(splash, "layer.enabled").read() is False
     finally:
