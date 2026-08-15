@@ -6,6 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
+import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -79,6 +80,16 @@ def _descendants(root: QObject) -> list[QObject]:
         child = pending.pop()
         result.append(child)
         pending.extend(child.children())
+    return result
+
+
+def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
+    result = []
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop()
+        result.append(child)
+        pending.extend(child.childItems())
     return result
 
 
@@ -322,3 +333,36 @@ def test_tag_line_edit_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_tag_line_edit_keeps_input_on_tag_row(qapp):
+    """A generated tag and its input stay on one row when space remains. 标签生成后有空间时输入框保持同行。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, tag_input, warnings = _create_scene()
+    try:
+        tag_input.setProperty("width", 420)
+        tag_input.setProperty("maxTags", 5)
+        tag_input.setProperty("tags", ["666"])
+        _pump()
+
+        items = _visual_descendants(tag_input)
+        text_inputs = [
+            item
+            for item in items
+            if item.metaObject().className().startswith("QQuickTextInput")
+        ]
+        tag_tokens = [
+            item
+            for item in items
+            if item.metaObject().indexOfProperty("tokenIndex") >= 0
+            and item.metaObject().indexOfProperty("text") >= 0
+            and item.property("text") == "666"
+        ]
+        assert len(text_inputs) == 1
+        assert len(tag_tokens) == 1
+        assert tag_tokens[0].y() == pytest.approx(text_inputs[0].y(), abs=0.5)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
