@@ -20,9 +20,8 @@ Widget {
     property bool flat: false           // Flat style (no border) 扁平样式
     property int alignment: Qt.AlignLeft // Title alignment 标题对齐
     default property alias content: contentArea.data
-    // Title 文字下方的"边框遮盖块"颜色 — 必须与父容器底色一致, 否则断口处显出
-    // 不同色块. 默认 backgroundColor 适合主页面 (浅蓝灰), dialog 内应显式设
-    // Enums.dialogColor (白) 才不会突兀.
+    // Title mask color must match its solid parent surface. 标题遮罩色必须匹配实色父级表面。
+    // Dialog consumers should use Enums.dialogColor. 对话框调用方应使用 Enums.dialogColor。
     property color titleBgColor: Enums.backgroundColor
 
     // ==================== Readonly State 只读状态 ====================
@@ -36,6 +35,14 @@ Widget {
     }
     readonly property bool _contentEnabled: !checkable || checked
     readonly property real _titleY: _titleHeight / 2
+    readonly property real _borderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _titleGapLeft: title !== ""
+        ? Math.min(width, Math.max(0, _titleLeftMargin - Enums.spacing.xs))
+        : 0
+    readonly property real _titleGapRight: title !== ""
+        ? Math.max(_titleGapLeft, Math.min(width,
+            _titleLeftMargin + titleLoader.width + Enums.spacing.xs))
+        : 0
 
     // ==================== Signals 信号 ====================
     signal toggled(bool checked)        // Emitted when checkbox toggled 复选框切换时触发
@@ -63,25 +70,94 @@ Widget {
     // Border 边框
     Rectangle {
         id: borderRect
+        objectName: "groupBoxStandardBorder"
         anchors.fill: parent
         anchors.topMargin: control._titleY
         color: Enums.transparent
         radius: control._borderRadius
-        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
+        border.width: control._borderWidth
         border.color: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.stateColor.groupBorder
-        visible: !control.flat
+        visible: !control.flat && !Enums.isVintageTicket
     }
 
-    // Title background to cover border gap 标题背景遮盖边框缺口
-    // height 必须 = _titleHeight 完全覆盖 title 全部高度, 否则边框线 (在 _titleY
-    // 处) 会从 title 文字下半部分穿过, 用户看到的"断口"
+    // Title background covers the border gap for solid-background skins.
+    // 实色背景皮肤用标题遮罩覆盖边框缺口，复古票据改用真实断开的顶边。
     Rectangle {
-        visible: control.title !== "" && !control.flat
+        id: titleBackground
+        objectName: "groupBoxTitleBackground"
+        visible: control.title !== "" && !control.flat && !Enums.isVintageTicket
         x: control._titleLeftMargin - Enums.spacing.xs
         y: 0
         width: titleLoader.width + Enums.spacing.xs * 2
         height: control._titleHeight
         color: control.titleBgColor
+    }
+
+    // Vintage ticket border leaves the title gap open so parent paper remains visible.
+    // 复古票据边框在标题处真实断开，让父级纸纹自然透出。
+    Item {
+        id: ticketBorder
+
+        readonly property real lineWidth: control._borderWidth
+        readonly property color lineColor: Enums.hasOutlinedSurfaces
+            ? Enums.stateColor.border : Enums.stateColor.groupBorder
+
+        objectName: "groupBoxTicketBorder"
+        x: 0
+        y: control._titleY
+        width: parent.width
+        height: parent.height - control._titleY
+        visible: !control.flat && Enums.isVintageTicket
+
+        Rectangle {
+            id: ticketTopLeft
+            objectName: "groupBoxTicketTopLeft"
+            x: 0
+            y: 0
+            width: control._titleGapLeft
+            height: ticketBorder.lineWidth
+            color: ticketBorder.lineColor
+        }
+
+        Rectangle {
+            id: ticketTopRight
+            objectName: "groupBoxTicketTopRight"
+            x: control._titleGapRight
+            y: 0
+            width: Math.max(0, ticketBorder.width - x)
+            height: ticketBorder.lineWidth
+            color: ticketBorder.lineColor
+        }
+
+        Rectangle {
+            id: ticketLeft
+            objectName: "groupBoxTicketLeft"
+            x: 0
+            y: 0
+            width: ticketBorder.lineWidth
+            height: ticketBorder.height
+            color: ticketBorder.lineColor
+        }
+
+        Rectangle {
+            id: ticketRight
+            objectName: "groupBoxTicketRight"
+            x: ticketBorder.width - ticketBorder.lineWidth
+            y: 0
+            width: ticketBorder.lineWidth
+            height: ticketBorder.height
+            color: ticketBorder.lineColor
+        }
+
+        Rectangle {
+            id: ticketBottom
+            objectName: "groupBoxTicketBottom"
+            x: 0
+            y: ticketBorder.height - ticketBorder.lineWidth
+            width: ticketBorder.width
+            height: ticketBorder.lineWidth
+            color: ticketBorder.lineColor
+        }
     }
     
     // Title loader 标题加载器

@@ -61,6 +61,10 @@ Window {
     visible: true
     color: Enums.backgroundColor
 
+    TicketPaper {
+        anchors.fill: parent
+    }
+
     Drawer {
         id: drawer
         objectName: "ticketDrawer"
@@ -260,6 +264,39 @@ def test_ticket_large_surfaces_use_paper_and_all_elevation_is_hidden(ticket_scen
     assert all(bool(item.property("visible")) for item in papers)
     assert all(not bool(item.property("visible")) for item in soft_shadows)
     assert all(not bool(item.property("visible")) for item in neo_shadows)
+    assert warnings == []
+
+
+def test_ticket_group_box_preserves_parent_paper_through_title_gap(ticket_scene):
+    window, warnings = ticket_scene
+    group_box = window.findChild(QObject, "ticketGroupBox")
+    standard_border = group_box.findChild(QObject, "groupBoxStandardBorder")
+    ticket_border = group_box.findChild(QObject, "groupBoxTicketBorder")
+    title_background = group_box.findChild(QObject, "groupBoxTitleBackground")
+    top_left = group_box.findChild(QObject, "groupBoxTicketTopLeft")
+    top_right = group_box.findChild(QObject, "groupBoxTicketTopRight")
+
+    assert all(
+        item is not None
+        for item in (
+            standard_border,
+            ticket_border,
+            title_background,
+            top_left,
+            top_right,
+        )
+    )
+    assert not bool(standard_border.property("visible"))
+    assert bool(ticket_border.property("visible"))
+    assert not bool(title_background.property("visible"))
+    assert top_left.property("width") > 0
+    assert top_right.property("width") > 0
+    assert top_left.property("x") + top_left.property("width") == pytest.approx(
+        title_background.property("x")
+    )
+    assert top_right.property("x") == pytest.approx(
+        title_background.property("x") + title_background.property("width")
+    )
     assert warnings == []
 
 
