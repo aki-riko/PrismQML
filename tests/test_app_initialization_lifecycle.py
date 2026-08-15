@@ -24,13 +24,13 @@ prepare_automated_test_process()
 import os
 import shiboken6
 from PySide6.QtWidgets import QApplication
-import prismqml.python.core as core
 import prismqml.python.core.input_focus_filter as focus_filter
 import prismqml.python.core.shadow as shadow
+import prismqml.python.runtime as runtime
 from prismqml import App
 from prismqml.python.core.engine import EngineManager
 
-original_register_types = core.register_types
+original_register_types = runtime.register_types
 os.environ["QML_XHR_ALLOW_FILE_READ"] = "0"
 failures = [RuntimeError("runtime"), KeyboardInterrupt(), SystemExit(7)]
 
@@ -38,7 +38,7 @@ for failure in failures:
     def fail_register(_engine, failure=failure):
         raise failure
 
-    core.register_types = fail_register
+    runtime.register_types = fail_register
     caught = None
     try:
         App([])
@@ -52,7 +52,7 @@ for failure in failures:
     assert shadow._dwm_sync_filter is None
     assert os.environ["QML_XHR_ALLOW_FILE_READ"] == "0"
 
-core.register_types = original_register_types
+runtime.register_types = original_register_types
 app = App([])
 assert App.instance() is app
 assert QApplication.instance() is app.qapp

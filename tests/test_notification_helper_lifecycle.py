@@ -11,7 +11,7 @@ from PySide6.QtQml import QQmlApplicationEngine, qmlEngine
 
 from prismqml.python.core import notification
 from prismqml.python.core.engine import EngineManager
-from prismqml.python.core.utils import register_types
+from prismqml import register_types
 
 
 _QT_FAILURE_TYPES = {

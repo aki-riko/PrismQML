@@ -30,7 +30,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from prismqml.python.core.incubation import (  # noqa: E402
     PrismIncubationController, install_incubation_controller)
-from prismqml.python.core.utils import register_types  # noqa: E402
+from prismqml import register_types  # noqa: E402
 
 
 def pump(ms):

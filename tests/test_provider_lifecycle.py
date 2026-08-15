@@ -26,7 +26,7 @@ from prismqml.python.providers._qrcode_protocol import create_request, encode_pr
 from prismqml.python.providers.lazy_context import LazyQRCodeGenerator
 from prismqml.python.providers.svg_provider import get_svg_provider
 from prismqml.python.core.engine import EngineManager
-from prismqml.python.core.utils import register_types
+from prismqml import register_types
 from prismqml.python.window.mica_window import get_acrylic_helper
 
 

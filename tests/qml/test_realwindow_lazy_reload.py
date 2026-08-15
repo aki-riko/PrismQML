@@ -30,7 +30,7 @@ from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
 PKG_ROOT = Path(__file__).resolve().parents[2] / "prismqml"
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from prismqml.python.core.utils import register_types  # noqa: E402
+from prismqml import register_types  # noqa: E402
 
 PAGES_DIR = Path(__file__).resolve().parents[2] / "examples" / "pages"
 _configured_artifact_root = os.environ.get("PRISM_ARTIFACT_ROOT")

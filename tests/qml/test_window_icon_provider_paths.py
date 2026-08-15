@@ -25,7 +25,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickImageProvider
 
 from prismqml.python.core._icon_path import resolve_provider_path
-from prismqml.python.core.utils import register_types
+from prismqml import register_types
 from prismqml.python.providers.svg_provider import SvgImageProvider
 
 

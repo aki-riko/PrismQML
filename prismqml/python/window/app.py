@@ -99,8 +99,8 @@ def _create_qt_application(owner, argv: List[str]) -> None:
 
 def _create_qml_engine(owner) -> None:
     """Create and fully register the QML engine. 创建并完整注册 QML 引擎。"""
-    from ..core import register_types
     from ..core.incubation import install_default_incubation_controller
+    from ..runtime import register_types
 
     owner._engine = QQmlApplicationEngine()
     owner._engine_publish_started = True

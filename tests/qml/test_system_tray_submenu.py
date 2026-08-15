@@ -11,7 +11,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from PySide6.QtQml import QQmlApplicationEngine, QQmlExpression
 
 from prismqml.python.core.engine import EngineManager
-from prismqml.python.core.utils import register_types
+from prismqml import register_types
 from prismqml.python.window.system_tray import SystemTrayIcon
 
 

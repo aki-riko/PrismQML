@@ -10,8 +10,7 @@ from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml.python.core import register_types
-from prismqml.python.core.theme import Skin, Theme, getSkin, getTheme, setSkin, setTheme
+from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
 
 
 QML_SOURCE = b"""

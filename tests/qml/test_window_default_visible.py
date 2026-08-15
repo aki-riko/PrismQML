@@ -17,7 +17,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtWidgets import QApplication
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from prismqml.python.core.utils import register_types  # noqa: E402
+from prismqml import register_types  # noqa: E402
 
 
 def pump(ms: int):

@@ -38,7 +38,6 @@ __all__ = [
     # Utils
     "qml_path",
     "configure_qml_environment",
-    "register_types",
     "init_style",
     "EngineManager",
     "PrismIncubationController",
@@ -121,7 +120,6 @@ _LAZY_EXPORTS = {
     # Utils
     "qml_path": (".utils", "qml_path"),
     "configure_qml_environment": (".utils", "configure_qml_environment"),
-    "register_types": (".utils", "register_types"),
     "init_style": (".utils", "init_style"),
     "EngineManager": (".engine", "EngineManager"),
     "PrismIncubationController": (".incubation", "PrismIncubationController"),

@@ -13,10 +13,33 @@ PrismQML 主题系统
 """
 
 from enum import Enum
+import re
+from typing import Callable, Optional
+
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from PySide6.QtGui import QColor
 
 from .logger import debug
+
+
+_HEX_COLOR_PATTERN = re.compile(
+    r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?"
+)
+_appearance_persistence: Optional[Callable[[str, str], None]] = None
+
+
+def _bind_appearance_persistence(callback: Callable[[str, str], None]) -> None:
+    """Bind the outer persistence port. 绑定外层持久化端口。"""
+    global _appearance_persistence
+    _appearance_persistence = callback
+
+
+def _request_appearance_persistence(field: str, value: str) -> bool:
+    """Forward a mutation when persistence is installed. 持久化已装配时转发修改。"""
+    if _appearance_persistence is None:
+        return False
+    _appearance_persistence(field, value)
+    return True
 
 
 class Theme(Enum):
@@ -128,9 +151,8 @@ class ThemeManager(QObject):
         """立即设置主题并在后台持久化。"""
         if not isinstance(theme, Theme):
             raise TypeError("theme must be a Theme")
-        from ..config import getConfigManager
-
-        getConfigManager().setTheme(theme.value)
+        if not _request_appearance_persistence("theme", theme.value):
+            self._apply_theme(theme)
 
     def _apply_theme(self, theme: Theme):
         """Apply committed runtime state without scheduling persistence."""
@@ -178,9 +200,8 @@ class ThemeManager(QObject):
         """立即设置皮肤并在后台持久化。"""
         if not isinstance(skin, Skin):
             raise TypeError("skin must be a Skin")
-        from ..config import getConfigManager
-
-        getConfigManager().setSkin(skin.value)
+        if not _request_appearance_persistence("skin", skin.value):
+            self._apply_skin(skin)
 
     def _apply_skin(self, skin: Skin):
         """Apply committed runtime state without scheduling persistence."""
@@ -328,12 +349,10 @@ class ThemeManager(QObject):
         Args:
             color: HEX颜色值，如 "#0078d4" 或 "#107c10"
         """
-        from ..config import getConfigManager
-
-        manager = getConfigManager()
-        if not manager.cfg.accent_color.validator.accepts(color):
+        if not isinstance(color, str) or _HEX_COLOR_PATTERN.fullmatch(color) is None:
             raise ValueError(f"无效的颜色格式: {color}，请使用HEX格式如 #0078d4")
-        manager.setAccentColor(color)
+        if not _request_appearance_persistence("accent_color", color):
+            self._apply_accent_color(color)
 
     def _apply_accent_color(self, color: str):
         """Apply a validated persisted accent without writing it again."""
