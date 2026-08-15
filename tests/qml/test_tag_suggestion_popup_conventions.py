@@ -335,14 +335,15 @@ def test_tag_line_edit_source_conventions():
     ] == []
 
 
-def test_tag_line_edit_keeps_input_on_tag_row(qapp):
-    """A generated tag and its input stay on one row when space remains. 标签生成后有空间时输入框保持同行。"""
+@pytest.mark.parametrize("tags", [["666"], ["300", "600"]])
+def test_tag_line_edit_keeps_input_on_tag_row(qapp, tags):
+    """Generated tags and their input stay on one row when space remains. 有空间时标签和输入框保持同行。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, tag_input, warnings = _create_scene()
     try:
-        tag_input.setProperty("width", 420)
+        tag_input.setProperty("width", 280)
         tag_input.setProperty("maxTags", 5)
-        tag_input.setProperty("tags", ["666"])
+        tag_input.setProperty("tags", tags)
         _pump()
 
         items = _visual_descendants(tag_input)
@@ -356,11 +357,19 @@ def test_tag_line_edit_keeps_input_on_tag_row(qapp):
             for item in items
             if item.metaObject().indexOfProperty("tokenIndex") >= 0
             and item.metaObject().indexOfProperty("text") >= 0
-            and item.property("text") == "666"
+            and item.property("text") in set(tags)
         ]
         assert len(text_inputs) == 1
-        assert len(tag_tokens) == 1
-        assert tag_tokens[0].y() == pytest.approx(text_inputs[0].y(), abs=0.5)
+        assert len(tag_tokens) == len(tags)
+        geometry = {
+            "flowWidth": text_inputs[0].parentItem().width(),
+            "tags": [(item.x(), item.y(), item.width()) for item in tag_tokens],
+            "input": (text_inputs[0].x(), text_inputs[0].y(), text_inputs[0].width()),
+        }
+        assert all(
+            token.y() == pytest.approx(text_inputs[0].y(), abs=0.5)
+            for token in tag_tokens
+        ), geometry
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

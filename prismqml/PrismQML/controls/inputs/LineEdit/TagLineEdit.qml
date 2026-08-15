@@ -62,15 +62,6 @@ InputCore {
     }
     readonly property bool _showSuggestions: _filteredItems.length > 0 && inputField.activeFocus
     readonly property string _countText: maxTags > 0 ? _safeTags.length + "/" + maxTags : ""
-    // Width consumed by existing tags and their internal Flow gaps 已有标签及其内部 Flow 间距占用的宽度
-    readonly property real _tagContentWidth: {
-        var total = 0
-        for (var i = 0; i < tagsRepeater.count; i++) {
-            var tag = tagsRepeater.itemAt(i)
-            if (tag) total += tag.width
-        }
-        return total + Math.max(0, tagsRepeater.count - 1) * tagsFlow.spacing
-    }
 
     // ==================== Signals 信号 ====================
     signal tagAdded(string tag)
@@ -190,13 +181,14 @@ InputCore {
         // Input field 输入框
         TextInput {
             id: inputField
-            // Use the remaining Flow width so tags and input share a row until it is full.
-            // 按 Flow 剩余宽度计算输入框，让标签与输入框在空间足够时保持同行。
-            width: Math.max(
-                120,
-                tagsFlow.width - control._tagContentWidth
-                    - (tagsRepeater.count > 0 ? tagsFlow.spacing : 0)
-            )
+            // Fill the row before the first tag, then grow from a caret-sized slot with the text.
+            // 首个标签生成前占满整行；生成后从光标宽度起随输入文本增长。
+            width: control._safeTags.length === 0
+                ? tagsFlow.width
+                : Math.min(
+                    tagsFlow.width,
+                    Math.max(Enums.spacing.xl, contentWidth + Enums.spacing.m)
+                )
             height: Enums.spacing.xxxl
             font.family: Enums.fontFamily
             font.pixelSize: control.fontSize
