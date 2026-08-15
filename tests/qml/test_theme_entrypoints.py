@@ -128,7 +128,7 @@ Label {
             enum_values = enum_values.toVariant()
         assert list(enum_values) == list(range(9))
         assert instance.property("type") == 0
-        assert instance.property("underlineOnHover") is False
+        assert instance.property("underlineOnHover") is True
         hyperlink_loader = next(
             child
             for child in instance.childItems()
@@ -140,12 +140,12 @@ Label {
             assert instance.property("type") == label_type
             assert instance.property("_fontSize") > 0
             hyperlink = label_type == 8
-            assert instance.property("font").underline() is hyperlink
+            assert instance.property("font").underline() is False
             assert hyperlink_loader.property("active") is hyperlink
             assert (hyperlink_loader.property("item") is not None) is hyperlink
 
-        assert instance.setProperty("underlineOnHover", True)
-        assert instance.property("font").underline() is False
+        assert instance.setProperty("underlineOnHover", False)
+        assert instance.property("font").underline() is True
 
         assert "_type_" not in LABEL_SOURCE.read_text(encoding="utf-8")
     finally:

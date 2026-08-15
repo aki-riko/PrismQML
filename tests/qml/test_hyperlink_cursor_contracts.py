@@ -398,6 +398,7 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         initial_width = label.width()
         initial_height = label.height()
         assert label.property("_interactiveTextColor") == label.property("_textColor")
+        assert label.property("font").underline() is False
 
         _move_to_item(window, label, label.boundingRect().center())
         assert label.property("hovered") is True
@@ -425,6 +426,7 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         _pump()
         assert label.property("hovered") is False
         assert label.property("_interactiveTextColor") == label.property("_textColor")
+        assert label.property("font").underline() is False
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

@@ -14,7 +14,7 @@ Text {
     // ==================== Public Props 公开属性 ====================
     property int type: Enums.label.type_body  // Default body type 默认正文类型
     property url url: ""
-    property bool underlineOnHover: false  // Show only on hover when enabled 启用后仅悬停时显示下划线
+    property bool underlineOnHover: true  // Show underline only on hover by default 默认仅悬停时显示下划线
     // Custom text color 自定义文本颜色
     property color customTextColor: Enums.transparent
 
