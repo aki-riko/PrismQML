@@ -16,7 +16,7 @@ from prismqml import Skin, Theme, register_types, setSkin, setTheme
 _ROOT = Path(__file__).resolve().parents[2]
 _PIE_SOURCE = _ROOT / "prismqml/PrismQML/controls/data/Chart/_internal/PieChartContent.qml"
 _CROPPER_SOURCE = _ROOT / "prismqml/PrismQML/controls/inputs/_internal/ImageCropperContent.qml"
-_COMBO_SOURCE = _ROOT / "prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml"
+_COMBO_SOURCE = _ROOT / "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxCoreContent.qml"
 _TOGGLE_SOURCE = _ROOT / "prismqml/PrismQML/controls/inputs/Toggle/Toggle.qml"
 _PROBE_QML = b"""
 import QtQuick
@@ -91,8 +91,14 @@ def _combo_core(combo):
 
 
 def _combo_background(core):
+    content_matches = [
+        item
+        for item in core.children()
+        if item.metaObject().className().startswith("ComboBoxCoreContent")
+    ]
+    assert len(content_matches) == 1
     matches = []
-    for item in core.children():
+    for item in content_matches[0].children():
         border = QQmlProperty(item, "border.color")
         if border.isValid() and item.metaObject().className().startswith(
             "QQuickRectangle_QML_"

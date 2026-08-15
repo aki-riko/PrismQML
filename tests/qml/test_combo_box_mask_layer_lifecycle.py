@@ -29,7 +29,8 @@ SOURCE_PATH = (
     / "controls"
     / "inputs"
     / "ComboBox"
-    / "ComboBoxCore.qml"
+    / "_internal"
+    / "ComboBoxCoreContent.qml"
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "combo-box-mask-layer-lifecycle.qml")
@@ -96,9 +97,19 @@ def _image_hash(image: QImage) -> str:
     return sha256(bytes(rgba.constBits())).hexdigest()
 
 
+def _combo_content(combo: QQuickItem) -> QQuickItem:
+    matches = [
+        item
+        for item in combo.childItems()
+        if item.metaObject().className().startswith("ComboBoxCoreContent")
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _enabled_direct_layers(combo: QQuickItem) -> list[QQuickItem]:
     enabled = []
-    for item in combo.childItems():
+    for item in _combo_content(combo).childItems():
         layer_enabled = QQmlProperty(item, "layer.enabled")
         if layer_enabled.isValid() and bool(layer_enabled.read()):
             enabled.append(item)
@@ -216,6 +227,6 @@ def test_combo_box_preserves_square_and_restored_frames(qapp):
 
 
 def test_combo_box_source_keeps_mask_layer_enabled():
-    """The baseline keeps the background mask layer enabled. 基线保持背景遮罩图层启用。"""
+    """The content owner keeps the background mask layer enabled. 内容所有者保持背景遮罩图层启用。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "layer.enabled: true" in source

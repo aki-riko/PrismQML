@@ -498,6 +498,35 @@ def test_metrics_keeps_shadow_logic_modularized():
         assert f"function applyLevel{level}(target)" in helper_source
 
 
+def test_combo_box_core_keeps_visual_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxCoreContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 350
+    assert "ComboBoxCoreContent {" in source
+    assert "required property var comboControl" in helper_source
+    for alias in (
+        "editableInput",
+        "mouseArea",
+        "editableClickArea",
+        "comboTextMeasureLoader",
+        "popup",
+    ):
+        assert f"property alias {alias}:" in helper_source
+    assert "property alias _popup: comboContent.popup" in source
+    assert "layer.enabled: true" in helper_source
+    assert "PopupWindowCore {" in helper_source
+    assert "RectangularShadow {" in helper_source
+    assert "PopupWindowCore {" not in source
+    assert "layer.enabled: true" not in source
+
+
 def test_xy_chart_core_keeps_axes_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"

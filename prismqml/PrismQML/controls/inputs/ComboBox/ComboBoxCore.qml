@@ -4,16 +4,9 @@
 
 import "../../.."
 import ".."
-import "../../../effects"
-import QtQuick.Effects
-import "../../data"
-import "../../icons"
-import "../../utils"
 import "../../containers"
-import "../../menus"
 import "./_internal"
 import "./_internal/ComboBoxMethods.js" as ComboBoxMethods
-import "../_internal" as InputsInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxCore - Dropdown base class 下拉框基类
@@ -55,6 +48,11 @@ Widget {
     property var _itemEnabledMap: ({})  // {index: enabled}
     property var _methods: ComboBoxMethods
     property bool _popupContentRequested: false
+    property alias _popup: comboContent.popup
+    property alias editableInput: comboContent.editableInput
+    property alias mouseArea: comboContent.mouseArea
+    property alias editableClickArea: comboContent.editableClickArea
+    property alias comboTextMeasureLoader: comboContent.comboTextMeasureLoader
 
     // ==================== Readonly State 只读状态 ====================
     // Editable mode input focus state editable模式输入框聚焦状态
@@ -63,7 +61,7 @@ Widget {
     // Editable mode needs to check both input and arrow area hover editable模式检测两个区域
     readonly property bool hovered: mouseArea.containsMouse || (editable && editableClickArea.containsMouse)
     readonly property bool pressed: mouseArea.pressed
-    readonly property bool popupVisible: isOpen || comboPopup.isClosing
+    readonly property bool popupVisible: isOpen || _popup.isClosing
     readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
     readonly property int selectionStart: editable ? editableInput.selectionStart : 0
     readonly property int selectionEnd: editable ? editableInput.selectionEnd : 0
@@ -157,24 +155,24 @@ Widget {
         _popupContentRequested = true
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
-        comboPopup.popupWidth = Math.max(contentW, control.width)
+        _popup.popupWidth = Math.max(contentW, control.width)
         // Let PopupWindowCore add its content padding exactly once.
         // 由 PopupWindowCore 统一补入一次内容内边距。
         var itemCount = (_safeModel || []).length
         var maxContentHeight = maxVisibleItems > 0
             ? maxVisibleItems * popupItemHeight
             : Math.max(0, Enums.comboBoxMetrics.popupMaxHeight
-                - 2 * comboPopup.contentPadding)
-        comboPopup.implicitContentHeight = Math.min(
+                - 2 * _popup.contentPadding)
+        _popup.implicitContentHeight = Math.min(
             itemCount * popupItemHeight, maxContentHeight)
-        comboPopup.openAtControl(control)
+        _popup.openAtControl(control)
         isOpen = true
     }
 
     function closePopup() {
         if (!isOpen) return
         isOpen = false
-        comboPopup.close()
+        _popup.close()
     }
 
     function getCurrentIndex() { return currentIndex }
@@ -234,242 +232,8 @@ Widget {
     Component.onCompleted: _syncCurrentTextFromSelection()
 
     // ==================== Content 内容 ====================
-    // Style helper 样式辅助
-    ComboBoxStyleHelper {
-        id: styleHelper
-        control: control
-    }
-
-    // Shadow layer below background 背景下方阴影层
-    // Fluent: 模糊阴影。Neobrutalism: 硬阴影(纯黑, 展开时转橙强调)。
-    RectangularShadow {
-        anchors.fill: background
-        radius: background.radius
-        color: Enums.shadow.level2.color
-        blur: Enums.shadow.level2.blur
-        offset.x: 0
-        offset.y: Enums.shadow.level2.offset
-        visible: style === 0 && Enums.usesSoftElevation && !Enums.isNeumorphism  // Only for default style 仅默认样式
-    }
-
-    NeumorphicShadow {
-        target: background
-        inset: true
-        visible: style === 0 && Enums.isNeumorphism
-        z: background.z - 1
-    }
-
-    // Neobrutalism 硬阴影: 复用 NeoShadow 组件; 展开时 accent=true 转橙强调。
-    NeoShadow {
-        target: background
-        visible: Enums.isNeobrutalism && style === 0
-        accent: control.popupVisible
-        z: background.z - 1
-    }
-
-    // Background 背景
-    Rectangle {
-        id: background
-        anchors.fill: parent
-        radius: control.radius
-        clip: false
-
-        layer.enabled: true
-        layer.effect: OpacityMask {
-            mask: Rectangle {
-                width: background.width
-                height: background.height
-                radius: background.radius
-            }
-        }
-
-        // Fluent Design style Fluent Design样式
-        // Unified with Button/LineEdit controlBg series 与Button/LineEdit统一使用controlBg系列
-        // 颜色由 token 层在 neo 下自动返回白面/灰, 无需控件分支。
-        color: {
-            if (style !== 0) return styleHelper.getBackgroundColor()  // Other styles keep original 其他样式保持原样
-            if (!control.enabled) return Enums.stateColor.controlBgDisabled
-            if (control.popupVisible) return Enums.stateColor.controlBgPressed
-            if (control.pressed) return Enums.stateColor.controlBgPressed
-            if (control.hovered) return Enums.stateColor.controlBgHover
-            return Enums.stateColor.controlBg
-        }
-
-        // Fluent Design 边框:亮/暗主题各用低透明度描边,具体取值见 StateColor.pickerBorder
-        border.width: style !== 0 ? 0
-            : Enums.surfaceBorderWidth(Enums.border.thin)
-        border.color: Enums.isNeobrutalism && style === 0
-            ? (!control.enabled ? Enums.stateColor.comboBoxDisabledBorder
-               : (control.popupVisible ? Enums.neo.primary : Enums.neo.borderColor))
-            : (Enums.isVintageTicket && style === 0
-               ? (!control.enabled ? Enums.stateColor.borderLight
-                  : (control.popupVisible ? Enums.accentColor : Enums.borderColor))
-            : styleHelper.getBorderColor()
-            )
-
-        // Color animation (not applied during close to avoid delay) 颜色动画
-        HoverBehavior on color {
-            active: control.hovered && !control.pressed &&
-                    !control.popupVisible
-            animationEnabled: !comboPopup.isClosing
-            enterDuration: Enums.duration.fast
-        }
-    }
-    
-    // Focus accent line (ONLY for editable mode) 聚焦主题色底线(仅editable模式)
-    FocusLine {
-        showLine: !Enums.hasOutlinedSurfaces && control.editable && editableInput.activeFocus && showFocusedBorder
-        lineColor: control.focusedBorderColor
-        parentRadius: control.radius
-        visible: !Enums.hasOutlinedSurfaces && control.editable && showFocusedBorder
-    }
-    
-    
-    // Current text (non-editable mode) 当前文本
-    Label {
-        anchors.left: parent.left
-        anchors.right: arrow.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Enums.spacing.l
-        anchors.rightMargin: Enums.spacing.m
-        type: Enums.label.type_body
-        text: control.currentText !== "" ? control.currentText : control.placeholderText
-        color: styleHelper.getTextColor()
-        // 需要显式 NoWrap：type_body 默认 WordWrap 与 elide 冲突，造成窄宽下换行而不是尾部省略
-        wrapMode: Text.NoWrap
-        elide: Text.ElideRight
-        clip: true
-        visible: !control.editable && control.useDefaultContent
-    }
-    
-    // Editable input (editable mode) 可编辑输入框
-    TextInput {
-        id: editableInput
-        anchors.left: parent.left
-        anchors.right: arrow.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Enums.spacing.l
-        anchors.rightMargin: Enums.spacing.m
-        text: control.currentText
-        font.family: Enums.fontFamily
-        font.pixelSize: Enums.typography.body
-        color: styleHelper.getTextColor()
-        selectionColor: Enums.accentColor  // Connect to accent color 接入主题色
-        selectedTextColor: Enums.accentForeground
-        selectByMouse: true
-        visible: control.editable && control.useDefaultContent
-        enabled: control.enabled
-
-        onTextEdited: {
-            var editedText = text
-            if (control.currentIndex !== -1) control.currentIndex = -1
-            control.currentText = editedText
-            if (control.textEdited) control.textEdited(editedText)
-        }
-
-        InputsInternal.InputPlaceholderLabel {
-            anchors.fill: parent
-            text: control.placeholderText
-            visible: !parent.text && !parent.activeFocus
-        }
-    }
-
-    // Dropdown arrow 下拉箭头
-    ChevronIcon {
-        id: arrow
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.spacing.l
-        anchors.verticalCenter: parent.verticalCenter
-        animated: true
-        isOpen: control.isOpen
-        color: control.enabled 
-            ? (control.style === 1 ? Enums.accentForeground : Enums.textColor.secondary) 
-            : Enums.stateColor.indicatorActive
-    }
-    
-    // Interaction 交互
-    // Editable mode: only respond to arrow area clicks, let TextInput work editable模式
-    // Non-editable mode: whole area responds 非editable模式
-    MouseArea {
-        id: mouseArea
-        anchors.fill: control.editable ? undefined : parent
-        anchors.right: control.editable ? parent.right : undefined
-        anchors.top: control.editable ? parent.top : undefined
-        anchors.bottom: control.editable ? parent.bottom : undefined
-        width: control.editable ? Enums.comboBoxMetrics.arrowAreaWidth : undefined  // editable模式下只覆盖箭头区域
-        enabled: control.enabled && !comboPopup.isClosing
-        hoverEnabled: true
-        // 鼠标 hover 进入时预热 popup native window, 让随后的点击不卡 ~170ms
-        onContainsMouseChanged: {
-            if (containsMouse) {
-                control._popupContentRequested = true
-                if (comboPopup.prewarm) comboPopup.prewarm()
-            }
-        }
-        onClicked: {
-            if (control.isOpen && !comboPopup.isClosing) {
-                closePopup()
-            } else if (!control.isOpen && !comboPopup.isClosing) {
-                openPopup()
-            }
-        }
-        onWheel: (wheel) => {
-            var delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
-            control.wheelScrolled(delta)
-            wheel.accepted = control.acceptWheel
-        }
-    }
-    
-    // Editable mode: focus input area when clicked 点击输入框区域时聚焦
-    MouseArea {
-        id: editableClickArea
-        anchors.left: parent.left
-        anchors.right: mouseArea.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        visible: control.editable
-        enabled: control.enabled && control.editable
-        hoverEnabled: true
-        cursorShape: Qt.IBeamCursor
-        onClicked: editableInput.forceActiveFocus()
-    }
-
-    // Content width measurement 内容宽度测量
-    // TextMetrics to measure popup item text width 用TextMetrics测量弹出菜单项文本宽度
-    Loader {
-        id: comboTextMeasureLoader
-        active: control._popupContentRequested
-        sourceComponent: TextMetrics {
-            font.family: Enums.fontFamily
-            font.pixelSize: Enums.typography.body
-        }
-    }
-
-    // Popup window using unified base 使用统一基类的弹出窗口
-    // Expose popup for subclass access 暴露popup供子类访问
-    property alias _popup: comboPopup
-
-    PopupWindowCore {
-        id: comboPopup
-        popupWidth: control.width
-        implicitContentHeight: Math.max(
-            0, Enums.comboBoxMetrics.popupDefaultHeight - 2 * contentPadding)
-        closeOnClickOutside: control.popupCloseOnClickOutside
-        
-        onClosed: {
-            if (control.isOpen) control.isOpen = false
-        }
-        
-        Loader {
-            anchors.fill: parent
-            active: control._popupContentRequested
-            sourceComponent: control.popupContent
-            
-            onLoaded: {
-                if (item && item.hasOwnProperty('control')) {
-                    item.control = control
-                }
-            }
-        }
+    ComboBoxCoreContent {
+        id: comboContent
+        comboControl: control
     }
 }
