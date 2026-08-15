@@ -972,6 +972,30 @@ def test_cycle_wheel_picker_keeps_delegates_modularized():
         assert marker not in source
 
 
+def test_pips_pager_keeps_navigation_button_visuals_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/FlipView/PipsPagerCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/FlipView/_internal/"
+        "PipsPagerNavButton.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 230
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "_internal" as FlipViewInternal' in source
+    assert "FlipViewInternal.PipsPagerNavButton {" in source
+    assert "required property var pagerControl" in helper_source
+    assert "required property bool isNext" in helper_source
+    assert "pagerControl.next()" in helper_source
+    assert "pagerControl.previous()" in helper_source
+    assert "navButtonComponent.createObject(control" in source
+    assert "ButtonCore {" not in source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(

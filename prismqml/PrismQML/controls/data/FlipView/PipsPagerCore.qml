@@ -4,8 +4,7 @@
 
 import QtQuick
 import "../../.."
-import "../../icons"
-import "../../buttons"
+import "_internal" as FlipViewInternal
 
 // PipsPagerCore - Pips pager base class 分页指示器基类
 // Features: scroll buttons, visible number limit, smooth scroll 功能：翻页按钮、可见数量限制、平滑滚动
@@ -114,37 +113,8 @@ Item {
     Component {
         id: navButtonComponent
 
-        ButtonCore {
-            id: navButton
-
-            required property bool isNext
-
-            objectName: isNext ? "pipsNextButton" : "pipsPrevButton"
-            visible: isNext
-                ? control._isNextButtonVisible()
-                : control._isPrevButtonVisible()
-            style: Enums.button.style_transparent
-            shape: Enums.button.shape_pill
-            icon: control.vertical
-                ? (isNext ? Enums.icon.chevron_down : Enums.icon.chevron_up)
-                : (isNext ? Enums.icon.chevron_right : Enums.icon.chevron_left)
-            iconSize: Enums.iconSize.micro
-            width: control._buttonSize
-            height: control._buttonSize
-
-            anchors {
-                left: !control.vertical && !isNext ? parent.left : undefined
-                right: !control.vertical && isNext ? parent.right : undefined
-                top: control.vertical && !isNext ? parent.top : undefined
-                bottom: control.vertical && isNext ? parent.bottom : undefined
-                horizontalCenter: control.vertical ? parent.horizontalCenter : undefined
-                verticalCenter: control.vertical ? undefined : parent.verticalCenter
-            }
-
-            onClicked: {
-                if (isNext) control.next()
-                else control.previous()
-            }
+        FlipViewInternal.PipsPagerNavButton {
+            pagerControl: control
         }
     }
     

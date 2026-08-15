@@ -27,6 +27,7 @@ SOURCE_PATH = (
     / "FlipView"
     / "PipsPagerCore.qml"
 )
+NAV_BUTTON_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "PipsPagerNavButton.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "pips-pager-button-lifecycle.qml")
 )
@@ -201,14 +202,21 @@ def test_pips_pager_creates_only_buttons_enabled_by_mode(qapp):
 
 
 def test_pips_pager_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    entry_source = SOURCE_PATH.read_text(encoding="utf-8")
+    sources = (
+        (SOURCE_PATH, entry_source),
+        (NAV_BUTTON_SOURCE_PATH, NAV_BUTTON_SOURCE_PATH.read_text(encoding="utf-8")),
+    )
+    violations = []
+    for source_path, source in sources:
+        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
+        violations.extend(scan_source_text(source, path))
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert 'objectName: isNext ? "pipsNextButton" : "pipsPrevButton"' in source
-    assert "required property bool isNext" in source
-    assert "navButtonComponent.createObject(control" in source
+    helper_source = NAV_BUTTON_SOURCE_PATH.read_text(encoding="utf-8")
+    assert 'objectName: isNext ? "pipsNextButton" : "pipsPrevButton"' in helper_source
+    assert "required property bool isNext" in helper_source
+    assert "navButtonComponent.createObject(control" in entry_source
