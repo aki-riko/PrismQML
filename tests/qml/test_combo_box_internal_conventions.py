@@ -98,7 +98,7 @@ import QtQuick
 import PrismQML
 Item {
     width: 320
-    height: 120
+    height: 180
     ComboBoxFont { objectName: "font"; width: 220 }
     ComboBox {
         objectName: "fontEntry"
@@ -106,6 +106,13 @@ Item {
         anchors.topMargin: 48
         type: Enums.comboBox.type_font
         width: 220
+    }
+    ComboBox {
+        objectName: "treeEntry"
+        y: 96
+        width: 220
+        type: Enums.comboBox.type_tree
+        model: [{"text": "Root", "children": [{"text": "Leaf"}]}]
     }
 }
 """
@@ -170,6 +177,63 @@ def _set_control(control, **properties) -> None:
 
 def _variant(value):
     return value.toVariant() if hasattr(value, "toVariant") else value
+
+
+def _font_control(entry):
+    matches = [
+        child
+        for child in _descendants(entry)
+        if child.metaObject().indexOfProperty("fonts") >= 0
+        and child.metaObject().indexOfProperty("currentFont") >= 0
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _assert_default_font_state(font) -> None:
+    expected = [
+        "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
+        "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman",
+    ]
+    assert _variant(font.property("fonts")) == expected
+    assert _variant(font.property("model")) == expected
+    assert font.property("currentIndex") == -1
+    assert font.property("currentText") == ""
+    assert font.property("currentFont") == ""
+    assert font.property("placeholderText") == "请选择"
+
+
+def _assert_unselected_font_entry(entry, font) -> None:
+    assert entry.property("currentIndex") == -1
+    assert entry.property("currentText") == ""
+    assert font.property("currentIndex") == -1
+    assert font.property("currentText") == ""
+    assert font.property("currentFont") == ""
+    assert font.property("placeholderText") == "请选择"
+    assert _variant(font.property("model")) == _variant(font.property("fonts"))
+    assert len(_variant(font.property("model"))) > 0
+
+
+def _exercise_font_entry_selection(entry, font) -> None:
+    entry.setProperty("model", ["Prism Sans", "Prism Mono"])
+    _pump()
+    assert _variant(font.property("model")) == ["Prism Sans", "Prism Mono"]
+    assert entry.property("currentIndex") == -1
+    assert entry.property("currentText") == ""
+    emitted = []
+    entry.fontSelected.connect(emitted.append)
+    font._selectFont(1)
+    _pump()
+    assert entry.property("currentIndex") == 1
+    assert entry.property("currentText") == "Prism Mono"
+    assert font.property("currentFont") == "Prism Mono"
+    assert emitted == ["Prism Mono"]
+    entry.setProperty("model", [])
+    _pump()
+    assert _variant(font.property("model")) == _variant(font.property("fonts"))
+    assert entry.property("currentIndex") == 1
+    assert entry.property("currentText") == "Segoe UI"
+    assert font.property("currentFont") == "Segoe UI"
 
 
 def test_popup_search_box_runtime_contract(qapp):
@@ -328,20 +392,20 @@ def test_combo_box_font_runtime_contract(qapp):
     )
     try:
         font = root.findChild(QObject, "font")
-        expected = [
-            "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
-            "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman",
-        ]
-        assert _variant(font.property("fonts")) == expected
-        assert _variant(font.property("model")) == expected
-        assert font.property("currentFont") == "Segoe UI"
+        _assert_default_font_state(font)
         assert font.property("width") == 220
         assert font.property("popupItemHeight") > 0
         font.setProperty("fonts", ["Prism Sans", "Prism Mono"])
         font.setProperty("currentFont", "Prism Mono")
         _pump()
         assert _variant(font.property("model")) == ["Prism Sans", "Prism Mono"]
+        assert font.property("currentIndex") == 1
+        assert font.property("currentText") == "Prism Mono"
         assert font.property("currentFont") == "Prism Mono"
+        font.setProperty("currentIndex", 0)
+        _pump()
+        assert font.property("currentText") == "Prism Sans"
+        assert font.property("currentFont") == "Prism Sans"
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -356,28 +420,37 @@ def test_combo_box_font_entry_preserves_default_model(qapp):
     try:
         font_entry = root.findChild(QObject, "fontEntry")
         assert font_entry is not None
-        font_controls = [
+        font_control = _font_control(font_entry)
+        _assert_unselected_font_entry(font_entry, font_control)
+        _exercise_font_entry_selection(font_entry, font_control)
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _destroy_scene(engine, component, root)
+
+
+def test_combo_box_entry_forwards_tree_selection(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene(
+        FONT_SCENE, "combo-box-tree-entry-runtime.qml"
+    )
+    try:
+        tree_entry = root.findChild(QObject, "treeEntry")
+        tree_controls = [
             child
-            for child in _descendants(font_entry)
-            if child.metaObject().indexOfProperty("fonts") >= 0
-            and child.metaObject().indexOfProperty("currentFont") >= 0
+            for child in _descendants(tree_entry)
+            if child.metaObject().indexOfProperty("searchEnabled") >= 0
+            and child.metaObject().indexOfProperty("_flatModel") >= 0
         ]
-        assert len(font_controls) == 1
-        font_control = font_controls[0]
-        assert _variant(font_control.property("model")) == _variant(
-            font_control.property("fonts")
+        assert len(tree_controls) == 1
+        selected = []
+        tree_entry.itemSelected.connect(
+            lambda text, path: selected.append((text, _variant(path)))
         )
-        assert len(_variant(font_control.property("model"))) > 0
-        font_entry.setProperty("model", ["Prism Sans", "Prism Mono"])
+        tree_controls[0]._selectNode("Leaf", ["Root", "Leaf"])
         _pump()
-        assert _variant(font_control.property("model")) == [
-            "Prism Sans", "Prism Mono"
-        ]
-        font_entry.setProperty("model", [])
-        _pump()
-        assert _variant(font_control.property("model")) == _variant(
-            font_control.property("fonts")
-        )
+        assert tree_entry.property("currentText") == "Root → Leaf"
+        assert selected == [("Leaf", ["Root", "Leaf"])]
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -396,5 +469,5 @@ def test_combo_box_font_source_conventions():
 def test_combo_box_font_uses_enum_defaults():
     source = FONT_SOURCE_PATH.read_text(encoding="utf-8")
     assert "Enums.comboBox.fontFamilies.slice()" in source
-    assert "Enums.comboBox.fontDefaultFamily" in source
+    assert "fontDefaultFamily" not in source
     assert "Enums.comboBox.fontDelegateFallbackWidth" in source

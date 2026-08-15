@@ -25,7 +25,6 @@ QtObject {
         "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
         "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman"
     ]
-    readonly property string fontDefaultFamily: "Segoe UI"
     readonly property int fontDelegateFallbackWidth: 100
     // Feature 功能
     readonly property int feature_none: 0

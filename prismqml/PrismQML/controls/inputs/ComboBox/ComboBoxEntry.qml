@@ -24,7 +24,7 @@ Item {
     property var model: []
     // Keep currentIndex/currentText synchronized in both directions.
     // 保持 currentIndex/currentText 双向同步。
-    property int currentIndex: 0
+    property int currentIndex: type === Enums.comboBox.type_font ? -1 : 0
     property string currentText: ""
     property string placeholderText: ""
     property bool asyncLoad: false
@@ -45,6 +45,7 @@ Item {
     signal activated(int index)
     signal indexChanged(int index)
     signal selectionChanged(var indices, var items)
+    signal fontSelected(string fontName)
     signal itemSelected(string text, var path)
 
     // ==================== Public Methods 公开方法 ====================
@@ -137,14 +138,12 @@ Item {
             item.enabled = Qt.binding(() => control.enabled)
             if (item.placeholderText !== undefined && control.placeholderText !== "")
                 item.placeholderText = Qt.binding(() => control.placeholderText)
-            // 同步 currentIndex 到内部 ComboBoxCore（默认值 -1 — 即显示
-            // placeholder）。用 Qt.binding 让外部 currentIndex 后续变化也
-            // 跟随到内部组件。
-            // NB: 外部点选时内部 ComboBoxCore 会触发 onCurrentIndexChanged
-            // → Connections 反向同步到 control.currentIndex —— 这条反向路径
-            // 的命令式赋值会破坏这里建立的 Qt.binding，但对用户体验无害
-            // （用户点击后 index 已经是"用户显式选择的值"，后续外部数据源
-            // 变化不需要再改写视图）。
+            // Bind the external index to ComboBoxCore; Font defaults to -1
+            // so its placeholder remains visible.
+            // 将外部索引绑定到 ComboBoxCore；Font 默认 -1，因此保留占位文本。
+            // A user selection writes the index back through Connections and
+            // replaces this binding with the explicit selection.
+            // 用户点选后由 Connections 回写索引，并以显式选择替代此绑定。
             if (item.currentIndex !== undefined) {
                 item.currentIndex = Qt.binding(() => control.currentIndex)
             }
@@ -161,6 +160,7 @@ Item {
             if (item.activated) item.activated.connect(control.activated)
             if (item.indexChanged) item.indexChanged.connect((i) => control.indexChanged(i))
             if (item.selectionChanged) item.selectionChanged.connect(control.selectionChanged)
+            if (item.fontSelected) item.fontSelected.connect(control.fontSelected)
             if (item.itemSelected) item.itemSelected.connect(control.itemSelected)
             // 同步初始 currentText
             if (item.currentText !== undefined) {

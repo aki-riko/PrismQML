@@ -13,20 +13,66 @@ ComboBoxCore {
 
     // ==================== Public Props 公开属性 ====================
     property var fonts: Enums.comboBox.fontFamilies.slice()
-    property string currentFont: Enums.comboBox.fontDefaultFamily
+    property string currentFont: ""
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _syncingFontSelection: false
 
     // ==================== Signals 信号 ====================
     signal fontSelected(string fontName)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _syncFontFromIndex() {
+        if (_syncingFontSelection) return
+        _syncingFontSelection = true
+        var safeModel = _safeModel || []
+        var nextFont = currentIndex >= 0 && currentIndex < safeModel.length
+            ? _getItemText(currentIndex) : ""
+        if (currentFont !== nextFont) currentFont = nextFont
+        _syncingFontSelection = false
+    }
+
+    function _syncIndexFromFont() {
+        if (_syncingFontSelection) return
+        _syncingFontSelection = true
+        var nextIndex = currentFont === "" ? -1 : findText(currentFont)
+        if (currentIndex !== nextIndex) currentIndex = nextIndex
+        var normalizedFont = nextIndex >= 0 ? _getItemText(nextIndex) : ""
+        if (currentFont !== normalizedFont) currentFont = normalizedFont
+        _syncingFontSelection = false
+    }
+
+    function _selectFont(index) {
+        var safeModel = _safeModel || []
+        if (index < 0 || index >= safeModel.length) return
+        currentIndex = index
+        fontSelected(currentFont)
+        closePopup()
+    }
 
     // Use fonts as model 使用fonts作为model
     model: fonts
     popupItemHeight: Enums.controlSize.calendarCellHeight
 
+    onCurrentIndexChanged: {
+        _syncCurrentTextFromSelection()
+        _syncFontFromIndex()
+    }
+    onCurrentFontChanged: _syncIndexFromFont()
+    on_SafeModelChanged: {
+        _syncCurrentTextFromSelection()
+        _syncFontFromIndex()
+    }
+    Component.onCompleted: {
+        _syncCurrentTextFromSelection()
+        _syncFontFromIndex()
+    }
+
     // ==================== Content 内容 ====================
     popupDelegate: Component {
         Rectangle {
             id: fontItemBg
-            property bool selected: modelData === control.currentFont
+            property bool selected: index === control.currentIndex
 
             width: ListView.view ? ListView.view.width : Enums.comboBox.fontDelegateFallbackWidth
             height: control.popupItemHeight
@@ -64,12 +110,7 @@ ComboBoxCore {
                 id: fontItemArea
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: {
-                    control.currentFont = modelData
-                    control.currentIndex = index
-                    control.fontSelected(modelData)
-                    control.closePopup()
-                }
+                onClicked: control._selectFont(index)
             }
         }
     }
