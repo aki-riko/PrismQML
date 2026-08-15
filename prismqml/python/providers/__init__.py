@@ -22,15 +22,15 @@ __all__ = [
 
 _LAZY_EXPORTS = {
     "SvgImageProvider": (".svg_provider", "SvgImageProvider"),
-    "get_svg_provider": (".svg_provider", "get_svg_provider"),
+    "get_svg_provider": ("..runtime", "get_svg_provider"),
     "QRCodeGenerator": (".qrcode_generator", "QRCodeGenerator"),
     "QRCodeImageProvider": (".qrcode_generator", "QRCodeImageProvider"),
-    "get_qrcode_generator": (".qrcode_generator", "get_qrcode_generator"),
-    "get_qrcode_provider": (".qrcode_generator", "get_qrcode_provider"),
+    "get_qrcode_generator": ("..runtime", "get_qrcode_generator"),
+    "get_qrcode_provider": ("..runtime", "get_qrcode_provider"),
     "ClipboardHelper": (".clipboard", "ClipboardHelper"),
     "get_clipboard_helper": (".clipboard", "get_clipboard_helper"),
     "ScreenEyedropperManager": (".screen_eyedropper", "ScreenEyedropperManager"),
-    "get_screen_eyedropper_manager": (".screen_eyedropper", "get_screen_eyedropper_manager"),
+    "get_screen_eyedropper_manager": ("..runtime", "get_screen_eyedropper_manager"),
 }
 
 

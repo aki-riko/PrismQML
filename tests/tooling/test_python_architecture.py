@@ -504,9 +504,11 @@ def test_optional_provider_factories_have_one_runtime_owner():
     provider_services = PYTHON_PACKAGE / "runtime" / "provider_services.py"
     lazy_context = PYTHON_PACKAGE / "runtime" / "lazy_context.py"
     window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    providers_init = PROVIDERS_PACKAGE / "__init__.py"
     example = REPO_ROOT / "examples" / "main.py"
     root_exports = _lazy_exports(root_init)
     runtime_exports = _lazy_exports(runtime_init)
+    providers_exports = _lazy_exports(providers_init)
     provider_names = (
         "get_qrcode_generator",
         "get_qrcode_provider",
@@ -517,6 +519,7 @@ def test_optional_provider_factories_have_one_runtime_owner():
     for name in provider_names:
         assert root_exports[name] == (".python.runtime", name)
         assert runtime_exports[name] == (".provider_services", name)
+        assert providers_exports[name] == ("..runtime", name)
         assert name in _function_names(provider_services)
 
     provider_imports = {
