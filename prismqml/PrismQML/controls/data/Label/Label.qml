@@ -117,17 +117,9 @@ Text {
     font.weight: _fontWeight
     font.underline: _isHyperlink && (!underlineOnHover || hovered)
     color: _interactiveTextColor
-    scale: _isHyperlink && pressed ? 0.97 : 1
     wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap
     elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
-
-    Behavior on scale {
-        NumberAnimation {
-            duration: Enums.duration.ultraFast
-            easing.type: Easing.OutQuad
-        }
-    }
 
     // ==================== Content 内容 ====================
     // Hyperlink interaction 超链接交互

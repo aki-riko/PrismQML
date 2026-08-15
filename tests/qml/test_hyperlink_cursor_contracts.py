@@ -395,7 +395,8 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         label = window.findChild(QQuickItem, "labelLink")
         assert label is not None
         assert label.property("pressed") is False
-        assert label.scale() == 1
+        initial_width = label.width()
+        initial_height = label.height()
         assert label.property("_interactiveTextColor") == label.property("_textColor")
 
         _move_to_item(window, label, label.boundingRect().center())
@@ -408,14 +409,16 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
         _pump(20)
         assert label.property("pressed") is True
-        assert label.scale() < 1
+        assert label.width() == initial_width
+        assert label.height() == initial_height
         assert label.property("_interactiveTextColor") != label.property("_textColor")
         assert label.property("_interactiveTextColor") != hover_color
 
         QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
         _pump(120)
         assert label.property("pressed") is False
-        assert label.scale() > 0.99
+        assert label.width() == initial_width
+        assert label.height() == initial_height
         assert label.property("_interactiveTextColor") == hover_color
 
         QTest.mouseMove(window, QPoint(window.width() - 2, window.height() - 2))
