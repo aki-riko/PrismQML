@@ -38,6 +38,17 @@ Item {
     signal indexChanged(int index)
     signal selectionChanged(var indices, var items)
 
+    // Preserve the font picker's built-in list until an external list is provided.
+    // 外部列表为空时保留字体选择框的内置列表。
+    function _modelForLoadedItem(item) {
+        if (type !== Enums.comboBox.type_font || item.fonts === undefined)
+            return model
+        var externalModel = model
+        return externalModel !== null && externalModel !== undefined
+                && typeof externalModel.length === "number" && externalModel.length > 0
+            ? externalModel : item.fonts
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: loader.item ? loader.item.implicitWidth : 200
     implicitHeight: loader.item ? loader.item.implicitHeight : 32
@@ -96,15 +107,9 @@ Item {
         }
         onLoaded: {
             if (!item) return
-            // Always set up the model binding, even when control.model is
-            // currently empty. The previous `length > 0` guard caused a
-            // permanent skip when onLoaded fired before the external model
-            // was populated (e.g. backend not yet injected): item.model
-            // stayed at its default and never followed the external var.
-            // 始终建立 model binding。之前 `length > 0` 守卫会在 onLoaded
-            // 早于外部 model 填充时（例如 backend 尚未注入）永久跳过 binding，
-            // 导致 item.model 永远停在默认值。
-            item.model = Qt.binding(() => control.model)
+            // Keep following late model updates while preserving Font defaults.
+            // 持续跟随后续模型更新，同时保留 Font 默认列表。
+            item.model = Qt.binding(() => control._modelForLoadedItem(item))
             item.enabled = Qt.binding(() => control.enabled)
             if (item.placeholderText !== undefined && control.placeholderText !== "")
                 item.placeholderText = Qt.binding(() => control.placeholderText)

@@ -98,8 +98,15 @@ import QtQuick
 import PrismQML
 Item {
     width: 320
-    height: 80
+    height: 120
     ComboBoxFont { objectName: "font"; width: 220 }
+    ComboBox {
+        objectName: "fontEntry"
+        anchors.top: parent.top
+        anchors.topMargin: 48
+        type: Enums.comboBox.type_font
+        width: 220
+    }
 }
 """
 
@@ -335,6 +342,42 @@ def test_combo_box_font_runtime_contract(qapp):
         _pump()
         assert _variant(font.property("model")) == ["Prism Sans", "Prism Mono"]
         assert font.property("currentFont") == "Prism Mono"
+        assert warnings == []
+        assert _new_visible_windows(windows_before) == []
+    finally:
+        _destroy_scene(engine, component, root)
+
+
+def test_combo_box_font_entry_preserves_default_model(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, root, warnings = _create_scene(
+        FONT_SCENE, "combo-box-font-entry-runtime.qml"
+    )
+    try:
+        font_entry = root.findChild(QObject, "fontEntry")
+        assert font_entry is not None
+        font_controls = [
+            child
+            for child in _descendants(font_entry)
+            if child.metaObject().indexOfProperty("fonts") >= 0
+            and child.metaObject().indexOfProperty("currentFont") >= 0
+        ]
+        assert len(font_controls) == 1
+        font_control = font_controls[0]
+        assert _variant(font_control.property("model")) == _variant(
+            font_control.property("fonts")
+        )
+        assert len(_variant(font_control.property("model"))) > 0
+        font_entry.setProperty("model", ["Prism Sans", "Prism Mono"])
+        _pump()
+        assert _variant(font_control.property("model")) == [
+            "Prism Sans", "Prism Mono"
+        ]
+        font_entry.setProperty("model", [])
+        _pump()
+        assert _variant(font_control.property("model")) == _variant(
+            font_control.property("fonts")
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
