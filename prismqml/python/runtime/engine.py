@@ -1,0 +1,39 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
+
+"""QML engine runtime composition. QML 引擎运行时装配。"""
+
+from PySide6.QtQml import QQmlApplicationEngine
+
+from ..core.engine import EngineManager
+
+
+def create_qml_engine() -> QQmlApplicationEngine:
+    """Create an unpublished QML engine. 创建尚未发布的 QML 引擎。"""
+    return QQmlApplicationEngine()
+
+
+def publish_qml_engine(engine: QQmlApplicationEngine) -> None:
+    """Publish the process QML engine. 发布进程级 QML 引擎。"""
+    EngineManager.set_engine(engine)
+
+
+def get_or_create_qml_engine() -> QQmlApplicationEngine:
+    """Reuse or create and publish the process engine. 复用或创建并发布引擎。"""
+    try:
+        return EngineManager.get_engine()
+    except RuntimeError:
+        engine = create_qml_engine()
+        publish_qml_engine(engine)
+        return engine
+
+
+def configure_application_engine(engine: QQmlApplicationEngine) -> None:
+    """Install App-owned QML integrations. 安装 App 使用的 QML 集成。"""
+    from ..core.incubation import install_default_incubation_controller
+    from . import register_types
+
+    install_default_incubation_controller(engine)
+    register_types(engine)

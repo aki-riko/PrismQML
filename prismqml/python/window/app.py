@@ -9,11 +9,12 @@ PrismQML 应用入口类 PrismQML Application Entry
 提供统一的应用管理API，封装 QApplication 常用操作。
 """
 
+from __future__ import annotations
+
 import os
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, Qt
-from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 
@@ -31,6 +32,8 @@ from ._application_icon_runtime import (
 )
 
 if TYPE_CHECKING:
+    from PySide6.QtQml import QQmlApplicationEngine
+
     from .fluent_window import Window
     from .window_core import WindowCore
 
@@ -99,14 +102,16 @@ def _create_qt_application(owner, argv: List[str]) -> None:
 
 def _create_qml_engine(owner) -> None:
     """Create and fully register the QML engine. 创建并完整注册 QML 引擎。"""
-    from ..core.incubation import install_default_incubation_controller
-    from ..runtime import register_types
+    from ..runtime import (
+        configure_application_engine,
+        create_qml_engine,
+        publish_qml_engine,
+    )
 
-    owner._engine = QQmlApplicationEngine()
+    owner._engine = create_qml_engine()
     owner._engine_publish_started = True
-    EngineManager.set_engine(owner._engine)
-    install_default_incubation_controller(owner._engine)
-    register_types(owner._engine)
+    publish_qml_engine(owner._engine)
+    configure_application_engine(owner._engine)
 
 
 def _run_app_cleanup(label: str, action) -> None:

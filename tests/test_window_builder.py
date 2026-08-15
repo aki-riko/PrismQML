@@ -85,14 +85,11 @@ class _EngineSetupScenario:
         )
 
     def patch_setup(self, monkeypatch, setup):
-        manager = SimpleNamespace(
-            get_engine=self.get_engine,
-            set_engine=self.fail_set_engine,
+        monkeypatch.setattr(
+            setup, "get_or_create_qml_engine", self.get_engine
         )
-        monkeypatch.setattr(setup, "EngineManager", manager)
         monkeypatch.setattr(setup, "_load_core_window_managers", self.load_core)
         monkeypatch.setattr(setup, "_load_window_dependencies", self.load_window)
-        monkeypatch.setattr(setup, "QQmlApplicationEngine", self.fail_create_engine)
         monkeypatch.setattr(
             setup,
             "asynchronous_page_loader_enabled",
@@ -187,29 +184,16 @@ def test_window_dependency_loaders_preserve_real_identity_and_profile_order():
     assert profiles == ["导入核心管理器", "导入窗口依赖"]
 
 
-def _patch_missing_engine(monkeypatch, setup, calls, engine):
-    def get_engine():
-        calls.append("get_engine")
-        raise RuntimeError("Engine not initialized.")
-
-    def set_engine(received_engine):
-        calls.append(("set_engine", received_engine))
-
-    def create_engine():
-        calls.append("create_engine")
-        return engine
-
-    manager = SimpleNamespace(get_engine=get_engine, set_engine=set_engine)
-    monkeypatch.setattr(setup, "EngineManager", manager)
-    monkeypatch.setattr(setup, "QQmlApplicationEngine", create_engine)
-
-
-def test_window_engine_setup_creates_and_registers_missing_engine(monkeypatch):
+def test_window_engine_setup_assigns_runtime_engine(monkeypatch):
     from prismqml.python.runtime import window_registry as setup
 
     calls = []
     engine = object()
-    _patch_missing_engine(monkeypatch, setup, calls, engine)
+    monkeypatch.setattr(
+        setup,
+        "get_or_create_qml_engine",
+        lambda: calls.append("get_or_create") or engine,
+    )
     builder = SimpleNamespace()
 
     setup._ensure_window_engine(
@@ -218,9 +202,7 @@ def test_window_engine_setup_creates_and_registers_missing_engine(monkeypatch):
 
     assert builder._engine is engine
     assert calls == [
-        "get_engine",
-        "create_engine",
-        ("set_engine", engine),
+        "get_or_create",
         ("profile", "获取/创建 QML Engine"),
     ]
 
@@ -231,22 +213,19 @@ def test_window_engine_setup_propagates_non_runtime_errors(
 ):
     from prismqml.python.runtime import window_registry as setup
 
-    class FailingEngineManager:
-        @staticmethod
-        def get_engine():
-            raise error_type("stop")
-
-    monkeypatch.setattr(setup, "EngineManager", FailingEngineManager)
+    failure = error_type("stop")
     monkeypatch.setattr(
         setup,
-        "QQmlApplicationEngine",
-        lambda: pytest.fail("non-RuntimeError must not create an engine"),
+        "get_or_create_qml_engine",
+        lambda: (_ for _ in ()).throw(failure),
     )
 
-    with pytest.raises(error_type, match="stop"):
+    with pytest.raises(error_type) as caught:
         setup._ensure_window_engine(
             SimpleNamespace(), lambda _label: pytest.fail("must fail fast")
         )
+
+    assert caught.value is failure
 
 
 class _FailingEngineSetupContext:

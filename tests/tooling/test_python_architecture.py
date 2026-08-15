@@ -131,6 +131,23 @@ def _named_function_calls(path: Path, name: str) -> list[int]:
     ]
 
 
+def _attribute_function_calls(path: Path, owner: str, name: str) -> list[int]:
+    tree = ast.parse(
+        path.read_text(encoding="utf-8"),
+        filename=str(path),
+        feature_version=(3, 9),
+    )
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == name
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == owner
+    ]
+
+
 def _class_names(path: Path) -> set[str]:
     tree = ast.parse(
         path.read_text(encoding="utf-8"),
@@ -323,6 +340,53 @@ def test_window_runtime_composition_has_one_owner():
             owns_svg_provider = method == "addImageProvider" and name == "svg"
             if owns_runtime_context or owns_svg_provider:
                 violations.append(f"{relative_path}:{line}: {method}({name!r})")
+
+    assert violations == []
+
+
+def test_qml_engine_composition_has_one_runtime_owner():
+    app = WINDOW_PACKAGE / "app.py"
+    window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    runtime_engine = PYTHON_PACKAGE / "runtime" / "engine.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_exports = _lazy_exports(runtime_init)
+    app_imports = {target for _line, target in _resolved_imports(app)}
+    window_imports = {
+        target for _line, target in _resolved_imports(window_registry)
+    }
+
+    for name in (
+        "create_qml_engine",
+        "publish_qml_engine",
+        "get_or_create_qml_engine",
+        "configure_application_engine",
+    ):
+        assert runtime_exports[name] == (".engine", name)
+        assert name in _function_names(runtime_engine)
+
+    for name in (
+        "create_qml_engine",
+        "publish_qml_engine",
+        "configure_application_engine",
+    ):
+        assert f"prismqml.python.runtime.{name}" in app_imports
+    assert (
+        "prismqml.python.runtime.engine.get_or_create_qml_engine"
+        in window_imports
+    )
+
+    violations = []
+    for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
+        if path == runtime_engine:
+            continue
+        for line in _named_function_calls(path, "QQmlApplicationEngine"):
+            violations.append(
+                f"{path.relative_to(REPO_ROOT)}:{line}: QQmlApplicationEngine()"
+            )
+        for line in _attribute_function_calls(path, "EngineManager", "set_engine"):
+            violations.append(
+                f"{path.relative_to(REPO_ROOT)}:{line}: EngineManager.set_engine()"
+            )
 
     assert violations == []
 

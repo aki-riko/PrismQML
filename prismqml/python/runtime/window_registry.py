@@ -5,11 +5,9 @@
 
 """Window engine and QML dependency setup. 窗口引擎与 QML 依赖装配。"""
 
-from PySide6.QtQml import QQmlApplicationEngine
-
-from ..core.engine import EngineManager
 from ..core.incubation import asynchronous_page_loader_enabled
 from ..providers import get_svg_provider
+from .engine import get_or_create_qml_engine
 
 
 def _load_core_window_managers(profile):
@@ -25,11 +23,7 @@ def _load_core_window_managers(profile):
 
 def _ensure_window_engine(builder, profile) -> None:
     """Reuse or create the process QML engine. 复用或创建进程级 QML 引擎。"""
-    try:
-        builder._engine = EngineManager.get_engine()
-    except RuntimeError:
-        builder._engine = QQmlApplicationEngine()
-        EngineManager.set_engine(builder._engine)
+    builder._engine = get_or_create_qml_engine()
     profile("获取/创建 QML Engine")
 
 
