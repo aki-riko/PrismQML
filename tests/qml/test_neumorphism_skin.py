@@ -51,6 +51,7 @@ Item {
     readonly property color darkShadowToken: Enums.neumorphism.shadowDark
     readonly property color lightShadowToken: Enums.neumorphism.shadowLight
     readonly property real shadowOffsetToken: Enums.neumorphism.shadowOffset
+    readonly property real shadowBlurToken: Enums.neumorphism.shadowBlur
     readonly property real shadowSpreadToken: Enums.neumorphism.shadowSpread
     readonly property real popupShadowOffsetToken: Enums.neumorphism.popupShadowOffset
     readonly property real popupShadowBlurToken: Enums.neumorphism.popupShadowBlur
@@ -383,8 +384,9 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
         _assert_color(root, "navigationItemBackground", "#ccd9ef")
         _assert_color(root, "darkShadowToken", "#b7c2d0")
         _assert_color(root, "lightShadowToken", "#ffffff")
-        assert root.property("shadowOffsetToken") == 7
-        assert root.property("shadowSpreadToken") == -7
+        assert root.property("shadowOffsetToken") == 4
+        assert root.property("shadowBlurToken") == 12
+        assert root.property("shadowSpreadToken") == -4
         assert root.property("popupShadowOffsetToken") == 4
         assert root.property("popupShadowBlurToken") == 14
         assert root.property("popupShadowSpreadToken") == -4

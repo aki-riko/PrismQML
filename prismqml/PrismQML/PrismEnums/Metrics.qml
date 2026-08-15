@@ -183,8 +183,10 @@ QtObject {
  readonly property QtObject neumorphism: QtObject {
      readonly property real borderWidth: 0
      readonly property int radius: 14
-     readonly property real shadowOffset: 7
-     readonly property real shadowBlur: 18
+     // Keep regular surfaces close to the canvas at fractional DPI; popups keep their own elevation tokens.
+     // 普通表面在分数 DPI 下保持贴近画布；弹层继续使用独立的悬浮 token。
+     readonly property real shadowOffset: 4
+     readonly property real shadowBlur: 12
      // Pull the opaque shadow core under the surface so it cannot look like a half outline.
      // 将阴影实色核心收回表面下方，避免形成半圈描边。
      readonly property real shadowSpread: -shadowOffset
