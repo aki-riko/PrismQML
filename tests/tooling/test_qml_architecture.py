@@ -662,3 +662,35 @@ def test_menu_core_keeps_visual_content_modularized():
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
     assert "MenuContent {" in entry.read_text(encoding="utf-8")
+
+
+def test_infobar_core_keeps_visual_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/feedback/InfoBar/InfoBarCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/InfoBar/_internal/InfoBarContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 400
+    assert 'import "_internal" as InfoBarInternal' in source
+    assert "InfoBarInternal.InfoBarContent {" in source
+    assert "required property var infoBar" in helper_source
+    assert "property alias customContent: customContentLoader.sourceComponent" in helper_source
+    assert "readonly property real calculatedContentWidth" in helper_source
+    assert "readonly property real horizontalContentHeight" in helper_source
+    assert "readonly property real verticalContentHeight" in helper_source
+
+    for marker in (
+        "RectangularShadow {",
+        "NeumorphicShadow {",
+        "NeoShadow {",
+        "CloseButton {",
+        "ProgressBar {",
+        "ProgressRing {",
+        "\n    Loader {",
+        "\n    Component {",
+    ):
+        assert marker not in source

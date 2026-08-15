@@ -4,14 +4,8 @@
 
 import QtQuick
 import "../../.."
-import QtQuick.Effects
-import "../../../effects"
-import "../../icons"
-import "../../buttons"
-import "../../data"
 import "../Notification"
-import "../Progress"
-import "../../containers"
+import "_internal" as InfoBarInternal
 
 // InfoBarCore - Fluent style info bar 信息提示条
 Widget {
@@ -33,8 +27,11 @@ Widget {
     readonly property bool _isVertical: orient === Qt.Vertical
 
     // Custom widget 自定义组件
-    property alias customContent: customContentLoader.sourceComponent  // Custom widget slot 自定义组件插槽
-    property bool hasCustomContent: customContentLoader.sourceComponent !== null && customContentLoader.item !== null
+    property alias customContent: contentLayer.customContent  // Custom widget slot 自定义组件插槽
+    property bool hasCustomContent: contentLayer.hasCustomContent
+
+    // Animation 动画
+    property alias animator: animator  // Expose animator for stack management 暴露动画器供堆叠管理使用
 
     // Custom background 自定义背景色
     property color backgroundColorLight: Enums.transparent  // Custom light theme bg 自定义浅色背景
@@ -92,15 +89,8 @@ Widget {
 
         return Enums.statusLevel.getBgColor(severity)
     }
-    readonly property real _horizontalContentHeight: Math.max(Enums.spacing.xxxl, textRow.implicitHeight) + Enums.spacing.m * 2
-    readonly property real _verticalContentHeight: {
-        var h = Enums.spacing.m * 2  // Top/bottom padding 上下内边距
-        h += iconContainer.height + Enums.spacing.m  // Icon + gap 图标+间距
-        if (title !== "") h += titleLabelVertical.implicitHeight + Enums.spacing.xs
-        if (message !== "") h += contentLabelVertical.implicitHeight + Enums.spacing.xs
-        if (hasCustomContent) h += customContentLoader.height + Enums.spacing.m
-        return Math.max(Enums.infoBarMetrics.height, h)
-    }
+    readonly property real _horizontalContentHeight: contentLayer.horizontalContentHeight
+    readonly property real _verticalContentHeight: contentLayer.verticalContentHeight
     property bool _showing: true
 
     // ==================== Signals 信号 ====================
@@ -130,28 +120,7 @@ Widget {
     // ==================== Size 尺寸 ====================
     // Content size (inherited from Widget) 内容尺寸：根据内部文字自适应
     contentWidth: {
-        var baseWidth = 0;
-        if (!_isRingMode) {
-            baseWidth += Enums.infoBarMetrics.margin + Enums.infoBarMetrics.iconContainerSize;
-        } else {
-            baseWidth += Enums.infoBarMetrics.margin + Enums.infoBarMetrics.iconContainerSize;
-        }
-        baseWidth += Enums.infoBarMetrics.textLeftGap + Enums.infoBarMetrics.textRightMargin;
-        if (closable) {
-            baseWidth += Enums.infoBarMetrics.margin + Enums.infoBarMetrics.closeButtonSize;
-        }
-        
-        var textW = 0;
-        if (!_isVertical) {
-            if (title !== "") textW += titleLabel.implicitWidth;
-            if (message !== "") textW += (title !== "" ? textRow.spacing : 0) + contentLabel.implicitWidth;
-        } else {
-            if (title !== "") textW = Math.max(textW, titleLabelVertical.implicitWidth);
-            if (message !== "") textW = Math.max(textW, contentLabelVertical.implicitWidth);
-        }
-        
-        var targetWidth = baseWidth + textW;
-        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800) // 最大限制到800，避免过宽破坏UI
+        return contentLayer.calculatedContentWidth
     }
     // Height is always auto-calculated 高度始终自动计算
     implicitHeight: _isVertical ? _verticalContentHeight : _horizontalContentHeight
@@ -163,44 +132,6 @@ Widget {
         }
     }
 
-    // ==================== Content 内容 ====================
-    // Shadow layer 阴影层
-    // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
-    RectangularShadow {
-        anchors.fill: card
-        radius: card.radius
-        color: control._infoBarShadowColor
-        blur: control._infoBarShadowBlur
-        offset.x: 0
-        offset.y: control._infoBarShadowOffset
-        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
-    }
-
-    NeumorphicShadow {
-        target: card
-        visible: Enums.isNeumorphism
-        z: card.z - 1
-    }
-
-    NeoShadow {
-        target: card
-        visible: Enums.isNeobrutalism
-        z: card.z - 1
-    }
-
-    // Card 卡片
-    Rectangle {
-        id: card
-        anchors.fill: parent
-        radius: control._infoBarRadius
-        color: control._infoBarBackground
-        border.width: control._infoBarBorderWidth  // neo 粗黑边
-        border.color: control._infoBarBorderColor
-    }
-    
-    // Animation 动画
-    property alias animator: animator  // Expose animator for stack management 暴露动画器供堆叠管理使用
-
     // Shared animator 共享动画器
     NotificationAnimator {
         id: animator
@@ -211,132 +142,6 @@ Widget {
         onHideFinished: { control.visible = false; control.closed() }
     }
 
-    // Content layout 内容布局
-    
-    // Icon container - 自适应高度 图标容器
-    // Hidden when ring mode is active 进度环模式时隐藏
-    Item {
-        id: iconContainer
-        anchors.left: parent.left
-        anchors.leftMargin: Enums.infoBarMetrics.margin
-        anchors.top: _isVertical ? parent.top : undefined
-        anchors.topMargin: _isVertical ? Enums.spacing.m : 0
-        anchors.verticalCenter: _isVertical ? undefined : parent.verticalCenter
-        width: height  // 保持正方形
-        height: Math.min(control.height - Enums.spacing.xs * 2, Enums.infoBarMetrics.iconContainerSize)
-        visible: !_isRingMode
-        
-        Icon {
-            anchors.centerIn: parent
-            iconSize: Enums.infoBarMetrics.iconSize
-            icon: control.severityIconName
-            color: control.severityColor
-        }
-    }
-    
-    // Horizontal layout 水平布局
-    // Text container 文字容器（水平模式）
-    Row {
-        id: textRow
-        anchors.left: _isRingMode ? progressModeLoader.right : iconContainer.right
-        anchors.leftMargin: Enums.infoBarMetrics.textLeftGap  // 与图标模式相同的间距
-        anchors.right: closeBtn.visible ? closeBtn.left : parent.right
-        anchors.rightMargin: Enums.infoBarMetrics.textRightMargin
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Enums.infoBarMetrics.textSpacing
-        visible: !_isVertical
-        
-        // Title (bold) 标题
-        Label {
-            id: titleLabel
-            text: control.title
-            type: Enums.label.type_body_strong
-            color: Enums.textColor.primary
-            visible: control.title !== ""
-        }
-        
-        // Content 内容
-        Label {
-            id: contentLabel
-            text: control.message
-            type: Enums.label.type_body
-            color: Enums.textColor.primary
-            visible: control.message !== ""
-            width: Math.min(implicitWidth, 800 - parent.x - (closeBtn.visible ? closeBtn.width + Enums.infoBarMetrics.margin * 2 : 0))
-            // 长文本/多行折行显示,不再单行省略号截断
-            wrapMode: Text.Wrap
-        }
-    }
-    
-    // Custom content loader (horizontal) 自定义内容加载器（水平模式）
-    Loader {
-        id: customContentLoaderHorizontal
-        anchors.left: textRow.right
-        anchors.leftMargin: Enums.spacing.m
-        anchors.right: closeBtn.visible ? closeBtn.left : parent.right
-        anchors.rightMargin: Enums.spacing.m
-        anchors.verticalCenter: parent.verticalCenter
-        sourceComponent: !_isVertical ? control.customContent : null
-        visible: !_isVertical && item !== null
-    }
-    
-    // Vertical layout 垂直布局
-    Column {
-        id: verticalLayout
-        anchors.left: iconContainer.right
-        anchors.leftMargin: Enums.infoBarMetrics.textLeftGap
-        anchors.right: closeBtn.visible ? closeBtn.left : parent.right
-        anchors.rightMargin: Enums.infoBarMetrics.textRightMargin
-        anchors.top: parent.top
-        anchors.topMargin: Enums.spacing.m
-        spacing: Enums.spacing.xs
-        visible: _isVertical
-        
-        // Title (bold) 标题（垂直模式）
-        Label {
-            id: titleLabelVertical
-            text: control.title
-            type: Enums.label.type_body_strong
-            color: Enums.textColor.primary
-            visible: control.title !== ""
-            width: parent.width
-            wrapMode: Text.Wrap
-        }
-        
-        // Content 内容（垂直模式，支持换行）
-        Label {
-            id: contentLabelVertical
-            text: control.message
-            type: Enums.label.type_body
-            color: Enums.textColor.primary
-            visible: control.message !== ""
-            width: parent.width
-            wrapMode: Text.Wrap
-        }
-        
-        // Custom content loader (vertical) 自定义内容加载器（垂直模式）
-        Loader {
-            id: customContentLoader
-            width: parent.width
-            sourceComponent: _isVertical ? control.customContent : null
-            visible: _isVertical && item !== null
-        }
-    }
-    
-    // Close button - 自适应高度 关闭按钮-右侧
-    CloseButton {
-        id: closeBtn
-        anchors.right: parent.right
-        anchors.rightMargin: Enums.infoBarMetrics.margin
-        anchors.top: _isVertical ? parent.top : undefined
-        anchors.topMargin: _isVertical ? Enums.spacing.m : 0
-        anchors.verticalCenter: _isVertical ? undefined : parent.verticalCenter
-        size: Math.min(control.height - Enums.spacing.xs * 2, Enums.infoBarMetrics.closeButtonSize)
-        iconSizeValue: Enums.infoBarMetrics.closeIconSize
-        visible: control.closable
-        onClicked: control.hide()
-    }
-    
     // Shared close timer 共享关闭计时器
     Timer {
         id: closeTimer
@@ -352,106 +157,9 @@ Widget {
         }
         onTriggered: control.hide()
     }
-    
-    // Load only the active progress shape; normal notifications keep both heavy branches absent.
-    // 仅加载当前进度形态；普通通知不常驻两个重型分支。
-    Loader {
-        id: progressModeLoader
-
-        active: control._isBarMode || control._isRingMode
-        x: control._isRingMode ? Enums.infoBarMetrics.margin : 0
-        y: control._isRingMode ? (control.height - height) / 2 : 0
-        width: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : control.width
-        height: control._isRingMode ? Enums.infoBarMetrics.iconContainerSize : control.height
-        sourceComponent: control._isBarMode
-            ? progressBarComponent
-            : (control._isRingMode ? progressRingComponent : null)
-    }
-
-    Component {
-        id: progressBarComponent
-
-        // Progress bar container: ref Button rounded clip solution 进度条容器：参考Button的圆角裁剪方案
-        Item {
-            // Mask uses Rectangle's opaque white default and requires a layer 遮罩使用 Rectangle 默认不透明白色，且必须启用 layer
-            Rectangle {
-                id: progressMask
-
-                objectName: "infoBarProgressMask"
-                anchors.fill: parent
-                radius: control.radius
-                layer.enabled: control._isBarMode
-                visible: false
-            }
-
-            // Progress bar content with mask 带遮罩的进度条内容
-            Item {
-                id: progressContent
-
-                objectName: "infoBarProgressContent"
-                anchors.fill: parent
-                layer.enabled: control._isBarMode
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: progressMask
-                    maskThresholdMin: 0.5
-                    maskSpreadAtMin: 0.0
-                }
-
-                ProgressBar {
-                    objectName: "infoBarProgressBar"
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: Enums.spacing.xs
-                    value: control.progress * 100
-                    from: 0
-                    to: 100
-                    indeterminate: feature === Enums.notification.feature_indeterminate_bar
-                }
-            }
-        }
-    }
-
-    Component {
-        id: progressRingComponent
-
-        // Progress ring container: same size and margin as icon container 进度环容器：与图标容器相同的尺寸和间距
-        Item {
-            id: ringContainer
-
-            ProgressRing {
-                objectName: "infoBarProgressRing"
-                anchors.centerIn: parent
-                width: Enums.infoBarMetrics.iconSize
-                height: width
-                strokeWidth: Enums.border.normal
-                value: control.progress * 100
-                from: 0
-                to: 100
-                indeterminate: feature === Enums.notification.feature_indeterminate_ring && ringContainer.visible && control.visible
-                visible: !control._progressComplete && (
-                    feature === Enums.notification.feature_progress_ring ||
-                    (feature === Enums.notification.feature_indeterminate_ring && control.visible)
-                )
-            }
-
-            // Complete icon 完成图标
-            Icon {
-                objectName: "infoBarProgressCompleteIcon"
-                anchors.centerIn: parent
-                iconSize: Enums.infoBarMetrics.iconSize
-                icon: control.severityIconName
-                color: control.severityColor
-                visible: control._progressComplete
-                opacity: 0
-
-                NumberAnimation on opacity {
-                    running: control._progressComplete
-                    from: 0; to: 1
-                    duration: Enums.duration.normal
-                }
-            }
-        }
+    // ==================== Content 内容 ====================
+    InfoBarInternal.InfoBarContent {
+        id: contentLayer
+        infoBar: control
     }
 }

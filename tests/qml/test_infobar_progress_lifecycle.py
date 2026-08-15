@@ -169,7 +169,8 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
         )
 
         assert len(timers) == 1
-        assert object_count == 65
+        # InfoBarContent adds one stable visual owner; timer and branch counts stay unchanged.
+        assert object_count == 66
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
