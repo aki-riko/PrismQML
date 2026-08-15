@@ -13,14 +13,14 @@ from ..core.utils import _enable_quick_window_alpha_buffer, qml_path
 
 def _register_primary_context(context: QQmlContext) -> None:
     """Register shared managers. 注册共享管理器。"""
-    from ..config import getConfigManager
     from ..core.incubation import asynchronous_page_loader_enabled
     from ..core.theme import getThemeManager
     from .appearance import install_appearance_persistence
+    from .configuration import get_config_manager
 
     install_appearance_persistence()
     context.setContextProperty("ThemeManager", getThemeManager())
-    context.setContextProperty("ConfigManager", getConfigManager())
+    context.setContextProperty("ConfigManager", get_config_manager())
     context.setContextProperty(
         "PrismQmlStartupProfileVerbose", startup_profile_verbose_enabled()
     )

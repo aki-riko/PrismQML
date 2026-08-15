@@ -15,12 +15,12 @@ from ..providers import get_svg_provider
 def _load_core_window_managers(profile):
     """Load core managers at the original startup boundary. 在原启动边界加载核心管理器。"""
     from ..core import ThemeManager, getShadowManager
-    from ..config import getConfigManager
     from .appearance import install_appearance_persistence
+    from .configuration import get_config_manager
 
     install_appearance_persistence()
     profile("导入核心管理器")
-    return ThemeManager, getShadowManager, getConfigManager
+    return ThemeManager, getShadowManager, get_config_manager
 
 
 def _ensure_window_engine(builder, profile) -> None:
@@ -51,12 +51,12 @@ def _inject_window_context(
     builder, startup_profile_verbose, core_managers, window_dependencies, profile
 ):
     """Inject the ordered root context contract. 按既定顺序注入根上下文合同。"""
-    ThemeManager, getShadowManager, getConfigManager = core_managers
+    ThemeManager, getShadowManager, get_config_manager = core_managers
     get_mica_manager, get_native_window_hook, get_clipboard_helper = window_dependencies
     context = builder._engine.rootContext()
     context.setContextProperty("ThemeManager", ThemeManager())
     context.setContextProperty("ShadowManager", getShadowManager())
-    context.setContextProperty("ConfigManager", getConfigManager())
+    context.setContextProperty("ConfigManager", get_config_manager())
     context.setContextProperty("MicaManager", get_mica_manager())
     context.setContextProperty("ClipboardHelper", get_clipboard_helper())
     context.setContextProperty(

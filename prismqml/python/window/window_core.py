@@ -180,9 +180,9 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         super().__init__(parent)
         initialize_window_state(self, window_type)
         # 从配置读取懒加载设置 Read lazy loading from config
-        from ..config import getConfigManager
+        from ..runtime.configuration import get_config_manager
 
-        self._lazy_loading = getConfigManager().lazyLoading
+        self._lazy_loading = get_config_manager().lazyLoading
         initialize_splash_state(self)
 
     # ==================== 窗口属性 ====================

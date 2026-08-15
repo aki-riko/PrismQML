@@ -11,13 +11,12 @@ from ..core.theme import (
     _bind_appearance_persistence,
     getThemeManager,
 )
+from .configuration import get_config_manager
 
 
 def _persist_appearance_change(field: str, value: str) -> None:
     """Route core appearance requests through config. 通过配置路由外观请求。"""
-    from ..config import getConfigManager
-
-    manager = getConfigManager()
+    manager = get_config_manager()
     setters = {
         "theme": manager.setTheme,
         "skin": manager.setSkin,
@@ -33,10 +32,8 @@ def install_appearance_persistence() -> None:
 
 def _ensure_appearance_persistence() -> None:
     """Load the persistence adapter before public mutations. 公开修改前装配持久化端口。"""
-    from ..config import getConfigManager
-
     install_appearance_persistence()
-    getConfigManager()
+    get_config_manager()
 
 
 def setTheme(theme: Theme) -> None:

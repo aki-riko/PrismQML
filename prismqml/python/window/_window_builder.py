@@ -447,7 +447,7 @@ class WindowBuilderMixin:
     def _create_window(self):
         """创建QML窗口"""
         profile, startup_profile_verbose = prepare_window_startup_profile()
-        getConfigManager = prepare_window_engine(
+        get_config_manager = prepare_window_engine(
             self, startup_profile_verbose, profile
         )
         qml_dir, icon_dir = resolve_window_qml_paths(profile)
@@ -455,7 +455,7 @@ class WindowBuilderMixin:
             qml_dir,
             icon_dir,
             startup_profile_verbose,
-            getConfigManager,
+            get_config_manager,
             profile,
         )
         finish_window_startup(

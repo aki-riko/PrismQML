@@ -363,6 +363,34 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
         assert _named_function_calls(owner, "install_appearance_persistence")
 
 
+def test_configuration_singleton_has_one_runtime_composition_owner():
+    configuration = PYTHON_PACKAGE / "runtime" / "configuration.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_exports = _lazy_exports(runtime_init)
+    configuration_imports = {
+        target for _line, target in _resolved_imports(configuration)
+    }
+
+    assert runtime_exports["get_config_manager"] == (
+        ".configuration",
+        "get_config_manager",
+    )
+    assert "get_config_manager" in _function_names(configuration)
+    assert configuration_imports == {
+        "prismqml.python.config.getConfigManager"
+    }
+
+    violations = []
+    for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
+        if path == configuration or path.is_relative_to(PYTHON_PACKAGE / "config"):
+            continue
+        for line, target in _resolved_imports(path):
+            if target == "prismqml.python.config.getConfigManager":
+                violations.append(f"{path.relative_to(REPO_ROOT)}:{line}: {target}")
+
+    assert violations == []
+
+
 def test_notification_qml_helper_has_one_runtime_composition_owner():
     core_notification = CORE_PACKAGE / "notification.py"
     runtime_notification = PYTHON_PACKAGE / "runtime" / "notification.py"
