@@ -9,9 +9,44 @@ from ..core.theme import (
     Skin,
     Theme,
     _bind_appearance_persistence,
-    getThemeManager,
+    accentQColor as _core_accent_q_color,
+    getAccentColor as _core_get_accent_color,
+    getSkin as _core_get_skin,
+    getTheme as _core_get_theme,
+    getThemeManager as _core_get_theme_manager,
+    isDark as _core_is_dark,
 )
 from .configuration import get_config_manager
+
+
+def getTheme() -> Theme:
+    """Get the current theme through the runtime facade. 通过运行时门面获取当前主题。"""
+    return _core_get_theme()
+
+
+def getSkin() -> Skin:
+    """Get the current skin through the runtime facade. 通过运行时门面获取当前皮肤。"""
+    return _core_get_skin()
+
+
+def isDark() -> bool:
+    """Return the current dark-mode state through the runtime facade. 通过运行时门面获取深色状态。"""
+    return _core_is_dark()
+
+
+def getAccentColor() -> str:
+    """Get the current accent color through the runtime facade. 通过运行时门面获取当前强调色。"""
+    return _core_get_accent_color()
+
+
+def accentQColor():
+    """Get the current accent QColor through the runtime facade. 通过运行时门面获取当前 QColor。"""
+    return _core_accent_q_color()
+
+
+def getThemeManager():
+    """Get the singleton theme manager through the runtime facade. 通过运行时门面获取主题管理器单例。"""
+    return _core_get_theme_manager()
 
 
 def _apply_config_appearance(field: str, value: str) -> None:

@@ -640,7 +640,17 @@ def test_application_startup_composition_has_one_runtime_owner():
 def test_public_appearance_mutations_cross_the_runtime_boundary():
     root_exports = _lazy_exports(REPO_ROOT / "prismqml" / "__init__.py")
 
-    for name in ("setTheme", "setSkin", "setAccentColor"):
+    for name in (
+        "setTheme",
+        "getTheme",
+        "setSkin",
+        "getSkin",
+        "isDark",
+        "setAccentColor",
+        "getAccentColor",
+        "accentQColor",
+        "getThemeManager",
+    ):
         assert root_exports[name] == (".python.runtime.appearance", name)
 
 
