@@ -4,16 +4,14 @@
 
 import QtQuick
 import "../.."
-import "../icons"
-import "../buttons"
-import "../data/Label"
+import "_internal" as InputInternal
 
 // ShortcutEditor - Shortcut key editor 快捷键选择器
 // Extends InputCore for unified input styling 继承InputCore统一输入框样式
 // Features: key tags with Button, single/combo key modes 按键标签+单键/组合键模式
 InputCore {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
     property string shortcut: ""
     property string defaultShortcut: ""  // Default shortcut for reset 重置用默认快捷键
@@ -28,7 +26,7 @@ InputCore {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var keyList: shortcut ? shortcut.split("+") : []
-    readonly property bool _needsScroll: tagsFlickable.contentWidth > tagsFlickable.width
+    readonly property bool _needsScroll: contentLayer.contentWidth > contentLayer.width
 
     // ==================== Signals 信号 ====================
     signal shortcutRecorded(string newShortcut)
@@ -42,7 +40,7 @@ InputCore {
     // ==================== Internal Methods 内部方法 ====================
     // Only intercept wheel when content overflows 仅当内容溢出时拦截滚轮
     function _smoothScrollTo(x) {
-        _targetX = Math.max(0, Math.min(x, tagsFlickable.contentWidth - tagsFlickable.width))
+        _targetX = Math.max(0, Math.min(x, contentLayer.contentWidth - contentLayer.width))
         _smoothContentX = _targetX
     }
 
@@ -61,11 +59,11 @@ InputCore {
     }
 
     // ==================== Size 尺寸 ====================
-    implicitWidth: Math.max(Enums.controlSize.shortcutPickerMinWidth, contentRow.implicitWidth + Enums.spacing.xl * 2)
+    implicitWidth: Math.max(Enums.controlSize.shortcutPickerMinWidth, contentLayer.contentRow.implicitWidth + Enums.spacing.xl * 2)
     implicitHeight: Enums.controlSize.inputHeightLarge
     focused: recording || keyCapture.activeFocus
     hovered: mouseArea.containsMouse
-    on_SmoothContentXChanged: tagsFlickable.contentX = _smoothContentX
+    on_SmoothContentXChanged: contentLayer.contentX = _smoothContentX
     onRecordingChanged: {
         if (recording) {
             keyCapture.forceActiveFocus(Qt.MouseFocusReason)
@@ -83,102 +81,12 @@ InputCore {
         }
     }
 
-    // Scrollable key tags area 可滚动的按键标签区域
-    Flickable {
-        id: tagsFlickable
-        anchors.left: parent.left
-        anchors.right: cancelBtn.visible ? cancelBtn.left : parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Enums.spacing.m
-        anchors.rightMargin: Enums.spacing.m
-        height: Enums.controlSize.shortcutKeyHeight
-        contentWidth: contentRow.width
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        flickableDirection: Flickable.HorizontalFlick
-        interactive: false  // Disable drag, use wheel only 禁用拖拽，仅用滚轮
-        
-        // Center content when not overflowing 内容不溢出时居中
-        contentX: contentWidth <= width ? -(width - contentWidth) / 2 : 0
-        
-        // Wheel scroll handler 滚轮滚动处理
-        MouseArea {
-            anchors.fill: parent
-            propagateComposedEvents: true
-            onWheel: (wheel) => {
-                if (control._needsScroll) {
-                    control._smoothScrollTo(control._targetX - wheel.angleDelta.y * 0.5)
-                    wheel.accepted = true
-                } else {
-                    wheel.accepted = false
-                }
-            }
-            onClicked: (mouse) => {
-                mouse.accepted = false
-            }
-            onPressed: (mouse) => {
-                mouse.accepted = false
-            }
-        }
-        
-        Row {
-            id: contentRow
-            height: Enums.controlSize.shortcutKeyHeight
-            spacing: Enums.spacing.s
-            
-            // Key tags container 按键标签容器
-            Row {
-                id: tagsRow
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Enums.spacing.xs
-                visible: !control.recording && control.keyList.length > 0
-                
-                Repeater {
-                    model: control.keyList
-                    
-                    // Single key tag using Button 单个按键标签复用Button
-                    Item {
-                        width: Math.min(keyBtn.implicitWidth, Enums.controlSize.shortcutKeyMaxWidth)
-                        height: Enums.controlSize.shortcutKeyHeight
-                        
-                        Button {
-                            id: keyBtn
-                            anchors.fill: parent
-                            style: Enums.button.style_primary
-                            text: modelData
-                            enabled: control.enabled
-                        }
-                    }
-                }
-            }
-            
-            // Placeholder text 占位符文本
-            Label {
-                type: Enums.label.type_body
-                anchors.verticalCenter: parent.verticalCenter
-                visible: !control.recording && control.keyList.length === 0
-                text: control.placeholderText
-                color: Enums.textColor.tertiary
-            }
-            
-            // Recording indicator 录制中指示器
-            Label {
-                type: Enums.label.type_body
-                anchors.verticalCenter: parent.verticalCenter
-                visible: control.recording
-                text: { Translator._v; return Translator.tr("recording") }
-                color: Enums.accentColor
-                
-                SequentialAnimation on opacity {
-                    running: control.recording
-                    loops: Animation.Infinite
-                    NumberAnimation { to: 0.4; duration: Enums.duration.dialog }
-                    NumberAnimation { to: 1; duration: Enums.duration.dialog }
-                }
-            }
-        }
+    InputInternal.ShortcutEditorContent {
+        id: contentLayer
+        editorControl: control
+        cancelButton: cancelBtn
     }
-    
+
     // Focus overlay 失焦遮罩
     Component {
         id: focusOverlayComponent
@@ -214,16 +122,16 @@ InputCore {
         anchors.fill: parent
         focus: control.recording
         activeFocusOnTab: true
-        
+
         Keys.onPressed: (event) => {
             if (!control.recording) return
-            
+
             var keys = []
             if (event.modifiers & Qt.ControlModifier) keys.push("Ctrl")
             if (event.modifiers & Qt.ShiftModifier) keys.push("Shift")
             if (event.modifiers & Qt.AltModifier) keys.push("Alt")
             if (event.modifiers & Qt.MetaModifier) keys.push("Win")
-            
+
             var keyName = ""
             if (event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
                 keyName = String.fromCharCode(event.key)
@@ -264,11 +172,11 @@ InputCore {
                 event.accepted = true
                 return
             }
-            
+
             // Accept shortcut based on allowSingleKey mode 根据allowSingleKey模式接受快捷键
             if (keyName) {
-                var shouldAccept = control.allowSingleKey || 
-                                   keys.length > 0 || 
+                var shouldAccept = control.allowSingleKey ||
+                                   keys.length > 0 ||
                                    (event.key >= Qt.Key_F1 && event.key <= Qt.Key_F12)
                 if (shouldAccept) {
                     keys.push(keyName)
@@ -277,7 +185,7 @@ InputCore {
                     control.recording = false
                 }
             }
-            
+
             event.accepted = true
         }
     }

@@ -867,3 +867,38 @@ def test_audio_waveform_keeps_visual_content_modularized():
         "\n    Item {",
     ):
         assert marker not in source
+
+
+def test_shortcut_editor_keeps_scrollable_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/ShortcutEditor.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/ShortcutEditorContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 230
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert 'import "_internal" as InputInternal' in source
+    assert "InputInternal.ShortcutEditorContent {" in source
+    assert "required property var editorControl" in helper_source
+    assert "required property var cancelButton" in helper_source
+    assert "property alias contentRow: contentRow" in helper_source
+    assert helper_source.startswith(
+        "// Copyright 2026 aki-riko\n"
+        "// SPDX-License-Identifier: MIT\n"
+        "// This file is part of PrismQML, licensed under MIT.\n\n"
+        "import QtQuick\n"
+        "import \"../../..\"\n"
+        "import \"../../buttons\"\n"
+        "import \"../../data/Label\"\n\n"
+        "// ShortcutEditorContent"
+    )
+
+    for marker in (
+        "\n    Flickable {",
+        "\n        Repeater {",
+        "\n        Label {",
+    ):
+        assert marker not in source

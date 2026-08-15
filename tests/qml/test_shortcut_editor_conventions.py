@@ -23,6 +23,15 @@ SOURCE_PATH = (
     / "inputs"
     / "ShortcutEditor.qml"
 )
+CONTENT_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "_internal"
+    / "ShortcutEditorContent.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "shortcut-editor-conventions.qml")
 )
@@ -162,11 +171,17 @@ def test_shortcut_editor_public_methods_and_recording_lifecycle(qapp):
 
 
 def test_shortcut_editor_source_conventions():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    sources = (
+        (SOURCE_PATH, SOURCE_PATH.read_text(encoding="utf-8")),
+        (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
+    )
+    violations = []
+    for path, source in sources:
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                source, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
