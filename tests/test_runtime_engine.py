@@ -30,6 +30,26 @@ def test_get_or_create_qml_engine_reuses_published_engine(monkeypatch):
     assert calls == ["get"]
 
 
+def test_engine_lifecycle_ports_delegate_to_engine_manager(monkeypatch):
+    engine = object()
+    calls = []
+    manager = SimpleNamespace(
+        _engine=engine,
+        _release_engine_bindings=lambda value, include_lazy=True: calls.append(
+            ("release", value, include_lazy)
+        ),
+        reset=lambda: calls.append("reset"),
+    )
+    monkeypatch.setattr(runtime_engine, "EngineManager", manager)
+
+    assert runtime_engine.is_published_qml_engine(engine) is True
+    assert runtime_engine.is_published_qml_engine(object()) is False
+    runtime_engine.release_qml_engine_bindings(engine, include_lazy=False)
+    runtime_engine.reset_qml_engine()
+
+    assert calls == [("release", engine, False), "reset"]
+
+
 def test_get_or_create_qml_engine_creates_and_publishes_missing_engine(
     monkeypatch,
 ):

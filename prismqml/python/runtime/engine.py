@@ -20,6 +20,23 @@ def publish_qml_engine(engine: QQmlApplicationEngine) -> None:
     EngineManager.set_engine(engine)
 
 
+def is_published_qml_engine(engine: QQmlApplicationEngine) -> bool:
+    """Check whether the process engine is this instance. 检查进程引擎身份。"""
+    return EngineManager._engine is engine
+
+
+def release_qml_engine_bindings(
+    engine: QQmlApplicationEngine, *, include_lazy: bool = True
+) -> None:
+    """Release Python bindings owned by the QML engine. 释放引擎绑定对象。"""
+    EngineManager._release_engine_bindings(engine, include_lazy=include_lazy)
+
+
+def reset_qml_engine() -> None:
+    """Reset the published QML engine and its bindings. 重置进程 QML 引擎。"""
+    EngineManager.reset()
+
+
 def get_or_create_qml_engine() -> QQmlApplicationEngine:
     """Reuse or create and publish the process engine. 复用或创建并发布引擎。"""
     try:

@@ -358,6 +358,9 @@ def test_qml_engine_composition_has_one_runtime_owner():
     for name in (
         "create_qml_engine",
         "publish_qml_engine",
+        "is_published_qml_engine",
+        "release_qml_engine_bindings",
+        "reset_qml_engine",
         "get_or_create_qml_engine",
         "configure_application_engine",
     ):
@@ -387,6 +390,12 @@ def test_qml_engine_composition_has_one_runtime_owner():
             violations.append(
                 f"{path.relative_to(REPO_ROOT)}:{line}: EngineManager.set_engine()"
             )
+        for name in ("_release_engine_bindings", "reset"):
+            for line in _attribute_function_calls(path, "EngineManager", name):
+                violations.append(
+                    f"{path.relative_to(REPO_ROOT)}:{line}: "
+                    f"EngineManager.{name}()"
+                )
 
     assert violations == []
 

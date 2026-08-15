@@ -18,7 +18,6 @@ from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 
-from ..core.engine import EngineManager
 from ..core.input_focus_filter import reset_input_focus_filter
 from ..core.utils import QML_XHR_ALLOW_FILE_READ_ENV
 from ._application_icon_runtime import (
@@ -164,11 +163,12 @@ def _restore_qml_environment(previous_value) -> None:
 def _rollback_app_initialization(owner, previous_qml_environment) -> None:
     """Rollback a partially initialized App. 回滚部分初始化的 App。"""
     from ..core.shadow import reset_dwm_sync_filter
+    from ..runtime import is_published_qml_engine, reset_qml_engine
 
     if owner._input_filter_started:
         _run_app_cleanup("input filter", reset_input_focus_filter)
-    if owner._engine_publish_started and EngineManager._engine is owner._engine:
-        _run_app_cleanup("engine bindings", EngineManager.reset)
+    if owner._engine_publish_started and is_published_qml_engine(owner._engine):
+        _run_app_cleanup("engine bindings", reset_qml_engine)
     if owner._dwm_filter_started:
         _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
     _run_app_cleanup("QML engine", lambda: _delete_qml_engine(owner._engine))
@@ -183,7 +183,12 @@ def _shutdown_app_runtime(owner) -> None:
     """Release QML before QApplication teardown. 在 QApplication 析构前释放 QML。"""
     from ..core.shadow import reset_dwm_sync_filter
     from ..core.task_runner import TaskShutdownTimeoutError, shutdown_tasks
-    from ..runtime import get_config_manager
+    from ..runtime import (
+        get_config_manager,
+        is_published_qml_engine,
+        release_qml_engine_bindings,
+        reset_qml_engine,
+    )
 
     config_manager = get_config_manager()
     if not config_manager.waitForPersistence(owner._task_shutdown_timeout_ms):
@@ -197,10 +202,10 @@ def _shutdown_app_runtime(owner) -> None:
     if owner._dwm_filter_started:
         _run_app_cleanup("DWM filter", reset_dwm_sync_filter)
         owner._dwm_filter_started = False
-    if owner._engine_publish_started and EngineManager._engine is owner._engine:
+    if owner._engine_publish_started and is_published_qml_engine(owner._engine):
         _run_app_cleanup(
             "engine surfaces",
-            lambda: EngineManager._release_engine_bindings(
+            lambda: release_qml_engine_bindings(
                 owner._engine, include_lazy=False
             ),
         )
@@ -208,8 +213,8 @@ def _shutdown_app_runtime(owner) -> None:
     _run_app_cleanup("current window", _clear_current_window_reference)
     owner._windows.clear()
     if owner._engine_publish_started:
-        if EngineManager._engine is owner._engine:
-            _run_app_cleanup("engine bindings", EngineManager.reset)
+        if is_published_qml_engine(owner._engine):
+            _run_app_cleanup("engine bindings", reset_qml_engine)
         owner._engine_publish_started = False
     _run_app_cleanup("QML engine", lambda: _delete_qml_engine(owner._engine))
     owner._engine = None
@@ -292,10 +297,11 @@ class App(ApplicationIconMixin):
     def _reset(cls) -> None:
         """重置单例状态（仅供测试使用） Reset singleton state (for testing only)"""
         from ..core.shadow import reset_dwm_sync_filter
+        from ..runtime import reset_qml_engine
 
         reset_input_focus_filter()
         reset_dwm_sync_filter()
-        EngineManager.reset()
+        reset_qml_engine()
         cls._instance = None
 
     @classmethod
