@@ -4,6 +4,7 @@
 
 import "../.."
 import "."
+import "_internal"
 import "../containers/ScrollBar"
 import QtQuick  // Place after library imports so native types keep no prefix 置于库 import 后，确保原生类型无需前缀
 
@@ -383,88 +384,9 @@ Item {
                 model: chatModel
                 onItemAdded: (index, item) => control._scheduleSlotLayout(index)
 
-                delegate: Loader {
-                    id: messageSlot
-
-                    required property int index
-                    required property string role
-                    required property string content
-                    required property string reasoning
-                    required property string timestamp
-                    property bool _layoutReady: false
-                    property bool _reasoningExpanded: true
-                    property bool _userToggledReasoning: false
-                    property real _measuredHeight: control._minimumMessageHeight
-                    property string _measuredKey: ""
-                    readonly property string _measurementKey: [
-                        width,
-                        role,
-                        content,
-                        reasoning,
-                        timestamp,
-                        control.maxBubbleWidth,
-                        control.assistantAvatarText,
-                        String(control.assistantAvatarSource),
-                        control.showAssistantAvatar,
-                        _reasoningExpanded,
-                        _userToggledReasoning,
-                        Enums.fontFamily
-                    ].join("\u001f")
-                    property bool _inLoadRange: false
-
-                    width: messageColumn.width
-                    height: _measuredHeight
-                    active: _layoutReady && _inLoadRange
-                    asynchronous: true
-
-                    onContentChanged: {
-                        if (content !== "" && !_userToggledReasoning) {
-                            _reasoningExpanded = false
-                        }
-                    }
-                    on_MeasurementKeyChanged: {
-                        if (item) control._scheduleSlotMeasurement(messageSlot)
-                    }
-                    onLoaded: control._scheduleSlotMeasurement(messageSlot)
-
-                    function _scheduleMeasurement() {
-                        slotMeasurementTimer.start()
-                    }
-
-                    Timer {
-                        id: slotMeasurementTimer
-
-                        interval: 0
-                        repeat: false
-                        onTriggered: {
-                            if (messageSlot.item) {
-                                control._cacheSlotHeight(
-                                    messageSlot,
-                                    messageSlot.item.implicitHeight
-                                )
-                            }
-                        }
-                    }
-
-                    sourceComponent: ChatBubble {
-                        role: messageSlot.role
-                        content: messageSlot.content
-                        reasoning: messageSlot.reasoning
-                        timestamp: messageSlot.timestamp
-                        maxBubbleWidth: control.maxBubbleWidth
-                        avatarText: control.assistantAvatarText
-                        avatarSource: control.assistantAvatarSource
-                        showAvatar: control.showAssistantAvatar
-                        _reasoningExpanded: messageSlot._reasoningExpanded
-                        _userToggledReasoning: messageSlot._userToggledReasoning
-
-                        onImplicitHeightChanged:
-                            control._cacheSlotHeight(messageSlot, implicitHeight)
-                        on_ReasoningExpandedChanged:
-                            messageSlot._reasoningExpanded = _reasoningExpanded
-                        on_UserToggledReasoningChanged:
-                            messageSlot._userToggledReasoning = _userToggledReasoning
-                    }
+                delegate: ChatMessageSlot {
+                    host: control
+                    messageColumn: messageColumn
                 }
             }
         }

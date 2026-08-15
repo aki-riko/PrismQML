@@ -110,3 +110,15 @@ def test_bar_chart_keeps_single_series_delegate_modularized():
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
     assert entry.read_text(encoding="utf-8").count("BarChartBar {") == 2
+
+
+def test_chat_message_list_keeps_slot_delegate_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/ChatMessageSlot.qml"
+    )
+
+    assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
+    assert helper.exists()
+    assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+    assert "ChatMessageSlot {" in entry.read_text(encoding="utf-8")
