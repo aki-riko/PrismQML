@@ -193,7 +193,7 @@ def _shutdown_app_runtime(owner) -> None:
     """Release QML before QApplication teardown. 在 QApplication 析构前释放 QML。"""
     from ..core.shadow import reset_dwm_sync_filter
     from ..core.task_runner import TaskShutdownTimeoutError, shutdown_tasks
-    from ..runtime.configuration import get_config_manager
+    from ..runtime import get_config_manager
 
     config_manager = get_config_manager()
     if not config_manager.waitForPersistence(owner._task_shutdown_timeout_ms):

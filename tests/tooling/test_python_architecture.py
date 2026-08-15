@@ -380,6 +380,17 @@ def test_configuration_singleton_has_one_runtime_composition_owner():
         "prismqml.python.config.getConfigManager"
     }
 
+    for owner in (
+        WINDOW_PACKAGE / "app.py",
+        WINDOW_PACKAGE / "window_core.py",
+    ):
+        imports = {target for _line, target in _resolved_imports(owner)}
+        assert "prismqml.python.runtime.get_config_manager" in imports
+        assert (
+            "prismqml.python.runtime.configuration.get_config_manager"
+            not in imports
+        )
+
     violations = []
     for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
         if path == configuration or path.is_relative_to(PYTHON_PACKAGE / "config"):
