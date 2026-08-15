@@ -168,13 +168,30 @@ def test_application_filter_installers_delegate_to_core(monkeypatch):
         "installDwmSyncFilter",
         lambda: calls.append("dwm") or True,
     )
+    monkeypatch.setattr(
+        input_focus_filter,
+        "reset_input_focus_filter",
+        lambda: calls.append("reset_input"),
+    )
+    monkeypatch.setattr(
+        shadow,
+        "reset_dwm_sync_filter",
+        lambda: calls.append("reset_dwm"),
+    )
 
     assert (
         runtime_application.install_application_input_filter(application)
         is input_filter
     )
     assert runtime_application.install_application_dwm_filter() is True
-    assert calls == [("input", application), "dwm"]
+    runtime_application.reset_application_input_filter()
+    runtime_application.reset_application_dwm_filter()
+    assert calls == [
+        ("input", application),
+        "dwm",
+        "reset_input",
+        "reset_dwm",
+    ]
 
 
 @pytest.mark.parametrize("stage", ["input", "dwm"])

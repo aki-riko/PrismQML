@@ -25,6 +25,8 @@ __all__ = [
     "create_qt_application",
     "install_application_input_filter",
     "install_application_dwm_filter",
+    "reset_application_input_filter",
+    "reset_application_dwm_filter",
     "NotificationPosition",
     "NotificationSeverity",
     "showDesktopNotification",
@@ -71,6 +73,14 @@ _LAZY_EXPORTS = {
     "install_application_dwm_filter": (
         ".application",
         "install_application_dwm_filter",
+    ),
+    "reset_application_input_filter": (
+        ".application",
+        "reset_application_input_filter",
+    ),
+    "reset_application_dwm_filter": (
+        ".application",
+        "reset_application_dwm_filter",
     ),
     "NotificationPosition": (".notification", "Position"),
     "NotificationSeverity": (".notification", "Severity"),

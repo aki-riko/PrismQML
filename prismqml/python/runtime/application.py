@@ -55,3 +55,17 @@ def install_application_dwm_filter() -> bool:
     from ..core.shadow import installDwmSyncFilter
 
     return installDwmSyncFilter()
+
+
+def reset_application_input_filter() -> None:
+    """Reset the process input filter. 重置进程输入过滤器。"""
+    from ..core.input_focus_filter import reset_input_focus_filter
+
+    reset_input_focus_filter()
+
+
+def reset_application_dwm_filter() -> None:
+    """Reset the Windows DWM synchronization filter. 重置 Windows DWM 同步过滤器。"""
+    from ..core.shadow import reset_dwm_sync_filter
+
+    reset_dwm_sync_filter()

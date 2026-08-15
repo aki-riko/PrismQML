@@ -470,6 +470,8 @@ def test_application_startup_composition_has_one_runtime_owner():
         "create_qt_application",
         "install_application_input_filter",
         "install_application_dwm_filter",
+        "reset_application_input_filter",
+        "reset_application_dwm_filter",
     )
     for name in runtime_names:
         assert runtime_exports[name] == (".application", name)
@@ -484,9 +486,15 @@ def test_application_startup_composition_has_one_runtime_owner():
         "install_qt_message_handler",
         "install_input_focus_filter",
         "installDwmSyncFilter",
+        "reset_input_focus_filter",
+        "reset_dwm_sync_filter",
     )
+    owned_implementation_paths = {
+        PYTHON_PACKAGE / "core" / "input_focus_filter.py",
+        PYTHON_PACKAGE / "core" / "shadow.py",
+    }
     for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
-        if path == runtime_application:
+        if path == runtime_application or path in owned_implementation_paths:
             continue
         for name in owned_calls:
             for line in _named_function_calls(path, name):
