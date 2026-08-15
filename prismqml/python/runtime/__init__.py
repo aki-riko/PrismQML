@@ -16,6 +16,10 @@ __all__ = [
     "publish_qml_engine",
     "get_or_create_qml_engine",
     "configure_application_engine",
+    "prepare_application_environment",
+    "create_qt_application",
+    "install_application_input_filter",
+    "install_application_dwm_filter",
     "NotificationPosition",
     "NotificationSeverity",
     "showDesktopNotification",
@@ -38,6 +42,19 @@ _LAZY_EXPORTS = {
     "configure_application_engine": (
         ".engine",
         "configure_application_engine",
+    ),
+    "prepare_application_environment": (
+        ".application",
+        "prepare_application_environment",
+    ),
+    "create_qt_application": (".application", "create_qt_application"),
+    "install_application_input_filter": (
+        ".application",
+        "install_application_input_filter",
+    ),
+    "install_application_dwm_filter": (
+        ".application",
+        "install_application_dwm_filter",
     ),
     "NotificationPosition": (".notification", "Position"),
     "NotificationSeverity": (".notification", "Severity"),

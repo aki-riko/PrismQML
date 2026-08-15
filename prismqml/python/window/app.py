@@ -14,15 +14,12 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 
 from ..core.engine import EngineManager
-from ..core.input_focus_filter import (
-    install_input_focus_filter,
-    reset_input_focus_filter,
-)
+from ..core.input_focus_filter import reset_input_focus_filter
 from ..core.utils import QML_XHR_ALLOW_FILE_READ_ENV
 from ._application_icon_runtime import (
     ApplicationIconMixin,
@@ -68,36 +65,24 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
 
 def _prepare_app_environment(allow_qml_file_read: bool) -> None:
     """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
-    from ..config import applyDpiScale
-    from ..core import (
-        configure_qml_environment,
-        install_qt_message_handler,
-    )
+    from ..runtime import prepare_application_environment
 
-    configure_qml_environment(allow_qml_file_read)
-    if os.name == "nt":
-        from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-
-        QQuickWindow.setGraphicsApi(
-            QSGRendererInterface.GraphicsApi.Direct3D11
-        )
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
-    applyDpiScale()
-    install_qt_message_handler()
+    prepare_application_environment(allow_qml_file_read)
 
 
 def _create_qt_application(owner, argv: List[str]) -> None:
     """Create QApplication and install global filters. 创建应用并安装全局过滤器。"""
-    from ..core import installDwmSyncFilter
+    from ..runtime import (
+        create_qt_application,
+        install_application_dwm_filter,
+        install_application_input_filter,
+    )
 
-    owner._owns_app = QApplication.instance() is None
-    owner._app = QApplication(argv or [])
+    owner._app, owner._owns_app = create_qt_application(argv)
     owner._input_filter_started = True
-    install_input_focus_filter(owner._app)
+    install_application_input_filter(owner._app)
     owner._dwm_filter_started = True
-    installDwmSyncFilter()
+    install_application_dwm_filter()
 
 
 def _create_qml_engine(owner) -> None:

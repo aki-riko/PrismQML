@@ -391,6 +391,58 @@ def test_qml_engine_composition_has_one_runtime_owner():
     assert violations == []
 
 
+def test_application_startup_composition_has_one_runtime_owner():
+    app = WINDOW_PACKAGE / "app.py"
+    runtime_application = PYTHON_PACKAGE / "runtime" / "application.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_exports = _lazy_exports(runtime_init)
+    app_imports = {target for _line, target in _resolved_imports(app)}
+
+    runtime_names = (
+        "prepare_application_environment",
+        "create_qt_application",
+        "install_application_input_filter",
+        "install_application_dwm_filter",
+    )
+    for name in runtime_names:
+        assert runtime_exports[name] == (".application", name)
+        assert name in _function_names(runtime_application)
+        assert f"prismqml.python.runtime.{name}" in app_imports
+
+    violations = []
+    owned_calls = (
+        "QApplication",
+        "configure_qml_environment",
+        "applyDpiScale",
+        "install_qt_message_handler",
+        "install_input_focus_filter",
+        "installDwmSyncFilter",
+    )
+    for path in sorted(PYTHON_PACKAGE.rglob("*.py")):
+        if path == runtime_application:
+            continue
+        for name in owned_calls:
+            for line in _named_function_calls(path, name):
+                violations.append(
+                    f"{path.relative_to(REPO_ROOT)}:{line}: {name}()"
+                )
+        for line in _attribute_function_calls(
+            path, "QQuickWindow", "setGraphicsApi"
+        ):
+            violations.append(
+                f"{path.relative_to(REPO_ROOT)}:{line}: "
+                "QQuickWindow.setGraphicsApi()"
+            )
+
+    assert violations == []
+    assert _attribute_function_calls(
+        runtime_application, "QQuickWindow", "setGraphicsApi"
+    )
+    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in (
+        runtime_application.read_text(encoding="utf-8")
+    )
+
+
 def test_public_appearance_mutations_cross_the_runtime_boundary():
     root_exports = _lazy_exports(REPO_ROOT / "prismqml" / "__init__.py")
 
