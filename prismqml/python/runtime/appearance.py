@@ -3,15 +3,39 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-"""Appearance runtime composition. 外观运行时装配。"""
+"""Appearance persistence composition. 外观持久化装配。"""
 
-from ..core.theme import Skin, Theme, getThemeManager
+from ..core.theme import (
+    Skin,
+    Theme,
+    _bind_appearance_persistence,
+    getThemeManager,
+)
+
+
+def _persist_appearance_change(field: str, value: str) -> None:
+    """Route core appearance requests through config. 通过配置路由外观请求。"""
+    from ..config import getConfigManager
+
+    manager = getConfigManager()
+    setters = {
+        "theme": manager.setTheme,
+        "skin": manager.setSkin,
+        "accent_color": manager.setAccentColor,
+    }
+    setters[field](value)
+
+
+def install_appearance_persistence() -> None:
+    """Install the runtime-owned persistence adapter. 安装运行时持久化适配器。"""
+    _bind_appearance_persistence(_persist_appearance_change)
 
 
 def _ensure_appearance_persistence() -> None:
     """Load the persistence adapter before public mutations. 公开修改前装配持久化端口。"""
     from ..config import getConfigManager
 
+    install_appearance_persistence()
     getConfigManager()
 
 

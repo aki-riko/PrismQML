@@ -115,6 +115,21 @@ def _function_names(path: Path) -> set[str]:
     }
 
 
+def _named_function_calls(path: Path, name: str) -> list[int]:
+    tree = ast.parse(
+        path.read_text(encoding="utf-8"),
+        filename=str(path),
+        feature_version=(3, 9),
+    )
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == name
+    ]
+
+
 def _class_names(path: Path) -> set[str]:
     tree = ast.parse(
         path.read_text(encoding="utf-8"),
@@ -316,3 +331,27 @@ def test_public_appearance_mutations_cross_the_runtime_boundary():
 
     for name in ("setTheme", "setSkin", "setAccentColor"):
         assert root_exports[name] == (".python.runtime.appearance", name)
+
+
+def test_appearance_persistence_has_one_runtime_composition_owner():
+    appearance = PYTHON_PACKAGE / "runtime" / "appearance.py"
+    config_manager = PYTHON_PACKAGE / "config" / "config_manager.py"
+    registry = PYTHON_PACKAGE / "runtime" / "registry.py"
+    window_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+
+    appearance_imports = {target for _line, target in _resolved_imports(appearance)}
+    config_imports = {target for _line, target in _resolved_imports(config_manager)}
+
+    assert (
+        "prismqml.python.core.theme._bind_appearance_persistence"
+        in appearance_imports
+    )
+    assert "_persist_appearance_change" in _function_names(appearance)
+    assert "install_appearance_persistence" in _function_names(appearance)
+    assert "prismqml.python.core.theme._bind_appearance_persistence" not in config_imports
+    assert "_persist_appearance_change" not in _function_names(config_manager)
+
+    for owner in (registry, window_registry):
+        imports = {target for _line, target in _resolved_imports(owner)}
+        assert "prismqml.python.runtime.appearance.install_appearance_persistence" in imports
+        assert _named_function_calls(owner, "install_appearance_persistence")

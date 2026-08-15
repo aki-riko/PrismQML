@@ -22,7 +22,6 @@ from PySide6.QtCore import (
 from .app_config import AppConfig, DEFAULT_APP_CONFIG
 from ._app_config_schema import resolve_app_config_path
 from ..core import debug, error, warning
-from ..core.theme import _bind_appearance_persistence
 
 
 class ConfigManager(QObject):
@@ -399,16 +398,3 @@ class ConfigManager(QObject):
 def getConfigManager(config_path: str = None) -> ConfigManager:
     """获取配置管理器单例 Get config manager singleton"""
     return ConfigManager(config_path)
-
-
-def _persist_appearance_change(field: str, value: str) -> None:
-    """Route core appearance requests through persistence. 持久化核心外观请求。"""
-    manager = getConfigManager()
-    setters = {
-        "theme": manager.setTheme,
-        "skin": manager.setSkin,
-        "accent_color": manager.setAccentColor,
-    }
-    setters[field](value)
-
-_bind_appearance_persistence(_persist_appearance_change)

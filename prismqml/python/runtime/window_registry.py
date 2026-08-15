@@ -16,7 +16,9 @@ def _load_core_window_managers(profile):
     """Load core managers at the original startup boundary. 在原启动边界加载核心管理器。"""
     from ..core import ThemeManager, getShadowManager
     from ..config import getConfigManager
+    from .appearance import install_appearance_persistence
 
+    install_appearance_persistence()
     profile("导入核心管理器")
     return ThemeManager, getShadowManager, getConfigManager
 

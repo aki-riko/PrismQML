@@ -16,7 +16,9 @@ def _register_primary_context(context: QQmlContext) -> None:
     from ..config import getConfigManager
     from ..core.incubation import asynchronous_page_loader_enabled
     from ..core.theme import getThemeManager
+    from .appearance import install_appearance_persistence
 
+    install_appearance_persistence()
     context.setContextProperty("ThemeManager", getThemeManager())
     context.setContextProperty("ConfigManager", getConfigManager())
     context.setContextProperty(
