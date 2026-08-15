@@ -11,3 +11,10 @@ def get_window_helper():
     from ..core.window_helper import get_window_helper as _get_window_helper
 
     return _get_window_helper()
+
+
+def get_mica_manager():
+    """Return the runtime-owned Mica manager. 获取 runtime 持有的云母管理器。"""
+    from ..window.mica_window import get_mica_manager as _get_mica_manager
+
+    return _get_mica_manager()

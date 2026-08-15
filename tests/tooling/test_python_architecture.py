@@ -408,7 +408,12 @@ def test_window_helper_access_has_one_runtime_owner():
         ".window_services",
         "get_window_helper",
     )
+    assert runtime_exports["get_mica_manager"] == (
+        ".window_services",
+        "get_mica_manager",
+    )
     assert "get_window_helper" in _function_names(runtime_services)
+    assert "get_mica_manager" in _function_names(runtime_services)
     assert (
         "prismqml.python.core.window_helper.get_window_helper"
         in {
@@ -423,10 +428,21 @@ def test_window_helper_access_has_one_runtime_owner():
         "prismqml.python.runtime.window_services.get_window_helper"
         in registry_imports
     )
+    assert (
+        "prismqml.python.window.mica_window.get_mica_manager"
+        in {
+            target for _line, target in _resolved_imports(runtime_services)
+        }
+    )
     for owner in (window_core, application_icon):
         imports = {target for _line, target in _resolved_imports(owner)}
         assert "prismqml.python.runtime.get_window_helper" in imports
         assert "prismqml.python.core.window_helper.get_window_helper" not in imports
+    window_core_imports = {
+        target for _line, target in _resolved_imports(window_core)
+    }
+    assert "prismqml.python.runtime.get_mica_manager" in window_core_imports
+    assert "prismqml.python.window.mica_window.get_mica_manager" not in window_core_imports
     assert "prismqml.python.core.window_helper.get_window_helper" not in registry_imports
 
 

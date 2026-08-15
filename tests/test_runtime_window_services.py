@@ -16,3 +16,13 @@ def test_window_helper_facade_delegates_to_core(monkeypatch):
     )
 
     assert get_window_helper() is sentinel
+
+
+def test_mica_manager_facade_delegates_to_window(monkeypatch):
+    from prismqml.python.runtime.window_services import get_mica_manager
+    from prismqml.python.window import mica_window
+
+    sentinel = object()
+    monkeypatch.setattr(mica_window, "get_mica_manager", lambda: sentinel)
+
+    assert get_mica_manager() is sentinel

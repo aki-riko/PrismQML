@@ -292,7 +292,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
     def isMicaEffectEnabled(self) -> bool:
         """获取云母效果状态"""
-        from .mica_window import get_mica_manager
+        from ..runtime import get_mica_manager
 
         return get_mica_manager().micaEnabled
 
