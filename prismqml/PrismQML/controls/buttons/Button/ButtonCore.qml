@@ -9,6 +9,8 @@ import QtQuick.Effects
 import "../../utils"
 import "../../containers"
 import "ButtonStyle.js" as ButtonStyle
+import "_internal" as ButtonInternal
+import "_internal/ButtonLogic.js" as ButtonLogic
 
 // Button - Unified button component 统一按钮组件
 // Auto-detect type by icon/text content 根据图标/文本自动识别类型
@@ -153,72 +155,29 @@ Widget {
     function getTextColor() { return _styleTextColor }
 
     // Programmatic click 程序化点击
-    function click() {
-        if (!enabled || loading || _countdownActive) return
-        if (feature === Enums.button.feature_toggle) {
-            checked = !checked
-            toggled(checked)
-        }
-        clicked()
-    }
+    function click() { ButtonLogic.click(control, Enums) }
 
     // Toggle state 切换状态
-    function toggle() {
-        if (feature === Enums.button.feature_toggle) {
-            checked = !checked
-            toggled(checked)
-        }
-    }
+    function toggle() { ButtonLogic.toggle(control, Enums) }
 
     // Set checkable state 设置可切换状态
-    function setCheckable(checkable) {
-        if (checkable) {
-            feature = Enums.button.feature_toggle
-        } else if (feature === Enums.button.feature_toggle) {
-            feature = Enums.button.feature_none
-        }
-    }
+    function setCheckable(checkable) { ButtonLogic.setCheckable(control, Enums, checkable) }
 
     // Check if checkable 检查是否可切换
-    function isCheckable() {
-        return feature === Enums.button.feature_toggle
-    }
+    function isCheckable() { return ButtonLogic.isCheckable(control, Enums) }
 
     function _updateTargetColors(hoverActive) {
-        var newBg = _styleBgColor
-        var newBorder = _styleBorderColor
-        var animate = hoverActive === undefined ? true : hoverActive
-        var transitionDuration = animate
-            ? Enums.duration.medium : Enums.motion.hoverExitDuration
-
-        if (pressed || transitionDuration === Enums.duration.none) {
-            // Press and hover exit reset immediately. 按下与悬浮退出立即复位。
-            bgColorAnim.stop()
-            borderColorAnim.stop()
-            _targetBgColor = newBg
-            _targetBorderColor = newBorder
-            _animatedBgColor = newBg
-            _animatedBorderColor = newBorder
-        } else {
-            // Hover entry and non-hover style changes retain their animation. 悬浮进入及非悬浮样式变化保留动画。
-            _targetBgColor = newBg
-            _targetBorderColor = newBorder
-            bgColorAnim.restart()
-            borderColorAnim.restart()
-        }
+        ButtonLogic.updateTargetColors(
+            control, Enums, hoverActive, bgColorAnim, borderColorAnim
+        )
     }
 
     function _completeHoverExit() {
-        if (!_hoverExitPending || hovered) return
-        _updateTargetColors(false)
-        _hoverExitPending = false
+        ButtonLogic.completeHoverExit(control, Enums, bgColorAnim, borderColorAnim)
     }
 
     function _syncCustomContentState() {
-        // Snapshot only when children actually change; avoid a long-lived
-        // QQuickItem.children list binding across page transitions.
-        // 仅在子项真实变化时取快照，避免跨页面切换长期持有 QQuickItem.children 列表绑定。
-        hasCustomContent = customContentContainer.children.length > 0
+        ButtonLogic.syncCustomContentState(control, customContentContainer)
     }
 
     function getText() { return text }
@@ -230,41 +189,21 @@ Widget {
 
 
     // Set flat 设置扁平样式
-    function setFlat(f) {
-        if (f) style = Enums.button.style_transparent
-    }
+    function setFlat(f) { ButtonLogic.setFlat(control, Enums, f) }
 
 
     function getUrl() { return textToCopy }
 
-    function resetCountdown() {
-        _countdownActive = false
-        _countdownRemaining = 0
-        _countdownInitialWidth = 0
-    }
+    function resetCountdown() { ButtonLogic.resetCountdown(control) }
 
-    function startCountdown() {
-        _countdownInitialWidth = width
-        _countdownRemaining = countdown
-        _countdownActive = true
-    }
+    function startCountdown() { ButtonLogic.startCountdown(control) }
 
     function _prewarmMenu() {
-        var hasMenuFeature = feature === Enums.button.feature_dropdown ||
-                             feature === Enums.button.feature_split
-        if (hasMenuFeature && enabled && !loading &&
-                (menu !== null && menu !== undefined || _safeMenuItems.length > 0) &&
-                featureLoader.item) {
-            featureLoader.item.prewarmMenu()
-        }
+        ButtonLogic.prewarmMenu(control, Enums, featureLoader.item)
     }
 
     function _retryMenuPrewarm() {
-        var splitArrowHovered = feature === Enums.button.feature_split &&
-            featureLoader.item && featureLoader.item.dropHovered
-        if (activeFocus || mouseArea.containsMouse || splitArrowHovered) {
-            _prewarmMenu()
-        }
+        ButtonLogic.retryMenuPrewarm(control, Enums, featureLoader.item, mouseArea)
     }
 
     function _scheduleMenuPrewarmRetry() {
@@ -274,8 +213,7 @@ Widget {
     }
 
     function _runMenuPrewarmRetry() {
-        _menuPrewarmRetryScheduled = false
-        _retryMenuPrewarm()
+        ButtonLogic.runMenuPrewarmRetry(control, Enums, featureLoader.item, mouseArea)
     }
 
     function _startButtonToolTipTimer() {
@@ -507,166 +445,24 @@ Widget {
         }
     }
 
-    Component {
-        id: progressFeatureComponent
-
-        Item {
-            id: progressLayerHost
-
-            readonly property bool _progressLayerActive:
-                control.feature === Enums.button.feature_indeterminate_bar || control.showProgress
-
-            anchors.fill: parent
-
-            // Rectangle defaults to opaque white, the intended mask source Rectangle 默认不透明白色，正是所需的遮罩源
-            Rectangle {
-                id: progressMask
-                anchors.fill: parent
-                radius: control.radius
-                layer.enabled: progressLayerHost._progressLayerActive
-                visible: false
-            }
-
-            Item {
-                id: progressContent
-                anchors.fill: parent
-                layer.enabled: progressLayerHost._progressLayerActive
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: progressMask
-                    maskThresholdMin: Enums.mask.thresholdMin
-                    maskSpreadAtMin: Enums.mask.spreadAtMin
-                }
-
-                ButtonProgress {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: Enums.border.thick
-                    feature: control.feature
-                    style: control.style
-                    progress: control.progress
-                    showProgress: control.showProgress
-                }
-            }
-        }
-    }
-
-    Component {
-        id: toggleFeatureComponent
-
-        ToggleAnimation {
-            target: _bg
-            running: control.checked
-        }
-    }
-
-    Component {
-        id: dropdownComponent
-
-        ButtonDropdown {
-            isToolButton: control.isToolButton
-            feature: control.feature
-            menuItems: control._safeMenuItems
-            menu: control.menu
-            controlEnabled: control.enabled
-            loading: control.loading
-            showDropdownIndicator: control.showDropdownIndicator
-            dropdownOpen: control.dropdownOpen
-            parentRadius: control.radius
-            fontSize: control.fontSize
-            parentStyle: control.style
-            textColor: control._styleTextColor
-            onMenuItemClicked: (index, text) => control.menuItemClicked(index, text)
-            onMainButtonClicked: control.clicked()
-            onMenuAboutToOpen: {
-                control._dismissToolTipForMenu()
-                control.menuAboutToOpen()
-            }
-        }
-    }
-
     // Menu, progress, and toggle features are mutually exclusive. 菜单、进度与切换功能互斥。
-    Loader {
+    ButtonInternal.ButtonFeatureLoader {
         id: featureLoader
-        anchors.fill: parent
-        active: control._hasFeatureVisual || control._hasMenuFeature
-        onLoaded: {
-            if (control._hasMenuFeature &&
-                    (control.activeFocus ||
-                     (feature === Enums.button.feature_dropdown && mouseArea.containsMouse))) {
-                control._prewarmMenu()
-            }
-        }
-        sourceComponent: control._hasProgressBarFeature
-                         ? progressFeatureComponent
-                         : (feature === Enums.button.feature_toggle
-                            ? toggleFeatureComponent
-                            : (control._hasMenuFeature
-                               ? dropdownComponent : null))
+        button: control
+        background: _bg
+        mainHovered: mouseArea.containsMouse
     }
 
     // Main interaction 主交互
-    MouseArea {
+    ButtonInternal.ButtonInteraction {
         id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        enabled: control.enabled && !control.loading && !control._countdownActive && feature !== Enums.button.feature_split
-        visible: feature !== Enums.button.feature_split
-        cursorShape: enabled && control.style === Enums.button.style_hyperlink
-                     ? Qt.PointingHandCursor : Qt.ArrowCursor
-
-        onClicked: {
-            if (feature === Enums.button.feature_toggle) {
-                control.checked = !control.checked
-                control.toggled(control.checked)
-            }
-            if (feature === Enums.button.feature_dropdown &&
-                    (control.menu !== null && control.menu !== undefined ||
-                     control._safeMenuItems.length > 0)) {
-                if (featureLoader.item) featureLoader.item.openMenu()
-                return
-            }
-            if (feature === Enums.button.feature_countdown) {
-                control._countdownInitialWidth = control.width
-                control._countdownRemaining = control.countdown
-                control._countdownActive = true
-            }
-            control.clicked()
-        }
-        onPressed: {
-            // 让按钮获得焦点, 这样外部 LineEdit 等输入控件被点击其它 UI 时自动失焦
-            control.forceActiveFocus()
-            control.buttonPressed()
-        }
-        onReleased: control.released()
-        onContainsMouseChanged: {
-            if (containsMouse) control._prewarmMenu()
-        }
-        onDoubleClicked: (mouse) => {
-            // Replay the suppressed second activation before forwarding the double-click signal 重放被抑制的第二次激活，再转发双击信号
-            clicked(mouse)
-            control.doubleClicked()
-        }
+        button: control
+        featureItem: featureLoader.item
     }
 
     // Countdown timer 倒计时定时器
-    Loader {
+    ButtonInternal.ButtonCountdown {
         id: countdownTimer
-        active: feature === Enums.button.feature_countdown ||
-                control._countdownActive
-
-        sourceComponent: Timer {
-            interval: Enums.duration.countUp
-            repeat: true
-            running: control._countdownActive
-            onTriggered: {
-                control._countdownRemaining--
-                if (control._countdownRemaining <= 0) {
-                    control._countdownActive = false
-                    control.countdownFinished()
-                }
-            }
-        }
+        button: control
     }
 }

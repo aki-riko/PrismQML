@@ -72,6 +72,52 @@ def test_navigation_window_core_keeps_orchestration_modularized():
     assert "NavigationWindowRouting.handleBottomItemClicked(window," in source
 
 
+def test_button_core_keeps_behavior_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"
+    )
+    logic = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonLogic.js"
+    )
+    helper_paths = (
+        (
+            "prismqml/PrismQML/controls/buttons/Button/_internal/"
+            "ButtonFeatureLoader.qml",
+            "ButtonFeatureLoader",
+        ),
+        (
+            "prismqml/PrismQML/controls/buttons/Button/_internal/"
+            "ButtonInteraction.qml",
+            "ButtonInteraction",
+        ),
+        (
+            "prismqml/PrismQML/controls/buttons/Button/_internal/"
+            "ButtonCountdown.qml",
+            "ButtonCountdown",
+        ),
+    )
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert logic.exists()
+    logic_source = logic.read_text(encoding="utf-8")
+    assert len(logic_source.splitlines()) < 500
+    assert ".pragma library" in logic_source
+    assert "Enums" not in logic_source
+
+    for relative_path, helper_type in helper_paths:
+        helper = _source(relative_path)
+        assert helper.exists()
+        assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+        assert f"{helper_type} {{" in source
+
+    assert 'import "_internal" as ButtonInternal' in source
+    assert 'import "_internal/ButtonLogic.js" as ButtonLogic' in source
+    assert "ButtonLogic.click(control, Enums)" in source
+    assert "ButtonLogic.updateTargetColors(" in source
+    assert "ButtonLogic.prewarmMenu(control, Enums," in source
+
+
 def test_popup_window_core_keeps_animation_logic_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/utils/PopupWindowCore.qml",
