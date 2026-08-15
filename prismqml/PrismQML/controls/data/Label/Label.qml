@@ -83,8 +83,18 @@ Text {
     }
 
     readonly property color _interactiveTextColor: {
-        if (!_isHyperlink || !pressed) return _textColor
-        return Qt.darker(_textColor, 1.12)
+        if (!_isHyperlink) return _textColor
+        if (pressed) {
+            return _useCustomColor
+                ? Qt.darker(_textColor, 1.12)
+                : Enums.accentColorDark
+        }
+        if (hovered) {
+            return _useCustomColor
+                ? Qt.lighter(_textColor, 1.08)
+                : Enums.accentColorLight
+        }
+        return _textColor
     }
 
     // ==================== Signals 信号 ====================

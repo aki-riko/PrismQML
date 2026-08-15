@@ -401,6 +401,8 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         _move_to_item(window, label, label.boundingRect().center())
         assert label.property("hovered") is True
         assert label.property("font").underline() is True
+        hover_color = label.property("_interactiveTextColor")
+        assert hover_color != label.property("_textColor")
 
         scene_point = label.mapToItem(window.contentItem(), label.boundingRect().center())
         QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
@@ -408,16 +410,18 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         assert label.property("pressed") is True
         assert label.scale() < 1
         assert label.property("_interactiveTextColor") != label.property("_textColor")
+        assert label.property("_interactiveTextColor") != hover_color
 
         QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=scene_point.toPoint())
         _pump(120)
         assert label.property("pressed") is False
         assert label.scale() > 0.99
-        assert label.property("_interactiveTextColor") == label.property("_textColor")
+        assert label.property("_interactiveTextColor") == hover_color
 
         QTest.mouseMove(window, QPoint(window.width() - 2, window.height() - 2))
         _pump()
         assert label.property("hovered") is False
+        assert label.property("_interactiveTextColor") == label.property("_textColor")
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
