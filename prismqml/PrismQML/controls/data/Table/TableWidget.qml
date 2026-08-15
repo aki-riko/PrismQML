@@ -62,7 +62,7 @@ DataWidgetCore {
     property int rowCount: _calcRowCount()
     readonly property int columnCount: (_safeColumns || []).length
     readonly property real _columnViewportWidth: listView.width > 0 ? listView.width : root.width
-    readonly property Component _paintedRowComponent: paintedRowComponent
+    readonly property Component _paintedRowComponent: contentLayer.paintedRowComponent
 
     // Context menu 右键菜单
     property bool contextMenuEnabled: false
@@ -327,7 +327,7 @@ DataWidgetCore {
     }
 
     function _showDefaultContextMenu(rowIndex, x, y) {
-        var menu = defaultTableContextMenuLoader.item
+        var menu = contentLayer.defaultTableContextMenuLoader.item
         if (menu) menu.showMenu(rowIndex, x, y)
     }
 
@@ -372,94 +372,12 @@ DataWidgetCore {
         }
     }
 
-    contentDelegate: TableInternal.TableRowDelegate {
-        table: root
-        radius: Enums.radius.small
-    }
+    contentDelegate: contentLayer.contentDelegate
+    headerContent: contentLayer.headerContent
 
     // ==================== Content 内容 ====================
-    Component {
-        id: paintedRowComponent
-
-        PaintedRow {
-            columns: root._safeColumns
-            rowData: parent ? parent.rowData : null
-            rowIndex: parent ? parent.rowIndex : -1
-            rowHeight: root.rowHeight
-            extraDraw: root.paintedRowExtra
-        }
-    }
-
-    headerContent: Component {
-        TableInternal.TableHeader {
-            table: root
-        }
-    }
-
-    // Recompute after internal card/layout margins change the actual viewport width.
-    // 内部卡片或布局边距改变实际视口宽度后重新计算列宽。
-    Connections {
-        function onWidthChanged() { root._recomputeColumnWidths() }
-
-        target: root.listView
-    }
-
-    // 仅当 tableData 是真正的 QAbstractListModel/QObject (有 modelReset 等 signal) 才订阅;
-    // QVariantList 没这些 signal, 直接绑 target 会被识别成 QObject 报警告
-    // "Unable to assign QVariantList to QObject*"
-    Connections {
-        function onModelReset() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onRowsInserted() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onRowsRemoved() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onLayoutChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-        function onCountChanged() { root.rowCount = root._calcRowCount(); root._recomputeColumnWidths() }
-
-        target: (root.tableData && typeof root.tableData.length !== 'number'
-                 && typeof root.tableData === 'object'
-                 && (typeof root.tableData.rowCount === 'function'
-                     || root.tableData.modelReset !== undefined))
-                ? root.tableData : null
-        ignoreUnknownSignals: true
-        // model 数据变化时既要刷新 rowCount 也要重算 autoWidth 列宽
-        // (列宽算法采样真实数据, 空 model 时算的宽度毫无意义)
-    }
-
-    // Load the built-in menu only when enabled 仅在启用时加载内置菜单
-    Loader {
-        id: defaultTableContextMenuLoader
-
-        objectName: "defaultTableContextMenuLoader"
-        active: root.defaultContextMenuEnabled
-        sourceComponent: Component {
-            TableInternal.TableDefaultContextMenu {
-                table: root
-            }
-        }
-    }
-
-    // Pagination Component 分页器组件（仅在启用时显示）
-    Loader {
-        id: paginationLoader
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.margins: Enums.spacing.m
-        height: item ? item.height : 0
-        active: root.showPagination
-        visible: active
-
-        sourceComponent: Component {
-            Paginator {
-                anchors.centerIn: parent
-                currentPage: root.currentPage
-                totalPages: root.totalPages
-                visiblePages: root.visiblePages
-                accentColor: root.checkedColor
-                onPageChanged: (page) => {
-                    root.currentPage = page
-                    root.pageChanged(page)
-                }
-            }
-        }
+    TableInternal.TableWidgetContent {
+        id: contentLayer
+        table: root
     }
 }

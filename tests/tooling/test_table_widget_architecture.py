@@ -18,6 +18,7 @@ TABLE_WIDGET = (
     / "TableWidget.qml"
 )
 DATA_CONTROLLER = TABLE_WIDGET.parent / "_internal" / "TableDataController.js"
+TABLE_CONTENT = TABLE_WIDGET.parent / "_internal" / "TableWidgetContent.qml"
 DATA_METHODS = {
     "_isPureJsArray",
     "addRow",
@@ -53,3 +54,30 @@ def test_table_data_operations_are_delegated_without_qml_objects():
 def test_table_widget_modules_stay_within_architecture_limit():
     for path in (TABLE_WIDGET, DATA_CONTROLLER):
         assert len(path.read_text(encoding="utf-8").splitlines()) < 500
+
+
+def test_table_widget_keeps_visual_content_modularized():
+    entry_source = TABLE_WIDGET.read_text(encoding="utf-8")
+    content_source = TABLE_CONTENT.read_text(encoding="utf-8")
+
+    assert len(entry_source.splitlines()) < 400
+    assert TABLE_CONTENT.exists()
+    assert len(content_source.splitlines()) < 200
+    assert 'import "_internal" as TableInternal' in entry_source
+    assert "TableInternal.TableWidgetContent {" in entry_source
+    assert "required property var table" in content_source
+    assert "property alias paintedRowComponent: paintedRowComponent" in content_source
+    assert "property alias contentDelegate: contentDelegateComponent" in content_source
+    assert "property alias headerContent: headerContentComponent" in content_source
+    assert "property alias defaultTableContextMenuLoader: defaultTableContextMenuLoader" in content_source
+
+    for marker in (
+        "TableInternal.TableRowDelegate {",
+        "TableInternal.TableHeader {",
+        "TableInternal.TableDefaultContextMenu {",
+        "PaintedRow {",
+        "Paginator {",
+        "\n    Loader {",
+        "\n    Connections {",
+    ):
+        assert marker not in entry_source
