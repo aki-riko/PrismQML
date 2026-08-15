@@ -288,6 +288,9 @@ def test_lazy_provider_registration_has_one_runtime_owner():
     runtime_registry = PYTHON_PACKAGE / "runtime" / "registry.py"
     runtime_lazy_context = PYTHON_PACKAGE / "runtime" / "lazy_context.py"
     registry_imports = {target for _line, target in _resolved_imports(runtime_registry)}
+    lazy_context_imports = {
+        target for _line, target in _resolved_imports(runtime_lazy_context)
+    }
 
     assert not (PROVIDERS_PACKAGE / "lazy_context.py").exists()
     assert (
@@ -309,7 +312,11 @@ def test_lazy_provider_registration_has_one_runtime_owner():
                     f"{path.relative_to(REPO_ROOT)}:{line}: {method}({name!r})"
                 )
     assert violations == []
-    assert ("addImageProvider", "qrcode") in {
+    assert (
+        "prismqml.python.runtime.context_registry.register_image_provider_once"
+        in lazy_context_imports
+    )
+    assert ("addImageProvider", "qrcode") not in {
         (method, name)
         for _line, method, name in _literal_method_calls(runtime_lazy_context)
     }

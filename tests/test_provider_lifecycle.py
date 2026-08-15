@@ -210,12 +210,16 @@ def test_lazy_qrcode_provider_registration_is_deferred_and_idempotent(
         "get_qrcode_provider",
         lambda: provider,
     )
+    engine = _Engine()
     binding = LazyQRCodeGenerator(SimpleNamespace())
-    binding._engine = _Engine()
+    binding._engine = engine
+    second_binding = LazyQRCodeGenerator(SimpleNamespace())
+    second_binding._engine = engine
 
     assert calls == []
     binding._ensure_provider()
     binding._ensure_provider()
+    second_binding._ensure_provider()
     assert calls == [("qrcode", provider)]
 
 

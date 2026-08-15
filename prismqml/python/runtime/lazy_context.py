@@ -18,6 +18,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine
 
 from ..providers._qrcode_constants import DEFAULT_QR_CODE_SIZE
+from .context_registry import register_image_provider_once
 
 
 class LazyQRCodeGenerator(QObject):
@@ -50,7 +51,9 @@ class LazyQRCodeGenerator(QObject):
             raise RuntimeError("QML engine is no longer available")
         from ..providers.qrcode_generator import get_qrcode_provider
 
-        self._engine.addImageProvider("qrcode", get_qrcode_provider())
+        register_image_provider_once(
+            self._engine, "qrcode", get_qrcode_provider
+        )
         self._provider_registered = True
 
     def release_engine(self) -> None:
