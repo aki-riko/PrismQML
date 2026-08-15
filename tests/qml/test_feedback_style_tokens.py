@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtGui import QColor
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 
@@ -72,6 +73,12 @@ Item {
 
     width: 640
     height: 480
+
+    Rectangle {
+        objectName: "splashUnderlyingPage"
+        anchors.fill: parent
+        color: "#ff00ff"
+    }
 
     Toast {
         objectName: "toast"
@@ -419,8 +426,10 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert splash is not None
         content = splash.findChild(QQuickItem, "splashContent")
         solid_background = splash.findChild(QQuickItem, "splashSolidBackground")
+        underlying_page = root.findChild(QQuickItem, "splashUnderlyingPage")
         assert content is not None
         assert solid_background is not None
+        assert underlying_page is not None
         lazy_loader = splash.findChild(QQuickItem, "splashLazyTransitionLoader")
         assert lazy_loader is not None
         assert lazy_loader.property("active") is False
@@ -434,6 +443,7 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert transition.property("revealDuration") == root.property(
             "splashRevealDuration"
         )
+        assert transition.property("revealTarget") is True
         assert QQmlProperty(splash, "layer.enabled").read() is True
         assert QQmlProperty(splash, "layer.effect").read() is not None
         assert solid_background.property("visible") is True
@@ -443,6 +453,11 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert splash.property("visible") is True
         assert 0 < transition.property("progress") < 1
         assert content.property("opacity") == pytest.approx(1.0)
+        frame = root.window().grabWindow()
+        assert not frame.isNull()
+        underlying_color = QColor(underlying_page.property("color"))
+        assert frame.pixelColor(frame.width() // 2, frame.height() // 2) == underlying_color
+        assert frame.pixelColor(8, frame.height() - 8) != underlying_color
 
         _pump(520)
         assert splash.property("visible") is False
@@ -486,6 +501,10 @@ def test_feedback_sources_use_shared_style_tokens():
     assert 'objectName: "splashLazyPageCircleTransition"' in splash_source
     assert "lazyExitLoader.item.expand(control)" in splash_source
     assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
+    assert "revealTarget: true" in splash_source
+    assert lazy_transition_source.count(
+        "revealTarget: transition.revealTarget"
+    ) == 2
     assert "CloseRipple" not in splash_source
     assert "signal collapseFinished()" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source

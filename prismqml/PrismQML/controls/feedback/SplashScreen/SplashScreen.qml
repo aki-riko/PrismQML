@@ -269,6 +269,7 @@ Rectangle {
         sourceComponent: NavigationInternal.LazyPageCircleTransition {
             objectName: "splashLazyPageCircleTransition"
             revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+            revealTarget: true
 
             onExpandFinished: {
                 control.visible = false

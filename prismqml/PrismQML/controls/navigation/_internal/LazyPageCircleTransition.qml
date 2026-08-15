@@ -29,6 +29,7 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+    property bool revealTarget: false
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -361,7 +362,7 @@ Item {
 
         FeedbackInternal.QMLPageCircleFrame {
             progress: radiusTransition.progress
-            revealTarget: false
+            revealTarget: transition.revealTarget
         }
     }
 
@@ -401,7 +402,7 @@ Item {
                 ? transition._sourceItem.transformOrigin : Item.Center
             source: frozenFrame
             progress: radiusTransition.progress
-            revealTarget: false
+            revealTarget: transition.revealTarget
             visible: transition._dissolving
             z: Enums.zIndex.popup
         }
