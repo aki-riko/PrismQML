@@ -51,7 +51,6 @@ Item {
     property bool _scrollPending: false
     property bool _layoutPending: false
     property bool _rangeUpdatePending: false
-    property bool _destroying: false
     property real _pendingAnchorDelta: 0
     property int _layoutStartIndex: -1
     property int _lastLayoutStartIndex: -1
@@ -95,10 +94,7 @@ Item {
     function _scheduleScrollToBottom() {
         if (_scrollPending) return
         _scrollPending = true
-        Qt.callLater(function() {
-            _scrollPending = false
-            if (_followBottom) _scrollToBottom()
-        })
+        scrollToBottomTimer.start()
     }
 
     function _scheduleSlotLayout(startIndex) {
@@ -110,40 +106,7 @@ Item {
         }
         if (_layoutPending) return
         _layoutPending = true
-        Qt.callLater(function() {
-            _layoutPending = false
-            var slotCount = messageRepeater.count
-            var layoutStart = Math.max(0, Math.min(slotCount, _layoutStartIndex))
-            _layoutStartIndex = -1
-            var nextY = 0
-            if (layoutStart > 0) {
-                var previousSlot = messageRepeater.itemAt(layoutStart - 1)
-                if (previousSlot && previousSlot._layoutReady) {
-                    nextY = previousSlot.y + previousSlot.height + Enums.spacing.xs
-                } else {
-                    layoutStart = 0
-                }
-            }
-            _lastLayoutStartIndex = layoutStart
-            for (var i = layoutStart; i < slotCount; i++) {
-                var slot = messageRepeater.itemAt(i)
-                if (!slot) continue
-                slot.y = nextY
-                nextY += slot.height
-                if (i + 1 < slotCount) nextY += Enums.spacing.xs
-                if (!slot._layoutReady) slot._layoutReady = true
-            }
-            messageColumn.height = nextY
-            _scheduleLoadRangeUpdate()
-            if (_followBottom) {
-                _pendingAnchorDelta = 0
-                _scheduleScrollToBottom()
-            } else if (Math.abs(_pendingAnchorDelta) >= _heightChangeTolerance) {
-                var anchorDelta = _pendingAnchorDelta
-                _pendingAnchorDelta = 0
-                _setContentY(messageViewport.contentY + anchorDelta, false)
-            }
-        })
+        slotLayoutTimer.start()
     }
 
     function _findFirstLoadIndex(topY) {
@@ -199,36 +162,11 @@ Item {
     function _scheduleLoadRangeUpdate() {
         if (_rangeUpdatePending) return
         _rangeUpdatePending = true
-        Qt.callLater(function() {
-            _rangeUpdatePending = false
-            var count = messageRepeater.count
-            if (count === 0) {
-                _applyLoadRange(-1, -1)
-                return
-            }
-            var finalSlot = messageRepeater.itemAt(count - 1)
-            if (!finalSlot || !finalSlot._layoutReady) {
-                _scheduleSlotLayout(0)
-                return
-            }
-            var topY = messageViewport.contentY - _loadMargin
-            var bottomY = messageViewport.contentY + messageViewport.height + _loadMargin
-            var firstIndex = _findFirstLoadIndex(topY)
-            var lastIndex = _findLastLoadIndex(bottomY)
-            if (firstIndex > lastIndex) {
-                _applyLoadRange(-1, -1)
-                return
-            }
-            _applyLoadRange(firstIndex, lastIndex)
-        })
+        loadRangeTimer.start()
     }
 
     function _scheduleSlotMeasurement(slot) {
-        var owner = control
-        Qt.callLater(function() {
-            if (!owner || owner._destroying || !slot || !slot.item) return
-            owner._cacheSlotHeight(slot, slot.item.implicitHeight)
-        })
+        if (slot) slot._scheduleMeasurement()
     }
 
     function _cacheSlotHeight(slot, measuredHeight) {
@@ -319,7 +257,90 @@ Item {
     onWidthChanged: _scheduleScrollBarUpdate()
     onHeightChanged: _scheduleScrollBarUpdate()
     Component.onCompleted: _scheduleScrollBarUpdate()
-    Component.onDestruction: _destroying = true
+
+    // ==================== Deferred Work 延迟任务 ====================
+    Timer {
+        id: scrollToBottomTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: {
+            control._scrollPending = false
+            if (control._followBottom) control._scrollToBottom()
+        }
+    }
+
+    Timer {
+        id: slotLayoutTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: {
+            control._layoutPending = false
+            var slotCount = messageRepeater.count
+            var layoutStart = Math.max(0, Math.min(slotCount, control._layoutStartIndex))
+            control._layoutStartIndex = -1
+            var nextY = 0
+            if (layoutStart > 0) {
+                var previousSlot = messageRepeater.itemAt(layoutStart - 1)
+                if (previousSlot && previousSlot._layoutReady) {
+                    nextY = previousSlot.y + previousSlot.height + Enums.spacing.xs
+                } else {
+                    layoutStart = 0
+                }
+            }
+            control._lastLayoutStartIndex = layoutStart
+            for (var i = layoutStart; i < slotCount; i++) {
+                var slot = messageRepeater.itemAt(i)
+                if (!slot) continue
+                slot.y = nextY
+                nextY += slot.height
+                if (i + 1 < slotCount) nextY += Enums.spacing.xs
+                if (!slot._layoutReady) slot._layoutReady = true
+            }
+            messageColumn.height = nextY
+            control._scheduleLoadRangeUpdate()
+            if (control._followBottom) {
+                control._pendingAnchorDelta = 0
+                control._scheduleScrollToBottom()
+            } else if (Math.abs(control._pendingAnchorDelta)
+                    >= control._heightChangeTolerance) {
+                var anchorDelta = control._pendingAnchorDelta
+                control._pendingAnchorDelta = 0
+                control._setContentY(messageViewport.contentY + anchorDelta, false)
+            }
+        }
+    }
+
+    Timer {
+        id: loadRangeTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: {
+            control._rangeUpdatePending = false
+            var count = messageRepeater.count
+            if (count === 0) {
+                control._applyLoadRange(-1, -1)
+                return
+            }
+            var finalSlot = messageRepeater.itemAt(count - 1)
+            if (!finalSlot || !finalSlot._layoutReady) {
+                control._scheduleSlotLayout(0)
+                return
+            }
+            var topY = messageViewport.contentY - control._loadMargin
+            var bottomY = messageViewport.contentY + messageViewport.height
+                + control._loadMargin
+            var firstIndex = control._findFirstLoadIndex(topY)
+            var lastIndex = control._findLastLoadIndex(bottomY)
+            if (firstIndex > lastIndex) {
+                control._applyLoadRange(-1, -1)
+                return
+            }
+            control._applyLoadRange(firstIndex, lastIndex)
+        }
+    }
 
     // ==================== Content 内容 ====================
     ListModel {
@@ -405,6 +426,25 @@ Item {
                         if (item) control._scheduleSlotMeasurement(messageSlot)
                     }
                     onLoaded: control._scheduleSlotMeasurement(messageSlot)
+
+                    function _scheduleMeasurement() {
+                        slotMeasurementTimer.start()
+                    }
+
+                    Timer {
+                        id: slotMeasurementTimer
+
+                        interval: 0
+                        repeat: false
+                        onTriggered: {
+                            if (messageSlot.item) {
+                                control._cacheSlotHeight(
+                                    messageSlot,
+                                    messageSlot.item.implicitHeight
+                                )
+                            }
+                        }
+                    }
 
                     sourceComponent: ChatBubble {
                         role: messageSlot.role

@@ -38,6 +38,30 @@ Window {
 }
 """
 
+DESTROY_PENDING_SOURCE = b"""import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    visible: false
+    property bool listActive: true
+
+    Loader {
+        id: listLoader
+
+        active: root.listActive
+        sourceComponent: ChatMessageList { }
+    }
+
+    function appendAndDestroy() {
+        listLoader.item.appendMessage("user", "lifecycle regression", "")
+        listActive = false
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -45,9 +69,9 @@ def _pump(milliseconds: int = 10) -> None:
     loop.exec()
 
 
-def _create(engine: QQmlApplicationEngine):
+def _create(engine: QQmlApplicationEngine, source: bytes = WINDOW_SOURCE):
     component = QQmlComponent(engine)
-    component.setData(WINDOW_SOURCE, QUrl("inline:chat-message-list-virtualization.qml"))
+    component.setData(source, QUrl("inline:chat-message-list-virtualization.qml"))
     for _ in range(50):
         if component.status() != QQmlComponent.Status.Loading:
             break
@@ -275,6 +299,29 @@ def test_clear_resets_virtual_content_extent(qapp):
         assert viewport.property("contentY") == pytest.approx(0, abs=1)
         assert viewport.property("contentHeight") == pytest.approx(0, abs=1)
         assert content.property("height") == pytest.approx(0, abs=1)
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)
+
+
+def test_destroying_list_cancels_pending_layout_callbacks(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    warnings: list[str] = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    component = window = None
+    try:
+        component, window = _create(engine, DESTROY_PENDING_SOURCE)
+
+        _evaluate(window, "appendAndDestroy()")
+        _pump(20)
+
+        assert warnings == []
     finally:
         if window is not None:
             window.deleteLater()
