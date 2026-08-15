@@ -12,9 +12,7 @@ import time
 
 from prismqml import Skin, Theme, setAccentColor, setSkin, setTheme
 from prismqml.python.config.config_manager import ConfigManager
-from prismqml.python.core.theme import (
-    ThemeManager,
-)
+from prismqml.python.core.theme import ThemeManager
 
 
 ROOT = Path(__file__).resolve().parents[1]

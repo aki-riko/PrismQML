@@ -204,7 +204,9 @@ def test_register_types_qml_theme_mutation_persists(registered_context):
         assert theme_manager.theme == "dark"
         assert manager.waitForPersistence(5000)
         assert manager.theme == "dark"
-        payload = json.loads(Path(manager.getConfigPath()).read_text(encoding="utf-8"))
+        payload = json.loads(
+            Path(manager.getConfigPath()).read_text(encoding="utf-8")
+        )
         assert payload["Appearance"]["Theme"] == "dark"
     finally:
         theme_manager._apply_theme_from_qml(previous_theme)

@@ -348,10 +348,16 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
     )
     assert "_persist_appearance_change" in _function_names(appearance)
     assert "install_appearance_persistence" in _function_names(appearance)
-    assert "prismqml.python.core.theme._bind_appearance_persistence" not in config_imports
+    assert (
+        "prismqml.python.core.theme._bind_appearance_persistence"
+        not in config_imports
+    )
     assert "_persist_appearance_change" not in _function_names(config_manager)
 
     for owner in (registry, window_registry):
         imports = {target for _line, target in _resolved_imports(owner)}
-        assert "prismqml.python.runtime.appearance.install_appearance_persistence" in imports
+        assert (
+            "prismqml.python.runtime.appearance.install_appearance_persistence"
+            in imports
+        )
         assert _named_function_calls(owner, "install_appearance_persistence")
