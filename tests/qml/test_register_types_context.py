@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Public register_types context contracts. 公开注册入口上下文合同。"""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,12 @@ from PySide6.QtCore import (
     QtMsgType,
     qInstallMessageHandler,
 )
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 from PySide6.QtQuick import QQuickWindow
 
 from prismqml import register_types
@@ -180,6 +186,28 @@ def test_register_types_injects_public_context_without_qml_warnings(
         for _mode, message in messages
     )
     assert QQuickWindow.hasDefaultAlphaBuffer()
+
+
+def test_register_types_qml_theme_mutation_persists(registered_context):
+    manager, _clipboard, _engines, probe, _messages = registered_context
+    theme_manager = getThemeManager()
+    previous_theme = theme_manager.theme
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(probe),
+        probe,
+        'ThemeManager.setThemeFromQml("dark")',
+    )
+    try:
+        expression.evaluate()
+
+        assert not expression.hasError(), expression.error().toString()
+        assert theme_manager.theme == "dark"
+        assert manager.waitForPersistence(5000)
+        assert manager.theme == "dark"
+        payload = json.loads(Path(manager.getConfigPath()).read_text(encoding="utf-8"))
+        assert payload["Appearance"]["Theme"] == "dark"
+    finally:
+        theme_manager._apply_theme_from_qml(previous_theme)
 
 
 def test_register_types_injects_enabled_verbose_diagnostic_switch(

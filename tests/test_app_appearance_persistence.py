@@ -10,14 +10,10 @@ from pathlib import Path
 import threading
 import time
 
+from prismqml import Skin, Theme, setAccentColor, setSkin, setTheme
 from prismqml.python.config.config_manager import ConfigManager
 from prismqml.python.core.theme import (
-    Skin,
-    Theme,
     ThemeManager,
-    setAccentColor,
-    setSkin,
-    setTheme,
 )
 
 
