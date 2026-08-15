@@ -54,7 +54,7 @@ HOVER_POLICY_COUNTS = {
     "controls/buttons/Button/ButtonDropdown.qml": 2,
     "controls/navigation/Paginator.qml": 1,
     "controls/navigation/NavigationProfileCard.qml": 1,
-    "controls/navigation/TabWidget.qml": 1,
+    "controls/navigation/_internal/TabItem.qml": 1,
     "controls/data/AudioWaveform.qml": 3,
     "controls/data/Carousel/Carousel.qml": 1,
     "controls/data/Step/Stepper.qml": 1,

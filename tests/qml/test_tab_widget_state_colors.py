@@ -15,7 +15,7 @@ from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
 
 _ROOT = Path(__file__).resolve().parents[2]
-_SOURCE_PATH = _ROOT / "prismqml/PrismQML/controls/navigation/TabWidget.qml"
+_SOURCE_PATH = _ROOT / "prismqml/PrismQML/controls/navigation/_internal/TabItem.qml"
 _PROBE_QML = b"""
 import QtQuick
 import PrismQML

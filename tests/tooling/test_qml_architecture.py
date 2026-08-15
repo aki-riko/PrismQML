@@ -86,3 +86,13 @@ def test_tab_widget_keeps_content_pages_modularized():
         "prismqml/PrismQML/controls/navigation/_internal/TabContentPages.qml",
         "TabContentPages",
     )
+
+
+def test_tab_widget_keeps_tab_delegate_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    helper = _source("prismqml/PrismQML/controls/navigation/_internal/TabItem.qml")
+
+    assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
+    assert helper.exists()
+    assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
+    assert "TabItem {" in entry.read_text(encoding="utf-8")
