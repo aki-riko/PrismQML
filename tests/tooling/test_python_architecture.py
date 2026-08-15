@@ -825,6 +825,31 @@ def test_application_startup_composition_has_one_runtime_owner():
     )
 
 
+def test_public_dwm_filter_entrypoint_has_one_runtime_owner():
+    root_init = REPO_ROOT / "prismqml" / "__init__.py"
+    core_init = CORE_PACKAGE / "__init__.py"
+    runtime_init = PYTHON_PACKAGE / "runtime" / "__init__.py"
+    runtime_application = PYTHON_PACKAGE / "runtime" / "application.py"
+    root_exports = _lazy_exports(root_init)
+    core_exports = _lazy_exports(core_init)
+    runtime_exports = _lazy_exports(runtime_init)
+
+    assert root_exports["installDwmSyncFilter"] == (
+        ".python.runtime",
+        "installDwmSyncFilter",
+    )
+    assert runtime_exports["installDwmSyncFilter"] == (
+        ".application",
+        "installDwmSyncFilter",
+    )
+    assert "installDwmSyncFilter" not in _literal_assignment(core_init, "__all__")
+    assert "installDwmSyncFilter" not in core_exports
+    assert "installDwmSyncFilter" in _function_names(runtime_application)
+    assert "return install_application_dwm_filter()" in runtime_application.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_public_appearance_mutations_cross_the_runtime_boundary():
     root_exports = _lazy_exports(REPO_ROOT / "prismqml" / "__init__.py")
 

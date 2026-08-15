@@ -150,7 +150,7 @@ _LAZY_EXPORTS = {
     # Shadow
     "ShadowManager": (".python.core.shadow", "ShadowManager"),
     "getShadowManager": (".python.runtime", "getShadowManager"),
-    "installDwmSyncFilter": (".python.core.shadow", "installDwmSyncFilter"),
+    "installDwmSyncFilter": (".python.runtime", "installDwmSyncFilter"),
     # Single Instance / Updater
     "SingleInstance": (".python.core.single_instance", "SingleInstance"),
     "Updater": (".python.core.updater", "Updater"),

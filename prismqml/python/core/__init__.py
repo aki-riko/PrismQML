@@ -14,7 +14,6 @@ __all__ = [
     "ThemeManager",
     # Shadow
     "ShadowManager",
-    "installDwmSyncFilter",
     # Logger
     "Logger",
     "getLogger",
@@ -74,7 +73,6 @@ _LAZY_EXPORTS = {
     "ThemeManager": (".theme", "ThemeManager"),
     # Shadow
     "ShadowManager": (".shadow", "ShadowManager"),
-    "installDwmSyncFilter": (".shadow", "installDwmSyncFilter"),
     # Logger
     "Logger": (".logger", "Logger"),
     "getLogger": (".logger", "getLogger"),

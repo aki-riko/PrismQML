@@ -194,6 +194,18 @@ def test_application_filter_installers_delegate_to_core(monkeypatch):
     ]
 
 
+def test_public_dwm_filter_entrypoint_delegates_to_runtime_owner(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        runtime_application,
+        "install_application_dwm_filter",
+        lambda: calls.append("dwm") or True,
+    )
+
+    assert runtime_application.installDwmSyncFilter() is True
+    assert calls == ["dwm"]
+
+
 @pytest.mark.parametrize("stage", ["input", "dwm"])
 def test_app_marks_filter_rollback_before_runtime_install(monkeypatch, stage):
     application = object()

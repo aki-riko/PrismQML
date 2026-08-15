@@ -57,6 +57,11 @@ def install_application_dwm_filter() -> bool:
     return installDwmSyncFilter()
 
 
+def installDwmSyncFilter():
+    """Install the public DWM filter through the runtime owner. 通过 runtime owner 安装公开 DWM 过滤器。"""
+    return install_application_dwm_filter()
+
+
 def reset_application_input_filter() -> None:
     """Reset the process input filter. 重置进程输入过滤器。"""
     from ..core.input_focus_filter import reset_input_focus_filter

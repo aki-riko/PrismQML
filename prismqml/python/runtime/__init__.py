@@ -30,6 +30,7 @@ __all__ = [
     "create_qt_application",
     "install_application_input_filter",
     "install_application_dwm_filter",
+    "installDwmSyncFilter",
     "reset_application_input_filter",
     "reset_application_dwm_filter",
     "prepare_window_engine",
@@ -94,6 +95,7 @@ _LAZY_EXPORTS = {
         ".application",
         "install_application_dwm_filter",
     ),
+    "installDwmSyncFilter": (".application", "installDwmSyncFilter"),
     "reset_application_input_filter": (
         ".application",
         "reset_application_input_filter",
