@@ -32,6 +32,10 @@ ComboBoxCore {
     property string _searchText: ""
     property var _flatModel: []
     property bool _initialized: false
+    property real _animatedPopupContentHeight: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool _popupHeightAnimating: popupHeightAnimation.running
 
     // ==================== Signals 信号 ====================
     signal itemSelected(string text, var path)
@@ -48,11 +52,18 @@ ComboBoxCore {
     function _updatePopupContentHeight() {
         var itemCount = _flatModel.length
         var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
-        _popup.implicitContentHeight = Math.min(
+        var targetHeight = Math.min(
             itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight,
             Math.max(0, Enums.comboBoxMetrics.treePopupHeight
                 - 2 * _popup.contentPadding))
-        if (isOpen) _syncOpenPopupGeometry()
+        popupHeightAnimation.stop()
+        if (!isOpen || _animatedPopupContentHeight === targetHeight) {
+            _animatedPopupContentHeight = targetHeight
+            return
+        }
+        popupHeightAnimation.from = _animatedPopupContentHeight
+        popupHeightAnimation.to = targetHeight
+        popupHeightAnimation.start()
     }
 
     function _syncOpenPopupGeometry() {
@@ -181,6 +192,13 @@ ComboBoxCore {
     on_ExpandedNodesChanged: _rebuildFlatModel()
     on_SearchTextChanged: _rebuildFlatModel()
     onSearchEnabledChanged: _updatePopupContentHeight()
+    on_AnimatedPopupContentHeightChanged: {
+        _popup.implicitContentHeight = Math.round(_animatedPopupContentHeight)
+        if (isOpen) _syncOpenPopupGeometry()
+    }
+    onIsOpenChanged: {
+        if (!isOpen) popupHeightAnimation.stop()
+    }
 
     // ==================== Content 内容 ====================
     popupContent: Component {
@@ -245,5 +263,14 @@ ComboBoxCore {
                 }
             }
         }
+    }
+
+    NumberAnimation {
+        id: popupHeightAnimation
+
+        target: control
+        property: "_animatedPopupContentHeight"
+        duration: Enums.duration.fast
+        easing.type: Easing.OutCubic
     }
 }

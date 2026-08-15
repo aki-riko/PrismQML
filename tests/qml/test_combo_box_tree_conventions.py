@@ -229,6 +229,7 @@ def _open_popup(window, combo, windows_before) -> QQuickItem:
     )
     assert popup.property("popupHeight") == _expected_popup_height(window, combo)
     assert _wait_for(lambda: popup.property("isOpen"))
+    assert not combo.property("_popupHeightAnimating")
     assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
     popup_window = _new_visible_windows(windows_before, window)[0]
     target_global = window.mapToGlobal(combo.mapToScene(QPointF()).toPoint())
@@ -249,7 +250,24 @@ def _assert_open_popup_tracks_expansion(
     assert _wait_for(lambda: len(_flat_model(combo)) == 5)
     expected_height = _expected_popup_height(window, combo)
     assert expected_height > collapsed_height
+    assert combo.property("_popupHeightAnimating")
+    assert popup.property("popupHeight") < expected_height
+    assert _wait_for(
+        lambda: collapsed_height < popup.property("popupHeight") < expected_height,
+        timeout_ms=80,
+    )
+    interrupted_height = popup.property("popupHeight")
+    combo._toggleExpand("root_0")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 2)
+    assert combo.property("_popupHeightAnimating")
+    assert popup.property("popupHeight") <= interrupted_height
+    assert _wait_for(lambda: popup.property("popupHeight") == collapsed_height)
+    assert _wait_for(lambda: not combo.property("_popupHeightAnimating"))
+    combo._toggleExpand("root_0")
+    assert _wait_for(lambda: len(_flat_model(combo)) == 5)
+    assert combo.property("_popupHeightAnimating")
     assert _wait_for(lambda: popup.property("popupHeight") == expected_height)
+    assert _wait_for(lambda: not combo.property("_popupHeightAnimating"))
     assert popup.property("_clipHeight") == expected_height
     popup_window = _new_visible_windows(windows_before, window)[0]
     assert popup_window.height() == (
@@ -257,7 +275,13 @@ def _assert_open_popup_tracks_expansion(
     )
     combo._toggleExpand("root_0")
     assert _wait_for(lambda: len(_flat_model(combo)) == 2)
+    assert combo.property("_popupHeightAnimating")
+    assert _wait_for(
+        lambda: collapsed_height < popup.property("popupHeight") < expected_height,
+        timeout_ms=80,
+    )
     assert _wait_for(lambda: popup.property("popupHeight") == collapsed_height)
+    assert _wait_for(lambda: not combo.property("_popupHeightAnimating"))
     assert popup.property("_clipHeight") == collapsed_height
     assert popup_window.height() == (
         collapsed_height + 2 * window.property("expectedPanelOffset")
@@ -317,6 +341,9 @@ def test_combo_box_tree_source_conventions():
     assert 'var searchText = _searchText.toLowerCase()' in source
     assert source.count("_searchText.toLowerCase()") == 1
     assert "_hasMatchingDescendants(node.children, searchText)" in source
+    assert 'property: "_animatedPopupContentHeight"' in source
+    assert "duration: Enums.duration.fast" in source
+    assert "easing.type: Easing.OutCubic" in source
     assert "if ((_safeModel || []).length > 0)" not in source
     assert "if (_safeModel.length > 0)" not in source
     assert [
@@ -324,6 +351,27 @@ def test_combo_box_tree_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+def test_combo_box_tree_close_during_height_animation(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, warnings = _create_scene()
+    try:
+        combo._toggleExpand("root_0")
+        assert _wait_for(lambda: len(_flat_model(combo)) == 2)
+        popup = _open_popup(window, combo, windows_before)
+        combo._toggleExpand("root_0")
+        assert combo.property("_popupHeightAnimating")
+
+        combo.closePopup()
+        assert not combo.property("isOpen")
+        assert _wait_for(lambda: not combo.property("_popupHeightAnimating"))
+        assert _wait_for(lambda: not popup.property("isClosing"))
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo)
+        assert _new_visible_windows(windows_before) == []
 
 
 def test_combo_box_tree_fast_close_during_popup_startup(qapp):
