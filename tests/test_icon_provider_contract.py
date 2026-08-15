@@ -9,10 +9,7 @@ from pathlib import Path
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
-from prismqml.python.core.icon_provider import (
-    get_icon_provider,
-    register_icon_provider,
-)
+from prismqml import get_icon_provider, register_icon_provider
 ROOT = Path(__file__).resolve().parents[1]
 VALID_ICON = "Add"
 INVALID_ICON = "MissingProviderContractIcon"
