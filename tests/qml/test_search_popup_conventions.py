@@ -453,6 +453,59 @@ def test_local_search_bar_preserves_command_and_centered_open_contract(qapp):
         _dispose_scene(engine, component, window, search)
 
 
+def test_local_search_bar_public_editing_commands_track_popup(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard_text = clipboard.text()
+    engine, component, window, search, warnings = _create_scene()
+    edited = []
+    cleared = []
+    search.queryEdited.connect(edited.append)
+    search.cleared.connect(lambda: cleared.append(True))
+    try:
+        assert QMetaObject.invokeMethod(
+            search, "setQuery", Q_ARG("QVariant", "programmatic")
+        )
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert QMetaObject.invokeMethod(search, "selectAll")
+        assert search.property("selectedText") == "programmatic"
+        assert QMetaObject.invokeMethod(search, "copy")
+        assert clipboard.text() == "programmatic"
+
+        assert QMetaObject.invokeMethod(search, "cut")
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        popup_core = _popup_core(_search_popup(search))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert edited[-1] == ""
+
+        clipboard.setText("pasted")
+        assert QMetaObject.invokeMethod(search, "paste")
+        assert _wait_for(lambda: search.property("query") == "pasted")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert edited[-1] == "pasted"
+        assert QMetaObject.invokeMethod(search, "undo")
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert QMetaObject.invokeMethod(search, "redo")
+        assert _wait_for(lambda: search.property("query") == "pasted")
+        assert _wait_for(lambda: search.property("isOpen"))
+
+        assert QMetaObject.invokeMethod(search, "clear")
+        assert _wait_for(lambda: search.property("query") == "")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert cleared == [True]
+        assert warnings == []
+        assert _wait_for(
+            lambda: _visible_popup_windows(windows_before, window) == []
+        )
+    finally:
+        clipboard.setText(previous_clipboard_text)
+        _dispose_scene(engine, component, window, search)
+
+
 def test_local_search_surface_is_lazy_reused_and_down_openable(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, search, warnings = _create_scene()

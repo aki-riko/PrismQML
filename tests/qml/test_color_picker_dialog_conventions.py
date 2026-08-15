@@ -501,3 +501,9 @@ def test_color_picker_dialog_uses_range_and_spacing_tokens():
         "Enums.spacing.xxxl * 2 + Enums.spacing.l",
     ):
         assert literal not in source
+    assert source.count("selectionColor: Enums.accentColor") == source.count(
+        "TextInput {"
+    )
+    assert source.count("selectedTextColor: Enums.accentForeground") == source.count(
+        "TextInput {"
+    )

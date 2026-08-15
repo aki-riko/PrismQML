@@ -16,7 +16,13 @@ def _build_message_box(engine):
     qml = '''
 import QtQuick
 import PrismQML
-MessageBox { title: "提示"; content: "这是一条消息" }
+MessageBox {
+    readonly property color expectedSelectionColor: Enums.accentColor
+    readonly property color expectedSelectedTextColor: Enums.accentForeground
+
+    title: "提示"
+    content: "这是一条消息"
+}
 '''.encode("utf-8")
     component.setData(
         qml,
@@ -41,6 +47,12 @@ def test_messagebox_uses_native_text_edit_for_content(qapp):
         assert content.property("text") == "这是一条消息"
         assert content.property("readOnly") is True
         assert content.property("selectByMouse") is False
+        assert content.property("selectionColor") == message_box.property(
+            "expectedSelectionColor"
+        )
+        assert content.property("selectedTextColor") == message_box.property(
+            "expectedSelectedTextColor"
+        )
         assert content.height() == content.property("implicitHeight")
         assert content.height() < 100
 

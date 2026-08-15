@@ -95,6 +95,8 @@ DialogBoxCore {
             width: control._contentTextWidth
             readOnly: true
             selectByMouse: control.contentCopyable
+            selectionColor: Enums.accentColor
+            selectedTextColor: Enums.accentForeground
             activeFocusOnPress: control.contentCopyable
             cursorVisible: false
             font.family: Enums.fontFamily

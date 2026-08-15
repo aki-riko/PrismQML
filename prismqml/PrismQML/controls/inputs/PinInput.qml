@@ -20,6 +20,9 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool focused: pinInput.activeFocus
+    readonly property int selectionStart: pinInput.selectionStart
+    readonly property int selectionEnd: pinInput.selectionEnd
+    readonly property string selectedText: pinInput.selectedText
     readonly property int _cellRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property real _cellBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
 
@@ -28,10 +31,13 @@ Item {
     signal valueModified(string pin)
 
     // ==================== Public Methods 公开方法 ====================
-    function clear() {
-        pinInput.text = ""
-        control.value = ""
-    }
+    function clear() { return _dispatchEditAction("clear") }
+    function selectAll() { return _dispatchEditAction("selectAll") }
+    function undo() { return _dispatchEditAction("undo") }
+    function redo() { return _dispatchEditAction("redo") }
+    function copy() { return _dispatchEditAction("copy") }
+    function cut() { return _dispatchEditAction("cut") }
+    function paste() { return _dispatchEditAction("paste") }
 
     function setFocus() {
         pinInput.forceActiveFocus()
@@ -43,6 +49,19 @@ Item {
     function setEchoMode(mode) { password = (mode !== Enums.input.pinEchoModeNormal) }
 
     function isEnabled() { return enabled }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _dispatchEditAction(actionName) {
+        if (!pinInput || typeof pinInput[actionName] !== "function") return false
+        pinInput[actionName]()
+        return true
+    }
+
+    function _isCellSelected(index) {
+        var rangeStart = Math.min(pinInput.selectionStart, pinInput.selectionEnd)
+        var rangeEnd = Math.max(pinInput.selectionStart, pinInput.selectionEnd)
+        return index >= rangeStart && index < rangeEnd
+    }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: length * Enums.controlSize.pinBoxCellSize + (length - 1) * Enums.spacing.m
@@ -62,6 +81,7 @@ Item {
                 property bool hasValue: index < control.value.length
                 property bool isCurrentCell: control.focused && index === control.value.length
                 property bool hovered: cellMouseArea.containsMouse
+                property bool selected: control._isCellSelected(index)
 
                 width: Enums.controlSize.pinBoxCellSize
                 height: Enums.controlSize.pinBoxCellSize
@@ -99,6 +119,7 @@ Item {
                     // Fluent Design: default/hover/current cell states 默认/悬浮/当前格状态
                     color: {
                         if (!control.enabled) return Enums.stateColor.controlBgDisabled
+                        if (cellItem.selected) return Enums.accentColor
                         if (cellItem.isCurrentCell) return Enums.cardColor
                         if (cellItem.hovered) return Enums.stateColor.controlBgHover
                         return Enums.stateColor.controlBg
@@ -106,6 +127,7 @@ Item {
 
                     border.width: control._cellBorderWidth
                     border.color: {
+                        if (cellItem.selected) return Enums.accentColor
                         if (Enums.hasOutlinedSurfaces) return cellItem.isCurrentCell ? Enums.accentColor : Enums.stateColor.border
                         if (!control.enabled) return Enums.stateColor.borderLight
                         if (cellItem.hovered) return Enums.stateColor.borderStrong
@@ -113,11 +135,11 @@ Item {
                     }
 
                     HoverBehavior on color {
-                        active: cellItem.hovered && !cellItem.isCurrentCell
+                        active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
                         enterDuration: Enums.duration.fast
                     }
                     HoverBehavior on border.color {
-                        active: cellItem.hovered && !cellItem.isCurrentCell
+                        active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
                         enterDuration: Enums.duration.fast
                     }
 
@@ -126,7 +148,8 @@ Item {
                         anchors.centerIn: parent
                         type: control.password ? Enums.label.type_title : Enums.label.type_subtitle
                         text: cellItem.hasValue ? (control.password ? Enums.input.pinMaskCharacter : control.value.charAt(index)) : ""
-                        color: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
+                        color: cellItem.selected ? Enums.accentForeground
+                            : (control.enabled ? Enums.textColor.primary : Enums.textColor.disabled)
                     }
 
                     // Cursor (only in current cell) 光标（仅当前格）
@@ -174,6 +197,7 @@ Item {
         maximumLength: control.length
         inputMethodHints: Qt.ImhDigitsOnly
         enabled: control.enabled
+        activeFocusOnTab: true
 
         onTextChanged: {
             control.value = text

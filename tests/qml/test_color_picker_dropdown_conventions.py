@@ -498,3 +498,9 @@ def test_color_picker_dropdown_uses_mode_and_hex_tokens():
         ".padStart(Enums.colorPickerMetrics.hexByteLen, '0')",
     ):
         assert literal not in source
+    assert source.count("selectionColor: Enums.accentColor") == source.count(
+        "TextInput {"
+    )
+    assert source.count("selectedTextColor: Enums.accentForeground") == source.count(
+        "TextInput {"
+    )

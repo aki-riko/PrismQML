@@ -50,10 +50,14 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property Item _resultList: null
     property Item _searchPopup: null
+    property int _queryEditRevision: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property string query: lineEdit.text
     readonly property bool isOpen: _searchPopup ? _searchPopup.isOpen : false
+    readonly property int selectionStart: lineEdit.selectionStart
+    readonly property int selectionEnd: lineEdit.selectionEnd
+    readonly property string selectedText: lineEdit.selectedText
     readonly property var _safeEntries:
         entries === null || entries === undefined ? []
         : (typeof entries.length === "number" ? entries : [])
@@ -68,6 +72,19 @@ Item {
     signal dismissed()
 
     // ==================== Public Methods 公开方法 ====================
+    function clear() {
+        var result = lineEdit.clear()
+        cleared()
+        dismiss()
+        return result
+    }
+    function selectAll() { return lineEdit.selectAll() }
+    function undo() { return _dispatchQueryEditAction("undo") }
+    function redo() { return _dispatchQueryEditAction("redo") }
+    function copy() { return lineEdit.copy() }
+    function cut() { return _dispatchQueryEditAction("cut") }
+    function paste() { return _dispatchQueryEditAction("paste") }
+
     function open() {
         if (popupMode === Enums.input.search_popup_centered_overlay) {
             if (_ensureSearchSurface()) {
@@ -100,6 +117,32 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _dispatchQueryEditAction(actionName) {
+        var previousText = lineEdit.text
+        var previousRevision = _queryEditRevision
+        var result = lineEdit[actionName]()
+        if (result && lineEdit.text !== previousText
+                && _queryEditRevision === previousRevision) {
+            _handleQueryEdited(lineEdit.text)
+        }
+        return result
+    }
+
+    function _handleQueryEdited(text) {
+        _queryEditRevision += 1
+        queryEdited(text)
+        _syncAnchoredPopup(text)
+    }
+
+    function _syncAnchoredPopup(text) {
+        if (popupMode !== Enums.input.search_popup_anchored_below) return
+        if (text.length > 0) {
+            if (_ensureSearchSurface()) _searchPopup.open()
+        } else {
+            dismiss()
+        }
+    }
+
     // Create the search surface synchronously on first use 首次使用时同步创建搜索界面
     function _ensureSearchSurface() {
         if (!_resultList) {
@@ -141,18 +184,7 @@ Item {
         clearButtonEnabled: true
 
         onTextEdited: function(text) {
-            control.queryEdited(text)
-            // AnchoredBelow: 输入立即唤起 popup, 清空时关闭
-            // 重复调用幂等(底层 PopupWindowCore 自带守卫)
-            if (control.popupMode === Enums.input.search_popup_anchored_below) {
-                if (text.length > 0) {
-                    if (control._ensureSearchSurface()) {
-                        control._searchPopup.open()
-                    }
-                } else {
-                    control.dismiss()
-                }
-            }
+            control._handleQueryEdited(text)
         }
         onCleared: {
             control.cleared()

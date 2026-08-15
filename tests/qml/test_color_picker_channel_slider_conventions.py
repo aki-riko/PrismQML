@@ -184,6 +184,12 @@ def test_channel_slider_uses_tokens_and_convention_order():
         "% 2 === 0",
     ):
         assert literal not in source
+    assert source.count("selectionColor: Enums.accentColor") == source.count(
+        "TextInput {"
+    )
+    assert source.count("selectedTextColor: Enums.accentForeground") == source.count(
+        "TextInput {"
+    )
 
 
 def test_color_picker_slider_handles_pause_animation_while_dragging():

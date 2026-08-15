@@ -33,10 +33,34 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _syncing: false  // Prevent synchronization loops 防止同步循环
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property int selectionStart: loader.item && loader.item.selectionStart !== undefined
+        ? loader.item.selectionStart : 0
+    readonly property int selectionEnd: loader.item && loader.item.selectionEnd !== undefined
+        ? loader.item.selectionEnd : 0
+    readonly property string selectedText: loader.item && loader.item.selectedText !== undefined
+        ? loader.item.selectedText : ""
+
     // ==================== Signals 信号 ====================
     signal activated(int index)
     signal indexChanged(int index)
     signal selectionChanged(var indices, var items)
+    signal itemSelected(string text, var path)
+
+    // ==================== Public Methods 公开方法 ====================
+    function clearEditText() { return _dispatchLoadedEditAction("clearEditText") }
+    function selectAll() { return _dispatchLoadedEditAction("selectAll") }
+    function undo() { return _dispatchLoadedEditAction("undo") }
+    function redo() { return _dispatchLoadedEditAction("redo") }
+    function copy() { return _dispatchLoadedEditAction("copy") }
+    function cut() { return _dispatchLoadedEditAction("cut") }
+    function paste() { return _dispatchLoadedEditAction("paste") }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _dispatchLoadedEditAction(actionName) {
+        if (!loader.item || typeof loader.item[actionName] !== "function") return false
+        return loader.item[actionName]()
+    }
 
     // Preserve the font picker's built-in list until an external list is provided.
     // 外部列表为空时保留字体选择框的内置列表。
@@ -137,6 +161,7 @@ Item {
             if (item.activated) item.activated.connect(control.activated)
             if (item.indexChanged) item.indexChanged.connect((i) => control.indexChanged(i))
             if (item.selectionChanged) item.selectionChanged.connect(control.selectionChanged)
+            if (item.itemSelected) item.itemSelected.connect(control.itemSelected)
             // 同步初始 currentText
             if (item.currentText !== undefined) {
                 control.currentText = item.currentText || ""

@@ -178,3 +178,9 @@ def test_color_picker_inputs_uses_enum_mode_step():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "Enums.colorPickerMetrics.dropdownModeCycleStep" in source
     assert "colorMode + 1" not in source
+    assert source.count("selectionColor: Enums.accentColor") == source.count(
+        "TextInput {"
+    )
+    assert source.count("selectedTextColor: Enums.accentForeground") == source.count(
+        "TextInput {"
+    )

@@ -23,6 +23,8 @@ Item {
     
     // Text style from InputCore 从基类继承的文本样式
     required property int fontSize
+    required property color selectionColor
+    required property color selectedTextColor
 
     // ==================== Public Props 公开属性 ====================
     property alias text: inputField.text
@@ -76,6 +78,8 @@ Item {
         font.family: Enums.fontFamily
         font.pixelSize: labelInput.fontSize
         color: Enums.textColor.primary
+        selectionColor: labelInput.selectionColor
+        selectedTextColor: labelInput.selectedTextColor
         enabled: labelInput.controlEnabled
         clip: true
         verticalAlignment: Text.AlignVCenter

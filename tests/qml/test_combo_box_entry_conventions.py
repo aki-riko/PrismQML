@@ -6,7 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -164,6 +164,38 @@ def test_combo_box_entry_late_model_and_two_way_index_sync(qapp):
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        _pump()
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_entry_forwards_editing_commands(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard_text = clipboard.text()
+    engine, component, root, sync_entry, async_entry, warnings = _create_scene()
+    try:
+        assert QMetaObject.invokeMethod(async_entry, "selectAll")
+        assert async_entry.property("selectedText") == "Delta"
+        assert QMetaObject.invokeMethod(async_entry, "copy")
+        assert clipboard.text() == "Delta"
+        assert QMetaObject.invokeMethod(async_entry, "clearEditText")
+        assert _wait_for(lambda: async_entry.property("currentText") == "")
+        assert async_entry.property("currentIndex") == -1
+        clipboard.setText("forwarded")
+        assert QMetaObject.invokeMethod(async_entry, "paste")
+        assert _wait_for(lambda: async_entry.property("currentText") == "forwarded")
+        assert QMetaObject.invokeMethod(async_entry, "undo")
+        assert _wait_for(lambda: async_entry.property("currentText") == "")
+        assert QMetaObject.invokeMethod(async_entry, "redo")
+        assert _wait_for(lambda: async_entry.property("currentText") == "forwarded")
+        assert warnings == []
+    finally:
+        clipboard.setText(previous_clipboard_text)
         root.deleteLater()
         component.deleteLater()
         engine.collectGarbage()

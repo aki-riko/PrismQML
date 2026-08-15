@@ -65,6 +65,9 @@ Widget {
     readonly property bool pressed: mouseArea.pressed
     readonly property bool popupVisible: isOpen || comboPopup.isClosing
     readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight
+    readonly property int selectionStart: editable ? editableInput.selectionStart : 0
+    readonly property int selectionEnd: editable ? editableInput.selectionEnd : 0
+    readonly property string selectedText: editable ? editableInput.selectedText : ""
     readonly property var _safeModel:
         model === null || model === undefined ? []
         : (typeof model.length === "number" ? model : [])
@@ -125,6 +128,13 @@ Widget {
     function insertItem(index, text, userData) { _methods.insertItem(control, index, text, userData) }
     function insertItems(index, texts) { _methods.insertItems(control, index, texts) }  // Batch insert 批量插入
     function clear() { _methods.clear(control) }
+    function clearEditText() { return _dispatchEditAction("clear", true) }
+    function selectAll() { return _dispatchEditAction("selectAll", false) }
+    function undo() { return _dispatchEditAction("undo", true) }
+    function redo() { return _dispatchEditAction("redo", true) }
+    function copy() { return _dispatchEditAction("copy", false) }
+    function cut() { return _dispatchEditAction("cut", true) }
+    function paste() { return _dispatchEditAction("paste", true) }
     function showPopup() { openPopup() }
     function hidePopup() { closePopup() }
     function itemText(index) { return _methods.itemText(_safeModel || [], index) }
@@ -171,6 +181,21 @@ Widget {
     function isEnabled() { return enabled }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _dispatchEditAction(actionName, mutatesText) {
+        if (!editable || !useDefaultContent || !enabled
+                || typeof editableInput[actionName] !== "function") return false
+        var previousText = editableInput.text
+        editableInput[actionName]()
+        if (mutatesText && editableInput.text !== previousText) {
+            if (currentIndex !== -1) currentIndex = -1
+            if (currentText !== editableInput.text) {
+                currentText = editableInput.text
+                textEdited(currentText)
+            }
+        }
+        return true
+    }
+
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
     function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(_safeModel || [], searchText) }
     function _syncCurrentTextFromSelection() {

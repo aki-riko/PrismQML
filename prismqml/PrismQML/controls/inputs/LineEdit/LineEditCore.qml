@@ -216,6 +216,8 @@ InputCore {
             paddingLeft: control.paddingLeft
             paddingRight: control.paddingRight
             fontSize: control.fontSize
+            selectionColor: control.selectionColor
+            selectedTextColor: control.selectedTextColor
             
             onTextModified: (text) => control.textModified(text)
             onEditingFinished: control.editingFinished()

@@ -185,6 +185,8 @@ Item {
                     font.family: Enums.fontMonospace
                     font.pixelSize: Enums.typography.body
                     color: Enums.textColor.primary
+                    selectionColor: Enums.accentColor
+                    selectedTextColor: Enums.accentForeground
                     selectByMouse: true
                     enabled: control.enabled
                     

@@ -247,6 +247,8 @@ MessageBox {
                         font.family: Enums.fontFamily
                         font.pixelSize: Enums.typography.body
                         color: Enums.textColor.primary
+                        selectionColor: Enums.accentColor
+                        selectedTextColor: Enums.accentForeground
                         selectByMouse: true
                         enabled: control.enabled
                         maximumLength: Enums.colorPickerMetrics.dialogHexMaxLength
@@ -310,6 +312,8 @@ MessageBox {
                             font.family: Enums.fontFamily
                             font.pixelSize: Enums.typography.body
                             color: Enums.textColor.primary
+                            selectionColor: Enums.accentColor
+                            selectedTextColor: Enums.accentForeground
                             selectByMouse: true
                             validator: IntValidator { bottom: Enums.colorPickerMetrics.channelMinValue; top: Enums.colorPickerMetrics.channelMaxValue }
                             enabled: control.enabled

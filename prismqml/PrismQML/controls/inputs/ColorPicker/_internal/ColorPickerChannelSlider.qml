@@ -76,6 +76,8 @@ Item {
                 font.family: Enums.fontFamily
                 font.pixelSize: Enums.typography.bodySmall
                 color: Enums.textColor.primary
+                selectionColor: Enums.accentColor
+                selectedTextColor: Enums.accentForeground
                 selectByMouse: true
                 validator: IntValidator { bottom: Enums.colorPickerMetrics.channelMinValue; top: Enums.colorPickerMetrics.channelMaxValue }
                 

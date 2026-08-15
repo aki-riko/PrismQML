@@ -139,6 +139,8 @@ Item {
                         font.family: Enums.fontMonospace
                         font.pixelSize: Enums.typography.bodySmall
                         color: Enums.textColor.primary
+                        selectionColor: Enums.accentColor
+                        selectedTextColor: Enums.accentForeground
                         maximumLength: Enums.colorPickerMetrics.dialogHexMaxLength
                         selectByMouse: true
                         enabled: control.enabled

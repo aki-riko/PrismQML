@@ -510,6 +510,47 @@ def test_combo_box_core_edit_then_select_restores_model_text(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_combo_box_core_public_editing_commands_preserve_model(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard_text = clipboard.text()
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    edited = []
+    editable.textEdited.connect(edited.append)
+    try:
+        editable.setProperty("currentIndex", 1)
+        assert _wait_for(lambda: editable.property("currentText") == "Beta")
+        model_before = _variant(editable.property("model"))
+
+        assert QMetaObject.invokeMethod(editable, "selectAll")
+        assert editable.property("selectedText") == "Beta"
+        assert QMetaObject.invokeMethod(editable, "copy")
+        assert clipboard.text() == "Beta"
+        assert QMetaObject.invokeMethod(editable, "clearEditText")
+        assert _wait_for(lambda: editable.property("currentText") == "")
+        assert editable.property("currentIndex") == -1
+        assert _variant(editable.property("model")) == model_before
+
+        clipboard.setText("custom")
+        assert QMetaObject.invokeMethod(editable, "paste")
+        assert _wait_for(lambda: editable.property("currentText") == "custom")
+        assert QMetaObject.invokeMethod(editable, "undo")
+        assert _wait_for(lambda: editable.property("currentText") == "")
+        assert QMetaObject.invokeMethod(editable, "redo")
+        assert _wait_for(lambda: editable.property("currentText") == "custom")
+        assert QMetaObject.invokeMethod(editable, "selectAll")
+        assert QMetaObject.invokeMethod(editable, "cut")
+        assert _wait_for(lambda: editable.property("currentText") == "")
+        assert edited[-1] == ""
+        assert warnings == []
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    finally:
+        clipboard.setText(previous_clipboard_text)
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_combo_box_core_wide_popup_left_aligns_and_tracks_control(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     scene = _create_scene()

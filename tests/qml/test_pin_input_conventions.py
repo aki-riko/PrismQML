@@ -6,12 +6,13 @@
 
 from pathlib import Path, PurePosixPath
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
-from prismqml import register_types
+from prismqml import Skin, getSkin, register_types, setSkin
 from scripts.qml_conventions import scan_source_text
 
 
@@ -36,6 +37,8 @@ Item {
     readonly property int cellSpacing: Enums.spacing.m
     readonly property int defaultLength: Enums.input.pinDefaultLength
     readonly property real invisibleOpacity: Enums.opacityLevel.invisible
+    readonly property color accentColor: Enums.accentColor
+    readonly property color accentForeground: Enums.accentForeground
 
     width: 520
     height: 100
@@ -50,6 +53,16 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1600) -> bool:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 20
+    return predicate()
 
 
 def _create_scene():
@@ -129,6 +142,10 @@ def _cell_texts(pin):
     return [_cell_label(cell).property("text") for cell in _cells(pin)]
 
 
+def _cell_background(cell):
+    return _cell_label(cell).parentItem()
+
+
 def _assert_password_display(pin):
     assert _cell_texts(pin).count("●") == 2
     pin.setProperty("password", False)
@@ -195,6 +212,89 @@ def test_pin_input_value_lifecycle(qapp):
         _pump(1)
 
 
+def test_pin_input_keyboard_selection_and_editing_commands(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    clipboard = QGuiApplication.clipboard()
+    previous_clipboard_text = clipboard.text()
+    previous_skin = getSkin()
+    engine, component, root, warnings = _create_scene()
+    window = QQuickWindow()
+    try:
+        root.setParentItem(window.contentItem())
+        window.setWidth(round(root.width()))
+        window.setHeight(round(root.height()))
+        window.show()
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+
+        pin = root.findChild(QObject, "customPin")
+        hidden = _hidden_input(pin)
+        hidden.forceActiveFocus()
+        assert _wait_for(lambda: bool(hidden.property("activeFocus")))
+        assert hidden.property("activeFocusOnTab")
+
+        for key in (Qt.Key.Key_1, Qt.Key.Key_2, Qt.Key.Key_3, Qt.Key.Key_4):
+            QTest.keyClick(window, key)
+        assert _wait_for(lambda: pin.property("value") == "1234")
+        QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        assert _wait_for(lambda: pin.property("selectedText") == "1234")
+        selected_cells = _cells(pin)
+        assert all(cell.property("selected") for cell in selected_cells)
+        for skin in (
+            Skin.FLUENT,
+            Skin.NEOBRUTALISM,
+            Skin.VINTAGE_TICKET,
+            Skin.NEUMORPHISM,
+        ):
+            setSkin(skin)
+            assert _wait_for(
+                lambda: all(
+                    _cell_background(cell).property("color")
+                    == root.property("accentColor")
+                    for cell in selected_cells
+                )
+            )
+            assert all(
+                _cell_label(cell).property("color")
+                == root.property("accentForeground")
+                for cell in selected_cells
+            )
+
+        QTest.keyClick(window, Qt.Key.Key_Backspace)
+        assert _wait_for(lambda: pin.property("value") == "")
+        assert QMetaObject.invokeMethod(pin, "undo")
+        assert _wait_for(lambda: pin.property("value") == "1234")
+        assert QMetaObject.invokeMethod(pin, "redo")
+        assert _wait_for(lambda: pin.property("value") == "")
+
+        for key in (Qt.Key.Key_1, Qt.Key.Key_2):
+            QTest.keyClick(window, key)
+        assert QMetaObject.invokeMethod(pin, "selectAll")
+        assert QMetaObject.invokeMethod(pin, "copy")
+        assert clipboard.text() == "12"
+        assert QMetaObject.invokeMethod(pin, "cut")
+        assert _wait_for(lambda: pin.property("value") == "")
+        clipboard.setText("34")
+        assert QMetaObject.invokeMethod(pin, "paste")
+        assert _wait_for(lambda: pin.property("value") == "34")
+        assert QMetaObject.invokeMethod(pin, "clear")
+        assert pin.property("value") == ""
+        assert warnings == []
+    finally:
+        setSkin(previous_skin)
+        clipboard.setText(previous_clipboard_text)
+        root.setParentItem(None)
+        window.close()
+        window.deleteLater()
+        root.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        _pump()
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_pin_input_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -211,3 +311,5 @@ def test_pin_input_uses_enum_tokens():
     assert "Enums.input.pinMaskCharacter" in source
     assert "Enums.opacityLevel.invisible" in source
     assert "Enums.opacityLevel.visible" in source
+    assert "Enums.accentColor" in source
+    assert "Enums.accentForeground" in source

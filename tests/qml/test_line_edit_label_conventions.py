@@ -40,6 +40,8 @@ Item {
     readonly property int labelInputHeight: Enums.controlSize.inputHeightLabel
     readonly property int textInputHeight: Enums.controlSize.inputLabelTextHeight
     readonly property string globalFont: Enums.fontFamily
+    readonly property color selectionColor: Enums.accentColor
+    readonly property color selectedTextColor: Enums.accentForeground
 
     width: 320
     height: 120
@@ -165,6 +167,10 @@ def test_line_edit_label_initial_geometry(label_scene):
     assert floating.property("y") == pytest.approx(expected_y)
     assert text_input.property("height") == label_scene.property("textInputHeight")
     assert text_input.property("font").family() == label_scene.property("globalFont")
+    assert text_input.property("selectionColor") == label_scene.property("selectionColor")
+    assert text_input.property("selectedTextColor") == label_scene.property(
+        "selectedTextColor"
+    )
 
 
 def test_line_edit_label_content_lifecycle(label_scene):
@@ -210,3 +216,5 @@ def test_line_edit_label_uses_enum_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "Enums.input.labelRestingScale" in source
     assert "Enums.controlSize.inputLabelTextHeight" in source
+    assert "required property color selectionColor" in source
+    assert "required property color selectedTextColor" in source
