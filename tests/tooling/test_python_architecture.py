@@ -12,12 +12,23 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON_PACKAGE = REPO_ROOT / "prismqml" / "python"
 CORE_PACKAGE = PYTHON_PACKAGE / "core"
+WINDOW_PACKAGE = PYTHON_PACKAGE / "window"
 FORBIDDEN_CORE_DEPENDENCIES = (
     "prismqml.python.config",
     "prismqml.python.providers",
     "prismqml.python.runtime",
     "prismqml.python.window",
 )
+WINDOW_RUNTIME_CONTEXT_NAMES = {
+    "ThemeManager",
+    "ShadowManager",
+    "ConfigManager",
+    "MicaManager",
+    "ClipboardHelper",
+    "PrismQmlStartupProfileVerbose",
+    "PrismQmlAsynchronousPageLoaderEnabled",
+    "NativeWindow",
+}
 
 
 def _module_context(path: Path) -> tuple[str, str]:
@@ -103,6 +114,27 @@ def _function_names(path: Path) -> set[str]:
     }
 
 
+def _literal_method_calls(path: Path) -> list[tuple[int, str, str]]:
+    tree = ast.parse(
+        path.read_text(encoding="utf-8"),
+        filename=str(path),
+        feature_version=(3, 9),
+    )
+    calls = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not node.args:
+            continue
+        if not isinstance(node.func, ast.Attribute):
+            continue
+        first_argument = node.args[0]
+        if not isinstance(first_argument, ast.Constant):
+            continue
+        if not isinstance(first_argument.value, str):
+            continue
+        calls.append((node.lineno, node.func.attr, first_argument.value))
+    return calls
+
+
 def test_core_does_not_depend_on_runtime_composition_layers():
     violations = []
     for path in sorted(CORE_PACKAGE.rglob("*.py")):
@@ -143,6 +175,35 @@ def test_runtime_registration_has_one_composition_owner():
     assert "register_types" in _function_names(
         PYTHON_PACKAGE / "runtime" / "registry.py"
     )
+
+
+def test_window_runtime_composition_has_one_owner():
+    builder = WINDOW_PACKAGE / "_window_builder.py"
+    runtime_registry = PYTHON_PACKAGE / "runtime" / "window_registry.py"
+    builder_imports = {target for _line, target in _resolved_imports(builder)}
+
+    assert (
+        "prismqml.python.runtime.window_registry.prepare_window_engine"
+        in builder_imports
+    )
+    assert not (WINDOW_PACKAGE / "_window_engine_setup.py").exists()
+    assert "prepare_window_engine" in _function_names(runtime_registry)
+
+    violations = []
+    for path in sorted(WINDOW_PACKAGE.rglob("*.py")):
+        relative_path = path.relative_to(REPO_ROOT)
+        if "prepare_window_engine" in _function_names(path):
+            violations.append(f"{relative_path}: defines prepare_window_engine")
+        for line, method, name in _literal_method_calls(path):
+            owns_runtime_context = (
+                method == "setContextProperty"
+                and name in WINDOW_RUNTIME_CONTEXT_NAMES
+            )
+            owns_svg_provider = method == "addImageProvider" and name == "svg"
+            if owns_runtime_context or owns_svg_provider:
+                violations.append(f"{relative_path}:{line}: {method}({name!r})")
+
+    assert violations == []
 
 
 def test_public_appearance_mutations_cross_the_runtime_boundary():
