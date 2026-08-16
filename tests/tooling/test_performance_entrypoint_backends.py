@@ -12,6 +12,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 CPP_HOST = ROOT / "cpp" / "src" / "App.cpp"
 PYTHON_HOST = ROOT / "prismqml" / "python" / "window" / "app.py"
+PYTHON_APPLICATION_RUNTIME = (
+    ROOT / "prismqml" / "python" / "runtime" / "application.py"
+)
 PERFORMANCE_ENTRYPOINTS = (
     ROOT / "scripts" / "fps_probe.py",
     ROOT / "scripts" / "run_with_fps.py",
@@ -35,12 +38,14 @@ def test_cpp_host_requests_direct3d11_as_its_only_graphics_backend():
 
 
 def test_python_host_requests_direct3d11_as_its_only_graphics_backend():
-    source = PYTHON_HOST.read_text(encoding="utf-8")
+    host_source = PYTHON_HOST.read_text(encoding="utf-8")
+    runtime_source = PYTHON_APPLICATION_RUNTIME.read_text(encoding="utf-8")
 
-    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in source
-    assert "QSGRendererInterface.OpenGL" not in source
-    assert "GraphicsApi.OpenGL" not in source
-    assert "configure_graphics_api" not in source
+    assert "prepare_application_environment(allow_qml_file_read)" in host_source
+    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in runtime_source
+    assert "QSGRendererInterface.OpenGL" not in host_source + runtime_source
+    assert "GraphicsApi.OpenGL" not in host_source + runtime_source
+    assert "configure_graphics_api" not in host_source + runtime_source
 
 
 @pytest.mark.parametrize("entrypoint", PERFORMANCE_ENTRYPOINTS)

@@ -21,6 +21,9 @@ CHART_VIEW_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "data" / "Chart" / "ChartView.qml"
 )
 CHART_DATA_ZOOM_SOURCE = CHART_VIEW_SOURCE.with_name("ChartDataZoom.qml")
+CHART_DATA_ZOOM_TIMER_SOURCE = (
+    CHART_VIEW_SOURCE.parent / "_internal" / "ChartDataZoomDragEndTimer.qml"
+)
 CHART_DATA_ZOOM_LAYER_SOURCE = (
     CHART_VIEW_SOURCE.parent / "_internal" / "ChartDataZoomLayer.qml"
 )
@@ -575,6 +578,7 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
     chart_view_source = CHART_VIEW_SOURCE.read_text(encoding="utf-8")
     render_layer_source = CHART_RENDER_LAYER_SOURCE.read_text(encoding="utf-8")
     data_zoom_source = CHART_DATA_ZOOM_SOURCE.read_text(encoding="utf-8")
+    data_zoom_timer_source = CHART_DATA_ZOOM_TIMER_SOURCE.read_text(encoding="utf-8")
     data_zoom_layer_source = CHART_DATA_ZOOM_LAYER_SOURCE.read_text(encoding="utf-8")
     line_chart_source = LINE_CHART_SOURCE.read_text(encoding="utf-8")
     xy_chart_core_source = XY_CHART_CORE_SOURCE.read_text(encoding="utf-8")
@@ -664,4 +668,4 @@ def test_chart_zoom_uses_shared_tokens_and_render_values():
 
     assert "duration: 120" not in chart_view_source
     assert "interval: 50" not in chart_view_source
-    assert "interval: Enums.duration.slow" in data_zoom_source
+    assert "interval: Enums.duration.slow" in data_zoom_timer_source

@@ -15,6 +15,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 QML_ROOT = ROOT / "prismqml" / "PrismQML"
 METRICS_PATH = QML_ROOT / "PrismEnums" / "Metrics.qml"
+EXTERNAL_METRIC_SOURCES = {
+    "shadow": METRICS_PATH.parent / "_internal" / "MetricsShadow.qml",
+}
 METRIC_NAMESPACES = {
     "duration": "duration",
     "motion": "motion",
@@ -44,11 +47,13 @@ METRIC_NAMESPACES = {
 }
 
 
-def _metric_properties(source: str, namespace: str) -> set[str]:
-    declaration = re.search(
-        rf"readonly\s+property\s+QtObject\s+{re.escape(namespace)}\s*:\s*QtObject\s*{{",
-        source,
+def _metric_properties(source: str, namespace: str, root_object: bool = False) -> set[str]:
+    pattern = (
+        r"\bQtObject\s*\{"
+        if root_object
+        else rf"readonly\s+property\s+QtObject\s+{re.escape(namespace)}\s*:\s*QtObject\s*{{"
     )
+    declaration = re.search(pattern, source)
     assert declaration is not None, namespace
 
     opening_brace = source.find("{", declaration.start())
@@ -74,8 +79,11 @@ def test_metric_token_references_resolve_in_declared_namespace(
     namespace: str, metrics_object: str
 ):
     """所有度量引用必须在实际命名空间内声明，避免 undefined 传播为 NaN。"""
+    source_path = EXTERNAL_METRIC_SOURCES.get(metrics_object, METRICS_PATH)
     declared = _metric_properties(
-        METRICS_PATH.read_text(encoding="utf-8"), metrics_object
+        source_path.read_text(encoding="utf-8"),
+        metrics_object,
+        root_object=source_path != METRICS_PATH,
     )
     reference_pattern = re.compile(rf"\bEnums\.{re.escape(namespace)}\.(\w+)")
     unresolved = []

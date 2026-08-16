@@ -20,6 +20,10 @@ from prismqml import register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
+MATRIX_RAIN_SOURCE = ROOT / "prismqml" / "PrismQML" / "effects" / "MatrixRain.qml"
+MATRIX_RAIN_CANVAS_SOURCE = (
+    MATRIX_RAIN_SOURCE.parent / "_internal" / "MatrixRainCanvas.qml"
+)
 
 
 EXPECTED_PALETTES = {
@@ -243,11 +247,11 @@ def test_matrix_rain_frame_updates_reuse_drop_array_without_property_change(qapp
         assert _evaluate(instance, "drops[0] += 1; drops[0]") == 2
         assert emitted == []
 
-        source = (ROOT / "prismqml" / "PrismQML" / "effects" / "MatrixRain.qml").read_text(
-            encoding="utf-8"
-        )
-        assert "root.drops = localDrops" not in source
-        hot_loop = source.split("for (var i = 0; i < count; i++) {", 1)[1].split(
+        source = MATRIX_RAIN_SOURCE.read_text(encoding="utf-8")
+        canvas_source = MATRIX_RAIN_CANVAS_SOURCE.read_text(encoding="utf-8")
+        assert "MatrixRainInternal.MatrixRainCanvas" in source
+        assert "root.drops = localDrops" not in canvas_source
+        hot_loop = canvas_source.split("for (var i = 0; i < count; i++) {", 1)[1].split(
             "// Update rainbow offset", 1
         )[0]
         assert "root." not in hot_loop

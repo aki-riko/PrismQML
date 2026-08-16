@@ -34,6 +34,7 @@ _MAX_LONG_FUNCTIONS_BY_AREA = {
     "core": 17,
     "models": 1,
     "providers": 4,
+    "runtime": 2,
     "state": 1,
     "window": 14,
 }

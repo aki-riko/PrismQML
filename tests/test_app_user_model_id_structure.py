@@ -35,11 +35,12 @@ _MAX_FUNCTION_LINES = 30
 _MAX_CONTROL_DEPTH = 2
 _MAX_LONG_FUNCTIONS = 14
 _MAX_LONG_FUNCTIONS_BY_AREA = {
-    "core": 3,
+    "core": 7,
     "models": 0,
     "providers": 2,
+    "runtime": 2,
     "state": 0,
-    "window": 9,
+    "window": 5,
 }
 
 

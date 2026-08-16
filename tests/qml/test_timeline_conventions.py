@@ -38,6 +38,7 @@ SOURCE_PATH = (
 )
 GRAPH_SOURCE_PATH = SOURCE_PATH.with_name("TimelineGraphLayer.qml")
 GRAPH_LABELS_SOURCE_PATH = SOURCE_PATH.with_name("TimelineGraphLabels.qml")
+VIRTUAL_ROW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "TimelineVirtualRow.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "timeline-conventions.qml")
 )
@@ -659,10 +660,12 @@ def test_timeline_selection_uses_render_thread_animators(timeline_scene):
 def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
     timeline_source = SOURCE_PATH.read_text(encoding="utf-8")
     graph_source = GRAPH_SOURCE_PATH.read_text(encoding="utf-8")
+    virtual_row_source = VIRTUAL_ROW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "Behavior on height" not in timeline_source
-    assert "OpacityAnimator" in timeline_source
-    assert "ScaleAnimator" in timeline_source
+    assert "TimelineInternal.TimelineVirtualRow" in timeline_source
+    assert "OpacityAnimator" in virtual_row_source
+    assert "ScaleAnimator" in virtual_row_source
     assert "OpacityAnimator" in graph_source
     assert "ScaleAnimator" in graph_source
 
