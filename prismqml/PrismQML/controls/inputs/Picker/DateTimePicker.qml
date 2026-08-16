@@ -9,7 +9,7 @@ import QtQuick.Effects
 import "../../utils"
 import "../../data"
 import ".."
-import "./_internal"
+import "./_internal" as PickerInternal
 import "./_internal/DateTimeHelpers.js" as Helpers
 
 // DateTimePicker - Unified date/time wheel picker 统一日期时间滚轮选择器
@@ -325,34 +325,10 @@ Rectangle {
     }
 
     // Display content 显示内容
-    Row {
-        anchors.fill: parent
+    PickerInternal.DateTimePickerDisplay {
+        id: displayContent
 
-        Repeater {
-            model: _buildDisplayModel()
-
-            Item {
-                width: parent ? parent.width / _totalColCount : 0
-                height: parent ? parent.height : 0
-
-                Label {
-                    anchors.centerIn: parent
-                    type: Enums.label.type_body
-                    text: modelData.text
-                    color: modelData.hasValue ? Enums.textColor.primary : Enums.textColor.disabled
-                }
-
-                // Separator 分隔线
-                Separator {
-                    type: Enums.separator.vertical
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    lineLength: parent.height - Enums.spacing.m
-                    lineColor: Enums.stateColor.border
-                    visible: index < _totalColCount - 1
-                }
-            }
-        }
+        pickerControl: control
     }
 
     // Interaction and initialization 交互与初始化
@@ -391,7 +367,7 @@ Rectangle {
                 id: popupContentLoader
                 anchors.fill: parent
                 active: control._popupContentRequested
-                sourceComponent: DateTimePickerPopup {}
+                sourceComponent: PickerInternal.DateTimePickerPopup {}
                 onLoaded: item.control = control
             }
         }

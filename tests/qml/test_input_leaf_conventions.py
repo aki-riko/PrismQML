@@ -54,6 +54,16 @@ DATE_TIME_PICKER_POPUP_SOURCE = (
     / "_internal"
     / "DateTimePickerPopup.qml"
 )
+DATE_TIME_PICKER_DISPLAY_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Picker"
+    / "_internal"
+    / "DateTimePickerDisplay.qml"
+)
 FOCUS_LINE_SOURCE = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "FocusLine.qml"
 )
@@ -481,6 +491,17 @@ def test_date_time_picker_popup_source_uses_standard_sections():
     ):
         assert source.count(f"property alias {name}: {name}") == 1
         assert source.count(f"id: {name}") == 1
+    assert [
+        item
+        for item in violations
+        if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_date_time_picker_display_source_uses_standard_sections():
+    source = DATE_TIME_PICKER_DISPLAY_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(DATE_TIME_PICKER_DISPLAY_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
     assert [
         item
         for item in violations

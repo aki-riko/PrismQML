@@ -864,6 +864,30 @@ def test_calendar_picker_core_keeps_content_tree_modularized():
         assert marker not in source
 
 
+def test_date_time_picker_keeps_display_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/Picker/DateTimePicker.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/Picker/_internal/"
+        "DateTimePickerDisplay.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 380
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "./_internal" as PickerInternal' in source
+    assert "PickerInternal.DateTimePickerDisplay {" in source
+    assert "required property var pickerControl" in helper_source
+    assert "Repeater {" in helper_source
+    assert "parent ? parent.width /" in helper_source
+    assert "parent ? parent.height : 0" in helper_source
+    assert "Row {" not in source
+    assert "Repeater {" not in source
+
+
 def test_color_picker_keeps_content_and_popup_tree_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/ColorPicker/ColorPicker.qml"

@@ -26,6 +26,16 @@ DATE_TIME_PICKER = (
     / "Picker"
     / "DateTimePicker.qml"
 )
+DATE_TIME_PICKER_DISPLAY = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Picker"
+    / "_internal"
+    / "DateTimePickerDisplay.qml"
+)
 
 
 def _section(path: Path, start: str, end: str) -> str:
@@ -44,13 +54,9 @@ def test_data_widget_skeleton_delegate_guards_parent_teardown():
 
 def test_date_time_picker_display_delegate_guards_parent_teardown():
     """A destroyed Row may clear a live display delegate parent. 销毁行时显示委托父项可先置空。"""
-    section = _section(
-        DATE_TIME_PICKER,
-        "// Display content",
-        "// Interaction and initialization",
-    )
+    section = DATE_TIME_PICKER_DISPLAY.read_text(encoding="utf-8")
 
-    assert "width: parent ? parent.width / _totalColCount : 0" in section
+    assert "width: parent ? parent.width / display.pickerControl._totalColCount : 0" in section
     assert "height: parent ? parent.height : 0" in section
-    assert "width: parent.width / _totalColCount" not in section
+    assert "width: parent.width / display.pickerControl._totalColCount" not in section
     assert "height: parent.height" not in section
