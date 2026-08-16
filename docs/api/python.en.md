@@ -25,6 +25,13 @@ window = app.create_window(WindowType.BAR)
 
 `App(allow_qml_file_read=True)` enables local i18n JSON access for Translator before creating the QML engine; pass `False` to disable it explicitly. A plain `import prismqml` does not change this environment setting.
 
+On Windows, `App` also selects D3D11 before the first `QQuickWindow`. For a
+manually assembled Qt application, call
+`prismqml.python.runtime.prepare_application_environment(True)` before constructing
+`QApplication`, then call `register_types(engine)` after constructing
+`QQmlApplicationEngine`. The public registry owns cross-layer context and
+provider registration.
+
 `application_icon` is the application-level entry point. The shared Qt icon,
 all current and future PrismQML windows, the taskbar, and the default splash
 inherit it. Call `app.set_application_icon(path, colored=True)` to update all
@@ -63,7 +70,7 @@ use Loader Ready as their readiness condition.
 
 | Name | Description |
 |------|-------------|
-| `Skin` | Skin enum (FLUENT / NEOBRUTALISM) |
+| `Skin` | Skin enum (FLUENT / NEOBRUTALISM / VINTAGE_TICKET / NEUMORPHISM) |
 | `setSkin` / `getSkin` | Switch / get skin |
 | `Theme` | Theme enum (LIGHT / DARK / AUTO) |
 | `setTheme` / `getTheme` / `isDark` | Theme switch / query |

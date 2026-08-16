@@ -37,7 +37,7 @@ window.show()
 ## Window features
 
 - **Lazy loading** — page content loads on first switch, speeding up startup
-- **Mica effect** — Windows 11 translucent background (auto-disabled under neo skin for a solid flat look)
+- **Mica effect** — Windows 11 translucent background (auto-disabled under non-Fluent skins to preserve their surface model)
 - **System tray** — see [System Tray](tray.md)
 - **Splash screen** — `SplashScreen` auto-fades once the first frame is ready (mounted by default)
 
@@ -74,6 +74,7 @@ Pure QML windows may replace the visual through `splashComponent`. Its root
 object must provide `finish()`, which the framework calls once the first page
 is ready.
 
-!!! tip "Windows under the neo skin"
-    The neo skin auto-disables Mica (solid cream background), adds thick black borders to the content
-    area, and turns the selected nav item into a solid orange block — all handled by the skin system.
+!!! tip "Windows under non-Fluent skins"
+    Neobrutalism, Vintage Ticket, and Neumorphism auto-disable Mica and switch
+    to their own surfaces, borders, shadows, and navigation states. The skin
+    system handles these changes without application-specific configuration.

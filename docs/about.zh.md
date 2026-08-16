@@ -2,7 +2,9 @@
 
 ## PrismQML 是什么
 
-PrismQML 是基于 PySide6 + QML 的多皮肤 UI 引擎，由 **FluentQML 升级而来**——从单一 Fluent Design 组件库，演进为支持多设计语言（Fluent + 新粗野）的换皮引擎。
+PrismQML 是基于 PySide6 + QML 的多皮肤 UI 引擎，由 **FluentQML 升级而来**——
+从单一 Fluent Design 组件库，演进为支持 Fluent、新粗野、复古票据与新拟态的
+多设计语言引擎。
 
 ## 从 FluentQML 迁移
 
@@ -22,7 +24,9 @@ PrismQML 是基于 PySide6 + QML 的多皮肤 UI 引擎，由 **FluentQML 升级
 2. 全局替换 `fluentqml` → `prismqml`（Python）、`FluentQML` → `PrismQML`（QML）
 3. requirements 中 `fqml` → `prismqml`
 
-API 完全兼容，迁移只是改名。
+包名、导入名与 QML 模块名是迁移的核心步骤。PrismQML 在 v1.0.0 前不保留
+废弃兼容别名；若旧项目使用了 FluentQML 的内部路径或已移除 API，应按当前
+[Python API](api/python.md) 与[控件总览](components/index.md)迁移。
 
 ## 为什么改名
 

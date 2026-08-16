@@ -2,7 +2,9 @@
 
 ## What is PrismQML
 
-PrismQML is a multi-skin UI engine built on PySide6 + QML, **evolved from FluentQML** — from a single Fluent Design component library into a skinnable engine supporting multiple design languages (Fluent + Neobrutalism).
+PrismQML is a multi-skin UI engine built on PySide6 + QML, **evolved from
+FluentQML** from a single Fluent Design component library into an engine for
+Fluent, Neobrutalism, Vintage Ticket, and Neumorphism.
 
 ## Migrating from FluentQML
 
@@ -22,7 +24,10 @@ Steps:
 2. Global replace `fluentqml` → `prismqml` (Python), `FluentQML` → `PrismQML` (QML)
 3. In requirements, `fqml` → `prismqml`
 
-The API is fully compatible — migration is just a rename.
+Package, import, and QML module names are the core migration steps. PrismQML
+does not retain deprecated compatibility aliases before v1.0.0. Projects that
+used FluentQML internal paths or removed APIs should migrate against the current
+[Python API](api/python.md) and [component overview](components/index.md).
 
 ## Why the rename
 

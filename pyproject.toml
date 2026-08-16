@@ -54,7 +54,7 @@ rust = [
 
 [project.urls]
 Homepage = "https://github.com/aki-riko/PrismQML"
-Documentation = "https://github.com/aki-riko/PrismQML#readme"
+Documentation = "https://aki-riko.github.io/PrismQML/"
 Repository = "https://github.com/aki-riko/PrismQML"
 Issues = "https://github.com/aki-riko/PrismQML/issues"
 

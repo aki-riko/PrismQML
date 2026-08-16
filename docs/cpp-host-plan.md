@@ -207,7 +207,7 @@ C++ 宿主一旦做出，**本身即覆盖所有 Qt 支持的平台**。"全平�
 | Python | C++ 镜像签名 | 备注 |
 |---|---|---|
 | `setTheme(Theme)` / `getTheme()` | `prism::setTheme(Theme)` / `Theme prism::getTheme()` | `enum class Theme { Light, Dark, Auto }` |
-| `setSkin(Skin)` / `getSkin()` | `prism::setSkin(Skin)` / `Skin prism::getSkin()` | `enum class Skin { Fluent, Neobrutalism }` |
+| `setSkin(Skin)` / `getSkin()` | `prism::setSkin(Skin)` / `Skin prism::getSkin()` | `enum class Skin { Fluent, Neobrutalism, VintageTicket, Neumorphism }` |
 | `isDark()` | `bool prism::isDark()` | |
 | `setAccentColor(str)` / `getAccentColor()` | `prism::setAccentColor(QString)` / `QString` | |
 | `accentQColor()` | `QColor prism::accentQColor()` | |

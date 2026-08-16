@@ -25,6 +25,12 @@ window = app.create_window(WindowType.BAR)
 
 `App(allow_qml_file_read=True)` 默认在创建 QML 引擎前启用 Translator 的本地 i18n JSON 读取；传入 `False` 可显式关闭。普通 `import prismqml` 不会修改该环境变量。
 
+Windows 下 `App` 还会在首个 `QQuickWindow` 创建前固定选择 D3D11。自行装配
+Qt 应用时，必须在创建 `QApplication` 前调用
+`prismqml.python.runtime.prepare_application_environment(True)`，并在创建
+`QQmlApplicationEngine` 后调用 `register_types(engine)`；跨层 context/provider
+注册统一由该公开入口完成。
+
 `application_icon` 是应用级统一入口：Qt 全局图标、当前及后续创建的 PrismQML
 窗口、任务栏和默认启动画面都会继承它；运行时也可调用
 `app.set_application_icon(path, colored=True)` 更新全部托管窗口。构建阶段可把同一
@@ -56,7 +62,7 @@ Python 业务初始化仍同步执行，应保持轻量；该封装异步处理�
 
 | 名称 | 说明 |
 |------|------|
-| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM） |
+| `Skin` | 皮肤枚举（FLUENT / NEOBRUTALISM / VINTAGE_TICKET / NEUMORPHISM） |
 | `setSkin` / `getSkin` | 切换 / 获取皮肤 |
 | `Theme` | 主题枚举（LIGHT / DARK / AUTO） |
 | `setTheme` / `getTheme` / `isDark` | 主题切换 / 查询 |

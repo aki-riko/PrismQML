@@ -11,22 +11,37 @@ PrismQML requires Python 3.9+ and PySide6 6.9+ (Qt 6.9+); PySide6 is installed a
 ## Your first window
 
 ```python
-from prismqml import App, Window, WindowType
+from prismqml import App, WindowType
 
 app = App()
 window = app.create_window(WindowType.BAR)
 window.setWindowTitle("My App")
 window.resize(1200, 800)
 
-# Add navigation pages (QML component + icon name + title)
-window.addPage(HomePage, "Home", "Home")
-window.addPage(SettingsPage, "Settings", "Settings")
-
 window.show()
 app.exec()
 ```
 
-`App` handles DPI scaling, message handler installation, `register_types` (registering QML types), the async incubation controller, and explicitly enables the local QML XHR access required by Translator before engine creation. A plain `import prismqml` does not modify the process environment. If you create `QQmlApplicationEngine` yourself, call `configure_qml_environment()` first. Use `App(allow_qml_file_read=False)` when local translation loading is not needed.
+Add application page classes, factories, or instances with
+`window.addPage(PageClass, icon, title)`. Use `AsyncQmlPage` when the QML object
+tree should be incubated asynchronously. See the [window guide](guide/windows.md)
+for complete navigation examples.
+
+`App` handles DPI scaling, message handler installation, `register_types`
+(registering QML types), the async incubation controller, and explicitly enables
+the local QML XHR access required by Translator before engine creation. A plain
+`import prismqml` does not modify the process environment. Use
+`App(allow_qml_file_read=False)` when local translation loading is not needed.
+
+When creating `QApplication` and `QQmlApplicationEngine` yourself, call
+`prismqml.python.runtime.prepare_application_environment(allow_qml_file_read=True)`
+before constructing the application object, then call `register_types(engine)`
+after constructing the engine. `configure_qml_environment()` alone does not
+configure DPI, the message handler, or the Windows graphics backend.
+
+On Windows, the complete application setup selects D3D11 before the first
+`QQuickWindow`; application code does not need to and should not switch to
+OpenGL. macOS and Linux retain Qt's platform-default graphics backend.
 
 ## Using controls in QML
 
@@ -53,6 +68,8 @@ from prismqml import setSkin, Skin
 
 setSkin(Skin.FLUENT)         # Fluent Design
 setSkin(Skin.NEOBRUTALISM)   # Neobrutalism
+setSkin(Skin.VINTAGE_TICKET) # Vintage Ticket
+setSkin(Skin.NEUMORPHISM)    # Neumorphism
 ```
 
 See [Skins](guide/skins.md).
@@ -67,7 +84,8 @@ prismqml/
 │   └── PrismEnums/        # enums & constants
 └── python/                # Python modules
     ├── config/            # configuration system
-    ├── core/              # core engine (theme/skin/log/icon/shadow)
+    ├── core/              # low-level services (theme/logging/icons/window helpers)
+    ├── runtime/           # runtime composition (registration/appearance persistence)
     ├── window/            # window management (lazy load/Mica/tray)
     ├── state/             # reactive state store
     ├── providers/         # feature providers (SVG/QR/eyedropper)

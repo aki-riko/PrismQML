@@ -1,6 +1,9 @@
 # Components Overview
 
-PrismQML provides 170+ QML types covering buttons, inputs, data, feedback, dialogs, navigation, and more. **All controls adapt to the current [skin](../guide/skins.md) automatically** — no need to write separate code for Fluent / Neobrutalism.
+PrismQML provides 180+ QML types covering buttons, inputs, data, feedback,
+dialogs, navigation, and more. **All controls adapt to the current
+[skin](../guide/skins.md) automatically**, with no separate UI implementation
+for Fluent / Neobrutalism / Vintage Ticket / Neumorphism.
 
 ## Import
 

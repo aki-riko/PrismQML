@@ -3,11 +3,12 @@
 **简体中文** | [English](./README.en.md)
 
 > **一套 QML 控件，多种设计语言一键切换。**
-> PrismQML（棱镜映界）是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时自由切换 **流畅设计（Fluent Design）**、**新粗野主义（Neobrutalism）**与**复古票据（Vintage Ticket）**，120fps+ 流畅动画。
+> PrismQML（棱镜映界）是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件，运行时自由切换 **流畅设计（Fluent Design）**、**新粗野主义（Neobrutalism）**、**复古票据（Vintage Ticket）**与**新拟态（Neumorphism）**，120fps+ 流畅动画。
 
 ![PrismQML（棱镜映界）Fluent 与 Neobrutalism 皮肤对比](docs/images/prismqml-skins.png)
 
 - **安装**：`pip install prismqml`
+- **文档**：[aki-riko.github.io/PrismQML](https://aki-riko.github.io/PrismQML/)
 - **适合**：想用 Python + QML 做现代桌面应用，同时需要统一控件、主题 token、运行时换肤和跨平台窗口能力的项目。
 
 ```python
@@ -17,11 +18,11 @@ setSkin(Skin.NEOBRUTALISM)   # 一行切换整个应用的设计语言
 
 ## ✨ 特性
 
-- **🎨 多皮肤引擎**：同一套控件，`setSkin()` 一键切换流畅设计 / 新粗野主义 / 复古票据，支持 light/dark
+- **🎨 多皮肤引擎**：同一套控件，`setSkin()` 一键切换流畅设计 / 新粗野主义 / 复古票据 / 新拟态，四套皮肤均支持 light/dark
 - **🧩 token 驱动架构**：颜色、几何、阴影全走 token —— 新增皮肤几乎**零控件改动**
 - **⚡ 纯 QML 渲染**：无帧率限制，120fps+ 流畅动画
-- **🐍 PySide6 原生**：无缝集成，Python 侧管理业务逻辑，不碰 C++
-- **📦 控件齐全**：按钮 / 输入 / 卡片 / 对话框 / 表格 / 图表 / 导航等全套
+- **🐍 PySide6 原生**：无缝集成，Python 侧管理业务逻辑，无需为业务界面编写 C++
+- **📦 180+ QML 类型**：按钮 / 输入 / 卡片 / 对话框 / 表格 / 图表 / 导航等全套
 - **💾 配置系统**：JSON 持久化 + 原子写入 + QML Property 桥接
 - **🔄 响应式状态**：细粒度 Store 状态管理，支持 watch / batch 模式
 - **🪟 窗口管理**：多种窗口布局 + 懒加载 + 云母效果 + 系统托盘
@@ -35,6 +36,8 @@ pip install prismqml
 
 > 分发名与导入名一致：`pip install prismqml` 后 `from prismqml import ...`。
 > 运行环境要求 Python 3.9+ 与 PySide6 6.9+（Qt 6.9+）。
+> Windows 宿主在创建首个 `QQuickWindow` 前固定使用 D3D11；macOS 与 Linux
+> 保留 Qt 的平台默认图形后端。
 
 开发模式安装：
 
@@ -47,20 +50,19 @@ pip install -e ".[dev]"
 ## 🚀 快速开始
 
 ```python
-from prismqml import App, Window, WindowType
+from prismqml import App, WindowType
 
 app = App()
 window = app.create_window(WindowType.BAR)
 window.setWindowTitle("我的应用")
 window.resize(1200, 800)
 
-# 添加导航页面
-window.addPage(HomePage, "Home", "首页")
-window.addPage(SettingsPage, "Settings", "设置")
-
 window.show()
 app.exec()
 ```
+
+需要导航内容时，通过 `window.addPage(PageClass, icon, title)` 添加应用自己的
+页面类、页面工厂或页面实例；异步 QML 页面可使用 `AsyncQmlPage`。
 
 ## 🏗️ 架构
 
@@ -89,7 +91,7 @@ prismqml/
 | `WindowType.FILLED` | 2 | 填充式分割窗口 |
 
 ```python
-from prismqml import App, Window, WindowType
+from prismqml import App, WindowType
 
 app = App()
 
@@ -109,20 +111,23 @@ from prismqml import setSkin, Skin
 
 setSkin(Skin.FLUENT)          # Fluent Design：圆角、模糊阴影、蓝主色
 setSkin(Skin.NEOBRUTALISM)    # 新粗野：粗黑边、硬阴影、橙撞色
+setSkin(Skin.VINTAGE_TICKET)  # 复古票据：暖纸、油墨细线、印章语义色
+setSkin(Skin.NEUMORPHISM)     # 新拟态：同色表面、双向软阴影、凹凸交互
 ```
 
-QML 侧通过 `Enums.skin` / `Enums.isNeobrutalism` 读取当前皮肤：
+QML 侧通过 `Enums.skin` 与 `Enums.isNeobrutalism` / `isVintageTicket` /
+`isNeumorphism` 读取当前皮肤：
 
 ```qml
 import PrismQML
 Rectangle {
-    radius: Enums.isNeobrutalism ? 0 : Enums.radius.small
+    radius: Enums.isVintageTicket ? Enums.ticket.radius : Enums.radius.small
     // 但大多数情况你无需判断——控件已自动适配皮肤
 }
 ```
 
 **架构亮点**：皮肤差异收敛在 token 层（颜色 / 几何 / 阴影），控件本身对皮肤无感知。
-新增第三套皮肤只需扩展 token，几乎不动控件代码。
+新增皮肤主要扩展 token，只在阴影或交互几何确有差异时增加结构分支。
 
 ## 🌗 主题系统
 
@@ -263,7 +268,9 @@ NavigationBar · NavigationView · Pivot · Breadcrumb · Windows
 ### 特效
 Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 
-> 完整组件清单见各 `controls/` 子目录的 `qmldir`。`ComboBox`、`Slider` 等与 QtQuick 原生同名的组件需经子模块目录导入。
+> 完整组件清单见[在线文档](https://aki-riko.github.io/PrismQML/components/)。
+> `ComboBox`、`Slider` 已在顶层 `PrismQML` 模块注册；使用
+> `import PrismQML as Fluent` 后直接写 `Fluent.ComboBox` / `Fluent.Slider`。
 
 ## 🧰 开发产物
 
@@ -279,7 +286,7 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 ## 🧪 测试
 
 ```bash
-python scripts/test_process.py --qt-platform offscreen --timeout 300 -- python -m pytest tests/ -v
+python scripts/test_process.py --qt-platform offscreen --timeout 480 -- python -m pytest
 python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 

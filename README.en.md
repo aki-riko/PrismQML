@@ -3,11 +3,12 @@
 [简体中文](./README.md) | **English**
 
 > **One QML component set, multiple design languages — switchable at runtime.**
-> PrismQML is a **multi-skin UI engine** built on PySide6 + QML: the same components render as **Fluent Design**, **Neobrutalism**, or **Vintage Ticket**, switched live, with 120fps+ smooth animations.
+> PrismQML is a **multi-skin UI engine** built on PySide6 + QML: the same components render as **Fluent Design**, **Neobrutalism**, **Vintage Ticket**, or **Neumorphism**, switched live, with 120fps+ smooth animations.
 
 ![PrismQML Fluent and Neobrutalism skin comparison](docs/images/prismqml-skins.png)
 
 - **Install**: `pip install prismqml`
+- **Documentation**: [aki-riko.github.io/PrismQML](https://aki-riko.github.io/PrismQML/en/)
 - **Use it for**: modern Python + QML desktop apps that need reusable controls, theme tokens, runtime skin switching, and cross-platform window utilities.
 
 ```python
@@ -17,11 +18,11 @@ setSkin(Skin.NEOBRUTALISM)   # switch the whole app's design language in one lin
 
 ## ✨ Features
 
-- **🎨 Multi-skin engine**: same components, `setSkin()` to switch Fluent Design / Neobrutalism / Vintage Ticket, with light/dark
+- **🎨 Multi-skin engine**: same components, `setSkin()` switches Fluent Design / Neobrutalism / Vintage Ticket / Neumorphism, all with light/dark
 - **🧩 Token-driven architecture**: colors, geometry, shadows all via tokens — new skins drop in with **near-zero component changes**
 - **⚡ Pure QML rendering**: no frame-rate cap, 120fps+ smooth animations
-- **🐍 PySide6-native**: seamless integration, business logic on the Python side, no C++
-- **📦 Full component set**: buttons / inputs / cards / dialogs / tables / charts / navigation
+- **🐍 PySide6-native**: business logic stays on the Python side; application UI code does not need C++
+- **📦 180+ QML types**: buttons / inputs / cards / dialogs / tables / charts / navigation and more
 - **💾 Config system**: JSON persistence + atomic writes + QML Property bridging
 - **🔄 Reactive state**: fine-grained Store state management with watch / batch modes
 - **🪟 Window management**: multiple layouts + lazy loading + Mica effect + system tray
@@ -35,6 +36,8 @@ pip install prismqml
 
 > Note: the PyPI package name and import name are both `prismqml`.
 > Runtime requirements: Python 3.9+ and PySide6 6.9+ (Qt 6.9+).
+> Windows hosts select D3D11 before the first `QQuickWindow`; macOS and Linux
+> retain Qt's platform-default graphics backend.
 
 Development install:
 
@@ -47,20 +50,20 @@ pip install -e ".[dev]"
 ## 🚀 Quick Start
 
 ```python
-from prismqml import App, Window, WindowType
+from prismqml import App, WindowType
 
 app = App()
 window = app.create_window(WindowType.BAR)
 window.setWindowTitle("My App")
 window.resize(1200, 800)
 
-# Add navigation pages
-window.addPage(HomePage, "Home", "Home")
-window.addPage(SettingsPage, "Settings", "Settings")
-
 window.show()
 app.exec()
 ```
+
+Add application page classes, factories, or instances with
+`window.addPage(PageClass, icon, title)`. Use `AsyncQmlPage` for asynchronously
+incubated QML pages.
 
 ## 🏗️ Architecture
 
@@ -89,7 +92,7 @@ prismqml/
 | `WindowType.FILLED` | 2 | Filled split window |
 
 ```python
-from prismqml import App, Window, WindowType
+from prismqml import App, WindowType
 
 app = App()
 
@@ -100,7 +103,21 @@ window = app.create_window(WindowType.BAR)
 window = app.create_window(WindowType.SPLIT)
 ```
 
-## 🎨 Theme System
+## 🎨 Skin System
+
+The skin controls the design language while the theme controls light/dark;
+the two dimensions are independent.
+
+```python
+from prismqml import setSkin, Skin
+
+setSkin(Skin.FLUENT)          # Fluent Design
+setSkin(Skin.NEOBRUTALISM)    # Neobrutalism
+setSkin(Skin.VINTAGE_TICKET)  # Vintage Ticket
+setSkin(Skin.NEUMORPHISM)     # Neumorphism
+```
+
+## 🌗 Theme System
 
 ### Switching themes
 
@@ -239,7 +256,9 @@ NavigationBar · NavigationView · Pivot · Breadcrumb · Windows
 ### Effects
 Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 
-> See each `controls/` subdirectory's `qmldir` for the full component list. Components that share names with QtQuick native types (e.g. `ComboBox`, `Slider`) must be imported via their submodule directory.
+> See the [online component documentation](https://aki-riko.github.io/PrismQML/en/components/)
+> for the full list. `ComboBox` and `Slider` are registered by the top-level
+> `PrismQML` module; use `Fluent.ComboBox` / `Fluent.Slider` after importing the alias.
 
 ## 🧰 Development artifacts
 
@@ -255,7 +274,7 @@ Historical scattered directories were moved under each category's `legacy/` fold
 ## 🧪 Testing
 
 ```bash
-python scripts/test_process.py --qt-platform offscreen --timeout 300 -- python -m pytest tests/ -v
+python scripts/test_process.py --qt-platform offscreen --timeout 480 -- python -m pytest
 python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 

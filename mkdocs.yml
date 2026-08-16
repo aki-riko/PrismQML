@@ -1,5 +1,5 @@
 site_name: PrismQML
-site_description: 多皮肤 QML UI 引擎 (Fluent + Neobrutalism) for PySide6
+site_description: 多皮肤 QML UI 引擎 (Fluent / Neobrutalism / Vintage Ticket / Neumorphism) for PySide6
 site_author: aki-riko
 site_dir: .artifacts/docs/site
 repo_url: https://github.com/aki-riko/PrismQML

@@ -27,9 +27,10 @@ setAccentColor("#0078d4")
 print(getAccentColor())  # "#0078d4"
 ```
 
-!!! note "Accent color under neo skin"
-    Neobrutalism has its own fixed orange accent system. `accentColor` auto-resolves to neo orange
-    under the neo skin, so `setAccentColor` custom values mainly apply to the Fluent skin.
+!!! note "Accent colors under non-Fluent skins"
+    Neobrutalism, Vintage Ticket, and Neumorphism each have their own primary
+    color system. `accentColor` resolves to the active skin's primary color, so
+    `setAccentColor` custom values mainly apply to the Fluent skin.
 
 ## Using in QML
 
