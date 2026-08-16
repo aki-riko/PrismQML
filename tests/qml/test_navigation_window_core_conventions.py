@@ -26,6 +26,20 @@ from scripts.qml_conventions import scan_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml"
+MICA_BACKDROP_TIMER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "_internal"
+    / "NavigationMicaBackdropCommitTimer.qml"
+)
+MICA_REAPPLY_TIMER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "_internal"
+    / "NavigationMicaReapplyTimer.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "navigation-window-core-conventions.qml")
@@ -232,6 +246,8 @@ def test_navigation_window_core_public_and_internal_contracts(monkeypatch, qapp)
 
 def test_navigation_window_core_source_conventions_and_mica_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    backdrop_timer = MICA_BACKDROP_TIMER_PATH.read_text(encoding="utf-8")
+    reapply_timer = MICA_REAPPLY_TIMER_PATH.read_text(encoding="utf-8")
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
@@ -242,10 +258,17 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     ] == []
     assert 'import "navigation"' not in source
     assert 'import "controls/navigation"' not in source
-    assert "interval: Enums.window.micaReapplyDelayMs" in source
+    assert "NavigationMicaBackdropCommitTimer {" in source
+    assert "NavigationMicaReapplyTimer {" in source
     assert "id: _micaBackdropCommitTimer" in source
-    assert "window._micaBackdropReady = true" in source
-    assert "interval: Enums.window.micaLateReapplyDelayMs" in source
+    assert "id: _micaReapplyTimer" in source
+    assert "id: _micaLateReapplyTimer" in source
+    assert "host: window" in source
+    assert "host._micaBackdropReady = true" in backdrop_timer
+    assert "interval: Enums.window.micaReapplyDelayMs" in backdrop_timer
+    assert "Enums.window.micaLateReapplyDelayMs" in reapply_timer
+    assert '"restore:"' in reapply_timer
+    assert '"late-restore:"' in reapply_timer
     assert "property bool navigationSmoothScroll: true" in source
     assert "property int navigationScrollDuration: Enums.duration.navigationScroll" in source
     assert "property real navigationScrollStep: Enums.spacing.navigationScrollStep" in source

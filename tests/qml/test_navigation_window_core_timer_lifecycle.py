@@ -148,6 +148,7 @@ def _direct_timers(window: QObject) -> list[QObject]:
         for child in window.findChildren(QObject)
         if (
             child.metaObject().className().startswith("QQmlTimer")
+            or "Timer_QMLTYPE_" in child.metaObject().className()
             or child.metaObject().indexOfProperty("_minimumVisiblePhase") >= 0
         )
         and child.parent() is not None
@@ -285,7 +286,7 @@ def test_navigation_window_core_source_reuses_one_splash_timer():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = SPLASH_TIMER_PATH.read_text(encoding="utf-8")
 
-    assert source.count("\n    Timer {") == 3
+    assert source.count("\n    Timer {") == 0
     assert "NavigationSplashTimer {" in source
     assert "id: _splashTimer" in source
     assert "host: window" in source

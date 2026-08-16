@@ -421,28 +421,21 @@ WindowsCore {
         host: window
     }
 
-    Timer {
+    NavigationMicaBackdropCommitTimer {
         id: _micaBackdropCommitTimer
-
-        interval: Enums.window.micaReapplyDelayMs
-        onTriggered: {
-            if (window._micaActive && window._nativeHookReady && window._micaNativeApplySucceeded)
-                window._micaBackdropReady = true
-        }
+        host: window
     }
 
-    Timer {
+    NavigationMicaReapplyTimer {
         id: _micaReapplyTimer
-
-        interval: Enums.window.micaReapplyDelayMs
-        onTriggered: window._applyMicaEffect("restore:" + window._micaReapplyReason)
+        host: window
+        late: false
     }
 
-    Timer {
+    NavigationMicaReapplyTimer {
         id: _micaLateReapplyTimer
-
-        interval: Enums.window.micaLateReapplyDelayMs
-        onTriggered: window._applyMicaEffect("late-restore:" + window._micaReapplyReason)
+        host: window
+        late: true
     }
 
     // Keep ConfigManager changes as a fallback when a property binding is bypassed.

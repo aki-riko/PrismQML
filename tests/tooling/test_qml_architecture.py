@@ -170,6 +170,39 @@ def test_navigation_window_core_keeps_splash_timer_modularized():
     assert "property var _onTimeout: null" not in source
 
 
+def test_navigation_window_core_keeps_mica_timers_modularized():
+    entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
+    backdrop = _source(
+        "prismqml/PrismQML/_internal/NavigationMicaBackdropCommitTimer.qml"
+    )
+    reapply = _source(
+        "prismqml/PrismQML/_internal/NavigationMicaReapplyTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    backdrop_source = backdrop.read_text(encoding="utf-8")
+    reapply_source = reapply.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 470
+    for helper in (backdrop, reapply):
+        assert helper.exists()
+        assert len(helper.read_text(encoding="utf-8").splitlines()) < 80
+    assert "NavigationMicaBackdropCommitTimer {" in source
+    assert source.count("NavigationMicaReapplyTimer {") == 2
+    assert "id: _micaBackdropCommitTimer" in source
+    assert "id: _micaReapplyTimer" in source
+    assert "id: _micaLateReapplyTimer" in source
+    assert "required property var host" in backdrop_source
+    assert "required property var host" in reapply_source
+    assert "required property bool late" in reapply_source
+    assert "host._micaBackdropReady = true" in backdrop_source
+    assert "host._applyMicaEffect(" in reapply_source
+    assert "Enums.window.micaReapplyDelayMs" in backdrop_source
+    assert "Enums.window.micaLateReapplyDelayMs" in reapply_source
+    assert "interval: Enums.window.micaReapplyDelayMs" not in source
+    assert "interval: Enums.window.micaLateReapplyDelayMs" not in source
+    assert "window._micaBackdropReady = true" not in source
+
+
 def test_navigation_panel_keeps_background_layer_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
     background = _source(
