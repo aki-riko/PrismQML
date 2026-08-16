@@ -434,6 +434,37 @@ def test_popup_window_core_keeps_positioning_and_prewarm_modularized():
     assert "PopupPrewarm.doPrewarm(" in source
 
 
+def test_popup_window_core_keeps_lifecycle_timers_modularized():
+    entry = _source("prismqml/PrismQML/controls/utils/PopupWindowCore.qml")
+    prewarm = _source(
+        "prismqml/PrismQML/controls/utils/_internal/PopupPrewarmTimer.qml"
+    )
+    lifecycle = _source(
+        "prismqml/PrismQML/controls/utils/_internal/PopupLifecycleTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    prewarm_source = prewarm.read_text(encoding="utf-8")
+    lifecycle_source = lifecycle.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    for helper in (prewarm, lifecycle):
+        assert helper.exists()
+        assert len(helper.read_text(encoding="utf-8").splitlines()) < 80
+    assert "PopupPrewarmTimer {" in source
+    assert "PopupLifecycleTimer {" in source
+    assert "id: prewarmTimer" in source
+    assert "id: lifecycleTimer" in source
+    assert "host: control" in source
+    assert "readonly property alias _lifecycleTimer: lifecycleTimer" in source
+    assert "required property var host" in prewarm_source
+    assert "required property var host" in lifecycle_source
+    assert "interval: 0" in prewarm_source
+    assert "host._doPrewarm()" in prewarm_source
+    assert "Enums.popupMetrics.showAnimDelayMs" in lifecycle_source
+    assert "PopupLifecycle.onTimer(host)" in lifecycle_source
+    assert "\n    Timer {" not in source
+
+
 def test_list_widget_keeps_data_and_selection_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/List/ListWidget.qml"

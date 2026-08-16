@@ -367,16 +367,14 @@ Item {
     }
     
     // ==================== Content 内容 ====================
-    Timer {
+    PopupPrewarmTimer {
         id: prewarmTimer
-        interval: 0
-        onTriggered: control._doPrewarm()
+        host: control
     }
 
-    Timer {
+    PopupLifecycleTimer {
         id: lifecycleTimer
-        interval: Enums.popupMetrics.showAnimDelayMs
-        onTriggered: PopupLifecycle.onTimer(control)
+        host: control
     }
 
     PopupAnimations {
