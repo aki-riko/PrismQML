@@ -62,6 +62,26 @@ def test_windows_core_keeps_frame_modularized():
     assert "WindowDragHandle {" not in source
 
 
+def test_windows_core_keeps_resize_timer_modularized():
+    entry = _source("prismqml/PrismQML/WindowsCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/WindowsResizeHandlesTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "WindowsResizeHandlesTimer {" in source
+    assert "id: _resizeHandlesTimer" in source
+    assert "host: window" in source
+    assert "required property var host" in helper_source
+    assert "interval: Enums.window.resizeHandlesDelayMs" in helper_source
+    assert "host._resizeHandlesReady = true" in helper_source
+    assert "\n    Timer {" not in source
+
+
 def test_login_window_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/auth/LoginWindow.qml"

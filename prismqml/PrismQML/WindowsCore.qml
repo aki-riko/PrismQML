@@ -315,14 +315,9 @@ Window {
         target: typeof ConfigManager !== "undefined" ? ConfigManager : null
     }
 
-    Timer {
+    WindowsResizeHandlesTimer {
         id: _resizeHandlesTimer
-
-        interval: Enums.window.resizeHandlesDelayMs
-        repeat: false
-        onTriggered: {
-            _resizeHandlesReady = true
-        }
+        host: window
     }
 
     // QML shadow host. QML 阴影宿主。

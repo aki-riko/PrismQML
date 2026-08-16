@@ -34,6 +34,13 @@ SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
 WINDOW_FRAME_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreFrame.qml"
 )
+RESIZE_HANDLES_TIMER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "_internal"
+    / "WindowsResizeHandlesTimer.qml"
+)
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
@@ -522,6 +529,7 @@ def test_windows_core_native_close_waits_for_exit_animation(monkeypatch, qapp):
 def test_windows_core_source_conventions_and_timing_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     frame_source = WINDOW_FRAME_PATH.read_text(encoding="utf-8")
+    resize_timer_source = RESIZE_HANDLES_TIMER_PATH.read_text(encoding="utf-8")
     drag_handle_source = WINDOW_DRAG_HANDLE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
@@ -530,7 +538,14 @@ def test_windows_core_source_conventions_and_timing_tokens():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert "interval: Enums.window.resizeHandlesDelayMs" in source
+    assert "WindowsResizeHandlesTimer {" in source
+    assert "id: _resizeHandlesTimer" in source
+    assert "host: window" in source
+    assert "\n    Timer {" not in source
+    assert "Timer {" in resize_timer_source
+    assert "required property var host" in resize_timer_source
+    assert "interval: Enums.window.resizeHandlesDelayMs" in resize_timer_source
+    assert "host._resizeHandlesReady = true" in resize_timer_source
     assert "_animationStartTimer" not in source
     assert "interval: 100" not in source
     assert "interval: 1200" not in source
