@@ -230,10 +230,25 @@ def test_matrix_rain_keeps_animation_timer_modularized():
     assert "required property var host" in helper_source
     assert "required property var targetCanvas" in helper_source
     assert 'objectName: "matrixRainAnimationTimer"' in helper_source
-    assert "interval: Math.max(16, 50 / host._safeSpeed)" in helper_source
-    assert "running: host.running && !host.paused && host.visible" in helper_source
-    assert "repeat: true" in helper_source
-    assert "onTriggered: targetCanvas.requestPaint()" in helper_source
+
+
+def test_matrix_rain_keeps_canvas_rendering_modularized():
+    entry = _source("prismqml/PrismQML/effects/MatrixRain.qml")
+    helper = _source(
+        "prismqml/PrismQML/effects/_internal/MatrixRainCanvas.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 240
+    assert "MatrixRainInternal.MatrixRainCanvas {" in source
+    assert "required property var host" in helper_source
+    assert "onPaint:" in helper_source
+    assert "function initDrops()" in helper_source
+    assert "function clearCanvas()" in helper_source
+    assert "\n    Canvas {" not in source
 
 
 def test_login_window_keeps_visual_content_modularized():
