@@ -72,19 +72,26 @@ Item {
                 ? Enums.borderColor : Enums.stateColor.contentBorder).toString()
             ctx.lineWidth = root._effectiveBorderWidth
             var off = ctx.lineWidth / 2  // Center the stroke on pixels. 将描边中心与像素对齐。
-            // Top border. 顶部边框。
-            ctx.beginPath()
-            ctx.moveTo(r, off)
-            ctx.lineTo(w, off)
-            ctx.stroke()
-            // Left border. 左侧边框。
-            ctx.beginPath()
-            ctx.moveTo(off, r)
-            ctx.lineTo(off, h)
-            ctx.stroke()
-            // Top-left arc; square skins have no arc to draw.
-            // 左上角圆弧；方角皮肤不绘制圆弧，避免向 Canvas 传入负半径。
-            if (r > off) {
+            if (r <= off) {
+                // Join square top and left strokes at one physical-pixel center.
+                // 方角顶边与左边在同一个物理像素中心连续转折。
+                ctx.beginPath()
+                ctx.moveTo(w, off)
+                ctx.lineTo(off, off)
+                ctx.lineTo(off, h)
+                ctx.stroke()
+            } else {
+                // Top border. 顶部边框。
+                ctx.beginPath()
+                ctx.moveTo(r, off)
+                ctx.lineTo(w, off)
+                ctx.stroke()
+                // Left border. 左侧边框。
+                ctx.beginPath()
+                ctx.moveTo(off, r)
+                ctx.lineTo(off, h)
+                ctx.stroke()
+                // Top-left arc. 左上角圆弧。
                 ctx.beginPath()
                 ctx.arc(r, r, r - off, Math.PI, Math.PI * 1.5)
                 ctx.stroke()

@@ -676,6 +676,9 @@ def test_windows_bar_source_conventions_and_startup_gate():
     assert "paperOriginX: root._compactNav ? 0 : navigationBar.width" in content_source
     assert "typeof hostWindow.titleBarHeight === \"number\"" in content_source
     assert "paperOriginY: root._windowPaperOriginY" in content_source
+    assert 'objectName: "ticketTitleDivider"' in content_source
+    assert "width: navigationBar.width" in content_source
+    assert "visible: Enums.isVintageTicket && !root._compactNav" in content_source
     assert (
         "model: root.hostWindow && !root._compactNav\n"
         "            ? root.hostWindow.navigationItems : []"

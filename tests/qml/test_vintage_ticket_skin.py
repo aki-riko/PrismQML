@@ -15,6 +15,9 @@ from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, se
 
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTENT_FRAME_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "ContentFrame.qml"
+)
 QML_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -217,3 +220,12 @@ Window {
         component.deleteLater()
         engine.deleteLater()
         _pump()
+
+
+def test_ticket_content_frame_joins_square_corner_on_one_pixel_center():
+    source = CONTENT_FRAME_SOURCE.read_text(encoding="utf-8")
+    branch_start = source.index("if (r <= off)")
+    branch_end = source.index("} else {", branch_start)
+    square_branch = source[branch_start:branch_end]
+    assert "ctx.lineTo(off, off)" in square_branch
+    assert "ctx.lineTo(off, h)" in square_branch

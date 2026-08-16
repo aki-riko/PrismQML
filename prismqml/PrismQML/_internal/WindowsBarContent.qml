@@ -75,6 +75,19 @@ Item {
         }
     }
 
+    // Complete the square ticket title divider across the navigation column.
+    // 在导航列补齐方角票据标题分隔线，形成连续的 T 形接点。
+    Rectangle {
+        objectName: "ticketTitleDivider"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: navigationBar.width
+        height: Enums.surfaceBorderWidth(Enums.border.thin)
+        color: Enums.borderColor
+        visible: Enums.isVintageTicket && !root._compactNav
+        z: Enums.zIndex.controls
+    }
+
     Loader {
         id: bottomTabBarLoader
         objectName: "bottomTabBar"
