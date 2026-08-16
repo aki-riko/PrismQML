@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QObject,
     QTimer,
     QUrl,
 )
@@ -428,6 +429,26 @@ def test_flow_layout_public_methods_and_child_filtering(flow_scene):
     assert QMetaObject.invokeMethod(root, "clearDynamicFlow")
     assert root.property("dynamicCount") == 0
     assert root.property("dynamicEmpty")
+    assert warnings == []
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_flow_layout_append_timer_lifecycle(flow_scene):
+    root, warnings, windows_before = flow_scene
+    timer = root.findChild(QObject, "flowLayoutAppendTimer")
+    assert timer is not None
+    host = timer.property("host")
+    assert host is not None
+    assert timer.parent() is host
+    assert timer.property("interval") == 0
+    assert timer.property("repeat") is False
+
+    timer.stop()
+    assert QMetaObject.invokeMethod(host, "_scheduleAppendLayout")
+    assert host.property("_appendLayoutPending") is True
+    assert timer.property("running") is True
+    assert _wait_for(lambda: timer.property("running") is False)
+    assert host.property("_appendLayoutPending") is False
     assert warnings == []
     assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 

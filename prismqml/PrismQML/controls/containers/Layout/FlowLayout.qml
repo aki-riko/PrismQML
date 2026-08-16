@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts as Layouts
 import "../../.."
 import "FlowLayoutEngine.js" as FlowLayoutEngine
+import "_internal" as LayoutInternal
 
 // FlowLayout - Enhanced flow layout with multiple modes 增强流式布局（支持多种模式）
 // Supports: default (preserve size), horizontal (equal height), vertical (equal width) 支持：默认（保持尺寸）、水平（等高）、垂直（等宽）
@@ -352,14 +353,9 @@ Item {
         onTriggered: control._performLayout()
     }
 
-    Timer {
+    LayoutInternal.FlowLayoutAppendTimer {
         id: appendLayoutTimer
-        interval: 0
-        repeat: false
-        onTriggered: {
-            control._appendLayoutPending = false
-            control._appendDefaultItems()
-        }
+        host: control
     }
 
     Item {
