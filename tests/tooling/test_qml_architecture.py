@@ -1861,6 +1861,29 @@ def test_desktop_notification_keeps_auto_close_timer_modularized():
     assert "onTriggered: host.hide()" in helper_source
 
 
+def test_marquee_keeps_layout_start_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/Marquee.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/data/_internal/MarqueeStartTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 130
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as DataInternal' in source
+    assert "DataInternal.MarqueeStartTimer {" in source
+    assert "id: startTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "marqueeStartTimer"' in helper_source
+    assert "interval: 100" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._tryStartAnimation()" in helper_source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

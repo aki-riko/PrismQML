@@ -5,6 +5,7 @@
 import QtQuick
 import "../.."
 import "../data"
+import "_internal" as DataInternal
 
 // Marquee - Scrolling text component 滚动文字组件
 Item {
@@ -116,11 +117,9 @@ Item {
         }
     }
     
-    // Use Timer to ensure layout is complete 使用Timer确保布局完成
-    Timer {
+    DataInternal.MarqueeStartTimer {
         id: startTimer
-        interval: 100
-        repeat: false
-        onTriggered: control._tryStartAnimation()
+
+        host: control
     }
 }

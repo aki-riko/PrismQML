@@ -121,6 +121,11 @@ def test_hidden_loops_preserve_items_and_public_state(qapp):
         tag = window.findChild(QQuickItem, "processingTag")
         marquee = window.findChild(QQuickItem, "loopingMarquee")
         assert tag is not None and marquee is not None
+        marquee_start_timer = marquee.findChild(QObject, "marqueeStartTimer")
+        assert marquee_start_timer is not None
+        assert marquee_start_timer.parent() is marquee
+        assert marquee_start_timer.property("interval") == 100
+        assert marquee_start_timer.property("repeat") is False
         tag_animation = _loop_animation(tag)
         marquee_animation = _loop_animation(marquee)
         assert tag_animation.property("running") is True
