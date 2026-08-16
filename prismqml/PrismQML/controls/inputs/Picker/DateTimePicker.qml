@@ -342,10 +342,10 @@ Rectangle {
         onClicked: isOpen ? closePopup() : openPopup()
     }
 
-    Timer {
+    PickerInternal.DateTimePickerInitTimer {
         id: initTimer
-        interval: 50  // Wait for components to fully load 等待组件完全加载
-        onTriggered: control._initWheelPositions()
+
+        host: control
     }
 
     // Popup host 弹窗宿主

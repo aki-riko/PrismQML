@@ -2071,6 +2071,33 @@ def test_date_time_picker_keeps_display_content_modularized():
     assert "Repeater {" not in source
 
 
+def test_date_time_picker_keeps_init_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/Picker/DateTimePicker.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/Picker/_internal/"
+        "DateTimePickerInitTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 376
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "./_internal" as PickerInternal' in source
+    assert "PickerInternal.DateTimePickerInitTimer {" in source
+    assert "id: initTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "dateTimePickerInitTimer"' in helper_source
+    assert "interval: 50" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._initWheelPositions()" in helper_source
+    assert "control._initWheelPositions()" not in source
+
+
 def test_color_picker_keeps_content_and_popup_tree_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/ColorPicker/ColorPicker.qml"

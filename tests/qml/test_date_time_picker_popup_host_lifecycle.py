@@ -74,6 +74,12 @@ def _object_count(picker: QQuickItem) -> int:
     return 1 + len(picker.findChildren(QObject))
 
 
+def _init_timer(picker: QQuickItem) -> QObject:
+    timer = picker.findChild(QObject, "dateTimePickerInitTimer")
+    assert timer is not None
+    return timer
+
+
 def _dispose(qapp, engine, component, window) -> None:
     if window is not None and shiboken6.isValid(window):
         window.close()
@@ -110,8 +116,14 @@ def test_date_time_picker_creates_popup_host_on_first_intent(qapp):
         lazy_host = picker.metaObject().indexOfProperty("_popupHostRequested") >= 0
         cold_objects = _object_count(picker)
         cold_hosts = _popup_hosts(picker)
+        init_timer = _init_timer(picker)
         assert len(cold_hosts) == (0 if lazy_host else 1)
         assert not picker.property("_popupContentRequested")
+        assert init_timer.parent() is picker
+        assert init_timer.property("host") == picker
+        assert init_timer.property("interval") == 50
+        assert init_timer.property("repeat") is False
+        assert init_timer.property("running") is False
 
         assert QMetaObject.invokeMethod(picker, "_prewarmPopupContent")
         assert _wait_for(lambda: len(_popup_hosts(picker)) == 1)
@@ -122,8 +134,24 @@ def test_date_time_picker_creates_popup_host_on_first_intent(qapp):
         warm_objects = _object_count(picker)
 
         assert QMetaObject.invokeMethod(picker, "openPopup")
+        assert picker.property("_initializing") is True
+        assert init_timer.property("running") is True
         assert _wait_for(lambda: picker.property("isOpen") and popup.property("isOpen"))
+        assert _wait_for(lambda: not picker.property("_initializing"))
+        assert init_timer.property("running") is False
         assert QMetaObject.invokeMethod(picker, "closePopup")
+        assert _wait_for(
+            lambda: not picker.property("isOpen")
+            and not popup.property("isOpen")
+            and not popup.property("isClosing")
+        )
+
+        assert QMetaObject.invokeMethod(picker, "openPopup")
+        assert picker.property("_initializing") is True
+        assert init_timer.property("running") is True
+        assert QMetaObject.invokeMethod(picker, "closePopup")
+        assert picker.property("_initializing") is False
+        assert init_timer.property("running") is False
         assert _wait_for(
             lambda: not picker.property("isOpen")
             and not popup.property("isOpen")

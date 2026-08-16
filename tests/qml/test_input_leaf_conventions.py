@@ -44,6 +44,16 @@ DATE_TIME_PICKER_SOURCE = (
     / "Picker"
     / "DateTimePicker.qml"
 )
+DATE_TIME_PICKER_INIT_TIMER_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "Picker"
+    / "_internal"
+    / "DateTimePickerInitTimer.qml"
+)
 DATE_TIME_PICKER_POPUP_SOURCE = (
     ROOT
     / "prismqml"
@@ -473,6 +483,19 @@ def test_date_time_buttons_source_conventions():
 def test_date_time_picker_source_uses_standard_sections():
     source = DATE_TIME_PICKER_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(DATE_TIME_PICKER_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_date_time_picker_init_timer_source_uses_standard_sections():
+    source = DATE_TIME_PICKER_INIT_TIMER_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(
+        DATE_TIME_PICKER_INIT_TIMER_SOURCE.relative_to(ROOT).as_posix()
+    )
     violations = scan_source_text(source, path)
     assert [
         violation
