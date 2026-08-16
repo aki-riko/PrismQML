@@ -1,5 +1,6 @@
 module _internal
 
 NotificationStackManager NotificationStackManager.qml
+NotificationOverlayLifecycle NotificationOverlayLifecycle.qml
 WindowOutsideGeometry WindowOutsideGeometry.qml
 WindowOutsideOverlay WindowOutsideOverlay.qml

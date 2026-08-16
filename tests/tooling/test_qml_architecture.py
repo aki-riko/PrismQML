@@ -1035,6 +1035,32 @@ def test_bar_chart_keeps_single_series_delegate_modularized():
     assert entry.read_text(encoding="utf-8").count("BarChartBar {") == 2
 
 
+def test_notification_manager_keeps_overlay_lifecycle_internal():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/NotificationManager.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/NotificationOverlayLifecycle.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert "NotificationOverlayLifecycle {" in source
+    assert "required property var stackManager" in helper_source
+    for marker in (
+        "overlayComponent.createObject(null",
+        "notification.closed.connect(function() { overlay.hide() })",
+        "notification.destroy()",
+        "stackManager.addToDesktopStack(overlay, position)",
+        "stackManager.addToOutsideStack(overlay, position)",
+    ):
+        assert marker in helper_source
+        assert marker not in source
+
+
 def test_line_chart_content_keeps_canvas_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/LineChartContent.qml"

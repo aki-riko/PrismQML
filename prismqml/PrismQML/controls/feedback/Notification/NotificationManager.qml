@@ -17,6 +17,9 @@ QtObject {
     
     // ==================== Internal Props 内部属性 ====================
     property NotificationStackManager _stackManager: NotificationStackManager {}
+    property NotificationOverlayLifecycle _overlayLifecycle: NotificationOverlayLifecycle {
+        stackManager: manager._stackManager
+    }
     
     // ==================== Readonly State 只读状态 ====================
     readonly property int posTopLeft: _stackManager.posTopLeft
@@ -376,22 +379,7 @@ QtObject {
             return null
         }
         var overlayComponent = _getWindowOutsideComponent()
-        if (overlayComponent.status !== Component.Ready) {
-            console.error("NotificationManager: WindowOutsideOverlay component not ready:", overlayComponent.errorString())
-            return null
-        }
-        var overlay = overlayComponent.createObject(null, {
-            "hostWindow": hostWindow,
-            "position": position,
-            "stackOffset": 0
-        })
-        if (!overlay) return null
-
         var component = infoBarMode ? _getInfoBarComponent() : _getToastComponent()
-        if (component.status !== Component.Ready) {
-            overlay.destroy()
-            return null
-        }
         var properties = {
             "severity": severity,
             "title": title,
@@ -402,67 +390,36 @@ QtObject {
             "desktopMode": true
         }
         if (!infoBarMode) properties.orient = orientationForMessage(message)
-        var notification = component.createObject(overlay.content, properties)
-        if (!notification) {
-            overlay.destroy()
-            return null
-        }
-
-        overlay.notificationItem = notification
-        notification.anchors.centerIn = overlay.content
-        _stackManager.addToOutsideStack(overlay, position)
-        notification.closed.connect(function() { overlay.hide() })
-        overlay.closed.connect(function() {
-            manager._stackManager.removeFromOutsideStack(overlay, position)
-            notification.destroy()
-            overlay.destroy()
-        })
-        notification.visible = true
-        overlay.show()
-        return notification
+        return _overlayLifecycle.create(
+            overlayComponent, component, {
+                "hostWindow": hostWindow,
+                "position": position,
+                "stackOffset": 0
+            }, properties, position, "outside"
+        )
     }
     
     function _createDesktop(severity, title, message, duration, position, mode, options) {
         var overlayComponent = _getDesktopComponent()
-        if (overlayComponent.status !== Component.Ready) {
-            console.error("NotificationManager: DesktopOverlay component not ready:", overlayComponent.errorString())
-            return null
-        }
-        var overlay = overlayComponent.createObject(
-            null, _desktopOverlayProperties(position, options)
-        )
-        if (!overlay) return null
-
         var properties = _desktopNotificationProperties(
             severity, title, message, duration, position, mode, options
         )
         var notification
         if (mode === 1) {
             var infoBarComp = _getInfoBarComponent()
-            if (infoBarComp.status !== Component.Ready) { overlay.destroy(); return null }
-            notification = infoBarComp.createObject(overlay.content, properties)
+            notification = _overlayLifecycle.create(
+                overlayComponent, infoBarComp,
+                _desktopOverlayProperties(position, options), properties,
+                position, "desktop"
+            )
         } else {
             var toastComp = _getToastComponent()
-            if (toastComp.status !== Component.Ready) { overlay.destroy(); return null }
-            notification = toastComp.createObject(overlay.content, properties)
+            notification = _overlayLifecycle.create(
+                overlayComponent, toastComp,
+                _desktopOverlayProperties(position, options), properties,
+                position, "desktop"
+            )
         }
-
-        if (!notification) { overlay.destroy(); return null }
-
-        overlay.notificationItem = notification
-        notification.anchors.centerIn = overlay.content
-        _stackManager.addToDesktopStack(overlay, position)
-
-        notification.closed.connect(function() { overlay.hide() })
-        overlay.closed.connect(function() {
-            manager._stackManager.removeFromDesktopStack(overlay, position)
-            notification.destroy()
-            overlay.destroy()
-        })
-
-        notification.visible = true
-        overlay.show()
-
         return notification
     }
 }
