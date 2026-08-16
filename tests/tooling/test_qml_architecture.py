@@ -476,6 +476,32 @@ def test_button_dropdown_keeps_surface_visuals_modularized():
         assert marker not in source
 
 
+def test_button_dropdown_keeps_geometry_prewarm_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/ButtonDropdown.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/"
+        "ButtonDropdownPrewarmTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 350
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert "required property var dropdownControl" in helper_source
+    assert "interval: 0" in helper_source
+    assert "onTriggered: dropdownControl._prewarmMenuGeometry()" in helper_source
+    assert "ButtonInternal.ButtonDropdownPrewarmTimer {" in source
+    assert "id: geometryPrewarmTimer" in source
+    assert "dropdownControl: dropdownFeature" in source
+    assert "\n    Timer {" not in source
+    assert "onTriggered: dropdownFeature._prewarmMenuGeometry()" not in source
+
+
 def test_popup_window_core_keeps_animation_logic_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/utils/PopupWindowCore.qml",

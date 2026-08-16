@@ -217,10 +217,10 @@ Item {
     Component.onCompleted: _animationDuration = Enums.duration.fast
 
     // ==================== Content 内容 ====================
-    Timer {
+    ButtonInternal.ButtonDropdownPrewarmTimer {
         id: geometryPrewarmTimer
-        interval: 0
-        onTriggered: dropdownFeature._prewarmMenuGeometry()
+
+        dropdownControl: dropdownFeature
     }
 
     // Split/dropdown visual surface and hit targets 分离/下拉视觉表面与命中区
