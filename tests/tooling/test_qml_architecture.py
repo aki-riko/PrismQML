@@ -1874,6 +1874,43 @@ def test_auto_updater_keeps_feedback_timer_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_auto_updater_keeps_signal_orchestration_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/AutoUpdater.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/"
+        "AutoUpdaterSignalConnections.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert "FeedbackInternal.AutoUpdaterSignalConnections {" in source
+    assert "host: root" in source
+    assert "required property var host" in helper_source
+    assert "target: host.updater" in helper_source
+    assert "ignoreUnknownSignals: true" in helper_source
+    assert "function onUpdateAvailable(" in helper_source
+    assert "function onDownloadFinished(" in helper_source
+    assert "function onInstallPreparationFinished(" in helper_source
+    assert "\n    Connections {" not in source
+    assert "function onUpdateAvailable(" not in source
+
+    violations = []
+    for path, candidate in ((entry, source), (helper, helper_source)):
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                candidate, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
+
+
 def test_auto_updater_toast_presenter_keeps_sync_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/feedback/AutoUpdaterToastPresenter.qml"
