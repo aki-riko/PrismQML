@@ -161,6 +161,30 @@ def test_windows_filled_keeps_startup_timer_modularized():
     assert "mainLoader" not in helper_source
 
 
+def test_native_window_startup_keeps_delay_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/_internal/NativeWindowStartupHelper.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/_internal/NativeWindowStartupDelayTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 160
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert "NativeWindowStartupDelayTimer {" in source
+    assert "id: delayTimer" in source
+    assert "host: root" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "nativeWindowStartupDelayTimer"' in helper_source
+    assert "interval: Enums.duration.instant" in helper_source
+    assert "onTriggered: host._attemptNativeHook()" in helper_source
+    assert "onTriggered: root._attemptNativeHook()" not in source
+
+
 def test_login_window_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/auth/LoginWindow.qml"

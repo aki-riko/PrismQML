@@ -130,9 +130,8 @@ Item {
         enabled: !root.startupPresentationReady
     }
 
-    Timer {
+    NativeWindowStartupDelayTimer {
         id: delayTimer
-        interval: Enums.duration.instant
-        onTriggered: root._attemptNativeHook()
+        host: root
     }
 }

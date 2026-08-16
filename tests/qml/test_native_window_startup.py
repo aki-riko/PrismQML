@@ -350,6 +350,35 @@ def test_prepare_before_show_finishes_native_hook_synchronously(monkeypatch, qap
         _delete_deferred(engine)
 
 
+def test_native_startup_delay_timer_preserves_owner_and_trigger_contract(
+    monkeypatch, qapp
+):
+    fake = _FakeNativeWindow([True])
+    engine = _create_engine(monkeypatch, fake, [])
+    component = instance = None
+    try:
+        component, instance = _create_window(engine)
+        timer = instance.findChild(QObject, "nativeWindowStartupDelayTimer")
+        assert timer is not None
+        owner = timer.parent()
+        assert owner is not None
+        assert owner.metaObject().className().startswith(
+            "NativeWindowStartupHelper"
+        )
+        assert timer.property("host") is owner
+        assert timer.property("interval") > 0
+        assert timer.property("running") is True
+        assert fake.finalize_calls == 0
+
+        assert QMetaObject.invokeMethod(instance, "prepareBeforeShow")
+        assert fake.finalize_calls == 1
+        assert timer.property("running") is False
+    finally:
+        _delete_deferred(instance)
+        component = None
+        _delete_deferred(engine)
+
+
 def test_prepare_before_show_waits_for_first_presented_frame(monkeypatch, qapp):
     fake = _FakeNativeWindow([True])
     engine = _create_engine(monkeypatch, fake, [])
