@@ -6,9 +6,8 @@ import QtQuick
 import "../../.."
 import "../../menus"
 import "../../utils"
-import "../../icons"
 import "../../containers/ScrollBar"
-import "../../containers/Separator"
+import "_internal" as ButtonInternal
 
 // ButtonDropdown - Dropdown menu and split button features 下拉菜单功能
 // Internal module for Button Button内部模块
@@ -51,10 +50,10 @@ Item {
     readonly property bool isMenuOpen: _hasExternalMenu && typeof menu.isOpen === "boolean"
         ? menu.isOpen : (_internalMenu ? _internalMenu.isOpen : false)
     // Expose hover states for parent button color calculation 暴露悬浮状态供父按钮颜色计算
-    readonly property bool mainHovered: splitMainMouse.containsMouse
-    readonly property bool mainPressed: splitMainMouse.pressed
-    readonly property bool dropHovered: splitDropMouse.containsMouse
-    readonly property bool dropPressed: splitDropMouse.pressed
+    readonly property bool mainHovered: dropdownSurface.mainHovered
+    readonly property bool mainPressed: dropdownSurface.mainPressed
+    readonly property bool dropHovered: dropdownSurface.dropHovered
+    readonly property bool dropPressed: dropdownSurface.dropPressed
 
     // Check if style uses accent foreground (white text/icon) 检查是否使用强调前景色（白色文字/图标）
     readonly property bool _useAccentForeground: parentStyle === Enums.button.style_primary ||
@@ -224,97 +223,11 @@ Item {
         onTriggered: dropdownFeature._prewarmMenuGeometry()
     }
 
-    // Split main button hover area 主按钮悬浮区域
-    Rectangle {
-        id: splitMainArea
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.right: splitLine.left
-        anchors.margins: Enums.spacing.micro
-        radius: Math.max(Enums.radius.none, dropdownFeature.parentRadius - 1)
-        color: splitMainMouse.pressed ? dropdownFeature._splitPressedColor :
-               (splitMainMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
-        visible: feature === Enums.button.feature_split
-        
-        HoverBehavior on color {
-            active: splitMainMouse.containsMouse && !splitMainMouse.pressed
-            enterDuration: dropdownFeature._animationDuration
-        }
-    }
-    
-    // Split separator line 分离线
-    Separator {
-        id: splitLine
-        type: Enums.separator.vertical
-        anchors.right: splitDropArea.left
-        anchors.verticalCenter: parent.verticalCenter
-        lineLength: parent.height - Enums.spacing.l
-        lineColor: dropdownFeature._separatorColor
-        visible: feature === Enums.button.feature_split
-    }
-    
-    // Split dropdown area 下拉区域
-    Rectangle {
-        id: splitDropArea
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.margins: Enums.spacing.micro
-        width: Enums.spacing.xxxl
-        radius: Math.max(Enums.radius.none, dropdownFeature.parentRadius - 1)
-        color: splitDropMouse.pressed ? dropdownFeature._splitPressedColor :
-               (splitDropMouse.containsMouse ? dropdownFeature._splitHoverColor : dropdownFeature._splitTransparent)
-        visible: feature === Enums.button.feature_split
-        
-        HoverBehavior on color {
-            active: splitDropMouse.containsMouse && !splitDropMouse.pressed
-            enterDuration: dropdownFeature._animationDuration
-        }
-        
-        MouseArea {
-            id: splitDropMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading
-            cursorShape: enabled && dropdownFeature.parentStyle === Enums.button.style_hyperlink
-                         ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onContainsMouseChanged: {
-                if (splitDropMouse.containsMouse) dropdownFeature.prewarmMenu()
-            }
-            onClicked: dropdownFeature.openMenu()
-        }
-    }
+    // Split/dropdown visual surface and hit targets 分离/下拉视觉表面与命中区
+    ButtonInternal.ButtonDropdownSurface {
+        id: dropdownSurface
 
-    // Shared dropdown/split arrow 复用的下拉/分离箭头
-    ChevronIcon {
-        id: menuArrow
-        anchors.centerIn: feature === Enums.button.feature_split
-                          ? splitDropArea : undefined
-        anchors.right: feature === Enums.button.feature_dropdown
-                       ? parent.right : undefined
-        anchors.rightMargin: feature === Enums.button.feature_dropdown
-                             ? Enums.spacing.m : 0
-        anchors.verticalCenter: feature === Enums.button.feature_dropdown
-                                ? parent.verticalCenter : undefined
-        animated: true
-        isOpen: (feature === Enums.button.feature_dropdown && dropdownFeature.dropdownOpen) ||
-                dropdownFeature.isMenuOpen
-        color: dropdownFeature._arrowColor
-        visible: feature === Enums.button.feature_split ||
-                 (feature === Enums.button.feature_dropdown && showDropdownIndicator)
-    }
-    
-    // Split main button interaction 主按钮交互
-    MouseArea {
-        id: splitMainMouse
-        anchors.fill: splitMainArea
-        hoverEnabled: true
-        enabled: dropdownFeature.controlEnabled && !dropdownFeature.loading && feature === Enums.button.feature_split
-        visible: feature === Enums.button.feature_split
-        cursorShape: enabled && dropdownFeature.parentStyle === Enums.button.style_hyperlink
-                     ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: dropdownFeature.mainButtonClicked()
+        dropdownControl: dropdownFeature
     }
     
     // Dropdown menu host is created on hover, focus, or direct open intent.

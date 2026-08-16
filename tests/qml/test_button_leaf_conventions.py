@@ -52,6 +52,14 @@ BUTTON_SOURCES = (
     / "buttons"
     / "Button"
     / "CustomButtonCore.qml",
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "buttons"
+    / "Button"
+    / "_internal"
+    / "ButtonDropdownSurface.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-leaf-conventions.qml")

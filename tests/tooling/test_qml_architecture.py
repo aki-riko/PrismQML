@@ -287,6 +287,36 @@ def test_button_core_keeps_content_layer_modularized():
     assert "ButtonContent {" not in source
 
 
+def test_button_dropdown_keeps_surface_visuals_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/ButtonDropdown.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/"
+        "ButtonDropdownSurface.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 350
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 160
+    assert 'import "_internal" as ButtonInternal' in source
+    assert "ButtonInternal.ButtonDropdownSurface {" in source
+    assert "required property var dropdownControl" in helper_source
+    for state in ("mainHovered", "mainPressed", "dropHovered", "dropPressed"):
+        assert f"readonly property bool {state}:" in helper_source
+        assert f"dropdownSurface.{state}" in source
+    for marker in (
+        "id: splitMainArea",
+        "id: splitDropArea",
+        "id: splitMainMouse",
+        "id: splitDropMouse",
+        "id: menuArrow",
+    ):
+        assert marker not in source
+
+
 def test_popup_window_core_keeps_animation_logic_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/utils/PopupWindowCore.qml",
