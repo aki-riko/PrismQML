@@ -264,20 +264,7 @@ Item {
     Component {
         id: stageTimerComponent
 
-        Timer {
-            id: stageTimer
-
-            required property int timerInterval
-            required property var triggerCallback
-            required property var releaseCallback
-
-            interval: timerInterval
-            onTriggered: {
-                triggerCallback()
-                releaseCallback(stageTimer)
-                destroy()
-            }
-        }
+        BreadcrumbStageTimer {}
     }
     
     // Animations 动画

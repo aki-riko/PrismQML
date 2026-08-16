@@ -2029,6 +2029,42 @@ def test_menu_bar_keeps_dynamic_close_timer_modularized():
     assert "if (!menuButton.hovered)" not in source
 
 
+def test_breadcrumb_keeps_dynamic_stage_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/Breadcrumb.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/BreadcrumbStageTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 360
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal"' in source
+    assert "id: stageTimerComponent" in source
+    assert "BreadcrumbStageTimer {}" in source
+    assert "stageTimerComponent.createObject(" in source
+    assert '"timerInterval": timerInterval' in source
+    assert '"triggerCallback": triggerCallback' in source
+    assert '"releaseCallback": releaseCallback' in source
+    assert "required property int timerInterval" in helper_source
+    assert "required property var triggerCallback" in helper_source
+    assert "required property var releaseCallback" in helper_source
+    assert 'objectName: "breadcrumbStageTimer"' in helper_source
+    assert "interval: timerInterval" in helper_source
+    assert "repeat: false" in helper_source
+    assert helper_source.index("triggerCallback()") < helper_source.index(
+        "releaseCallback(stageTimer)"
+    )
+    assert helper_source.index("releaseCallback(stageTimer)") < helper_source.index(
+        "destroy()"
+    )
+    assert "\n        Timer {" not in source
+    assert "releaseCallback(stageTimer)" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

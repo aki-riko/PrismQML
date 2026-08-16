@@ -38,6 +38,7 @@ SOURCE_PATH = (
     / "navigation"
     / "Breadcrumb.qml"
 )
+TIMER_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "BreadcrumbStageTimer.qml"
 WINDOWS_PIXEL_HASHES = (
     "20257205ddc48958c27222783f84ca71b1ca963a49b4fd5e8a20d760b8e0e8f7",
     "7248519f0fd6ac793cebdab3f130234fb98b118927e324043852aa76abca2951",
@@ -212,6 +213,14 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
 
         assert QMetaObject.invokeMethod(window, "addOverflowItem")
         collapse_timers = _root_timers(breadcrumb)
+        collapse_timer = breadcrumb.property("_collapseTimer")
+        assert collapse_timer is not None
+        assert collapse_timer.objectName() == "breadcrumbStageTimer"
+        assert collapse_timer.parent() is breadcrumb
+        assert collapse_timer.property("timerInterval") == collapse_timer.property(
+            "interval"
+        )
+        assert collapse_timer.property("repeat") is False
         assert window.property("collapsedCount") == 2
         assert window.property("shiftLeftActive")
         assert _wait_for(lambda: not window.property("shiftLeftActive"))
@@ -221,6 +230,14 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
 
         assert QMetaObject.invokeMethod(window, "trimToThirdItem")
         restore_timers = _root_timers(breadcrumb)
+        remove_timer = breadcrumb.property("_removeTimer")
+        show_timer = breadcrumb.property("_showTimer")
+        assert remove_timer is not None
+        assert show_timer is not None
+        assert remove_timer is not show_timer
+        for stage_timer in (remove_timer, show_timer):
+            assert stage_timer.objectName() == "breadcrumbStageTimer"
+            assert stage_timer.parent() is breadcrumb
         assert window.property("shownCount") == 2
         assert window.property("shiftRightActive")
         assert _wait_for(lambda: window.property("breadcrumbCount") == 3)
@@ -266,6 +283,7 @@ def test_breadcrumb_source_creates_stage_timers_on_demand():
     每个动画阶段仅在需要时创建独立计时器。
     """
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    timer_source = TIMER_SOURCE_PATH.read_text(encoding="utf-8")
     assert "id: removeTimer" not in source
     assert "id: collapseToEllipsisTimer" not in source
     assert "id: showFromEllipsisTimer" not in source
@@ -274,5 +292,6 @@ def test_breadcrumb_source_creates_stage_timers_on_demand():
     assert "_restartRemoveTimer()" in source
     assert "_restartCollapseTimer()" in source
     assert "_restartShowTimer()" in source
-    assert "releaseCallback(stageTimer)" in source
-    assert "destroy()" in source
+    assert "BreadcrumbStageTimer {}" in source
+    assert "releaseCallback(stageTimer)" in timer_source
+    assert "destroy()" in timer_source
