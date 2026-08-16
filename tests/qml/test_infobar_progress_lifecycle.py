@@ -150,8 +150,7 @@ def _timers(info_bar: QQuickItem) -> list[QObject]:
     return [
         obj
         for obj in info_bar.findChildren(QObject)
-        if obj.metaObject().className().startswith("QQmlTimer")
-        and obj.parent() is info_bar
+        if obj.objectName() == "infoBarCloseTimer" and obj.parent() is info_bar
     ]
 
 

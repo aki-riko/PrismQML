@@ -143,19 +143,10 @@ Widget {
     }
 
     // Shared close timer 共享关闭计时器
-    Timer {
+    InfoBarInternal.InfoBarCloseTimer {
         id: closeTimer
 
-        readonly property bool completeMode: control._completeCloseActive
-
-        running: control._autoCloseActive || control._completeCloseActive
-        interval: completeMode ? control.completeDuration : control.duration
-        onCompleteModeChanged: {
-            if (running && (control._autoCloseActive || control._completeCloseActive)) {
-                restart()
-            }
-        }
-        onTriggered: control.hide()
+        host: control
     }
     // ==================== Content 内容 ====================
     InfoBarInternal.InfoBarContent {

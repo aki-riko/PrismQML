@@ -1748,6 +1748,36 @@ def test_auto_updater_toast_presenter_keeps_sync_timer_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_info_bar_keeps_shared_close_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/InfoBar/InfoBarCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/InfoBar/_internal/"
+        "InfoBarCloseTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 180
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 40
+    assert 'import "_internal" as InfoBarInternal' in source
+    assert "InfoBarInternal.InfoBarCloseTimer {" in source
+    assert "id: closeTimer" in source
+    assert "host: control" in source
+    assert helper_source.count("Timer {") == 1
+    assert "required property var host" in helper_source
+    assert "readonly property bool completeMode" in helper_source
+    assert 'objectName: "infoBarCloseTimer"' in helper_source
+    assert "running: host._autoCloseActive || host._completeCloseActive" in helper_source
+    assert "interval: completeMode ? host.completeDuration : host.duration" in helper_source
+    assert "restart()" in helper_source
+    assert "onTriggered: host.hide()" in helper_source
+    assert "readonly property bool completeMode" not in source
+    assert "\n    Timer {" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
