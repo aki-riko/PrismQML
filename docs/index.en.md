@@ -6,7 +6,7 @@ PrismQML is a **multi-skin UI engine** built on PySide6 + QML. The same
 components switch live between **Fluent**, **Neobrutalism**, **Vintage Ticket**,
 and **Neumorphism**, independently of the light/dark theme.
 
-![PrismQML Fluent and Neobrutalism skin comparison](images/prismqml-skins.png)
+![PrismQML multi-skin component showcase (Fluent and Neobrutalism examples)](images/prismqml-skins.png)
 
 ```python
 from prismqml import setSkin, Skin

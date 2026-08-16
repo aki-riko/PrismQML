@@ -5,7 +5,7 @@
 > **One QML component set, multiple design languages — switchable at runtime.**
 > PrismQML is a **multi-skin UI engine** built on PySide6 + QML: the same components render as **Fluent Design**, **Neobrutalism**, **Vintage Ticket**, or **Neumorphism**, switched live, with 120fps+ smooth animations.
 
-![PrismQML Fluent and Neobrutalism skin comparison](docs/images/prismqml-skins.png)
+![PrismQML multi-skin component showcase (Fluent and Neobrutalism examples)](docs/images/prismqml-skins.png)
 
 - **Install**: `pip install prismqml`
 - **Documentation**: [aki-riko.github.io/PrismQML](https://aki-riko.github.io/PrismQML/en/)

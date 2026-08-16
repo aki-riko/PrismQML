@@ -6,7 +6,7 @@ PrismQML 是基于 PySide6 + QML 的**多皮肤 UI 引擎**：同一套控件可
 **Fluent**、**新粗野（Neobrutalism）**、**复古票据（Vintage Ticket）**与
 **新拟态（Neumorphism）**之间实时切换，并独立选择明暗主题。
 
-![PrismQML Fluent 与新粗野皮肤对比](images/prismqml-skins.png)
+![PrismQML 多皮肤组件展示（Fluent 与新粗野示例）](images/prismqml-skins.png)
 
 ```python
 from prismqml import setSkin, Skin

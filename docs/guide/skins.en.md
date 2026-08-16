@@ -27,7 +27,7 @@ print(getSkin())              # Skin.NEUMORPHISM
 
 ## Visual paradigms
 
-![Fluent and Neobrutalism skin comparison](../images/prismqml-skins.png)
+![Multi-skin component showcase (Fluent and Neobrutalism examples)](../images/prismqml-skins.png)
 
 === "Fluent"
 

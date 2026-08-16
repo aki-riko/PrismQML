@@ -28,7 +28,7 @@ print(getSkin())              # Skin.NEUMORPHISM
 
 ## 四种视觉范式
 
-![Fluent 与新粗野皮肤对比](../images/prismqml-skins.png)
+![多皮肤组件展示（Fluent 与新粗野示例）](../images/prismqml-skins.png)
 
 === "Fluent"
 
