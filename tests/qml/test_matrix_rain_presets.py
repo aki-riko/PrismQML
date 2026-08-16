@@ -206,7 +206,7 @@ def test_matrix_rain_animation_timer_preserves_runtime_contract(qapp):
         assert timer.property("host") is instance
         target_canvas = timer.property("targetCanvas")
         assert target_canvas is not None
-        assert timer.property("repeat") is True
+        assert timer.metaObject().indexOfProperty("frameTime") >= 0
         assert timer.property("running") is False
 
         instance.setProperty("running", True)
@@ -215,9 +215,12 @@ def test_matrix_rain_animation_timer_preserves_runtime_contract(qapp):
 
         instance.setProperty("speed", 0)
         assert instance.property("_safeSpeed") == 0.1
-        assert timer.property("interval") == 500
+        assert timer.property("legacyIntervalMilliseconds") == 500
         instance.setProperty("speed", 5)
-        assert timer.property("interval") == 16
+        assert timer.property("legacyIntervalMilliseconds") == 16
+
+        assert _evaluate(timer, "_pendingStepScale = 0.5; takeStepScale()") == 0.5
+        assert _evaluate(timer, "takeStepScale()") == 1
 
         instance.setProperty("paused", True)
         _pump(10)
@@ -250,6 +253,13 @@ def test_matrix_rain_frame_updates_reuse_drop_array_without_property_change(qapp
         source = MATRIX_RAIN_SOURCE.read_text(encoding="utf-8")
         canvas_source = MATRIX_RAIN_CANVAS_SOURCE.read_text(encoding="utf-8")
         assert "MatrixRainInternal.MatrixRainCanvas" in source
+        assert "animationDriver: animationTimer" in source
+        assert "required property var animationDriver" in canvas_source
+        assert "animationDriver.takeStepScale()" in canvas_source
+        assert "_scaledProbability(host.fadeSpeed, stepScale)" in canvas_source
+        assert "characterUpdateProbability = Math.min(1, stepScale)" in canvas_source
+        assert "localCharacterSeeds[i] = Math.random()" in canvas_source
+        assert "* stepScale" in canvas_source
         assert "root.drops = localDrops" not in canvas_source
         hot_loop = canvas_source.split("for (var i = 0; i < count; i++) {", 1)[1].split(
             "// Update rainbow offset", 1
@@ -269,6 +279,9 @@ def test_matrix_rain_offscreen_frame_advances_drop_without_property_change(qapp)
     try:
         component, window, rain, canvas = _create_matrix_rain_window(engine)
         _evaluate(rain, "direction = 'down'; cols = 1; drops = [0]")
+        frame_driver = rain.findChild(QObject, "matrixRainAnimationTimer")
+        assert frame_driver is not None
+        _evaluate(frame_driver, "_pendingStepScale = 0.25")
         emitted: list[None] = []
         rain.dropsChanged.connect(lambda: emitted.append(None))
 
@@ -279,7 +292,7 @@ def test_matrix_rain_offscreen_frame_advances_drop_without_property_change(qapp)
             _pump(20)
 
         drop = _evaluate(rain, "drops[0]")
-        assert 0.5 <= drop < 1.0
+        assert 0.125 <= drop < 0.25
         assert emitted == []
     finally:
         if window is not None:

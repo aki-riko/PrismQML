@@ -219,7 +219,7 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         assert len(initial_timers) == 0
         assert len(cold_timers) == 0
         assert len(loaded_timers) == 1
-        assert len(shown_timers) == 2
+        assert len(shown_timers) == 1
         assert len(restored_timers) == 0
         assert restored_timers == initial_timers
         assert (

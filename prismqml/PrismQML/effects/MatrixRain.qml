@@ -70,6 +70,7 @@ Rectangle {
         return Math.max(0, interactionRadius)
     }
     property var drops: []
+    property var characterSeeds: []
     property int cols: 0
     property int rows: 0
     property int cellSize: Math.max(10, fontSize + 2)
@@ -215,6 +216,7 @@ Rectangle {
     MatrixRainInternal.MatrixRainCanvas {
         id: canvas
         host: root
+        animationDriver: animationTimer
         anchors.fill: parent
     }
     

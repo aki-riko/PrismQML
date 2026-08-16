@@ -160,8 +160,7 @@ def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
         assert follow_timer.parent() is host
         assert follow_timer.property("host") == tooltip
         assert follow_timer.property("nativeHost") == host
-        assert follow_timer.property("interval") == 16
-        assert follow_timer.property("repeat") is True
+        assert follow_timer.metaObject().indexOfProperty("frameTime") >= 0
         windows = tooltip.findChildren(QWindow)
         assert len(windows) == 1
         tip_window = windows[0]

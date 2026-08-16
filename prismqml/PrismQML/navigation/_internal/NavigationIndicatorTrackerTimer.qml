@@ -3,11 +3,10 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../.."
 
-// NavigationIndicatorTrackerTimer - Track indicator position while scrolling
-// NavigationIndicatorTrackerTimer - 滚动期间跟踪指示器位置
-Timer {
+// NavigationIndicatorTrackerTimer - Track the indicator on every presented frame
+// NavigationIndicatorTrackerTimer - 每个实际呈现帧跟踪指示器位置
+FrameAnimation {
     id: indicatorTracker
 
     // ==================== Required Props 必需属性 ====================
@@ -17,8 +16,6 @@ Timer {
     // ==================== Internal Props 内部属性 ====================
     property bool _scrolling: false
 
-    interval: Enums.duration.tick
-    repeat: true
     running: _scrolling
     onTriggered: {
         if (!indicator.running) {

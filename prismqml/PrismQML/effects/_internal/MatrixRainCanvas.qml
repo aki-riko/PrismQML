@@ -9,6 +9,12 @@ Canvas {
 
     // ==================== Required Props 必需属性 ====================
     required property var host
+    required property var animationDriver
+
+    function _scaledProbability(probability, stepScale) {
+        var boundedProbability = Math.max(0, Math.min(1, probability))
+        return 1 - Math.pow(1 - boundedProbability, stepScale)
+    }
 
     function clearCanvas() {
         if (!available) return
@@ -23,18 +29,22 @@ Canvas {
         if (width <= 0 || height <= 0 || !available) return
 
         var arr = []
+        var seeds = []
         if (host.isHorizontal) {
             host.rows = Math.ceil(height / host.cellSize / host._safeDensity)
             for (var i = 0; i < host.rows; i++) {
                 arr.push(Math.random() * -50)
+                seeds.push(Math.random())
             }
         } else {
             host.cols = Math.ceil(width / host.cellSize / host._safeDensity)
             for (var j = 0; j < host.cols; j++) {
                 arr.push(Math.random() * -50)
+                seeds.push(Math.random())
             }
         }
         host.drops = arr
+        host.characterSeeds = seeds
         clearCanvas()
     }
 
@@ -48,7 +58,9 @@ Canvas {
         var ctx = getContext("2d")
         if (!ctx) return
 
+        var stepScale = animationDriver.takeStepScale()
         var localDrops = host.drops
+        var localCharacterSeeds = host.characterSeeds
         var activeCharset = host._activeCharset
         if (localDrops.length === 0 || activeCharset.length === 0) return
 
@@ -59,7 +71,7 @@ Canvas {
             backgroundColor.r,
             backgroundColor.g,
             backgroundColor.b,
-            host.fadeSpeed
+            _scaledProbability(host.fadeSpeed, stepScale)
         )
         ctx.fillRect(0, 0, width, height)
 
@@ -74,6 +86,9 @@ Canvas {
         var count = isHoriz ? host.rows : host.cols
         var flickerEnabled = host.flickerEnabled
         var flickerRate = host.flickerRate
+        var scaledFlickerRate = _scaledProbability(flickerRate, stepScale)
+        var scaledResetProbability = _scaledProbability(0.025, stepScale)
+        var characterUpdateProbability = Math.min(1, stepScale)
         var perspective = host.perspective
         var interactive = host.interactive
         var interactionRadius = host._safeInteractionRadius
@@ -90,9 +105,14 @@ Canvas {
 
         for (var i = 0; i < count; i++) {
             // Flicker skip 闪烁跳过
-            if (flickerEnabled && Math.random() < flickerRate) continue
+            if (flickerEnabled && Math.random() < scaledFlickerRate) continue
 
-            var character = activeCharset[Math.floor(Math.random() * charLen)]
+            if (localCharacterSeeds[i] === undefined
+                    || Math.random() < characterUpdateProbability) {
+                localCharacterSeeds[i] = Math.random()
+            }
+            var character = activeCharset[
+                Math.floor(localCharacterSeeds[i] * charLen)]
             var pos = localDrops[i] * cellSize
             var x, y
 
@@ -168,7 +188,7 @@ Canvas {
             }
 
             // Move based on direction 根据方向移动
-            localDrops[i] += 0.5 + Math.random() * 0.5
+            localDrops[i] += (0.5 + Math.random() * 0.5) * stepScale
 
             // Reset check 重置检查
             var shouldReset = false
@@ -177,15 +197,14 @@ Canvas {
             else if (dir === "right" && x > w) shouldReset = true
             else if (dir === "left" && x < 0) shouldReset = true
 
-            if (shouldReset && Math.random() > 0.975) {
+            if (shouldReset && Math.random() < scaledResetProbability) {
                 localDrops[i] = 0
             }
         }
 
         // Update rainbow offset 更新彩虹偏移
         if (rainbowMode) {
-            host._rainbowOffset = (rainbowOffset + 2) % 360
+            host._rainbowOffset = (rainbowOffset + 2 * stepScale) % 360
         }
     }
 }
-

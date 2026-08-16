@@ -230,6 +230,11 @@ def test_matrix_rain_keeps_animation_timer_modularized():
     assert "required property var host" in helper_source
     assert "required property var targetCanvas" in helper_source
     assert 'objectName: "matrixRainAnimationTimer"' in helper_source
+    assert "FrameAnimation {" in helper_source
+    assert "frameTime * 1000" in helper_source
+    assert "function takeStepScale()" in helper_source
+    assert "targetCanvas.requestPaint()" in helper_source
+    assert "\nTimer {" not in helper_source
 
 
 def test_matrix_rain_keeps_canvas_rendering_modularized():
@@ -456,7 +461,8 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "required property var tracker" in scroll_stop_source
     assert "required property var host" in init_source
     assert "property bool _scrolling: false" in tracker_source
-    assert "Enums.duration.tick" in tracker_source
+    assert "FrameAnimation {" in tracker_source
+    assert "Enums.duration.tick" not in tracker_source
     assert "host._updateIndicatorPositionRealtime()" in tracker_source
     assert "tracker._scrolling = false" in scroll_stop_source
     assert "Enums.duration.fast" in scroll_stop_source
@@ -491,7 +497,8 @@ def test_toggle_navigation_bar_keeps_indicator_timers_modularized():
     assert "tracker: _indicatorTracker" in source
     assert "required property var host" in tracker_source
     assert "property bool _scrolling: false" in tracker_source
-    assert "Enums.duration.tick" in tracker_source
+    assert "FrameAnimation {" in tracker_source
+    assert "Enums.duration.tick" not in tracker_source
     assert "host._updateIndicator(false)" in tracker_source
     assert "required property var tracker" in scroll_stop_source
     assert "Enums.duration.fast" in scroll_stop_source
@@ -1812,8 +1819,9 @@ def test_tooltip_core_keeps_follow_anchor_timer_modularized():
     assert "required property var host" in helper_source
     assert "required property var nativeHost" in helper_source
     assert 'objectName: "tooltipFollowAnchorTimer"' in helper_source
-    assert "interval: 16" in helper_source
-    assert "repeat: true" in helper_source
+    assert "FrameAnimation {" in helper_source
+    assert "interval:" not in helper_source
+    assert "repeat:" not in helper_source
     assert "running: host.followAnchor && nativeHost.windowVisible" in helper_source
     assert "onTriggered: host._reposition()" in helper_source
     assert "running: control.followAnchor && windowHost.windowVisible" not in source

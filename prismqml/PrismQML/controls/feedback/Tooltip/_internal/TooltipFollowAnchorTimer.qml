@@ -4,8 +4,8 @@
 
 import QtQuick
 
-// TooltipFollowAnchorTimer - Follow a moving anchor while the native host is visible 原生宿主可见时跟随移动锚点
-Timer {
+// TooltipFollowAnchorTimer - Follow a moving anchor on each presented frame 每个实际呈现帧跟随移动锚点
+FrameAnimation {
     id: followTimer
 
     // ==================== Required Props 必需属性 ====================
@@ -13,8 +13,6 @@ Timer {
     required property var nativeHost
 
     objectName: "tooltipFollowAnchorTimer"
-    interval: 16
-    repeat: true
     running: host.followAnchor && nativeHost.windowVisible
     onTriggered: host._reposition()
 }
