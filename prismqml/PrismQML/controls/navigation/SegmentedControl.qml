@@ -141,55 +141,12 @@ Rectangle {
         visible: control.showIndicator && control._safeItems.length > 0
     }
 
-    Timer {
+    NavigationInternal.SegmentedSlideSyncTimer {
         id: slideSyncTimer
 
-        property bool candidateReady: false
-        property real candidateX: 0
-        property real candidateWidth: 0
-
-        function schedule(shouldAnimate) {
-            if (shouldAnimate) {
-                stop()
-                candidateReady = false
-                control._updateSlidePosition(true)
-                return
-            }
-
-            candidateReady = false
-            restart()
-        }
-
-        interval: Enums.duration.tick
-        onTriggered: {
-            var item = repeater.itemAt(control.currentIndex)
-            if (!item || typeof item.x !== "number") {
-                // A valid model may briefly have no delegate while Repeater rebuilds
-                // Repeater 重建期间，有效模型可能短暂没有对应 delegate
-                if (control.currentIndex >= 0 && control.currentIndex < control._safeItems.length) {
-                    restart()
-                    return
-                }
-                candidateReady = false
-                control._updateSlidePosition(false)
-                return
-            }
-
-            var nextCandidateX = segmentRow.x + item.x
-            var nextCandidateWidth = item.width || 0
-            if (!candidateReady
-                    || candidateX !== nextCandidateX
-                    || candidateWidth !== nextCandidateWidth) {
-                candidateReady = true
-                candidateX = nextCandidateX
-                candidateWidth = nextCandidateWidth
-                restart()
-                return
-            }
-
-            candidateReady = false
-            control._updateSlidePosition(false)
-        }
+        host: control
+        segmentRow: segmentRow
+        itemRepeater: repeater
     }
     
     // Items row 项目行

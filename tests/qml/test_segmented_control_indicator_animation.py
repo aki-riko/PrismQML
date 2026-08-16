@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QObject,
     QPoint,
     QPointF,
     QTimer,
@@ -39,6 +40,7 @@ Window {
     property int requestedIndex: __INITIAL_INDEX__
     property int itemClickedCount: 0
     property int lastClickedIndex: -1
+    readonly property int expectedSlideSyncInterval: Enums.duration.tick
 
     function widenLeadingItem() {
         var next = segmented.items.slice()
@@ -275,11 +277,28 @@ def test_preceding_item_width_change_retargets_running_animation(segmented_scene
 
 def test_dynamic_clear_and_readd_restores_valid_geometry(segmented_scene):
     _engine, _component, window, warnings = segmented_scene
-    _control, indicator, animation, _delegates = _parts(window)
+    control, indicator, animation, _delegates = _parts(window)
+    sync_timer = control.findChild(
+        QObject, "segmentedControlSlideSyncTimer"
+    )
+    assert sync_timer is not None
+    assert sync_timer.parent() is control
+    assert sync_timer.property("host") == control
+    assert sync_timer.property("interval") == window.property(
+        "expectedSlideSyncInterval"
+    )
+    assert sync_timer.property("repeat") is False
+    assert sync_timer.property("running") is False
+    segment_row = sync_timer.property("segmentRow")
+    item_repeater = sync_timer.property("itemRepeater")
+    assert segment_row.parentItem() is control
+    assert item_repeater.parent() is segment_row
     assert QMetaObject.invokeMethod(window, "clearItems")
     _pump(30)
     assert not indicator.isVisible()
     assert not animation.property("running")
+    assert sync_timer.property("running") is False
+    assert sync_timer.property("candidateReady") is False
 
     assert QMetaObject.invokeMethod(window, "addSingleWideItem")
     _pump(80)
@@ -288,6 +307,8 @@ def test_dynamic_clear_and_readd_restores_valid_geometry(segmented_scene):
 
     assert indicator.isVisible()
     assert animation.property("indicatorX") == pytest.approx(target_x, abs=0.5)
+    assert sync_timer.property("running") is False
+    assert sync_timer.property("candidateReady") is False
     assert warnings == []
 
 

@@ -2631,6 +2631,35 @@ def test_segmented_control_keeps_delegate_visuals_modularized():
         assert marker not in source
 
 
+def test_segmented_control_keeps_slide_sync_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/"
+        "SegmentedSlideSyncTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 175
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 70
+    assert 'import "_internal" as NavigationInternal' in source
+    assert "NavigationInternal.SegmentedSlideSyncTimer {" in source
+    assert "id: slideSyncTimer" in source
+    assert "host: control" in source
+    assert "segmentRow: segmentRow" in source
+    assert "itemRepeater: repeater" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert "required property Item segmentRow" in helper_source
+    assert "required property var itemRepeater" in helper_source
+    assert 'objectName: "segmentedControlSlideSyncTimer"' in helper_source
+    assert "function schedule(shouldAnimate)" in helper_source
+    assert "interval: Enums.duration.tick" in helper_source
+    assert "itemRepeater.itemAt(host.currentIndex)" in helper_source
+    assert "host._updateSlidePosition(false)" in helper_source
+
+
 def test_pin_input_keeps_cell_delegate_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/PinInput.qml")
     helper = _source(
