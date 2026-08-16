@@ -53,7 +53,7 @@ Canvas {
         if (localDrops.length === 0 || activeCharset.length === 0) return
 
         var backgroundColor = host.backgroundColor
-        
+
         // Fade trail 拖尾效果
         ctx.fillStyle = Qt.rgba(
             backgroundColor.r,
@@ -62,9 +62,9 @@ Canvas {
             host.fadeSpeed
         )
         ctx.fillRect(0, 0, width, height)
-        
+
         ctx.font = host.fontSize + "px monospace"
-        
+
         var w = width, h = height
         var cellSize = host.cellSize
         var cs = cellSize * host._safeDensity
@@ -85,17 +85,17 @@ Canvas {
         var glowEnabled = host.glowEnabled
         var glowIntensity = host.glowIntensity
         var trailOffset = (dir === "up" ? -cellSize : cellSize) * 0.5
-        
+
         // Note: Glow is applied per-character for head only (performance) 发光只应用于头部字符
-        
+
         for (var i = 0; i < count; i++) {
             // Flicker skip 闪烁跳过
             if (flickerEnabled && Math.random() < flickerRate) continue
-            
+
             var character = activeCharset[Math.floor(Math.random() * charLen)]
             var pos = localDrops[i] * cellSize
             var x, y
-            
+
             // Calculate position based on direction 根据方向计算位置
             if (dir === "down") {
                 x = i * cs
@@ -110,7 +110,7 @@ Canvas {
                 x = w - pos
                 y = i * cs
             }
-            
+
             // Perspective transform 透视变换
             if (perspective > 0) {
                 var centerX = w / 2, centerY = h / 2
@@ -122,7 +122,7 @@ Canvas {
                 ctx.scale(scale, scale)
                 ctx.translate(-x, -y)
             }
-            
+
             // Interactive repulsion 交互排斥
             if (interactive && interactionRadius > 0) {
                 var dx = x - mousePos.x
@@ -134,7 +134,7 @@ Canvas {
                     y += dy / dist * force
                 }
             }
-            
+
             // Rainbow mode color 彩虹模式颜色
             var currentMainColor = mainColor
             var currentHeadColor = headColor
@@ -143,7 +143,7 @@ Canvas {
                 currentMainColor = Qt.hsla(hue / 360, 1, 0.5, 1)
                 currentHeadColor = Qt.hsla(hue / 360, 0.8, 0.7, 1)
             }
-            
+
             // Glow effect (lightweight simulation) 发光效果（轻量模拟）
             if (glowEnabled) {
                 ctx.globalAlpha = 0.3 * glowIntensity
@@ -154,34 +154,34 @@ Canvas {
                 ctx.fillText(character, x, y + 1)
                 ctx.globalAlpha = 1.0
             }
-            
+
             // Head character (brighter) 头部字符（更亮）
             ctx.fillStyle = currentHeadColor
             ctx.fillText(character, x, y)
-            
+
             // Main trail 主拖尾
             ctx.fillStyle = currentMainColor
             ctx.fillText(character, x, y - trailOffset)
-            
+
             if (perspective > 0) {
                 ctx.restore()
             }
-            
+
             // Move based on direction 根据方向移动
             localDrops[i] += 0.5 + Math.random() * 0.5
-            
+
             // Reset check 重置检查
             var shouldReset = false
             if (dir === "down" && y > h) shouldReset = true
             else if (dir === "up" && y < 0) shouldReset = true
             else if (dir === "right" && x > w) shouldReset = true
             else if (dir === "left" && x < 0) shouldReset = true
-            
+
             if (shouldReset && Math.random() > 0.975) {
                 localDrops[i] = 0
             }
         }
-        
+
         // Update rainbow offset 更新彩虹偏移
         if (rainbowMode) {
             host._rainbowOffset = (rainbowOffset + 2) % 360
