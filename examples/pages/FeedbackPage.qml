@@ -112,64 +112,9 @@ Item {
             // Static InfoBar and Toast showcases 静态 InfoBar 与 Toast 展示
             FeedbackNotificationShowcase {}
             
-            // NotificationManager - InfoBar - 6个位置
-            ExampleCard {
-                title: "NotificationManager.infoBar"
-                description: Fluent.Translator.tr("gallery_f0b6509128f2c22d", Fluent.Translator._v)
-                Row {
-                    spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.infoBar.info(root, Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.infoBar.success(root, Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.infoBar.warning(root, Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.infoBar.error(root, Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.infoBar.attention(root, Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.infoBar.processing(root, Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
-                }
-            }
-            
-            // NotificationManager - Toast - 6个位置
-            ExampleCard {
-                title: "NotificationManager.toast"
-                description: Fluent.Translator.tr("gallery_e31c57087766b9ba", Fluent.Translator._v)
-                Row {
-                    spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.toast.info(root, Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.toast.success(root, Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.toast.warning(root, Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.toast.error(root, Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.toast.attention(root, Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.toast.processing(root, Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
-                }
-            }
-            
-            // NotificationManager - Desktop (InfoBar样式) - 6个位置
-            ExampleCard {
-                title: "NotificationManager.desktop (InfoBar)"
-                description: Fluent.Translator.tr("gallery_3361e7282d6d0633", Fluent.Translator._v)
-                Row {
-                    spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.infoBar("info", Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.infoBar("success", Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.infoBar("warning", Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.infoBar("error", Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.infoBar("attention", Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.infoBar("processing", Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
-                }
-            }
-            
-            // NotificationManager - Desktop (Toast样式) - 6个位置
-            ExampleCard {
-                title: "NotificationManager.desktop (Toast)"
-                description: Fluent.Translator.tr("gallery_1af315c4161471c1", Fluent.Translator._v)
-                Row {
-                    spacing: Fluent.Enums.spacing.l
-                    Button { style: Fluent.Enums.button.style_filled; level: 0; text: "Info"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v), Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 1; text: "Success"; onClicked: NotificationManager.desktop.success(Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v), Fluent.Translator.tr("gallery_58b9ea35c2e8aeb8", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTop) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 2; text: "Warning"; onClicked: NotificationManager.desktop.warning(Fluent.Translator.tr("gallery_a8b7a4480407ac8a", Fluent.Translator._v), Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posTopRight) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error"; onClicked: NotificationManager.desktop.error(Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v), Fluent.Translator.tr("gallery_84eb9f344f50a101", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomLeft) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v), Fluent.Translator.tr("gallery_b90cd29061ebe116", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottom) }
-                    Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing"; onClicked: NotificationManager.desktop.info(Fluent.Translator.tr("gallery_694b71bc8013ff43", Fluent.Translator._v), Fluent.Translator.tr("gallery_3ff4eacca4b44501", Fluent.Translator._v), Fluent.Enums.duration.notification, Fluent.Enums.notification.posBottomRight) }
-                }
+            // NotificationManager surface menu NotificationManager 承载面菜单
+            FeedbackNotificationMenuShowcase {
+                notificationParent: root
             }
 
             // Desktop Toast options demo 桌面 Toast 选项演示

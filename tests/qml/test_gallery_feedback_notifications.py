@@ -5,7 +5,6 @@
 """Gallery notification showcase regressions. Gallery 通知展示回归。"""
 
 from pathlib import Path, PurePosixPath
-import re
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
@@ -31,6 +30,13 @@ PROGRESS_SHOWCASE_SOURCE = (
     / "_internal"
     / "FeedbackProgressShowcase.qml"
 )
+MENU_SHOWCASE_SOURCE = (
+    ROOT
+    / "examples"
+    / "pages"
+    / "_internal"
+    / "FeedbackNotificationMenuShowcase.qml"
+)
 
 SEVERITIES = ("Info", "Success", "Warning", "Error", "Processing")
 PROGRESS_MODES = (
@@ -38,14 +44,6 @@ PROGRESS_MODES = (
     "IndeterminateBar",
     "ProgressRing",
     "IndeterminateRing",
-)
-EDGE_POSITION_NAMES = (
-    "posTopLeft",
-    "posTop",
-    "posTopRight",
-    "posBottomLeft",
-    "posBottom",
-    "posBottomRight",
 )
 
 
@@ -175,20 +173,32 @@ def test_gallery_progress_static_previews_are_persistent(qapp):
         _pump(1)
 
 
-def test_gallery_notification_buttons_use_current_edge_positions():
+def test_gallery_notification_menu_routes_all_surfaces():
     page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
-    manager_source = page_source.split(
-        "// NotificationManager - InfoBar - 6个位置", 1
-    )[1].split("// Desktop Toast options", 1)[0]
+    menu_source = MENU_SHOWCASE_SOURCE.read_text(encoding="utf-8")
 
-    for position_name in EDGE_POSITION_NAMES:
-        pattern = rf"Fluent\.Enums\.notification\.{position_name}(?![A-Za-z])"
-        assert len(re.findall(pattern, manager_source)) == 4
+    assert "FeedbackNotificationMenuShowcase {" in page_source
+    assert "notificationParent: root" in page_source
+    assert "feature: Enums.button.feature_dropdown" in menu_source
+    assert menu_source.count("addSubmenu(") == 2
+    for action_id in (
+        "toast.in_app",
+        "toast.outside",
+        "toast.desktop",
+        "infobar.in_app",
+        "infobar.outside",
+        "infobar.desktop",
+    ):
+        assert f'"actionId": "{action_id}"' in menu_source
 
-    assert re.search(
-        r"Fluent\.Enums\.duration\.notification,\s*[0-8]\s*[),]",
-        manager_source,
-    ) is None
+    assert menu_source.count("Enums.notification.mode_window_outside") == 2
+    assert menu_source.count("Enums.notification.mode_in_app") == 2
+    assert "NotificationManager.toast.info(" in menu_source
+    assert "NotificationManager.infoBar.info(" in menu_source
+    assert "NotificationManager.desktop.info(" in menu_source
+    assert "NotificationManager.desktop.infoBar(" in menu_source
+    assert 'title: "NotificationManager.infoBar"' not in page_source
+    assert 'title: "NotificationManager.toast"' not in page_source
 
 
 def test_gallery_desktop_toast_options_use_separate_example_card():
@@ -196,15 +206,10 @@ def test_gallery_desktop_toast_options_use_separate_example_card():
     options_title = 'title: "NotificationManager.desktop (Toast options)"'
     assert options_title in page_source
 
-    standard_card = page_source.split(
-        'title: "NotificationManager.desktop (Toast)"', 1
-    )[1].split(options_title, 1)[0]
     options_card = page_source.split(options_title, 1)[1].split(
         "// InfoBar进度模式", 1
     )[0]
 
-    assert 'text: "Success"' in standard_card
-    assert 'text: "Success + options"' not in standard_card
     assert 'text: "Success + options"' in options_card
     assert '"customContent": desktopToastAction' in options_card
     assert '"screen": root.Window.window.screen' in options_card
@@ -215,6 +220,7 @@ def test_gallery_feedback_page_loads_with_current_edge_positions(qapp):
     try:
         assert root.width() == 1200
         assert root.height() == 800
+        assert root.findChild(QQuickItem, "galleryNotificationModeButton") is not None
     finally:
         root.deleteLater()
         del component
@@ -223,7 +229,11 @@ def test_gallery_feedback_page_loads_with_current_edge_positions(qapp):
 
 
 def test_gallery_notification_showcases_follow_qml_conventions():
-    for source_path in (SHOWCASE_SOURCE, PROGRESS_SHOWCASE_SOURCE):
+    for source_path in (
+        SHOWCASE_SOURCE,
+        PROGRESS_SHOWCASE_SOURCE,
+        MENU_SHOWCASE_SOURCE,
+    ):
         source = source_path.read_text(encoding="utf-8")
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations = scan_source_text(source, path)

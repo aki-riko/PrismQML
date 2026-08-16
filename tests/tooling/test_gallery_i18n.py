@@ -56,7 +56,7 @@ def _catalog(language: str) -> dict[str, str]:
 
 def test_gallery_catalogs_cover_every_supported_language():
     assert {path.stem for path in I18N_ROOT.glob("*.json")} == EXPECTED_LANGUAGES
-    assert gallery_i18n.validate_catalogs() == 701
+    assert gallery_i18n.validate_catalogs() == 692
 
 
 def test_non_chinese_gallery_catalogs_do_not_reuse_source_strings():
