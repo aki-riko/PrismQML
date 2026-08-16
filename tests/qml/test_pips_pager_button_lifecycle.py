@@ -28,6 +28,7 @@ SOURCE_PATH = (
     / "PipsPagerCore.qml"
 )
 NAV_BUTTON_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "PipsPagerNavButton.qml"
+CONTENT_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "PipsPagerContent.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "pips-pager-button-lifecycle.qml")
 )
@@ -206,6 +207,7 @@ def test_pips_pager_source_conventions():
     sources = (
         (SOURCE_PATH, entry_source),
         (NAV_BUTTON_SOURCE_PATH, NAV_BUTTON_SOURCE_PATH.read_text(encoding="utf-8")),
+        (CONTENT_SOURCE_PATH, CONTENT_SOURCE_PATH.read_text(encoding="utf-8")),
     )
     violations = []
     for source_path, source in sources:
@@ -217,6 +219,11 @@ def test_pips_pager_source_conventions():
         if violation.rule in {"QML008", "QML009"}
     ] == []
     helper_source = NAV_BUTTON_SOURCE_PATH.read_text(encoding="utf-8")
+    content_source = CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     assert 'objectName: isNext ? "pipsNextButton" : "pipsPrevButton"' in helper_source
     assert "required property bool isNext" in helper_source
     assert "navButtonComponent.createObject(control" in entry_source
+    assert "FlipViewInternal.PipsPagerContent {" in entry_source
+    assert "required property var pagerControl" in content_source
+    assert "Repeater {" in content_source
+    assert "pipsContainer" not in entry_source

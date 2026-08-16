@@ -199,7 +199,10 @@ def test_pips_pager_preserves_animation_and_interaction_across_direction(qapp):
 
 def test_pips_pager_uses_one_shared_direction_delegate_set():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Repeater {") == 1
+    content_source = (
+        SOURCE_PATH.parent / "_internal" / "PipsPagerContent.qml"
+    ).read_text(encoding="utf-8")
+    assert content_source.count("Repeater {") == 1
     assert "Row {" not in source
     assert "Column {" not in source
-    assert "property real _animatedScrollOffset: _scrollOffset" in source
+    assert "property real _animatedScrollOffset: _scrollOffset" in content_source

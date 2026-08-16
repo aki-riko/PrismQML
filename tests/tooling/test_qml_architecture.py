@@ -1066,6 +1066,30 @@ def test_pips_pager_keeps_navigation_button_visuals_modularized():
     assert "ButtonCore {" not in source
 
 
+def test_pips_pager_keeps_pips_content_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/FlipView/PipsPagerCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/FlipView/_internal/"
+        "PipsPagerContent.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 150
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert 'import "_internal" as FlipViewInternal' in source
+    assert "FlipViewInternal.PipsPagerContent {" in source
+    assert "required property var pagerControl" in helper_source
+    assert "Repeater {" in helper_source
+    assert "Behavior on _animatedScrollOffset" in helper_source
+    assert "Item {\n        id: pipsContainer" not in source
+    assert "Repeater {" not in source
+    assert "property real _scrollOffset" not in source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"
