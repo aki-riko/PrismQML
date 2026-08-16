@@ -430,28 +430,9 @@ Item {
     }
     
     // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器
-    Loader {
+    StackedLazyHelperLoader {
         id: lazyHelperLoader
-        anchors.fill: parent
-        active: false
-        asynchronous: control._asynchronousPageLoaderEnabled
-        onActiveChanged: control._traceLazyStage(
-            "stacked.helper_loader.active_changed", control.currentIndex,
-            "", lazyHelperLoader)
-        onStatusChanged: control._traceLazyStage(
-            "stacked.helper_loader.status_changed", control.currentIndex,
-            "", lazyHelperLoader)
-        onLoaded: {
-            control._traceLazyStage(
-                "stacked.helper_loader.loaded.begin", control.currentIndex,
-                "", lazyHelperLoader)
-            control._configureLazyHelper(item)
-            control.profileTime("lazyHelper loaded")
-            control._flushPendingLazySwitch()
-            control._traceLazyStage(
-                "stacked.helper_loader.loaded.done", control.currentIndex,
-                "", lazyHelperLoader)
-        }
+        host: control
     }
 
     // Lazy switch orchestration 懒切换编排

@@ -419,7 +419,8 @@ def test_lazy_helper_respects_unsafe_incubation_fallback():
     """The helper Loader must share the page Loader safety gate. 辅助 Loader 必须共用页面安全门禁。"""
     source = (
         _ROOT
-        / "prismqml/PrismQML/controls/navigation/StackedWidget.qml"
+        / "prismqml/PrismQML/controls/navigation/_internal/"
+        "StackedLazyHelperLoader.qml"
     ).read_text(encoding="utf-8")
 
-    assert "asynchronous: control._asynchronousPageLoaderEnabled" in source
+    assert "asynchronous: host._asynchronousPageLoaderEnabled" in source

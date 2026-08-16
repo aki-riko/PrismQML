@@ -449,6 +449,37 @@ def test_stacked_widget_keeps_direct_pages_modularized():
         assert marker not in source
 
 
+def test_stacked_widget_keeps_lazy_helper_loader_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/navigation/StackedWidget.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/"
+        "StackedLazyHelperLoader.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 470
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert "StackedLazyHelperLoader {" in source
+    assert helper_source.startswith("// Copyright 2026 aki-riko")
+    assert "Loader {" in helper_source
+    assert "required property Item host" in helper_source
+    assert "host._asynchronousPageLoaderEnabled" in helper_source
+    assert "host._configureLazyHelper(item)" in helper_source
+    assert "host._flushPendingLazySwitch()" in helper_source
+    for handler in ("onActiveChanged:", "onStatusChanged:", "onLoaded:"):
+        assert helper_source.count(handler) == 1
+        assert handler not in source
+    assert "id: lazyHelperLoader" in source
+    assert "host: control" in source
+    assert "lazyHelperLoader.setSource(Qt.resolvedUrl" in source
+    assert "lazyHelperLoader: lazyHelperLoader" in source
+    assert "StackedLazyHelperLoader {\n        id: lazyHelperLoader\n        host: control\n" in source
+
+
 def test_tab_widget_keeps_content_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/TabWidget.qml",
