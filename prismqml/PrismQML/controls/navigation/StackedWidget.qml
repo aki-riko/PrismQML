@@ -54,12 +54,12 @@ Item {
         pageSources === null || pageSources === undefined ? []
         : (typeof pageSources.length === "number" ? pageSources : [])
     readonly property bool _useSourceMode: _safePageSources.length > 0
-    property int count: _useSourceMode ? _safePageSources.length : stackLayout.children.length
+    property int count: _useSourceMode ? _safePageSources.length : directPages.children.length
 
     // ==================== Internal Props 内部属性 ====================
     property bool _destroying: false
-    default property alias content: stackLayout.children
-    property alias containerItem: stackLayout
+    default property alias content: directPages.children
+    property Item containerItem: directPages
     property Item currentWidget: _getCurrentWidget()
     property int previousIndex: 0
     property int _displayIndex: 0
@@ -87,7 +87,7 @@ Item {
         if (_useSourceMode && _loaders[_displayIndex]) {
             return _loaders[_displayIndex]
         }
-        return stackLayout.children[_displayIndex]
+        return directPages.children[_displayIndex]
     }
     function profileTime(msg) {
         if (!_startupProfilingVerboseActive) return
@@ -290,7 +290,7 @@ Item {
         if (_useSourceMode) {
             return _loaders[index] || null
         }
-        return stackLayout.children[index]
+        return directPages.children[index]
     }
 
     function next() {
@@ -307,8 +307,8 @@ Item {
                 if (_loaders[i] && _loaders[i].item === item) return i
             }
         } else {
-            for (var j = 0; j < stackLayout.children.length; j++) {
-                if (stackLayout.children[j] === item) return j
+            for (var j = 0; j < directPages.children.length; j++) {
+                if (directPages.children[j] === item) return j
             }
         }
         return -1
@@ -417,27 +417,9 @@ Item {
     }
 
     // Direct children container 直接子组件容器
-    Item {
-        id: stackLayout
-        objectName: "stackLayout"
-        anchors.fill: parent
-        visible: !control._useSourceMode
-        
-        Component.onCompleted: {
-            control.profileTime("stackLayout Component.onCompleted start children=" + children.length)
-            for (let i = 0; i < children.length; i++) {
-                let child = children[i]
-                child.width = Qt.binding(function() { return stackLayout.width })
-                child.height = Qt.binding(function() { return stackLayout.height })
-                child.x = 0
-                child.y = 0
-                child.visible = (i === control._displayIndex)
-                child.opacity = (i === control._displayIndex) ? 1 : 0
-                child.scale = 1
-                child.transformOrigin = Item.Center
-            }
-            control.profileTime("stackLayout Component.onCompleted done")
-        }
+    StackedDirectPages {
+        id: directPages
+        host: control
     }
     // pageSources mode 文件路径模式
     StackedSourcePages {
@@ -486,6 +468,6 @@ Item {
         id: visibilityController
         host: control
         animations: animations
-        container: stackLayout
+        container: directPages
     }
 }

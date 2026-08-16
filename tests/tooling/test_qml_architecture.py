@@ -420,6 +420,35 @@ def test_stacked_widget_keeps_switching_orchestration_modularized():
     assert "visibilityController.doAnimation" in source
 
 
+def test_stacked_widget_keeps_direct_pages_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/navigation/StackedWidget.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/StackedDirectPages.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 480
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert "StackedDirectPages {" in source
+    assert "property Item containerItem: directPages" in source
+    assert "required property Item host" in helper_source
+    assert 'objectName: "stackLayout"' in helper_source
+    assert "host._displayIndex" in helper_source
+    assert "child.width = Qt.binding" in helper_source
+    assert "child.height = Qt.binding" in helper_source
+    for marker in (
+        "\n        id: stackLayout\n",
+        "stackLayout.children",
+        "child.width = Qt.binding",
+        "child.height = Qt.binding",
+    ):
+        assert marker not in source
+
+
 def test_tab_widget_keeps_content_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/TabWidget.qml",
