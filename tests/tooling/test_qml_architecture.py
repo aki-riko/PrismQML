@@ -831,6 +831,37 @@ def test_tip_popup_keeps_main_window_surface_modularized():
         assert marker not in source
 
 
+def test_auto_updater_keeps_update_dialog_wiring_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/AutoUpdater.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/"
+        "AutoUpdaterUpdateDialog.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "_internal" as FeedbackInternal' in source
+    assert "FeedbackInternal.AutoUpdaterUpdateDialog {" in source
+    assert "updateDialogComponent.createObject(root)" in source
+    assert "UpdateDialog {" in helper_source
+    assert "required property var updaterControl" in helper_source
+    assert "updaterControl._awaitingDecision" in helper_source
+    assert "updaterControl._beginDownload" in helper_source
+    assert "updaterControl._clearPending()" in helper_source
+    for marker in (
+        "\n        UpdateDialog {",
+        "onConfirmed:",
+        "onCancelled:",
+        "\n            id: updateDialog\n",
+    ):
+        assert marker not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

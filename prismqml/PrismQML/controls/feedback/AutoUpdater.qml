@@ -18,6 +18,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import PrismQML
+import "_internal" as FeedbackInternal
 
 Item {
     id: root
@@ -415,28 +416,8 @@ Item {
     Component {
         id: updateDialogComponent
 
-        UpdateDialog {
-            id: updateDialog
-            confirmText: {
-                Translator._v
-                return Translator.tr("download_and_install")
-            }
-            cancelText: {
-                Translator._v
-                return Translator.tr("later")
-            }
-
-            onConfirmed: {
-                root._awaitingDecision = false;
-                root.downloadRequested(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
-                if (root.autoDownload)
-                    root._beginDownload(root._pendingVersion, root._pendingUrl, root._pendingHtmlUrl);
-            }
-            onCancelled: {
-                // 用户稍后再说,清空待处理状态
-                root._awaitingDecision = false;
-                root._clearPending();
-            }
+        FeedbackInternal.AutoUpdaterUpdateDialog {
+            updaterControl: root
         }
     }
 
