@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../../.."
 import "../../inputs/Slider"
+import "_internal" as ChartInternal
 
 // ChartDataZoom - Dual-handle viewport selector 双手柄视窗范围选择器
 // The canvas renders a full-data thumbnail without depending on ChartView Canvas 绘制全量缩略图且不依赖 ChartView
@@ -218,13 +219,9 @@ Item {
             control.viewportChanged(lo, hi)
         }
     }
-    Timer {
+    ChartInternal.ChartDataZoomDragEndTimer {
         id: _dragEndTimer
-        interval: Enums.duration.slow
-        repeat: false
-        onTriggered: {
-            control._dragging = false
-            control.interactiveChanged(false)
-        }
+
+        host: control
     }
 }

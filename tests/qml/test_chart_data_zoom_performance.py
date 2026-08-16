@@ -6,6 +6,7 @@
 
 from pathlib import Path
 
+from PySide6.QtCore import QObject
 from PySide6.QtQml import QQmlEngine, QQmlExpression
 from PySide6.QtTest import QSignalSpy
 
@@ -114,6 +115,49 @@ def test_data_zoom_repaints_reuse_cached_value_range(windowed_chart_scene):
     chart.setWidth(600)
     assert painted.wait(1_000)
     assert canvas.property("_drawFrameBuildCount") == build_count
+    assert warnings == []
+
+
+def test_data_zoom_drag_end_timer_preserves_interactive_lifecycle(chart_scene):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("lineType"))
+    chart.setProperty("dataZoomEnabled", True)
+    _pump(20)
+
+    data_zoom = _data_zoom_hosts(chart)[0]
+    drag_end_timer = data_zoom.findChild(
+        QObject, "chartDataZoomDragEndTimer"
+    )
+    assert drag_end_timer is not None
+    assert drag_end_timer.parent() is data_zoom
+    assert drag_end_timer.property("host") == data_zoom
+    assert drag_end_timer.property("repeat") is False
+    assert drag_end_timer.property("running") is False
+
+    range_slider = next(
+        obj
+        for obj in _object_tree(data_zoom)
+        if obj.metaObject().indexOfProperty("firstValue") >= 0
+        and obj.metaObject().indexOfProperty("secondValue") >= 0
+    )
+    interactive = QSignalSpy(data_zoom.interactiveChanged)
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(range_slider),
+        range_slider,
+        "(sliderMoved(100, 900), true)",
+    )
+    assert _evaluate(expression)
+    assert data_zoom.property("_dragging") is True
+    assert chart.property("_viewportInteractive") is True
+    assert drag_end_timer.property("running") is True
+    assert interactive.count() == 1
+
+    _pump(int(drag_end_timer.property("interval")) + 20)
+    assert data_zoom.property("_dragging") is False
+    assert chart.property("_viewportInteractive") is False
+    assert drag_end_timer.property("running") is False
+    assert interactive.count() == 2
     assert warnings == []
 
 

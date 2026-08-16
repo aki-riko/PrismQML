@@ -2562,6 +2562,33 @@ def test_teaching_tour_keeps_state_reset_timer_modularized():
     assert "onTriggered: if (!host._active) host._currentIndex = -1" in helper_source
 
 
+def test_chart_data_zoom_keeps_drag_end_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/ChartDataZoom.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/"
+        "ChartDataZoomDragEndTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 230
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as ChartInternal' in source
+    assert "ChartInternal.ChartDataZoomDragEndTimer {" in source
+    assert "id: _dragEndTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "chartDataZoomDragEndTimer"' in helper_source
+    assert "interval: Enums.duration.slow" in helper_source
+    assert "repeat: false" in helper_source
+    assert "host._dragging = false" in helper_source
+    assert "host.interactiveChanged(false)" in helper_source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(
