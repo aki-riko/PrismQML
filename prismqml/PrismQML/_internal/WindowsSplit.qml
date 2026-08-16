@@ -48,15 +48,14 @@ NavigationWindowCore {
  
  // Load the core UI asynchronously after the first window and splash frame.
  // 首个窗口与欢迎页帧渲染后再异步加载核心界面。
- Timer {
+ WindowsSplitStartupTimer {
  id: startupTimer
- interval: Enums.window.splitStartupDelayMs
- running: true
- onTriggered: coreLoader.active = true
+ targetLoader: coreLoader
  }
 
  Loader {
  id: coreLoader
+ objectName: "windowsSplitCoreLoader"
  anchors.fill: parent
  active: false
  asynchronous: true

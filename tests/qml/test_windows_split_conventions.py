@@ -31,6 +31,7 @@ from scripts.qml_conventions import scan_source_text
 ROOT = Path(__file__).resolve().parents[2]
 INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
 SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
+STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsSplitStartupTimer.qml"
 FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
 BAR_SOURCE_PATH = INTERNAL_PATH / "WindowsBar.qml"
 BAR_CONTENT_SOURCE_PATH = INTERNAL_PATH / "WindowsBarContent.qml"
@@ -189,7 +190,7 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene(monkeypatch, scene_source):
+def _create_scene(monkeypatch, scene_source, activate=True):
     engine = QQmlApplicationEngine()
     native_window = _FakeNativeWindow(engine)
     monkeypatch.setattr(
@@ -212,8 +213,9 @@ def _create_scene(monkeypatch, scene_source):
     assert isinstance(window, QQuickWindow), [
         error.toString() for error in component.errors()
     ]
-    window.requestActivate()
-    assert _wait_for(window.isActive)
+    if activate:
+        window.requestActivate()
+        assert _wait_for(window.isActive)
     return engine, component, window, warnings
 
 
@@ -400,6 +402,34 @@ def test_windows_split_loads_core_and_transfers_default_pages(monkeypatch, qapp)
     _exercise_page_transfer(monkeypatch, SPLIT_SCENE_SOURCE, True)
 
 
+def test_windows_split_startup_timer_preserves_delayed_loader_activation(
+    monkeypatch, qapp
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene(
+        monkeypatch, SPLIT_SCENE_SOURCE, activate=False
+    )
+    try:
+        timer = window.findChild(QObject, "windowsSplitStartupTimer")
+        loader = window.findChild(QObject, "windowsSplitCoreLoader")
+        assert timer is not None and loader is not None
+        assert timer.parent() is loader.parent()
+        assert timer.property("running") is True
+        assert timer.property("interval") > 0
+        assert loader.property("active") is False
+        assert window.property("stackedWidget") is None
+
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        assert _wait_for(lambda: loader.property("active") is True)
+        assert _wait_for(lambda: window.property("stackedWidget") is not None)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, FILLED_SCENE_SOURCE)
 
@@ -461,17 +491,28 @@ def test_windows_bar_skips_non_item_default_child_and_dismisses_splash(
 
 def test_windows_split_source_conventions_and_startup_delay_token():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = STARTUP_TIMER_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    helper_path = PurePosixPath(STARTUP_TIMER_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        helper_source, helper_path
+    )
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert "interval: Enums.window.splitStartupDelayMs" in source
+    assert "WindowsSplitStartupTimer {" in source
+    assert "targetLoader: coreLoader" in source
+    assert "\n Timer {" not in source
+    assert "onTriggered: coreLoader.active = true" not in source
+    assert "required property var targetLoader" in helper_source
+    assert "interval: Enums.window.splitStartupDelayMs" in helper_source
+    assert "running: true" in helper_source
+    assert "onTriggered: targetLoader.active = true" in helper_source
     assert "default property list<QtObject> pages" in source
     assert "id: _hiddenStack" not in source
-    assert "interval: 50" not in source
+    assert "interval: 50" not in helper_source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int splitStartupDelayMs: 50" in metrics
 

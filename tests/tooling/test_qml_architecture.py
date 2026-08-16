@@ -82,6 +82,30 @@ def test_windows_core_keeps_resize_timer_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_windows_split_keeps_startup_timer_modularized():
+    entry = _source("prismqml/PrismQML/_internal/WindowsSplit.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/WindowsSplitStartupTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 280
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert "WindowsSplitStartupTimer {" in source
+    assert "id: startupTimer" in source
+    assert "targetLoader: coreLoader" in source
+    assert 'objectName: "windowsSplitCoreLoader"' in source
+    assert "\n Timer {" not in source
+    assert "required property var targetLoader" in helper_source
+    assert 'objectName: "windowsSplitStartupTimer"' in helper_source
+    assert "interval: Enums.window.splitStartupDelayMs" in helper_source
+    assert "running: true" in helper_source
+    assert "onTriggered: targetLoader.active = true" in helper_source
+    assert "coreLoader" not in helper_source
+
+
 def test_login_window_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/auth/LoginWindow.qml"
