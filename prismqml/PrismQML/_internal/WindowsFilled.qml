@@ -59,15 +59,14 @@ NavigationWindowCore {
         anchors.fill: parent
         color: window.contentBgColor
         
-        Timer {
+        WindowsFilledStartupTimer {
             id: startupTimer
-            interval: Enums.window.splitStartupDelayMs
-            running: true
-            onTriggered: mainLoader.active = true
+            targetLoader: mainLoader
         }
         
         Loader {
             id: mainLoader
+            objectName: "windowsFilledCoreLoader"
             anchors.fill: parent
             active: false
             asynchronous: true

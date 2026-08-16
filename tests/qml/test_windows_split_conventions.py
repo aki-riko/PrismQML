@@ -33,6 +33,7 @@ INTERNAL_PATH = ROOT / "prismqml" / "PrismQML" / "_internal"
 SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
 STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsSplitStartupTimer.qml"
 FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
+FILLED_STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsFilledStartupTimer.qml"
 BAR_SOURCE_PATH = INTERNAL_PATH / "WindowsBar.qml"
 BAR_STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsBarStartupTimer.qml"
 BAR_CONTENT_SOURCE_PATH = INTERNAL_PATH / "WindowsBarContent.qml"
@@ -435,6 +436,35 @@ def test_windows_filled_loads_core_and_transfers_default_pages(monkeypatch, qapp
     _exercise_page_transfer(monkeypatch, FILLED_SCENE_SOURCE)
 
 
+def test_windows_filled_startup_timer_preserves_delayed_loader_activation(
+    monkeypatch, qapp
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene(
+        monkeypatch, FILLED_SCENE_SOURCE, activate=False
+    )
+    try:
+        timer = window.findChild(QObject, "windowsFilledStartupTimer")
+        loader = window.findChild(QObject, "windowsFilledCoreLoader")
+        assert timer is not None and loader is not None
+        assert timer.parent() is loader.parent()
+        assert timer.property("targetLoader") is loader
+        assert timer.property("running") is True
+        assert timer.property("interval") > 0
+        assert loader.property("active") is False
+        assert window.property("stackedWidget") is None
+
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        assert _wait_for(lambda: loader.property("active") is True)
+        assert _wait_for(lambda: window.property("stackedWidget") is not None)
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_windows_bar_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, BAR_SCENE_SOURCE)
 
@@ -556,18 +586,30 @@ def test_windows_split_source_conventions_and_startup_delay_token():
 
 def test_windows_filled_source_conventions_and_stack_binding():
     source = FILLED_SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = FILLED_STARTUP_TIMER_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(FILLED_SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    helper_path = PurePosixPath(FILLED_STARTUP_TIMER_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        helper_source, helper_path
+    )
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+    assert "WindowsFilledStartupTimer {" in source
+    assert "targetLoader: mainLoader" in source
+    assert "\n        Timer {" not in source
+    assert "onTriggered: mainLoader.active = true" not in source
+    assert "required property var targetLoader" in helper_source
+    assert 'objectName: "windowsFilledStartupTimer"' in helper_source
+    assert "interval: Enums.window.splitStartupDelayMs" in helper_source
+    assert "running: true" in helper_source
+    assert "onTriggered: targetLoader.active = true" in helper_source
     assert "stackedWidget: stack" not in source
     assert "default property list<QtObject> pages" in source
     assert "id: _hiddenStack" not in source
     assert "window.stackedWidget = item.stackAlias" in source
-    assert "interval: Enums.window.splitStartupDelayMs" in source
     assert "smoothScroll: window.navigationSmoothScroll" in source
     assert "scrollDuration: window.navigationScrollDuration" in source
 
