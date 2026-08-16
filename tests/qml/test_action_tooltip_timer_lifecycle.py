@@ -43,6 +43,9 @@ TOOLTIP_SOURCE_PATH = (
     / "Tooltip"
     / "TooltipCore.qml"
 )
+TOOLTIP_TIMER_SOURCE_PATH = TOOLTIP_SOURCE_PATH.parent / "_internal" / (
+    "TooltipFollowAnchorTimer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "action-tooltip-timer-lifecycle.qml")
 )
@@ -89,7 +92,10 @@ def _timers(action: QQuickItem) -> list[QObject]:
     return [
         child
         for child in action.findChildren(QObject)
-        if child.metaObject().className() == "QQmlTimer"
+        if all(
+            child.metaObject().indexOfProperty(name) >= 0
+            for name in ("interval", "repeat", "running")
+        )
     ]
 
 
@@ -240,5 +246,8 @@ def test_action_source_loads_timer_with_tooltip():
 def test_tooltip_source_loads_follow_timer_with_window_host():
     """The follow timer must share the native host lifecycle. 跟随计时器必须跟随原生宿主生命周期。"""
     source = TOOLTIP_SOURCE_PATH.read_text(encoding="utf-8")
+    timer_source = TOOLTIP_TIMER_SOURCE_PATH.read_text(encoding="utf-8")
     assert "running: control.followAnchor && control._windowVisible" not in source
-    assert "running: control.followAnchor && windowHost.windowVisible" in source
+    assert "TooltipInternal.TooltipFollowAnchorTimer {" in source
+    assert "nativeHost: windowHost" in source
+    assert "running: host.followAnchor && nativeHost.windowVisible" in timer_source

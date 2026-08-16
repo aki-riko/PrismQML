@@ -5,6 +5,7 @@
 import "../../.."
 import "../../data"
 import "../../../effects"
+import "_internal" as TooltipInternal
 import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
@@ -153,11 +154,11 @@ Item {
 
             // Follow a moving anchor only after the native host exists.
             // 仅在原生宿主创建后跟随移动锚点。
-            Timer {
-                interval: 16
-                repeat: true
-                running: control.followAnchor && windowHost.windowVisible
-                onTriggered: control._reposition()
+            TooltipInternal.TooltipFollowAnchorTimer {
+                id: followTimer
+
+                host: control
+                nativeHost: windowHost
             }
 
             // Tooltip window 独立提示窗口

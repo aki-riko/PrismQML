@@ -155,6 +155,13 @@ def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
         assert _wait_for(lambda: loader.property("item") is not None)
 
         host = loader.property("item")
+        follow_timer = host.findChild(QObject, "tooltipFollowAnchorTimer")
+        assert follow_timer is not None
+        assert follow_timer.parent() is host
+        assert follow_timer.property("host") == tooltip
+        assert follow_timer.property("nativeHost") == host
+        assert follow_timer.property("interval") == 16
+        assert follow_timer.property("repeat") is True
         windows = tooltip.findChildren(QWindow)
         assert len(windows) == 1
         tip_window = windows[0]
@@ -168,6 +175,7 @@ def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
             f"hasParent={tooltip.parent() is not None} "
             f"warnings={warnings}"
         )
+        assert follow_timer.property("running") is True
         assert _wait_for(
             lambda: content.property("opacity") == 1.0
             and content.property("scale") == 1.0
@@ -183,13 +191,17 @@ def test_tooltip_window_is_created_on_first_show_and_reused(qapp):
 
         root.hideTooltip()
         assert _wait_for(lambda: not tip_window.isVisible())
+        assert follow_timer.property("running") is False
         assert loader.property("item") is host
 
         root.setLegacyVisible(True)
         assert _wait_for(tip_window.isVisible)
+        assert follow_timer.property("running") is True
         root.setLegacyVisible(False)
         assert _wait_for(lambda: not tip_window.isVisible())
+        assert follow_timer.property("running") is False
         assert loader.property("item") is host
+        assert host.findChild(QObject, "tooltipFollowAnchorTimer") is follow_timer
         assert warnings == []
     finally:
         _release(qapp, root, component, engine)
