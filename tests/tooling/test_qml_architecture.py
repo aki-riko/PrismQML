@@ -749,11 +749,42 @@ def test_chat_message_list_keeps_slot_delegate_modularized():
     helper = _source(
         "prismqml/PrismQML/controls/chat/_internal/ChatMessageSlot.qml"
     )
+    viewport = _source(
+        "prismqml/PrismQML/controls/chat/_internal/ChatMessageViewport.qml"
+    )
 
     assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
-    assert "ChatMessageSlot {" in entry.read_text(encoding="utf-8")
+    assert "ChatMessageSlot {" in viewport.read_text(encoding="utf-8")
+
+
+def test_chat_message_list_keeps_viewport_content_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/ChatMessageViewport.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 400
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 120
+    assert 'import "_internal" as ChatInternal' in source
+    assert "ChatInternal.ChatMessageViewport {" in source
+    assert "required property var chatControl" in helper_source
+    assert "required property var messageModel" in helper_source
+    for alias in ("viewport", "contentColumn", "repeater"):
+        assert f"property alias {alias}:" in helper_source
+    for alias in ("messageViewport", "messageColumn", "messageRepeater"):
+        assert f"property alias {alias}: messageContent." in source
+    for marker in (
+        "id: messageViewport",
+        "id: messageColumn",
+        "id: messageRepeater",
+        "ChatMessageSlot {",
+    ):
+        assert marker not in source
 
 
 def test_menu_core_keeps_visual_content_modularized():

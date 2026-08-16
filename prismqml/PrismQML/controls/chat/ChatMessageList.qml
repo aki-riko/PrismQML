@@ -4,7 +4,7 @@
 
 import "../.."
 import "."
-import "_internal"
+import "_internal" as ChatInternal
 import "../containers/ScrollBar"
 import QtQuick  // Place after library imports so native types keep no prefix 置于库 import 后，确保原生类型无需前缀
 
@@ -57,6 +57,9 @@ Item {
     property int _lastLayoutStartIndex: -1
     property int _firstLoadIndex: -1
     property int _lastLoadIndex: -1
+    property alias messageViewport: messageContent.viewport
+    property alias messageColumn: messageContent.contentColumn
+    property alias messageRepeater: messageContent.repeater
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int messageCount: chatModel.count
@@ -348,48 +351,11 @@ Item {
         id: chatModel
     }
 
-    Flickable {
-        id: messageViewport
+    ChatInternal.ChatMessageViewport {
+        id: messageContent
 
-        objectName: "chatMessageViewport"
-        anchors.fill: parent
-        anchors.rightMargin: control._reserveScrollBarGutter
-            ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
-        contentWidth: width
-        contentHeight: messageColumn.height
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        interactive: false
-
-        onContentYChanged: {
-            if (!control._adjustingScroll) control._followBottom = control._isAtBottom
-            control._scheduleLoadRangeUpdate()
-        }
-        onContentHeightChanged: {
-            if (control._followBottom) control._scheduleScrollToBottom()
-        }
-        onHeightChanged: {
-            control._scheduleLoadRangeUpdate()
-        }
-
-        Item {
-            id: messageColumn
-
-            objectName: "chatMessageContent"
-            width: messageViewport.width
-
-            Repeater {
-                id: messageRepeater
-
-                model: chatModel
-                onItemAdded: (index, item) => control._scheduleSlotLayout(index)
-
-                delegate: ChatMessageSlot {
-                    host: control
-                    messageColumn: messageColumn
-                }
-            }
-        }
+        chatControl: control
+        messageModel: chatModel
     }
 
     ScrollViewportState {
