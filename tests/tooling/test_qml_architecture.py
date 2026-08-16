@@ -386,6 +386,35 @@ def test_button_core_keeps_behavior_modularized():
     assert "ButtonLogic.prewarmMenu(control, Enums," in source
 
 
+def test_button_countdown_keeps_timer_component_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonCountdown.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/"
+        "ButtonCountdownTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 80
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "Loader {" in source
+    assert "sourceComponent: ButtonCountdownTimer {" in source
+    assert "button: countdownLoader.button" in source
+    assert "sourceComponent: Timer {" not in source
+    assert "\n    Timer {" not in source
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert "required property var button" in helper_source
+    assert "interval: Enums.duration.countUp" in helper_source
+    assert "repeat: true" in helper_source
+    assert "running: button._countdownActive" in helper_source
+    assert "button.countdownFinished()" in helper_source
+    assert "countdownLoader" not in helper_source
+
+
 def test_button_core_keeps_surface_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"

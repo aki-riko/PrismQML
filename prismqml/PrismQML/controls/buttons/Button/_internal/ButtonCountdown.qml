@@ -14,16 +14,7 @@ Loader {
 
     active: button.feature === Enums.button.feature_countdown
             || button._countdownActive
-    sourceComponent: Timer {
-        interval: Enums.duration.countUp
-        repeat: true
-        running: countdownLoader.button._countdownActive
-        onTriggered: {
-            countdownLoader.button._countdownRemaining--
-            if (countdownLoader.button._countdownRemaining <= 0) {
-                countdownLoader.button._countdownActive = false
-                countdownLoader.button.countdownFinished()
-            }
-        }
+    sourceComponent: ButtonCountdownTimer {
+        button: countdownLoader.button
     }
 }
