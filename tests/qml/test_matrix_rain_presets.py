@@ -191,6 +191,41 @@ def test_matrix_rain_invalid_runtime_limits_stay_finite(qapp):
         _pump()
 
 
+def test_matrix_rain_animation_timer_preserves_runtime_contract(qapp):
+    engine = QQmlApplicationEngine()
+    component = instance = None
+    try:
+        component, instance = _create_matrix_rain(engine)
+        timer = instance.findChild(QObject, "matrixRainAnimationTimer")
+        assert timer is not None
+        assert timer.parent() is instance
+        assert timer.property("host") is instance
+        target_canvas = timer.property("targetCanvas")
+        assert target_canvas is not None
+        assert timer.property("repeat") is True
+        assert timer.property("running") is False
+
+        instance.setProperty("running", True)
+        _pump(10)
+        assert timer.property("running") is True
+
+        instance.setProperty("speed", 0)
+        assert instance.property("_safeSpeed") == 0.1
+        assert timer.property("interval") == 500
+        instance.setProperty("speed", 5)
+        assert timer.property("interval") == 16
+
+        instance.setProperty("paused", True)
+        _pump(10)
+        assert timer.property("running") is False
+    finally:
+        if instance is not None:
+            instance.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump()
+
+
 def test_matrix_rain_frame_updates_reuse_drop_array_without_property_change(qapp):
     engine = QQmlApplicationEngine()
     component = instance = None

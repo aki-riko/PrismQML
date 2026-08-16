@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "_internal" as MatrixRainInternal
 import "_internal/MatrixRainPresets.js" as MatrixRainPresets
 
 // MatrixRain - The Matrix digital rain effect 黑客帝国数字雨效果
@@ -415,10 +416,9 @@ Rectangle {
         onExited: root.mousePos = Qt.point(-1000, -1000)
     }
     
-    Timer {
-        interval: Math.max(16, 50 / root._safeSpeed)
-        running: root.running && !root.paused && root.visible
-        repeat: true
-        onTriggered: canvas.requestPaint()
+    MatrixRainInternal.MatrixRainAnimationTimer {
+        id: animationTimer
+        host: root
+        targetCanvas: canvas
     }
 }
