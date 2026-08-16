@@ -1884,6 +1884,33 @@ def test_marquee_keeps_layout_start_timer_modularized():
     assert "onTriggered: host._tryStartAnimation()" in helper_source
 
 
+def test_paginator_keeps_page_settle_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/Paginator.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/"
+        "PaginatorPageSettleTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert 'import "_internal" as NavigationInternal' in source
+    assert "NavigationInternal.PaginatorPageSettleTimer {" in source
+    assert "id: pageSettleTimer" in source
+    assert "host: root" in source
+    assert "slideAnimation: pageSlideAnimation" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert "required property var slideAnimation" in helper_source
+    assert 'objectName: "paginatorPageSettleTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    assert "if (!slideAnimation.running) host._settleLoadedPages()" in helper_source
+    assert "if (!pageSlideAnimation.running) root._settleLoadedPages()" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

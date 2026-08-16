@@ -7,7 +7,16 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QPointF, QTimer, Qt, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    QPointF,
+    QTimer,
+    Qt,
+    QUrl,
+)
 from PySide6.QtGui import QColor
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -54,6 +63,13 @@ Paginator {{
     paginator = component.create(engine.rootContext())
     assert paginator is not None, [error.toString() for error in component.errors()]
     _pump(10)
+    settle_timer = paginator.findChild(QObject, "paginatorPageSettleTimer")
+    assert settle_timer is not None
+    assert settle_timer.parent() is paginator
+    assert settle_timer.property("host") == paginator
+    assert settle_timer.property("slideAnimation") is not None
+    assert settle_timer.property("interval") == 0
+    assert settle_timer.property("repeat") is False
     return engine, component, paginator, warnings
 
 

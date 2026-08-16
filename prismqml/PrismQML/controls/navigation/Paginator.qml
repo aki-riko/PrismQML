@@ -7,6 +7,7 @@ import "../.."
 import "../icons"
 import "../buttons"
 import "../data"
+import "_internal" as NavigationInternal
 
 // Paginator - Fluent Design style pagination 分页器
 // Features sliding page changes, hover effects, and accent highlights 支持滑动翻页、悬停效果和强调色高亮
@@ -88,14 +89,11 @@ Item {
     on_WindowEndPageChanged: _expandLoadedPages()
 
     // ==================== Content 内容 ====================
-    Timer {
+    NavigationInternal.PaginatorPageSettleTimer {
         id: pageSettleTimer
 
-        interval: 0
-        repeat: false
-        onTriggered: {
-            if (!pageSlideAnimation.running) root._settleLoadedPages()
-        }
+        host: root
+        slideAnimation: pageSlideAnimation
     }
 
     Row {
