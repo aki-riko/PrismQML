@@ -2299,7 +2299,7 @@ def test_spin_box_keeps_feedback_timers_modularized():
     assert source.count("SpinBoxInternal.SpinBoxFeedbackTimer {") == 2
     assert "id: upFeedbackTimer" in source
     assert "id: downFeedbackTimer" in source
-    assert source.count("spinControl: control") == 3
+    assert source.count("spinControl: control") == 4
     assert "increase: true" in source
     assert "increase: false" in source
     assert "required property var spinControl" in helper_source
@@ -2313,6 +2313,38 @@ def test_spin_box_keeps_feedback_timers_modularized():
     assert "pseudoPressed = false" in helper_source
     assert "\n    Timer {\n        id: upFeedbackTimer" not in source
     assert "\n    Timer {\n        id: downFeedbackTimer" not in source
+
+
+def test_spin_box_keeps_auto_repeat_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/SpinBox/SpinBoxCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/SpinBox/_internal/"
+        "SpinBoxAutoRepeatTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 70
+    assert "SpinBoxInternal.SpinBoxAutoRepeatTimer {" in source
+    assert "id: autoRepeatTimer" in source
+    assert "spinControl: control" in source
+    assert "required property var spinControl" in helper_source
+    assert 'objectName: "spinBoxAutoRepeatTimer"' in helper_source
+    assert "property bool _inRepeatPhase: false" in helper_source
+    assert "interval: _inRepeatPhase" in helper_source
+    assert "repeat: _inRepeatPhase" in helper_source
+    for marker in (
+        "spinControl._repeatCurrentInterval = spinControl.autoRepeatInterval",
+        "spinControl._repeatIsUp",
+        "spinControl.increase()",
+        "spinControl.decrease()",
+        "spinControl.autoRepeatMinInterval",
+        "Enums.input.spinBoxRepeatAcceleration",
+    ):
+        assert marker in helper_source
+    assert "\n    Timer {\n        id: autoRepeatTimer" not in source
 
 
 def test_expander_keeps_header_visuals_modularized():

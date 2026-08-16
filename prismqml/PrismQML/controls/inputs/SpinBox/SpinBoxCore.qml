@@ -246,33 +246,9 @@ InputCore {
     
     // Held-button auto repeat 长按自动重复
     // Wait autoRepeatDelay, then repeat and accelerate toward the minimum interval 先等待延迟，再重复并逐步加速到最短间隔
-    Timer {
+    SpinBoxInternal.SpinBoxAutoRepeatTimer {
         id: autoRepeatTimer
-
-        property bool _inRepeatPhase: false
-
-        interval: _inRepeatPhase
-                  ? control._repeatCurrentInterval : control.autoRepeatDelay
-        repeat: _inRepeatPhase
-        onTriggered: {
-            if (!_inRepeatPhase) {
-                control._repeatCurrentInterval = control.autoRepeatInterval
-                _inRepeatPhase = true
-                start()
-                return
-            }
-            if (control._repeatIsUp) control.increase()
-            else control.decrease()
-            // Accelerate each repeat toward the minimum interval 每次重复后向最短间隔收敛
-            if (control.autoRepeatMinInterval > 0 &&
-                control._repeatCurrentInterval > control.autoRepeatMinInterval) {
-                var next = Math.max(control.autoRepeatMinInterval,
-                                    Math.floor(control._repeatCurrentInterval * Enums.input.spinBoxRepeatAcceleration))
-                if (next !== control._repeatCurrentInterval) {
-                    control._repeatCurrentInterval = next
-                }
-            }
-        }
+        spinControl: control
     }
 
     // Wheel feedback timers 滚轮反馈计时器

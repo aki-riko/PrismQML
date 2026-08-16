@@ -39,6 +39,9 @@ SOURCE_PATH = (
 FEEDBACK_TIMER_PATH = (
     SOURCE_PATH.parent / "_internal" / "SpinBoxFeedbackTimer.qml"
 )
+AUTO_REPEAT_TIMER_PATH = (
+    SOURCE_PATH.parent / "_internal" / "SpinBoxAutoRepeatTimer.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 INPUT_ENUM_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Input.qml"
 SCENE_URL = QUrl.fromLocalFile(
@@ -389,6 +392,7 @@ def test_spin_box_public_methods_wrap_and_signal_characterization(qapp):
 def test_spin_box_core_source_conventions_and_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     feedback_timer_source = FEEDBACK_TIMER_PATH.read_text(encoding="utf-8")
+    auto_repeat_timer_source = AUTO_REPEAT_TIMER_PATH.read_text(encoding="utf-8")
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     input_enum = INPUT_ENUM_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -402,7 +406,6 @@ def test_spin_box_core_source_conventions_and_tokens():
         "Enums.duration.spinBoxRepeatDelay",
         "Enums.duration.spinBoxRepeatInterval",
         "Enums.duration.spinBoxRepeatMinInterval",
-        "Enums.input.spinBoxRepeatAcceleration",
         "Enums.controlSize.spinBoxWidth",
     ):
         assert token in source
@@ -410,6 +413,10 @@ def test_spin_box_core_source_conventions_and_tokens():
     assert feedback_timer_source.count("interval: Enums.duration.fast") == 1
     assert "required property var spinControl" in feedback_timer_source
     assert "required property bool increase" in feedback_timer_source
+    assert "SpinBoxInternal.SpinBoxAutoRepeatTimer {" in source
+    assert "required property var spinControl" in auto_repeat_timer_source
+    assert "property bool _inRepeatPhase: false" in auto_repeat_timer_source
+    assert "spinControl._repeatIsUp" in auto_repeat_timer_source
     assert "readonly property int spinBoxRepeatDelay: 500" in metrics
     assert "readonly property int spinBoxRepeatInterval: 60" in metrics
     assert "readonly property int spinBoxRepeatMinInterval: 20" in metrics
@@ -434,6 +441,30 @@ def test_spin_box_feedback_timer_lifecycle_contract(qapp):
             timer.restart()
             assert timer.property("running") is True
             assert _wait_for(lambda: timer.property("running") is False)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_spin_box_auto_repeat_timer_lifecycle_contract(qapp):
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        timer = normal.findChild(QObject, "spinBoxAutoRepeatTimer")
+        assert timer is not None
+        assert timer.parent() is normal
+        assert timer.property("spinControl") is normal
+        assert timer.property("_inRepeatPhase") is False
+        assert timer.property("interval") == normal.property("autoRepeatDelay")
+        assert timer.property("repeat") is False
+        timer.start()
+        assert timer.property("running") is True
+        assert _wait_for(lambda: timer.property("_inRepeatPhase") is True)
+        assert timer.property("repeat") is True
+        assert timer.property("interval") == normal.property("autoRepeatInterval")
+        timer.stop()
+        timer.setProperty("_inRepeatPhase", False)
+        assert timer.property("running") is False
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
