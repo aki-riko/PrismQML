@@ -1412,6 +1412,31 @@ def test_chat_message_slot_keeps_measurement_timer_modularized():
     assert "host._cacheSlotHeight(slot, slot.item.implicitHeight)" not in source
 
 
+def test_code_block_keeps_copy_feedback_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/CodeBlock.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/"
+        "CodeBlockCopyFeedbackTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 180
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert 'import "_internal" as ChatInternal' in source
+    assert "ChatInternal.CodeBlockCopyFeedbackTimer {" in source
+    assert "id: copiedTimer" in source
+    assert "host: copyBtn" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "codeBlockCopyFeedbackTimer"' in helper_source
+    assert "interval: Enums.duration.copyFeedback" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._copied = false" in helper_source
+    assert "onTriggered: copyBtn._copied = false" not in source
+    assert "\n            Timer {" not in source
+
+
 def test_chat_message_list_keeps_viewport_content_modularized():
     entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
     helper = _source(

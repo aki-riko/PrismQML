@@ -35,6 +35,8 @@ SOURCE_TOKEN_REFERENCES = {
         "Enums.controlSize.codeBlockCopyButtonWidth",
         "Enums.controlSize.codeBlockCopyButtonHeight",
         "Enums.typography.captionCompact",
+    },
+    CHAT_ROOT / "_internal" / "CodeBlockCopyFeedbackTimer.qml": {
         "Enums.duration.copyFeedback",
     },
     CHAT_ROOT / "MarkdownView.qml": {
@@ -321,9 +323,13 @@ def _assert_code_block_geometry(
     assert parts["code"].property("font").pixelSize() == window.property(
         "expectedCaption"
     )
+    assert parts["timer"].objectName() == "codeBlockCopyFeedbackTimer"
+    assert parts["timer"].parent() is parts["copy_area"]
+    assert parts["timer"].property("host") is parts["copy_area"]
     assert parts["timer"].property("interval") == window.property(
         "expectedCopyFeedback"
     )
+    assert parts["timer"].property("repeat") is False
 
 
 def _assert_code_margins(window: QQuickWindow, code_text: QQuickItem) -> None:
@@ -372,6 +378,16 @@ def _assert_copy_success(window: QQuickWindow, parts: dict) -> None:
     assert parts["copy_area"].setProperty("_copied", False)
     _pump(1)
     assert parts["copy_text"].property("text") == "复制"
+
+
+def _assert_copy_feedback_timer(parts: dict) -> None:
+    timer = parts["timer"]
+    assert timer.setProperty("interval", 1)
+    assert parts["copy_area"].setProperty("_copied", True)
+    assert timer.setProperty("running", True)
+    _pump(20)
+    assert timer.property("running") is False
+    assert parts["copy_area"].property("_copied") is False
 
 
 def _palette_signature(code_block: QQuickItem, parts: dict) -> tuple:
@@ -495,6 +511,7 @@ def test_chat_style_tokens_render_in_hidden_window_and_remain_fixed(qapp):
         _assert_code_block_geometry(window, direct_code_block, direct_parts)
         _assert_code_margins(window, direct_parts["code"])
         _assert_shared_width_defaults(engine, window)
+        _assert_copy_feedback_timer(direct_parts)
         _exercise_theme_modes(
             window,
             direct_code_block,

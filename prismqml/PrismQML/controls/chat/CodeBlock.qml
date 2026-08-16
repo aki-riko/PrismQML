@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "_internal" as ChatInternal
 
 /**
  * CodeBlock — 代码块组件
@@ -113,10 +114,9 @@ Rectangle {
                 }
             }
 
-            Timer {
+            ChatInternal.CodeBlockCopyFeedbackTimer {
                 id: copiedTimer
-                interval: Enums.duration.copyFeedback
-                onTriggered: copyBtn._copied = false
+                host: copyBtn
             }
         }
     }
