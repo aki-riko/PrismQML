@@ -296,6 +296,40 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_toggle_navigation_bar_keeps_indicator_timers_modularized():
+    entry = _source("prismqml/PrismQML/navigation/ToggleNavigationBar.qml")
+    tracker = _source(
+        "prismqml/PrismQML/navigation/_internal/"
+        "ToggleNavigationIndicatorTrackerTimer.qml"
+    )
+    scroll_stop = _source(
+        "prismqml/PrismQML/navigation/_internal/"
+        "NavigationIndicatorScrollStopTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    tracker_source = tracker.read_text(encoding="utf-8")
+    scroll_stop_source = scroll_stop.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 370
+    for helper in (tracker, scroll_stop):
+        assert helper.exists()
+        assert len(helper.read_text(encoding="utf-8").splitlines()) < 80
+    assert "ToggleNavigationIndicatorTrackerTimer {" in source
+    assert "NavigationIndicatorScrollStopTimer {" in source
+    assert "id: _indicatorTracker" in source
+    assert "id: _scrollStopTimer" in source
+    assert "host: control" in source
+    assert "tracker: _indicatorTracker" in source
+    assert "required property var host" in tracker_source
+    assert "property bool _scrolling: false" in tracker_source
+    assert "Enums.duration.tick" in tracker_source
+    assert "host._updateIndicator(false)" in tracker_source
+    assert "required property var tracker" in scroll_stop_source
+    assert "Enums.duration.fast" in scroll_stop_source
+    assert "tracker._scrolling = false" in scroll_stop_source
+    assert "\n    Timer {" not in source
+
+
 def test_button_core_keeps_behavior_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"

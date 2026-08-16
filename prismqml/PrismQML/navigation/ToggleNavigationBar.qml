@@ -123,21 +123,14 @@ Item {
         _updateIndicator(false)
     }
 
-    Timer {
+    ToggleNavigationIndicatorTrackerTimer {
         id: _indicatorTracker
-
-        property bool _scrolling: false
-
-        interval: Enums.duration.tick
-        repeat: true
-        running: _scrolling
-        onTriggered: control._updateIndicator(false)
+        host: control
     }
     
-    Timer {
+    NavigationIndicatorScrollStopTimer {
         id: _scrollStopTimer
-        interval: Enums.duration.fast
-        onTriggered: _indicatorTracker._scrolling = false
+        tracker: _indicatorTracker
     }
     
     // ==================== Content 内容 ====================
