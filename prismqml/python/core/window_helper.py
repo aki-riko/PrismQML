@@ -9,7 +9,7 @@ import sys
 import time
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QPoint, QResource, QUrl, Slot
+from PySide6.QtCore import QObject, QPoint, QRect, QResource, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, Qt
 
 from ._icon_path import resolve_icon_path
@@ -27,10 +27,14 @@ from ._window_follower import (
     _MINIMUM_NATIVE_EXTENT,
     _SWP_NOOWNERZORDER,
     _SWP_NOZORDER,
+    _ATTACHMENT_POSITIONS,
     _WINDOW_EDGES,
     _WM_MOUSEACTIVATE,
     _WM_WINDOWPOSCHANGING,
+    _WindowRect,
     _WindowFollowerFilter,
+    _attached_window_rect,
+    _attachment_edge,
     _follower_rect,
     _follower_rect_for_extent,
     _set_qt_follower_geometry,
@@ -72,6 +76,8 @@ class WindowHelper(QObject):
 
     _instance: Optional["WindowHelper"] = None
 
+    windowFollowerReservationsChanged = Signal()
+
     def __new__(cls, parent: Optional[QObject] = None):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -83,6 +89,7 @@ class WindowHelper(QObject):
             return
         super().__init__(parent)
         self._follower_filter: Optional[_WindowFollowerFilter] = None
+        self._follower_reservations: dict[int, tuple[int, int, float]] = {}
         self._cached_svg_icon_path = ""
         self._cached_svg_icon_signature: Optional[tuple[Any, ...]] = None
         self._cached_svg_icon: Optional[QIcon] = None
@@ -142,7 +149,7 @@ class WindowHelper(QObject):
                 _MINIMUM_NATIVE_EXTENT,
                 round(logical_extent * scale),
             )
-            return bool(
+            registered = bool(
                 event_filter
                 and event_filter.register(
                     host_hwnd,
@@ -151,6 +158,16 @@ class WindowHelper(QObject):
                     physical_extent,
                 )
             )
+            if not registered:
+                registered = _set_qt_follower_geometry(
+                    host_window, follower_window, edge, logical_extent
+                )
+            if registered:
+                reservation = (host_hwnd, edge, float(logical_extent))
+                if self._follower_reservations.get(follower_hwnd) != reservation:
+                    self._follower_reservations[follower_hwnd] = reservation
+                    self.windowFollowerReservationsChanged.emit()
+            return registered
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随注册失败: {exc}")
             return False
@@ -264,11 +281,175 @@ class WindowHelper(QObject):
         """Remove one native follower binding. 移除一个原生附属窗口绑定。"""
         try:
             follower_hwnd = self._window_id(follower_window)
-            if not follower_hwnd or self._follower_filter is None:
+            if not follower_hwnd:
                 return False
-            return self._follower_filter.unregister(follower_hwnd)
+            native_removed = bool(
+                self._follower_filter
+                and self._follower_filter.unregister(follower_hwnd)
+            )
+            reservation_removed = (
+                self._follower_reservations.pop(follower_hwnd, None) is not None
+            )
+            if reservation_removed:
+                self.windowFollowerReservationsChanged.emit()
+            return native_removed or reservation_removed
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随解绑失败: {exc}")
+            return False
+
+    def _logical_reserved_extent(self, host_hwnd: int, edge: int) -> float:
+        """Return the widest logical reservation on one host edge. 返回宿主单边最大逻辑占位。"""
+        return max(
+            (
+                extent
+                for reserved_host, reserved_edge, extent
+                in self._follower_reservations.values()
+                if reserved_host == host_hwnd and reserved_edge == edge
+            ),
+            default=0.0,
+        )
+
+    def _logical_attachment_geometry(
+        self,
+        host_window,
+        position: int,
+        width: float,
+        height: float,
+        gap: float,
+        stack_offset: float,
+    ) -> dict[str, int]:
+        """Calculate logical geometry for an exact attachment. 计算精确附着窗口的逻辑几何。"""
+        host_geometry = host_window.frameGeometry()
+        host_rect = _WindowRect(
+            host_geometry.left(),
+            host_geometry.top(),
+            host_geometry.right() + 1,
+            host_geometry.bottom() + 1,
+        )
+        edge = _attachment_edge(position)
+        geometry = _attached_window_rect(
+            host_rect,
+            max(_MINIMUM_NATIVE_EXTENT, round(width)),
+            max(_MINIMUM_NATIVE_EXTENT, round(height)),
+            position,
+            round(self._logical_reserved_extent(self._window_id(host_window), edge)),
+            max(0, round(gap)),
+            max(0, round(stack_offset)),
+        )
+        left, top, right, bottom = geometry
+        return {"x": left, "y": top, "width": right - left, "height": bottom - top}
+
+    @Slot("QVariant", int, float, float, float, float, result="QVariantMap")
+    def windowAttachmentGeometry(
+        self,
+        host_window,
+        position: int,
+        width: float,
+        height: float,
+        gap: float,
+        stack_offset: float,
+    ) -> dict[str, int]:
+        """Return one logical outside attachment rectangle. 返回一个逻辑外侧附着矩形。"""
+        try:
+            if (
+                not self._window_id(host_window)
+                or position not in _ATTACHMENT_POSITIONS
+                or width <= 0
+                or height <= 0
+                or gap < 0
+                or stack_offset < 0
+            ):
+                return {}
+            return self._logical_attachment_geometry(
+                host_window, position, width, height, gap, stack_offset
+            )
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            error(f"附着窗口几何计算失败: {exc}")
+            return {}
+
+    def _register_window_attachment(
+        self,
+        host_window,
+        attached_window,
+        position: int,
+        width: float,
+        height: float,
+        gap: float,
+        stack_offset: float,
+    ) -> bool:
+        """Register natively or apply one Qt fallback rectangle. 原生注册或应用 Qt 兜底矩形。"""
+        host_hwnd = self._window_id(host_window)
+        attached_hwnd = self._window_id(attached_window)
+        scale = _window_device_pixel_ratio(host_window)
+        event_filter = self._ensure_follower_filter()
+        registered = bool(
+            event_filter
+            and event_filter.register_attachment(
+                host_hwnd,
+                attached_hwnd,
+                position,
+                max(_MINIMUM_NATIVE_EXTENT, round(width * scale)),
+                max(_MINIMUM_NATIVE_EXTENT, round(height * scale)),
+                max(0, round(gap * scale)),
+                max(0, round(stack_offset * scale)),
+            )
+        )
+        if registered:
+            return True
+        geometry = self._logical_attachment_geometry(
+            host_window, position, width, height, gap, stack_offset
+        )
+        attached_window.setGeometry(
+            QRect(geometry["x"], geometry["y"], geometry["width"], geometry["height"])
+        )
+        return True
+
+    @Slot("QVariant", "QVariant", int, float, float, float, float, result=bool)
+    def registerWindowAttachment(
+        self,
+        host_window,
+        attached_window,
+        position: int,
+        width: float,
+        height: float,
+        gap: float,
+        stack_offset: float,
+    ) -> bool:
+        """Register an exact outside window attachment. 注册精确尺寸的外侧窗口附着。"""
+        try:
+            if (
+                not self._window_id(host_window)
+                or not self._window_id(attached_window)
+                or position not in _ATTACHMENT_POSITIONS
+                or width <= 0
+                or height <= 0
+                or gap < 0
+                or stack_offset < 0
+            ):
+                return False
+            return self._register_window_attachment(
+                host_window,
+                attached_window,
+                position,
+                width,
+                height,
+                gap,
+                stack_offset,
+            )
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            error(f"附着窗口注册失败: {exc}")
+            return False
+
+    @Slot("QVariant", result=bool)
+    def unregisterWindowAttachment(self, attached_window) -> bool:
+        """Remove one exact attachment binding. 移除一个精确附着窗口绑定。"""
+        try:
+            attached_hwnd = self._window_id(attached_window)
+            if not attached_hwnd or self._follower_filter is None:
+                return False
+            return self._follower_filter.unregister_attachment(attached_hwnd)
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            error(f"附着窗口解绑失败: {exc}")
             return False
 
     @Slot(QUrl, result=str)

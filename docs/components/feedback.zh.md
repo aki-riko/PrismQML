@@ -74,6 +74,31 @@ showDesktopSuccess(
 )
 ```
 
+### 贴着宿主窗口外侧
+
+InfoBar/Toast 的最后一个可选参数是通知模式。传入
+`Enums.notification.mode_window_outside` 后，`parent` 所属窗口会成为宿主，通知在
+宿主外沿创建为独立窗口：
+
+```qml
+Fluent.Button {
+    text: "在窗口左上外侧显示 Toast"
+    onClicked: Fluent.NotificationManager.toast.info(
+        Window.window,
+        "提示",
+        "贴着窗口左侧顶部出现",
+        0,
+        Fluent.Enums.notification.posTopLeft,
+        Fluent.Enums.notification.mode_window_outside
+    )
+}
+```
+
+`posTopLeft` / `posTopRight` 从宿主侧边顶部向下堆叠，`posLeft` / `posRight` 从垂直中心
+向下堆叠，`posBottomLeft` / `posBottomRight` 从底部向上堆叠；`posTop` 从上沿中间向上，
+`posBottom` 从下沿中间向下。`posCenter` 没有对应外沿，会被拒绝。宿主窗口移动、缩放、
+隐藏或最小化时，外侧通知会同步或关闭；同边窗口外 Drawer 的占位会自动计入间距。
+
 ## InfoBar 信息条
 
 ```qml

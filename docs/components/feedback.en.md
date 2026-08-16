@@ -79,6 +79,36 @@ showDesktopSuccess(
 )
 ```
 
+### Outside the host window
+
+The last optional argument of the InfoBar/Toast manager methods selects the
+notification mode. With `Enums.notification.mode_window_outside`, the window
+that owns `parent` becomes the host and the notification is created as a
+separate window attached to its outside edge:
+
+```qml
+Fluent.Button {
+    text: "Show a Toast outside the top-left of the window"
+    onClicked: Fluent.NotificationManager.toast.info(
+        Window.window,
+        "Notice",
+        "Attached to the host window",
+        0,
+        Fluent.Enums.notification.posTopLeft,
+        Fluent.Enums.notification.mode_window_outside
+    )
+}
+```
+
+`posTopLeft` / `posTopRight` stack downward from the top of the host sides,
+`posLeft` / `posRight` stack from the vertical center, and
+`posBottomLeft` / `posBottomRight` stack upward from the bottom. `posTop`
+starts at the middle of the top edge and stacks upward; `posBottom` starts at
+the middle of the bottom edge and stacks downward. `posCenter` has no outside
+edge and is rejected. Attachments follow host movement and resizing, close
+when the host is hidden or minimized, and account for same-edge outside Drawer
+reservations.
+
 ## InfoBar
 
 ```qml

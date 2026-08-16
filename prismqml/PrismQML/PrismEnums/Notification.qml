@@ -8,6 +8,7 @@ import QtQuick
 QtObject {
     readonly property int mode_in_app: 0
     readonly property int mode_desktop: 1
+    readonly property int mode_window_outside: 2
     
     // ==================== Orientation 方向枚举 ====================
     // InfoBar/Toast layout orientation 布局方向
@@ -42,6 +43,7 @@ QtObject {
         readonly property int verticalSlideExtra: 48  // Extra offset for top/bottom slide 正上/下方滑入额外偏移
         readonly property int screenMargin: 8     // Screen edge margin 屏幕边缘间距
         readonly property int windowMargin: 28    // In-window notification margin 窗口内通知边距
+        readonly property int windowOutsideGap: 8 // Gap from host or outside drawer 与宿主或外侧抽屉间距
         readonly property int stackGapLarge: 25   // InfoBar stack gap InfoBar堆叠间距
         readonly property int maxVisible: 5       // Max visible notifications 最大可见通知数
         readonly property int longMessageThreshold: 60 // Vertical layout threshold 垂直布局长度阈值
@@ -66,6 +68,12 @@ QtObject {
     function isLeft(pos) { return pos === posTopLeft || pos === posLeft || pos === posBottomLeft }
     function isRight(pos) { return pos === posTopRight || pos === posRight || pos === posBottomRight }
     function isHorizontalCenter(pos) { return pos === posTop || pos === posCenter || pos === posBottom }
+    function isWindowOutsidePosition(pos) {
+        return pos >= posTopLeft && pos <= posBottomRight && pos !== posCenter
+    }
+    function windowOutsideStacksBackward(pos) {
+        return pos === posTop || pos === posBottomLeft || pos === posBottomRight
+    }
     
     // ==================== Severity Helpers 语义辅助函数 ====================
     // Map severity string to level number 映射severity字符串到level数字

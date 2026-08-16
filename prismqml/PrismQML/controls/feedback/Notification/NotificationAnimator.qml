@@ -177,10 +177,11 @@ QtObject {
                 ? screenInfo.desktopAvailableHeight : screenHeight
         }
     }
-
     function _calculateBasePosition() {
         if (!target) return
-
+        var attachedGeometry = parentItem && typeof parentItem.calculate === "function"
+            ? parentItem.calculate() : null
+        if (attachedGeometry) { _baseX = attachedGeometry.x; _baseY = attachedGeometry.y; return }
         var margin = Enums.notification.layout.screenMargin
         var originX = 0
         var originY = 0

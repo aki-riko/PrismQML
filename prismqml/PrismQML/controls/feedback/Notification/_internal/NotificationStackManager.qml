@@ -28,6 +28,7 @@ QtObject {
     readonly property int _compactStackGap: Enums.spacing.m
     property var _stacks: null
     property var _desktopStacks: null
+    property var _outsideStacks: null
 
     // ==================== Internal Methods 内部方法 ====================
     // Validate position 验证位置有效性
@@ -39,6 +40,10 @@ QtObject {
         if (first === second) return true
         if (!first || !second) return false
         return first.name === second.name
+    }
+
+    function _isSameHost(first, second) {
+        return first === second
     }
 
     // Window stack methods 窗口内堆叠方法
@@ -185,6 +190,96 @@ QtObject {
         }
     }
 
+    // Window-outside stack methods 外侧窗口堆叠方法
+    function addToOutsideStack(overlay, position) {
+        if (!_outsideStacks || !_isValidPosition(position)
+                || Enums.notification.isWindowOutsidePosition(position) === false) {
+            console.warn("NotificationStackManager: Invalid outside position:", position)
+            return
+        }
+        _outsideStacks[position].push(overlay)
+        overlay.contentHeightChanged.connect(function() {
+            stackManager.repositionOutsideStack(position)
+        })
+        overlay.contentWidthChanged.connect(function() {
+            stackManager.repositionOutsideStack(position)
+        })
+        repositionOutsideStack(position)
+    }
+
+    function removeFromOutsideStack(overlay, position) {
+        if (!_outsideStacks || !_isValidPosition(position)) return
+        var stack = _outsideStacks[position]
+        if (!stack) return
+        var index = stack.indexOf(overlay)
+        if (index >= 0) {
+            stack.splice(index, 1)
+            repositionOutsideStack(position)
+        }
+    }
+
+    function _outsideStackAdvance(item, nextItem, gap, position) {
+        var backward = Enums.notification.windowOutsideStacksBackward(position)
+        var inset = backward
+            ? _stackInset(item, "_stackTopInset")
+                + _stackInset(nextItem, "_stackBottomInset")
+            : _stackInset(item, "_stackBottomInset")
+                + _stackInset(nextItem, "_stackTopInset")
+        return item.height + gap - inset
+    }
+
+    function calculateOutsideOffset(stack, index, targetOverlay, position) {
+        if (!stack || !targetOverlay) return 0
+        var offset = 0
+        for (var i = 0; i < index; i++) {
+            if (!_isSameHost(stack[i].hostWindow, targetOverlay.hostWindow)) continue
+            var nextItem = targetOverlay
+            for (var j = i + 1; j < index; j++) {
+                if (_isSameHost(stack[j].hostWindow, targetOverlay.hostWindow)) {
+                    nextItem = stack[j]
+                    break
+                }
+            }
+            offset += _outsideStackAdvance(
+                stack[i], nextItem, _compactStackGap, position
+            )
+        }
+        return offset
+    }
+
+    function repositionOutsideStack(position) {
+        if (!_outsideStacks || !_isValidPosition(position)) return
+        var stack = _outsideStacks[position]
+        if (!stack) return
+        for (var i = 0; i < stack.length; i++) {
+            var overlay = stack[i]
+            if (!overlay || !overlay.hostWindow) continue
+            var offset = calculateOutsideOffset(stack, i, overlay, position)
+            overlay.stackOffset = offset
+            overlay.updatePosition()
+        }
+    }
+
+    function closeAllOutsideNotifications(hostWindow) {
+        if (!_outsideStacks) return
+        for (var position = 0; position <= 8; position++) {
+            var stack = _outsideStacks[position]
+            if (!stack) continue
+            for (var i = stack.length - 1; i >= 0; i--) {
+                var overlay = stack[i]
+                if (hostWindow && overlay.hostWindow !== hostWindow) continue
+                stack.splice(i, 1)
+                if (overlay && typeof overlay._finishClose === "function") {
+                    overlay._finishClose()
+                } else if (overlay) {
+                    if (overlay.notificationItem) overlay.notificationItem.destroy()
+                    overlay.visible = false
+                    overlay.destroy()
+                }
+            }
+        }
+    }
+
     // Position helper 位置辅助
     // Now only calculates and passes stackOffset to animator 现在只计算并传递stackOffset给动画器
     function setPosition(item, parent, position, extraMargin) {
@@ -212,5 +307,6 @@ QtObject {
     Component.onCompleted: {
         _stacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] }
         _desktopStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] }
+        _outsideStacks = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [] }
     }
 }

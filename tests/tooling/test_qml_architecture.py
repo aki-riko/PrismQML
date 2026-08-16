@@ -1982,6 +1982,70 @@ def test_notification_animator_keeps_geometry_update_timer_modularized():
     assert "onTriggered: animator.updatePosition()" not in source
 
 
+def test_window_outside_notification_keeps_native_overlay_lifecycle_internal():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "WindowOutsideOverlay.qml"
+    )
+    geometry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "WindowOutsideGeometry.qml"
+    )
+    animator = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/NotificationAnimator.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    geometry_source = geometry.read_text(encoding="utf-8")
+    animator_source = animator.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 210
+    assert len(geometry_source.splitlines()) < 45
+    assert len(animator_source.splitlines()) < 270
+    assert "required property var hostWindow" in source
+    assert "property alias animator: animator" in source
+    assert "property alias content: container" in source
+    assert "property bool _attached: false" in source
+    assert "function _releaseAttachment()" in source
+    assert "if (!_attached) return false" in source
+    assert "NotificationInternal.WindowOutsideGeometry {" in source
+    assert "parentItem: outsideGeometry" in source
+    assert "NotificationAnimator {" in source
+    assert "target: control" in source
+    assert "WindowHelper.registerWindowAttachment(" in source
+    assert "WindowHelper.unregisterWindowAttachment(control)" in source
+    assert "target: control.hostWindow" in source
+    assert "target: typeof WindowHelper !== \"undefined\" ? WindowHelper : null" in source
+    assert "required property var hostWindow" in geometry_source
+    assert "required property int position" in geometry_source
+    assert "required property real targetWidth" in geometry_source
+    assert "required property real targetHeight" in geometry_source
+    assert "WindowHelper.windowAttachmentGeometry(" in geometry_source
+    assert "parentItem && typeof parentItem.calculate === \"function\"" in animator_source
+    assert "var attachedGeometry = parentItem" in animator_source
+    assert "property var hostWindow" not in animator_source
+
+
+def test_notification_manager_keeps_outside_mode_as_internal_component_wiring():
+    manager = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/NotificationManager.qml"
+    )
+    qmldir = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/qmldir"
+    )
+    source = manager.read_text(encoding="utf-8")
+    qmldir_source = qmldir.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert "property var _windowOutsideComponent: null" in source
+    assert "Enums.notification.mode_window_outside" in source
+    assert "function _createWindowOutside(" in source
+    assert "_getWindowOutsideComponent()" in source
+    assert "WindowHelper" not in source
+    assert "WindowOutsideGeometry" not in source
+    assert "WindowOutsideOverlay WindowOutsideOverlay.qml" in qmldir_source
+    assert "WindowOutsideGeometry WindowOutsideGeometry.qml" in qmldir_source
+
+
 def test_marquee_keeps_layout_start_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/data/Marquee.qml")
     helper = _source(

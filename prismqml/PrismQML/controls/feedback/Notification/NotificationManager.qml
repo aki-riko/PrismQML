@@ -33,114 +33,135 @@ QtObject {
     property var _infoBarComponent: null
     property var _toastComponent: null
     property var _desktopComponent: null
+    property var _windowOutsideComponent: null
     
     // ==================== Public Props 公开属性 ====================
     // InfoBar namespace InfoBar 命名空间
     readonly property QtObject infoBar: QtObject {
-        function info(parent, title, content, duration, position) {
+        function info(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "info", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function attention(parent, title, content, duration, position) {
+        function attention(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "attention", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function success(parent, title, content, duration, position) {
+        function success(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "success", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function warning(parent, title, content, duration, position) {
+        function warning(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "warning", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function error(parent, title, content, duration, position) {
+        function error(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "error", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function processing(parent, title, content, duration, position) {
+        function processing(parent, title, content, duration, position, mode) {
             return manager._createInfoBar(parent, "processing", title, content, 
                 duration !== undefined ? duration : Enums.duration.notification,
-                position !== undefined ? position : manager.posTopRight)
+                position !== undefined ? position : manager.posTopRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function progressBar(parent, title, content, position) {
+        function progressBar(parent, title, content, position, mode) {
             return manager._createInfoBarWithFeature(parent, "info", title, content, Enums.duration.notification,
                 position !== undefined ? position : manager.posTopRight,
-                Enums.notification.feature_progress_bar)
+                Enums.notification.feature_progress_bar,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function indeterminateBar(parent, title, content, position) {
+        function indeterminateBar(parent, title, content, position, mode) {
             return manager._createInfoBarWithFeature(parent, "info", title, content, Enums.duration.notification,
                 position !== undefined ? position : manager.posTopRight,
-                Enums.notification.feature_indeterminate_bar)
+                Enums.notification.feature_indeterminate_bar,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function progressRing(parent, title, content, position) {
+        function progressRing(parent, title, content, position, mode) {
             return manager._createInfoBarWithFeature(parent, "info", title, content, Enums.duration.notification,
                 position !== undefined ? position : manager.posTopRight,
-                Enums.notification.feature_progress_ring)
+                Enums.notification.feature_progress_ring,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function indeterminateRing(parent, title, content, position) {
+        function indeterminateRing(parent, title, content, position, mode) {
             return manager._createInfoBarWithFeature(parent, "info", title, content, Enums.duration.notification,
                 position !== undefined ? position : manager.posTopRight,
-                Enums.notification.feature_indeterminate_ring)
+                Enums.notification.feature_indeterminate_ring,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
         function randomPosition() { return manager._stackManager.randomPosition() }
     }
     
     // Toast namespace Toast 命名空间
     readonly property QtObject toast: QtObject {
-        function info(parent, title, message, duration, position) {
+        function info(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "info", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function attention(parent, title, message, duration, position) {
+        function attention(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "attention", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function success(parent, title, message, duration, position) {
+        function success(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "success", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function warning(parent, title, message, duration, position) {
+        function warning(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "warning", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function error(parent, title, message, duration, position) {
+        function error(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "error", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification, 
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function processing(parent, title, message, duration, position) {
+        function processing(parent, title, message, duration, position, mode) {
             return manager._createToast(parent, "processing", title, message, 
                 duration !== undefined ? duration : Enums.duration.notification,
-                position !== undefined ? position : manager.posBottomRight)
+                position !== undefined ? position : manager.posBottomRight,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function progressBar(parent, title, message, position) {
+        function progressBar(parent, title, message, position, mode) {
             return manager._createToastWithFeature(parent, "info", title, message, Enums.duration.notification,
                 position !== undefined ? position : manager.posBottomRight,
-                Enums.notification.feature_progress_bar)
+                Enums.notification.feature_progress_bar,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function indeterminateBar(parent, title, message, position) {
+        function indeterminateBar(parent, title, message, position, mode) {
             return manager._createToastWithFeature(parent, "info", title, message, Enums.duration.notification,
                 position !== undefined ? position : manager.posBottomRight,
-                Enums.notification.feature_indeterminate_bar)
+                Enums.notification.feature_indeterminate_bar,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function progressRing(parent, title, message, position) {
+        function progressRing(parent, title, message, position, mode) {
             return manager._createToastWithFeature(parent, "info", title, message, Enums.duration.notification,
                 position !== undefined ? position : manager.posBottomRight,
-                Enums.notification.feature_progress_ring)
+                Enums.notification.feature_progress_ring,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
-        function indeterminateRing(parent, title, message, position) {
+        function indeterminateRing(parent, title, message, position, mode) {
             return manager._createToastWithFeature(parent, "info", title, message, Enums.duration.notification,
                 position !== undefined ? position : manager.posBottomRight,
-                Enums.notification.feature_indeterminate_ring)
+                Enums.notification.feature_indeterminate_ring,
+                mode !== undefined ? mode : Enums.notification.mode_in_app)
         }
         function randomPosition() { return manager._stackManager.randomPosition() }
     }
@@ -180,6 +201,10 @@ QtObject {
         _stackManager.closeAllDesktopNotifications()
     }
 
+    function closeAllWindowOutsideNotifications(hostWindow) {
+        _stackManager.closeAllOutsideNotifications(hostWindow)
+    }
+
     function orientationForMessage(message) {
         return message && (message.indexOf("\n") >= 0
             || message.length > Enums.notification.layout.longMessageThreshold)
@@ -208,11 +233,30 @@ QtObject {
         return _desktopComponent
     }
 
+    function _getWindowOutsideComponent() {
+        if (!_windowOutsideComponent) {
+            _windowOutsideComponent = Qt.createComponent(
+                "_internal/WindowOutsideOverlay.qml"
+            )
+        }
+        return _windowOutsideComponent
+    }
+
     function _getWindowParent(item) {
         if (item && item.Window && item.Window.window) {
             return item.Window.window.contentItem
         }
         return item
+    }
+
+    function _getHostWindow(item) {
+        if (item && item.Window && item.Window.window) return item.Window.window
+        if (item && item.contentItem) return item
+        return null
+    }
+
+    function _usesWindowOutside(mode) {
+        return mode === Enums.notification.mode_window_outside
     }
 
     function _desktopOverlayProperties(position, options) {
@@ -247,11 +291,19 @@ QtObject {
         return properties
     }
     
-    function _createInfoBar(parent, severity, title, content, duration, position) {
-        return _createInfoBarWithFeature(parent, severity, title, content, duration, position, Enums.notification.feature_normal)
+    function _createInfoBar(parent, severity, title, content, duration, position, mode) {
+        return _createInfoBarWithFeature(
+            parent, severity, title, content, duration, position,
+            Enums.notification.feature_normal, mode
+        )
     }
     
-    function _createInfoBarWithFeature(parent, severity, title, content, duration, position, feature) {
+    function _createInfoBarWithFeature(parent, severity, title, content, duration, position, feature, mode) {
+        if (_usesWindowOutside(mode)) {
+            return _createWindowOutside(
+                parent, severity, title, content, duration, position, feature, true
+            )
+        }
         var windowParent = _getWindowParent(parent)
         var component = _getInfoBarComponent()
         if (component.status !== Component.Ready) {
@@ -275,11 +327,19 @@ QtObject {
         return item
     }
     
-    function _createToast(parent, severity, title, message, duration, position) {
-        return _createToastWithFeature(parent, severity, title, message, duration, position, Enums.notification.feature_normal)
+    function _createToast(parent, severity, title, message, duration, position, mode) {
+        return _createToastWithFeature(
+            parent, severity, title, message, duration, position,
+            Enums.notification.feature_normal, mode
+        )
     }
     
-    function _createToastWithFeature(parent, severity, title, message, duration, position, feature) {
+    function _createToastWithFeature(parent, severity, title, message, duration, position, feature, mode) {
+        if (_usesWindowOutside(mode)) {
+            return _createWindowOutside(
+                parent, severity, title, message, duration, position, feature, false
+            )
+        }
         var windowParent = _getWindowParent(parent)
         var component = _getToastComponent()
         if (component.status !== Component.Ready) {
@@ -303,6 +363,63 @@ QtObject {
             item.show()
         }
         return item
+    }
+
+    function _createWindowOutside(parent, severity, title, message, duration, position, feature, infoBarMode) {
+        if (!Enums.notification.isWindowOutsidePosition(position)) {
+            console.warn("NotificationManager: Window-outside mode requires an edge position:", position)
+            return null
+        }
+        var hostWindow = _getHostWindow(parent)
+        if (!hostWindow) {
+            console.warn("NotificationManager: Window-outside mode requires a window parent")
+            return null
+        }
+        var overlayComponent = _getWindowOutsideComponent()
+        if (overlayComponent.status !== Component.Ready) {
+            console.error("NotificationManager: WindowOutsideOverlay component not ready:", overlayComponent.errorString())
+            return null
+        }
+        var overlay = overlayComponent.createObject(null, {
+            "hostWindow": hostWindow,
+            "position": position,
+            "stackOffset": 0
+        })
+        if (!overlay) return null
+
+        var component = infoBarMode ? _getInfoBarComponent() : _getToastComponent()
+        if (component.status !== Component.Ready) {
+            overlay.destroy()
+            return null
+        }
+        var properties = {
+            "severity": severity,
+            "title": title,
+            "message": message,
+            "duration": duration,
+            "position": position,
+            "feature": feature,
+            "desktopMode": true
+        }
+        if (!infoBarMode) properties.orient = orientationForMessage(message)
+        var notification = component.createObject(overlay.content, properties)
+        if (!notification) {
+            overlay.destroy()
+            return null
+        }
+
+        overlay.notificationItem = notification
+        notification.anchors.centerIn = overlay.content
+        _stackManager.addToOutsideStack(overlay, position)
+        notification.closed.connect(function() { overlay.hide() })
+        overlay.closed.connect(function() {
+            manager._stackManager.removeFromOutsideStack(overlay, position)
+            notification.destroy()
+            overlay.destroy()
+        })
+        notification.visible = true
+        overlay.show()
+        return notification
     }
     
     function _createDesktop(severity, title, message, duration, position, mode, options) {

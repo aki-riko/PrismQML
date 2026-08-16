@@ -48,6 +48,19 @@ class _WindowFollowerBinding:
 
 
 @dataclass(frozen=True)
+class _WindowAttachmentBinding:
+    """One exact-size window attachment. 一条精确尺寸的窗口附着关系。"""
+
+    host_hwnd: int
+    follower_hwnd: int
+    position: int
+    width: int
+    height: int
+    gap: int
+    stack_offset: int
+
+
+@dataclass(frozen=True)
 class _WindowRect:
     """Platform-neutral window edges. 平台无关窗口边缘。"""
 
@@ -55,6 +68,88 @@ class _WindowRect:
     top: int
     right: int
     bottom: int
+
+
+_ATTACHMENT_POS_TOP_LEFT = 0
+_ATTACHMENT_POS_TOP = 1
+_ATTACHMENT_POS_TOP_RIGHT = 2
+_ATTACHMENT_POS_LEFT = 3
+_ATTACHMENT_POS_RIGHT = 5
+_ATTACHMENT_POS_BOTTOM_LEFT = 6
+_ATTACHMENT_POS_BOTTOM = 7
+_ATTACHMENT_POS_BOTTOM_RIGHT = 8
+_ATTACHMENT_POSITIONS = frozenset(
+    (
+        _ATTACHMENT_POS_TOP_LEFT,
+        _ATTACHMENT_POS_TOP,
+        _ATTACHMENT_POS_TOP_RIGHT,
+        _ATTACHMENT_POS_LEFT,
+        _ATTACHMENT_POS_RIGHT,
+        _ATTACHMENT_POS_BOTTOM_LEFT,
+        _ATTACHMENT_POS_BOTTOM,
+        _ATTACHMENT_POS_BOTTOM_RIGHT,
+    )
+)
+
+
+def _attachment_edge(position: int) -> int:
+    """Resolve one outside notification anchor to its host edge. 解析外侧通知锚点所在宿主边。"""
+    if position in (
+        _ATTACHMENT_POS_TOP_LEFT,
+        _ATTACHMENT_POS_LEFT,
+        _ATTACHMENT_POS_BOTTOM_LEFT,
+    ):
+        return WINDOW_EDGE_LEFT
+    if position in (
+        _ATTACHMENT_POS_TOP_RIGHT,
+        _ATTACHMENT_POS_RIGHT,
+        _ATTACHMENT_POS_BOTTOM_RIGHT,
+    ):
+        return WINDOW_EDGE_RIGHT
+    if position == _ATTACHMENT_POS_TOP:
+        return WINDOW_EDGE_TOP
+    if position == _ATTACHMENT_POS_BOTTOM:
+        return WINDOW_EDGE_BOTTOM
+    raise ValueError(f"Unsupported window attachment position: {position}")
+
+
+def _attached_window_rect(
+    host_rect: Any,
+    follower_width: int,
+    follower_height: int,
+    position: int,
+    reserved_extent: int,
+    gap: int,
+    stack_offset: int,
+) -> tuple[int, int, int, int]:
+    """Calculate one exact outside attachment RECT. 计算一个精确外侧附着窗口 RECT。"""
+    edge = _attachment_edge(position)
+    host_width = host_rect.right - host_rect.left
+    host_height = host_rect.bottom - host_rect.top
+    outward_offset = reserved_extent + gap
+
+    if edge == WINDOW_EDGE_LEFT:
+        left = host_rect.left - outward_offset - follower_width
+    elif edge == WINDOW_EDGE_RIGHT:
+        left = host_rect.right + outward_offset
+    else:
+        left = host_rect.left + (host_width - follower_width) // 2
+
+    if edge == WINDOW_EDGE_TOP:
+        top = host_rect.top - outward_offset - follower_height - stack_offset
+    elif edge == WINDOW_EDGE_BOTTOM:
+        top = host_rect.bottom + outward_offset + stack_offset
+    elif position in (_ATTACHMENT_POS_TOP_LEFT, _ATTACHMENT_POS_TOP_RIGHT):
+        top = host_rect.top + stack_offset
+    elif position in (
+        _ATTACHMENT_POS_BOTTOM_LEFT,
+        _ATTACHMENT_POS_BOTTOM_RIGHT,
+    ):
+        top = host_rect.bottom - follower_height - stack_offset
+    else:
+        top = host_rect.top + (host_height - follower_height) // 2 + stack_offset
+
+    return (left, top, left + follower_width, top + follower_height)
 
 
 def _follower_rect(
@@ -258,11 +353,38 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         self._promote_window = promote_window
         self._activate_window = activate_window
         self._bindings: dict[int, _WindowFollowerBinding] = {}
+        self._attachments: dict[int, _WindowAttachmentBinding] = {}
 
     @property
     def binding_count(self) -> int:
         """Return active binding count. 返回活动绑定数量。"""
-        return len(self._bindings)
+        return len(self._bindings) + len(self._attachments)
+
+    def _reserved_extent(self, host_hwnd: int, edge: int) -> int:
+        """Return the widest full-edge follower reservation. 返回同边最宽的完整占位。"""
+        return max(
+            (
+                binding.outward_extent
+                for binding in self._bindings.values()
+                if binding.host_hwnd == host_hwnd and binding.edge == edge
+            ),
+            default=0,
+        )
+
+    def _attachment_geometry(
+        self, binding: _WindowAttachmentBinding, host_rect: Any
+    ) -> tuple[int, int, int, int]:
+        """Resolve one attachment against current edge reservations. 根据当前边缘占位解析附着窗口。"""
+        edge = _attachment_edge(binding.position)
+        return _attached_window_rect(
+            host_rect,
+            binding.width,
+            binding.height,
+            binding.position,
+            self._reserved_extent(binding.host_hwnd, edge),
+            binding.gap,
+            binding.stack_offset,
+        )
 
     @classmethod
     def _get_msg_class(cls):
@@ -322,6 +444,46 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         )
         return True
 
+    def register_attachment(
+        self,
+        host_hwnd: int,
+        follower_hwnd: int,
+        position: int,
+        width: int,
+        height: int,
+        gap: int,
+        stack_offset: int,
+    ) -> bool:
+        """Register or update one exact outside attachment. 注册或更新一个精确外侧附着窗口。"""
+        if (
+            position not in _ATTACHMENT_POSITIONS
+            or width < _MINIMUM_NATIVE_EXTENT
+            or height < _MINIMUM_NATIVE_EXTENT
+            or gap < 0
+            or stack_offset < 0
+            or self._read_rect is None
+            or self._set_geometry is None
+        ):
+            return False
+        host_rect = self._read_rect(host_hwnd)
+        if host_rect is None:
+            return False
+        binding = _WindowAttachmentBinding(
+            host_hwnd,
+            follower_hwnd,
+            position,
+            width,
+            height,
+            gap,
+            stack_offset,
+        )
+        geometry = self._attachment_geometry(binding, host_rect)
+        if not self._set_geometry(follower_hwnd, geometry, host_hwnd):
+            debug(f"附着窗口初次原生同步失败: hwnd={follower_hwnd}")
+            return False
+        self._attachments[follower_hwnd] = binding
+        return True
+
     def _registration_geometry(
         self,
         host_hwnd: int,
@@ -366,6 +528,10 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         """Remove one follower binding. 移除一个附属窗口绑定。"""
         return self._bindings.pop(follower_hwnd, None) is not None
 
+    def unregister_attachment(self, follower_hwnd: int) -> bool:
+        """Remove one exact attachment binding. 移除一个精确附着窗口绑定。"""
+        return self._attachments.pop(follower_hwnd, None) is not None
+
     def sync_host_rect(self, host_hwnd: int, host_rect: Any) -> None:
         """Synchronize followers to a proposed host RECT. 同步到宿主候选 RECT。"""
         if self._set_geometry is None:
@@ -382,10 +548,20 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 binding.follower_hwnd, geometry, binding.host_hwnd
             ):
                 debug(f"附属窗口原生同步失败: hwnd={binding.follower_hwnd}")
+        for binding in tuple(self._attachments.values()):
+            if binding.host_hwnd != host_hwnd:
+                continue
+            geometry = self._attachment_geometry(binding, host_rect)
+            if not self._set_geometry(
+                binding.follower_hwnd, geometry, binding.host_hwnd
+            ):
+                debug(f"附着窗口原生同步失败: hwnd={binding.follower_hwnd}")
 
     def enforce_follower_z_order(self, follower_hwnd: int, window_pos) -> None:
         """Promote the host, then keep its follower behind. 提升宿主后保持附属窗口在下层。"""
-        binding = self._bindings.get(follower_hwnd)
+        binding = self._bindings.get(follower_hwnd) or self._attachments.get(
+            follower_hwnd
+        )
         if binding is None:
             return
         if (
@@ -403,7 +579,9 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         self, window_hwnd: int
     ) -> tuple[int, tuple[int, ...]]:
         """Resolve either a host or follower to its complete group. 将宿主或附属窗口解析为完整窗口组。"""
-        clicked_binding = self._bindings.get(window_hwnd)
+        clicked_binding = self._bindings.get(window_hwnd) or self._attachments.get(
+            window_hwnd
+        )
         host_hwnd = (
             clicked_binding.host_hwnd
             if clicked_binding is not None
@@ -411,7 +589,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         )
         follower_hwnds = tuple(
             binding.follower_hwnd
-            for binding in self._bindings.values()
+            for binding in (*self._bindings.values(), *self._attachments.values())
             if binding.host_hwnd == host_hwnd
         )
         if not follower_hwnds:
@@ -451,7 +629,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         window_pos = self._get_window_pos_class().from_address(int(msg.lParam))
         window_hwnd = int(msg.hwnd)
         self.enforce_follower_z_order(window_hwnd, window_pos)
-        if window_hwnd not in self._bindings:
+        if window_hwnd not in self._bindings and window_hwnd not in self._attachments:
             current_rect = (
                 self._read_rect(window_hwnd)
                 if window_pos.flags & _SWP_NOSIZE
