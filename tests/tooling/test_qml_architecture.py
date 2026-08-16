@@ -524,6 +524,51 @@ def test_tab_widget_keeps_edge_auto_scroll_modularized():
     assert "tabFlickable: tabFlickable" in source
 
 
+def test_tab_widget_keeps_indicator_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/TabIndicator.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 250
+    assert "TabIndicator {" in source
+    assert "Item {" in helper_source
+    for required_property in (
+        "required property Item host",
+        "required property Item tabBar",
+        "required property Flickable tabFlickable",
+        "required property var tabRepeater",
+        "required property Item tabRow",
+    ):
+        assert required_property in helper_source
+    for binding in (
+        "host: control",
+        "tabBar: tabBarBg",
+        "tabFlickable: tabFlickable",
+        "tabRepeater: tabRepeater",
+        "tabRow: tabRow",
+    ):
+        assert binding in source
+    assert "function _scheduleSync(animate)" in helper_source
+    assert "function syncIndicator(animate)" in helper_source
+    assert "SlidingIndicatorAnimation {" in helper_source
+    assert "RectangularShadow {" in helper_source
+    assert "NeumorphicShadow {" in helper_source
+    assert "NeoShadow {" in helper_source
+    assert "id: slidingIndicator" in source
+    for marker in (
+        "property int _currentTabKey:",
+        "function _scheduleSync(animate)",
+        "SlidingIndicatorAnimation {",
+        "id: indicatorBg",
+    ):
+        assert marker not in source
+
+
 def test_bar_chart_keeps_single_series_delegate_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/BarChartContent.qml"
