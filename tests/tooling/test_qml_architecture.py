@@ -1178,6 +1178,38 @@ def test_smooth_scroll_helper_keeps_bounce_timer_modularized():
     assert "\n        Timer {\n            id: bounceTimer\n" not in source
 
 
+def test_smooth_scroll_helper_keeps_bounds_reconcile_timers_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "SmoothScrollBoundsReconcileTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert "ScrollBarInternal.SmoothScrollBoundsReconcileTimer {" in source
+    assert source.count("SmoothScrollBoundsReconcileTimer {") == 2
+    assert "objectName: \"smoothScrollVerticalReconcileTimer\"" in source
+    assert "objectName: \"smoothScrollHorizontalReconcileTimer\"" in source
+    assert "scrollHelper: helper" in source
+    assert "verticalAxis: true" in source
+    assert "verticalAxis: false" in source
+    assert "required property var scrollHelper" in helper_source
+    assert "required property bool verticalAxis" in helper_source
+    assert 'objectName: verticalAxis' in helper_source
+    assert "interval: Enums.duration.instant" in helper_source
+    assert "repeat: false" in helper_source
+    assert "scrollHelper._reconcileVerticalBounds()" in helper_source
+    assert "scrollHelper._reconcileHorizontalBounds()" in helper_source
+    assert "\n    Timer {\n        id: verticalReconcileTimer" not in source
+    assert "\n    Timer {\n        id: horizontalReconcileTimer" not in source
+
+
 def test_constants_keeps_theme_colors_modularized():
     entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
     helper = _source(

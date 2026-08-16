@@ -41,6 +41,9 @@ SOURCE_PATH = (
     / "SmoothScrollHelper.qml"
 )
 BOUNCE_TIMER_PATH = SOURCE_PATH.parent / "_internal" / "SmoothScrollBounceTimer.qml"
+RECONCILE_TIMER_PATH = (
+    SOURCE_PATH.parent / "_internal" / "SmoothScrollBoundsReconcileTimer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "smooth-scroll-timer-lifecycle.qml")
 )
@@ -144,6 +147,11 @@ def _timers(helper: QQuickItem) -> list[QObject]:
         shiboken6.getCppPointer(child)[0]: child
         for child in helper.findChildren(QObject)
         if child.metaObject().className() == "QQmlTimer"
+        or child.objectName()
+        in {
+            "smoothScrollVerticalReconcileTimer",
+            "smoothScrollHorizontalReconcileTimer",
+        }
     }
     for property_name in ("_bounceTimerV", "_bounceTimerH"):
         timer = helper.property(property_name)
@@ -301,3 +309,42 @@ def test_smooth_scroll_source_creates_axis_bounce_timers_on_demand():
     assert "_stopBounceTimer(true)" in source
     assert "_stopBounceTimer(false)" in source
     assert "_releaseBounceTimer(verticalAxis, bounceTimer)" not in source
+
+
+def test_smooth_scroll_reconcile_timer_contract(qapp):
+    """Each axis keeps its deferred bounds reconciliation timer modularized.
+
+    每个滚动轴都保留独立且可重启的延迟边界校准计时器。
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    reconcile_source = RECONCILE_TIMER_PATH.read_text(encoding="utf-8")
+    assert "ScrollBarInternal.SmoothScrollBoundsReconcileTimer {" in source
+    assert "id: verticalReconcileTimer" in source
+    assert "id: horizontalReconcileTimer" in source
+    assert "verticalAxis: true" in source
+    assert "verticalAxis: false" in source
+    assert "required property var scrollHelper" in reconcile_source
+    assert "required property bool verticalAxis" in reconcile_source
+    assert "scrollHelper._reconcileVerticalBounds()" in reconcile_source
+    assert "scrollHelper._reconcileHorizontalBounds()" in reconcile_source
+
+    engine, component, window, vertical, horizontal, warnings = _create_scene()
+    try:
+        for helper, timer_name, is_vertical in (
+            (vertical, "smoothScrollVerticalReconcileTimer", True),
+            (horizontal, "smoothScrollHorizontalReconcileTimer", False),
+        ):
+            timer = helper.findChild(QObject, timer_name)
+            assert timer is not None
+            assert timer.parent() is helper
+            assert timer.property("scrollHelper") is helper
+            assert timer.property("verticalAxis") is is_vertical
+            assert timer.property("interval") == 50
+            assert timer.property("repeat") is False
+            assert QMetaObject.invokeMethod(timer, "restart")
+            assert timer.property("running") is True
+            _pump(70)
+            assert timer.property("running") is False
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)

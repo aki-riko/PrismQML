@@ -469,18 +469,18 @@ Item {
         }
     }
 
-    Timer {
+    ScrollBarInternal.SmoothScrollBoundsReconcileTimer {
         id: verticalReconcileTimer
-        interval: Enums.duration.instant
-        repeat: false
-        onTriggered: helper._reconcileVerticalBounds()
+        objectName: "smoothScrollVerticalReconcileTimer"
+        scrollHelper: helper
+        verticalAxis: true
     }
 
-    Timer {
+    ScrollBarInternal.SmoothScrollBoundsReconcileTimer {
         id: horizontalReconcileTimer
-        interval: Enums.duration.instant
-        repeat: false
-        onTriggered: helper._reconcileHorizontalBounds()
+        objectName: "smoothScrollHorizontalReconcileTimer"
+        scrollHelper: helper
+        verticalAxis: false
     }
 
     // Auto wheel handler 自动滚轮处理
