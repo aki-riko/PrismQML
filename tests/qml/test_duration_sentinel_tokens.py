@@ -35,6 +35,16 @@ TIP_POPUP_SOURCE = (
     / "Tooltip"
     / "TipPopup.qml"
 )
+TIP_POPUP_TIMER_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "feedback"
+    / "Tooltip"
+    / "_internal"
+    / "TipPopupAutoCloseTimer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "duration-sentinel-tokens.qml")
 )
@@ -219,6 +229,18 @@ def test_duration_sentinels_use_semantic_tokens():
 def test_tip_popup_source_follows_member_and_section_conventions():
     source = TIP_POPUP_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(TIP_POPUP_SOURCE.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009", "QML011"}
+    ] == []
+
+
+def test_tip_popup_auto_close_timer_source_follows_conventions():
+    source = TIP_POPUP_TIMER_SOURCE.read_text(encoding="utf-8")
+    path = PurePosixPath(TIP_POPUP_TIMER_SOURCE.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
 
     assert [

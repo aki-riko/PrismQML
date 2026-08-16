@@ -66,6 +66,8 @@ Window {
     readonly property int panelOffset: Enums.popupMetrics.panelOffset
     readonly property int controlGap: Enums.popupMetrics.controlGap
     readonly property int tipGap: Enums.spacing.xs
+    readonly property int tipAutoCloseDuration: Enums.duration.fast
+    readonly property int tipManualCloseDuration: Enums.duration.slow
 
     function openPopup() { popup.openAtControl(anchor) }
     function showTip() { tip.show() }
@@ -375,6 +377,34 @@ def test_tip_popup_prewarm_creates_hidden_reusable_window(popup_scene):
     assert QMetaObject.invokeMethod(window, "showTip")
     assert _wait_for(lambda: tip.property("_isOpen") and tip_windows[0].isVisible())
     assert tip.findChildren(QWindow) == tip_windows
+    assert warnings == []
+
+
+def test_tip_popup_auto_close_timer_preserves_close_lifecycle(popup_scene):
+    window, items, warnings, _windows_before = popup_scene
+    tip = items["tip"]
+    timer = tip.findChild(QObject, "tipPopupAutoCloseTimer")
+    assert timer is not None
+    assert timer.parent() is tip
+    assert timer.property("host") == tip
+    assert timer.property("repeat") is False
+    assert timer.property("running") is False
+
+    auto_close_duration = window.property("tipAutoCloseDuration")
+    assert tip.setProperty("duration", auto_close_duration)
+    assert timer.property("interval") == auto_close_duration
+    assert QMetaObject.invokeMethod(window, "showTip")
+    assert timer.property("running") is True
+    assert _wait_for(lambda: not tip.property("_isOpen"))
+    assert timer.property("running") is False
+
+    manual_close_duration = window.property("tipManualCloseDuration")
+    assert tip.setProperty("duration", manual_close_duration)
+    assert QMetaObject.invokeMethod(window, "showTip")
+    assert timer.property("running") is True
+    assert QMetaObject.invokeMethod(tip, "close")
+    assert timer.property("running") is False
+    assert _wait_for(lambda: not tip.property("_isOpen"))
     assert warnings == []
 
 

@@ -1665,6 +1665,33 @@ def test_tip_popup_keeps_main_window_surface_modularized():
         assert marker not in source
 
 
+def test_tip_popup_keeps_auto_close_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/feedback/Tooltip/TipPopup.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Tooltip/_internal/"
+        "TipPopupAutoCloseTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 370
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as TooltipInternal' in source
+    assert "TooltipInternal.TipPopupAutoCloseTimer {" in source
+    assert "id: autoCloseTimer" in source
+    assert "host: control" in source
+    assert "autoCloseTimer.stop()" in source
+    assert "autoCloseTimer.start()" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "tipPopupAutoCloseTimer"' in helper_source
+    assert "interval: host.duration" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host.close()" in helper_source
+    assert "onTriggered: control.close()" not in source
+
+
 def test_auto_updater_keeps_update_dialog_wiring_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/feedback/AutoUpdater.qml"

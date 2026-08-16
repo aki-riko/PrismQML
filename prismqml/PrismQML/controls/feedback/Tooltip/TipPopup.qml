@@ -316,10 +316,10 @@ Item {
         NumberAnimation { target: control._arrowWindow; property: "opacity"; from: 1; to: 0; duration: control._arrowWindow ? Enums.duration.tipHide : Enums.duration.none; easing.type: Easing.OutQuad }
     }
     
-    Timer {
+    TooltipInternal.TipPopupAutoCloseTimer {
         id: autoCloseTimer
-        interval: control.duration
-        onTriggered: control.close()
+
+        host: control
     }
     
     PopupPositionTracker {
