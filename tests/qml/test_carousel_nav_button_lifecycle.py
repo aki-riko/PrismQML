@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QPoint, Qt, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QPoint, Qt, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -122,6 +122,13 @@ def test_carousel_prepares_navigation_before_hover_and_first_click(qapp):
     ]
     carousel = window.findChild(QQuickItem, "carousel")
     assert carousel is not None
+    auto_play_timer = carousel.findChild(QObject, "carouselAutoPlayTimer")
+    assert auto_play_timer is not None
+    assert auto_play_timer.parent() is carousel
+    assert auto_play_timer.property("host") == carousel
+    assert auto_play_timer.property("repeat") is True
+    assert auto_play_timer.property("interval") == carousel.property("interval")
+    assert auto_play_timer.property("running") is False
     fast_duration = int(window.property("fastDuration"))
     QTest.qWait(fast_duration + 30)
 
@@ -129,11 +136,15 @@ def test_carousel_prepares_navigation_before_hover_and_first_click(qapp):
         initial_buttons = _nav_buttons(carousel)
         assert len(initial_buttons) == 2
         assert all(not button.isVisible() for button in initial_buttons)
+        carousel.setProperty("autoPlay", True)
+        QCoreApplication.processEvents()
+        assert auto_play_timer.property("running") is True
 
         window.requestActivate()
         QTest.qWait(30)
         QTest.mouseMove(window, QPoint(180, 110))
         QTest.qWait(fast_duration + 30)
+        assert auto_play_timer.property("running") is False
         assert _nav_buttons(carousel) == initial_buttons
         assert all(button.isVisible() for button in initial_buttons)
         assert all(button.opacity() == 1 for button in initial_buttons)
@@ -148,6 +159,10 @@ def test_carousel_prepares_navigation_before_hover_and_first_click(qapp):
 
         QTest.mouseMove(window, QPoint(1, 1))
         QTest.qWait(fast_duration + 30)
+        assert auto_play_timer.property("running") is True
+        carousel.setProperty("autoPlay", False)
+        QCoreApplication.processEvents()
+        assert auto_play_timer.property("running") is False
         carousel.setProperty("model", window.property("emptyModel"))
         QCoreApplication.processEvents()
         assert not any(button.isVisible() for button in _nav_buttons(carousel))

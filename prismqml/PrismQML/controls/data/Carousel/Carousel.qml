@@ -285,13 +285,9 @@ Item {
         carouselControl: control
     }
     
-    // Auto play timer 自动播放定时器
-    // pauseOnHover=true 时，指针悬停轮播会暂停自动翻页（移开后自动恢复）。
-    Timer {
-        running: control.autoPlay && control._modelCount > 1 &&
-                 !(control.pauseOnHover && control._isHovered)
-        repeat: true
-        interval: control.interval
-        onTriggered: control.next()
+    CarouselInternal.CarouselAutoPlayTimer {
+        id: autoPlayTimer
+
+        host: control
     }
 }

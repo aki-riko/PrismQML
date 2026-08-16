@@ -2357,6 +2357,33 @@ def test_carousel_keeps_dynamic_factories_modularized():
         assert marker not in source
 
 
+def test_carousel_keeps_auto_play_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Carousel/Carousel.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Carousel/_internal/"
+        "CarouselAutoPlayTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 300
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert "CarouselInternal.CarouselAutoPlayTimer {" in source
+    assert "id: autoPlayTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "carouselAutoPlayTimer"' in helper_source
+    assert "running: host.autoPlay && host._modelCount > 1" in helper_source
+    assert "host.pauseOnHover && host._isHovered" in helper_source
+    assert "repeat: true" in helper_source
+    assert "interval: host.interval" in helper_source
+    assert "onTriggered: host.next()" in helper_source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"
