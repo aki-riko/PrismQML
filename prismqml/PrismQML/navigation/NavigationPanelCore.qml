@@ -443,32 +443,20 @@ Item {
     }
     
     // Real-time indicator position tracking timer 实时指示器位置跟踪定时器
-    Timer {
+    NavigationIndicatorTrackerTimer {
         id: indicatorTracker
-
-        property bool _scrolling: false
-
-        interval: Enums.duration.tick
-        repeat: true
-        running: _scrolling
-        
-        onTriggered: {
-            if (!navIndicator.running) {
-                _updateIndicatorPositionRealtime()
-            }
-        }
+        host: control
+        indicator: navIndicator
     }
     
     // Stop tracking after scroll ends 滚动结束后停止跟踪
-    Timer {
+    NavigationIndicatorScrollStopTimer {
         id: _scrollStopTimer
-        interval: Enums.duration.fast
-        onTriggered: indicatorTracker._scrolling = false
+        tracker: indicatorTracker
     }
     // Delayed init timer 延迟初始化定时器
-    Timer {
+    NavigationIndicatorInitTimer {
         id: _initTimer
-        interval: 50  // Small delay to ensure layout complete 小延迟确保布局完成
-        onTriggered: _initIndicatorPosition()
+        host: control
     }
 }
