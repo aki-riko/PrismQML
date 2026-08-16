@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -19,6 +19,9 @@ QML_ROOT = ROOT / "prismqml" / "PrismQML"
 METRICS_SOURCE = QML_ROOT / "PrismEnums" / "Metrics.qml"
 BUTTON_CORE_SOURCE = (
     QML_ROOT / "controls" / "buttons" / "Button" / "ButtonCore.qml"
+)
+HOVER_TIMER_SOURCE = (
+    QML_ROOT / "effects" / "_internal" / "HoverBehaviorUnmatchedTargetTimer.qml"
 )
 FRAME_SAMPLE_MS = 30
 
@@ -201,6 +204,10 @@ def test_hover_motion_policy_disables_exit_animation():
     assert "from: root._animationFrom" in behavior_source
     assert "duration: root._transitionWasActive" in behavior_source
     assert "? Enums.motion.hoverExitDuration : root.enterDuration" in behavior_source
+    assert "EffectsInternal.HoverBehaviorUnmatchedTargetTimer {" in behavior_source
+    timer_source = HOVER_TIMER_SOURCE.read_text(encoding="utf-8")
+    assert "interval: Enums.duration.none" in timer_source
+    assert "onTriggered: host._awaitingActiveAfterTarget = false" in timer_source
     assert "Qt.callLater" not in behavior_source
 
 
@@ -317,6 +324,12 @@ def test_hover_behavior_exit_stays_idle_when_active_updates_before_target(qapp):
     assert window is not None, [error.toString() for error in component.errors()]
     try:
         _pump(20)
+        unmatched_timer = window.findChild(
+            QObject, "hoverBehaviorUnmatchedTargetTimer"
+        )
+        assert unmatched_timer is not None
+        assert unmatched_timer.property("host") == unmatched_timer.parent()
+        assert unmatched_timer.property("repeat") is False
         window.setProperty("hoverActive", True)
         window.setProperty("targetHovered", True)
         _pump(window.property("enterDuration") + 20)

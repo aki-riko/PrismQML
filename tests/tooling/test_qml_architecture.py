@@ -2100,6 +2100,35 @@ def test_scroll_viewport_state_keeps_phase_timer_modularized():
     assert "onTriggered: control._runPhase()" not in source
 
 
+def test_hover_behavior_keeps_unmatched_target_timer_modularized():
+    entry = _source("prismqml/PrismQML/effects/HoverBehavior.qml")
+    helper = _source(
+        "prismqml/PrismQML/effects/_internal/"
+        "HoverBehaviorUnmatchedTargetTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 120
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as EffectsInternal' in source
+    assert "property QtObject _unmatchedTargetTimer:" in source
+    assert "EffectsInternal.HoverBehaviorUnmatchedTargetTimer {" in source
+    assert "host: root" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "hoverBehaviorUnmatchedTargetTimer"' in helper_source
+    assert "interval: Enums.duration.none" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._awaitingActiveAfterTarget = false" in helper_source
+    assert "_unmatchedTargetTimer.stop()" in source
+    assert "_unmatchedTargetTimer.restart()" in source
+    assert "property QtObject _unmatchedTargetTimer: Timer {" not in source
+    assert "onTriggered: root._awaitingActiveAfterTarget = false" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

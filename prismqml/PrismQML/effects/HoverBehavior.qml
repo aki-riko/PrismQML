@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "_internal" as EffectsInternal
 
 // HoverBehavior - Animated hover entry with immediate exit 悬浮进入动画与立即退出
 Behavior {
@@ -21,9 +22,8 @@ Behavior {
     property bool _pendingFromActive: false
     property var _lastTargetValue: undefined
     property var _animationFrom: undefined
-    property QtObject _unmatchedTargetTimer: Timer {
-        interval: Enums.duration.none
-        onTriggered: root._awaitingActiveAfterTarget = false
+    property QtObject _unmatchedTargetTimer: EffectsInternal.HoverBehaviorUnmatchedTargetTimer {
+        host: root
     }
 
     function _recordActiveChange() {
