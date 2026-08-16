@@ -106,6 +106,37 @@ def test_windows_split_keeps_startup_timer_modularized():
     assert "coreLoader" not in helper_source
 
 
+def test_windows_bar_keeps_startup_timer_modularized():
+    entry = _source("prismqml/PrismQML/_internal/WindowsBar.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/WindowsBarStartupTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 90
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "WindowsBarStartupTimer {" in source
+    assert "id: startupTimer" in source
+    assert "host: window" in source
+    assert "targetLoader: mainLoader" in source
+    assert 'objectName: "windowsBarMainLoader"' in source
+    assert "\n        Timer {" not in source
+    assert "required property var host" in helper_source
+    assert "required property var targetLoader" in helper_source
+    assert 'objectName: "windowsBarStartupTimer"' in helper_source
+    assert "interval: Enums.duration.none" in helper_source
+    assert "running: !host._startupContentStarted" in helper_source
+    assert "targetLoader.setSource(Qt.resolvedUrl(\"WindowsBarContent.qml\")" in helper_source
+    assert "targetLoader.active = true" in helper_source
+    assert "host._startupContentStarted = true" in helper_source
+    assert "profileTime(\"WindowsBar startupTimer triggered\")" in helper_source
+    assert "profileTime(\"WindowsBar mainLoader.active=true\")" in helper_source
+    assert "mainLoader.setSource" not in helper_source
+    assert "id: mainLoader" not in helper_source
+
+
 def test_login_window_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/auth/LoginWindow.qml"

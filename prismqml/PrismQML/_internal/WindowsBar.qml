@@ -25,27 +25,15 @@ NavigationWindowCore {
     content: Item {
         anchors.fill: parent
 
-        Timer {
+        WindowsBarStartupTimer {
             id: startupTimer
-            interval: Enums.duration.none
-            // Eager pages wait until a visible Splash frame is presented.
-            // 全量页面等待可见 Splash 首帧提交后再开始创建。
-            running: !window._startupContentStarted &&
-                (window.lazyLoading || window._startupPresentationReady)
-            onTriggered: {
-                window._startupContentStarted = true
-                window.profileTime("WindowsBar startupTimer triggered")
-                mainLoader.setSource(Qt.resolvedUrl("WindowsBarContent.qml"), {
-                    "hostWindow": window,
-                    "contentTopMargin": window.contentTopMargin
-                })
-                mainLoader.active = true
-                window.profileTime("WindowsBar mainLoader.active=true")
-            }
+            host: window
+            targetLoader: mainLoader
         }
 
         Loader {
             id: mainLoader
+            objectName: "windowsBarMainLoader"
             anchors.fill: parent
             active: false
             asynchronous: false

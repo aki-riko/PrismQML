@@ -34,6 +34,7 @@ SOURCE_PATH = INTERNAL_PATH / "WindowsSplit.qml"
 STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsSplitStartupTimer.qml"
 FILLED_SOURCE_PATH = INTERNAL_PATH / "WindowsFilled.qml"
 BAR_SOURCE_PATH = INTERNAL_PATH / "WindowsBar.qml"
+BAR_STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsBarStartupTimer.qml"
 BAR_CONTENT_SOURCE_PATH = INTERNAL_PATH / "WindowsBarContent.qml"
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
@@ -438,6 +439,42 @@ def test_windows_bar_loads_core_and_transfers_default_pages(monkeypatch, qapp):
     _exercise_page_transfer(monkeypatch, BAR_SCENE_SOURCE)
 
 
+def test_windows_bar_startup_timer_preserves_gate_and_loader_setup(
+    monkeypatch, qapp
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, warnings = _create_scene(
+        monkeypatch, BAR_SCENE_SOURCE, activate=False
+    )
+    try:
+        timer = window.findChild(QObject, "windowsBarStartupTimer")
+        loader = window.findChild(QObject, "windowsBarMainLoader")
+        assert timer is not None and loader is not None
+        assert timer.parent() is loader.parent()
+        assert timer.property("host") is window
+        assert timer.property("targetLoader") is loader
+        assert timer.property("interval") == 0
+        assert timer.property("running") is False
+        assert window.property("_startupContentStarted") is False
+        assert loader.property("active") is False
+        assert window.property("stackedWidget") is None
+
+        window.requestActivate()
+        assert _wait_for(window.isActive)
+        assert _wait_for(lambda: timer.property("running") is False)
+        assert _wait_for(lambda: loader.property("active") is True)
+        assert _wait_for(lambda: window.property("stackedWidget") is not None)
+        assert window.property("_startupContentStarted") is True
+        assert loader.property("source").toString().endswith(
+            "WindowsBarContent.qml"
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_windows_split_creates_loading_overlay_only_while_needed(monkeypatch, qapp):
     _exercise_loading_overlay_lifecycle(monkeypatch, SPLIT_SCENE_SOURCE)
 
@@ -537,21 +574,42 @@ def test_windows_filled_source_conventions_and_stack_binding():
 
 def test_windows_bar_source_conventions_and_startup_gate():
     source = BAR_SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = BAR_STARTUP_TIMER_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(BAR_SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    helper_path = PurePosixPath(BAR_STARTUP_TIMER_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path) + scan_source_text(
+        helper_source, helper_path
+    )
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert "interval: Enums.duration.none" in source
+    assert "WindowsBarStartupTimer {" in source
+    assert "host: window" in source
+    assert "targetLoader: mainLoader" in source
+    assert "\n        Timer {" not in source
+    assert "window._startupContentStarted = true" not in source
+    assert "mainLoader.setSource" not in source
+    assert "required property var host" in helper_source
+    assert "required property var targetLoader" in helper_source
+    assert "interval: Enums.duration.none" in helper_source
     assert "interval: 0" not in source
     assert (
         "running: !window._startupContentStarted &&\n"
-        "                (window.lazyLoading || window._startupPresentationReady)"
-        in source
+        "        (window.lazyLoading || window._startupPresentationReady)"
+        not in source
     )
-    assert "window._startupContentStarted = true" in source
+    assert (
+        "running: !host._startupContentStarted &&\n"
+        "        (host.lazyLoading || host._startupPresentationReady)"
+        in helper_source
+    )
+    assert "host._startupContentStarted = true" in helper_source
+    assert "targetLoader.setSource(Qt.resolvedUrl(\"WindowsBarContent.qml\")" in helper_source
+    assert "targetLoader.active = true" in helper_source
+    assert "host.profileTime(\"WindowsBar startupTimer triggered\")" in helper_source
+    assert "host.profileTime(\"WindowsBar mainLoader.active=true\")" in helper_source
     assert "window._moveDefaultPages(" in source
     assert "default property list<QtObject> pages" in source
     assert "id: _hiddenStack" not in source
