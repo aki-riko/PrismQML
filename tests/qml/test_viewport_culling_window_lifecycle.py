@@ -40,6 +40,7 @@ SOURCE_PATH = (
     / "utils"
     / "ViewportCulling.qml"
 )
+TIMER_SOURCE = SOURCE_PATH.parent / "_internal" / "ViewportCullingEvaluationTimer.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "viewport-culling-window-lifecycle.qml")
 )
@@ -193,7 +194,7 @@ def _culling_timers(items: list[QQuickItem]) -> list[QObject]:
         matches = [
             obj
             for obj in item.findChildren(QObject)
-            if obj.metaObject().className() == "QQmlTimer"
+            if obj.objectName() == "viewportCullingTimer"
             and obj.property("interval") == 150
             and obj.property("repeat") is True
         ]
@@ -389,9 +390,17 @@ def test_hidden_and_minimized_windows_stop_culling_timer_wakeups(qapp):
 def test_viewport_culling_source_pauses_hidden_window_timers():
     """Hidden and minimized windows must stop culling timers. 隐藏和最小化窗口须停用裁剪计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    timer_source = TIMER_SOURCE.read_text(encoding="utf-8")
     assert "import QtQuick.Window" in source
+    assert 'import "_internal" as UtilsInternal' in source
+    assert "UtilsInternal.ViewportCullingEvaluationTimer {" in source
+    assert "\n    Timer {" not in source
     assert "_hostWindow.visibility !== Window.Hidden" in source
     assert "_hostWindow.visibility !== Window.Minimized" in source
-    assert (
-        "running: root._flickable !== null && root._hostWindowExposed"
-    ) in source
+    assert "required property var host" in timer_source
+    assert 'objectName: "viewportCullingTimer"' in timer_source
+    assert "interval: 150" in timer_source
+    assert "running: host._flickable !== null && host._hostWindowExposed" in timer_source
+    assert "repeat: true" in timer_source
+    assert "triggeredOnStart: true" in timer_source
+    assert "onTriggered: host._updateVisibility()" in timer_source

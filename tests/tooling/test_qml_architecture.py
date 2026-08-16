@@ -780,6 +780,33 @@ def test_popup_position_tracker_keeps_update_timer_modularized():
     assert "onTriggered: tracker._updatePosition()" not in source
 
 
+def test_viewport_culling_keeps_evaluation_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/utils/ViewportCulling.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/utils/_internal/"
+        "ViewportCullingEvaluationTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 120
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert 'import "_internal" as UtilsInternal' in source
+    assert "UtilsInternal.ViewportCullingEvaluationTimer {" in source
+    assert "id: evaluationTimer" in source
+    assert "host: root" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "viewportCullingTimer"' in helper_source
+    assert "interval: 150" in helper_source
+    assert "running: host._flickable !== null && host._hostWindowExposed" in helper_source
+    assert "repeat: true" in helper_source
+    assert "triggeredOnStart: true" in helper_source
+    assert "onTriggered: host._updateVisibility()" in helper_source
+    assert "onTriggered: root._updateVisibility()" not in source
+
+
 def test_list_widget_keeps_data_and_selection_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/List/ListWidget.qml"

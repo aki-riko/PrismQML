@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Window
+import "_internal" as UtilsInternal
 
 // ViewportCulling - 视口裁剪感知 helper
 // 放入任意 Item 内部, 自动探测最近祖先 Flickable 并暴露 inViewport bool.
@@ -75,11 +76,8 @@ Item {
     // Viewport evaluation 视口判定
     // 仅用 Timer 低频判定 (每 150ms), 避免 contentY binding 每帧触发 mapToItem 开销.
     // 150ms 在快速滚动时 ≈ 2 帧延迟切换, 人眼不可察觉, 但不增加每帧 GUI 线程负担.
-    Timer {
-        interval: 150
-        running: root._flickable !== null && root._hostWindowExposed
-        repeat: true
-        triggeredOnStart: true  // 首次立即判定
-        onTriggered: root._updateVisibility()
+    UtilsInternal.ViewportCullingEvaluationTimer {
+        id: evaluationTimer
+        host: root
     }
 }
