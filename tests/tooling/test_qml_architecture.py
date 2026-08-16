@@ -602,6 +602,28 @@ def test_smooth_scroll_helper_keeps_wheel_input_modularized():
     assert "onWheel:" not in source
 
 
+def test_smooth_scroll_helper_keeps_bounce_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "SmoothScrollBounceTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "ScrollBarInternal.SmoothScrollBounceTimer {" in source
+    assert "scrollHelper: helper" in source
+    assert "required property var scrollHelper" in helper_source
+    assert "required property bool verticalAxis" in helper_source
+    assert "scrollHelper._releaseBounceTimer(verticalAxis, bounceTimer)" in helper_source
+    assert "\n        Timer {\n            id: bounceTimer\n" not in source
+
+
 def test_constants_keeps_theme_colors_modularized():
     entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
     helper = _source(

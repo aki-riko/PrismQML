@@ -464,17 +464,8 @@ Item {
     Component {
         id: bounceTimerComponent
 
-        Timer {
-            id: bounceTimer
-
-            required property bool verticalAxis
-
-            interval: Enums.duration.fast
-            onTriggered: {
-                if (verticalAxis) helper._bounceBackV()
-                else helper._bounceBackH()
-                helper._releaseBounceTimer(verticalAxis, bounceTimer)
-            }
+        ScrollBarInternal.SmoothScrollBounceTimer {
+            scrollHelper: helper
         }
     }
 

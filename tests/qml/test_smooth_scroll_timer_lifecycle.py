@@ -40,6 +40,7 @@ SOURCE_PATH = (
     / "ScrollBar"
     / "SmoothScrollHelper.qml"
 )
+BOUNCE_TIMER_PATH = SOURCE_PATH.parent / "_internal" / "SmoothScrollBounceTimer.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "smooth-scroll-timer-lifecycle.qml")
 )
@@ -286,12 +287,17 @@ def test_smooth_scroll_source_creates_axis_bounce_timers_on_demand():
     每个轴仅在需要时创建独立回弹计时器。
     """
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    bounce_timer_source = BOUNCE_TIMER_PATH.read_text(encoding="utf-8")
     assert "id: bounceTimerV" not in source
     assert "id: bounceTimerH" not in source
     assert "id: bounceTimerComponent" in source
     assert "bounceTimerComponent.createObject(" in source
+    assert "ScrollBarInternal.SmoothScrollBounceTimer {" in source
+    assert "required property var scrollHelper" in bounce_timer_source
+    assert "required property bool verticalAxis" in bounce_timer_source
+    assert "scrollHelper._releaseBounceTimer(verticalAxis, bounceTimer)" in bounce_timer_source
     assert "_restartBounceTimer(true)" in source
     assert "_restartBounceTimer(false)" in source
     assert "_stopBounceTimer(true)" in source
     assert "_stopBounceTimer(false)" in source
-    assert "_releaseBounceTimer(verticalAxis, bounceTimer)" in source
+    assert "_releaseBounceTimer(verticalAxis, bounceTimer)" not in source
