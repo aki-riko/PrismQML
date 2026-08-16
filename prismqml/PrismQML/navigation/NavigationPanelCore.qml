@@ -18,6 +18,8 @@ Item {
     property var bottomItems: []
     property bool indicatorAnimationEnabled: true
     property color backgroundColor: Enums.transparent
+    property real paperOriginX: 0
+    property real paperOriginY: 0
     
     // Acrylic effect control 亚克力效果控制
     property bool acrylicEnabled: false

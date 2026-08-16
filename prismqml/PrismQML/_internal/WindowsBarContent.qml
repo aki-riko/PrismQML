@@ -23,6 +23,9 @@ Item {
         typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.isCompact
     readonly property bool _loadingOverlayActive:
         !!(hostWindow && hostWindow._pythonLoading)
+    readonly property real _windowPaperOriginY:
+        hostWindow && typeof hostWindow.titleBarHeight === "number"
+        ? hostWindow.titleBarHeight + contentTopMargin : contentTopMargin
 
     anchors.fill: parent
 
@@ -58,6 +61,7 @@ Item {
             ? Enums.transparent
             : Enums.backgroundColor
         currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
+        paperOriginY: root._windowPaperOriginY
 
         onItemClicked: (index) => {
             if (!root.hostWindow) return
@@ -103,6 +107,8 @@ Item {
         anchors.bottom: root._compactNav ? bottomTabBarLoader.top : parent.bottom
         backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
         cornerRadius: root.hostWindow ? root.hostWindow.contentCornerRadius : Enums.radius.large
+        paperOriginX: root._compactNav ? 0 : navigationBar.width
+        paperOriginY: root._windowPaperOriginY
 
         StackedWidget {
             id: stack

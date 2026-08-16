@@ -13,19 +13,33 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property color inkColor: Enums.ticket.dividerColor
     property real patternOpacity: Enums.opacityLevel.faint
+    property real patternOriginX: 0
+    property real patternOriginY: 0
+
+    // ==================== Readonly State 只读状态 ====================
+    readonly property real _patternSourceX: -Math.max(0, patternOriginX)
+    readonly property real _patternSourceY: -Math.max(0, patternOriginY)
 
     visible: Enums.isVintageTicket
     opacity: patternOpacity
     clip: true
 
     // ==================== Content 内容 ====================
-    Image {
+    Item {
         id: patternSource
 
         anchors.fill: parent
-        source: Qt.resolvedUrl("_internal/ticket-crosshatch.svg")
-        fillMode: Image.Tile
         visible: false
+        clip: true
+
+        Image {
+            x: control._patternSourceX
+            y: control._patternSourceY
+            width: patternSource.width - x
+            height: patternSource.height - y
+            source: Qt.resolvedUrl("_internal/ticket-crosshatch.svg")
+            fillMode: Image.Tile
+        }
     }
 
     MultiEffect {

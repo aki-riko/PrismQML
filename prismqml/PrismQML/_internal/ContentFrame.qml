@@ -16,6 +16,8 @@ Item {
     required property int cornerRadius
     
     // ==================== Public Props 公开属性 ====================
+    property real paperOriginX: 0
+    property real paperOriginY: 0
     default property alias content: contentItem.data
 
     // ==================== Readonly State 只读状态 ====================
@@ -32,6 +34,8 @@ Item {
 
         TicketPaper {
             anchors.fill: parent
+            patternOriginX: root.paperOriginX
+            patternOriginY: root.paperOriginY
         }
         
         // Bottom-left corner fill. 左下角填充。

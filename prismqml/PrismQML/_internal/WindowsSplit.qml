@@ -99,6 +99,8 @@ NavigationWindowCore {
  anchors.bottom: parent.bottom
  backgroundColor: window.contentBgColor
  cornerRadius: window.contentCornerRadius
+ paperOriginX: window.navCompactWidth
+ paperOriginY: window.titleBarHeight
  
  StackedWidget {
  id: stack

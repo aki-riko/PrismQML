@@ -580,6 +580,8 @@ def test_windows_split_source_conventions_and_startup_delay_token():
     assert "default property list<QtObject> pages" in source
     assert "id: _hiddenStack" not in source
     assert "interval: 50" not in helper_source
+    assert "paperOriginX: window.navCompactWidth" in source
+    assert "paperOriginY: window.titleBarHeight" in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int splitStartupDelayMs: 50" in metrics
 
@@ -671,6 +673,9 @@ def test_windows_bar_source_conventions_and_startup_gate():
         "root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep"
         in content_source
     )
+    assert "paperOriginX: root._compactNav ? 0 : navigationBar.width" in content_source
+    assert "typeof hostWindow.titleBarHeight === \"number\"" in content_source
+    assert "paperOriginY: root._windowPaperOriginY" in content_source
     assert (
         "model: root.hostWindow && !root._compactNav\n"
         "            ? root.hostWindow.navigationItems : []"

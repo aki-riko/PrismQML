@@ -36,13 +36,18 @@ Item {
     readonly property color successToken: Enums.statusLevel.getColorByLevel(Enums.statusLevel.success)
     readonly property color dangerToken: Enums.statusLevel.getColorByLevel(Enums.statusLevel.error)
     readonly property color shadowToken: Enums.shadow.level8.color
+    readonly property real paperSourceX: ticketPaper._patternSourceX
+    readonly property real paperSourceY: ticketPaper._patternSourceY
 
     width: 96
     height: 96
 
     TicketPaper {
+        id: ticketPaper
         objectName: "ticketPaper"
         anchors.fill: parent
+        patternOriginX: 68
+        patternOriginY: 48
     }
 }
 """
@@ -105,6 +110,8 @@ def test_vintage_ticket_runtime_tokens_and_texture(qapp):
         assert root.property("surfaceRadius") == 0
         assert root.property("surfaceBorderWidth") == 1
         assert paper.property("visible") is True
+        assert root.property("paperSourceX") == -68
+        assert root.property("paperSourceY") == -48
         _assert_color(root, "backgroundToken", "#e9e1d2")
         _assert_color(root, "surfaceToken", "#f8f3e8")
         _assert_color(root, "foregroundToken", "#2b211a")

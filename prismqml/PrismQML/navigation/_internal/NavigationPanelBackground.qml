@@ -64,6 +64,8 @@ Item {
 
     TicketPaper {
         anchors.fill: parent
+        patternOriginX: control.paperOriginX
+        patternOriginY: control.paperOriginY
         z: 1
     }
 
