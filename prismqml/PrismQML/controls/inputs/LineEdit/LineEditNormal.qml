@@ -9,6 +9,7 @@ import "../../icons"
 import "../../buttons"
 import "../../data"
 import "../_internal"
+import "_internal" as LineEditInternal
 
 // LineEditNormal - Normal/Password/Search input 普通/密码/搜索输入
 // Internal module for LineEdit LineEdit内部模块
@@ -98,10 +99,10 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    Timer {
+    LineEditInternal.LineEditNormalHideTimer {
         id: _hideTimer
-        interval: Enums.duration.medium
-        onTriggered: if (!normalInput.expanded) normalInput._textInputVisible = false
+
+        host: normalInput
     }
 
     // Input field 输入框

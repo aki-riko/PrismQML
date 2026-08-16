@@ -37,6 +37,16 @@ SOURCE_PATH = (
     / "LineEdit"
     / "LineEditNormal.qml"
 )
+HIDE_TIMER_SOURCE_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "LineEdit"
+    / "_internal"
+    / "LineEditNormalHideTimer.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-normal-conventions.qml")
@@ -50,6 +60,7 @@ Window {
     readonly property int normalEcho: TextInput.Normal
     readonly property int passwordEcho: TextInput.Password
     readonly property int expectedClearButtonSize: Enums.controlSize.lineEditClearButtonSize
+    readonly property int expectedHideDelay: Enums.duration.medium
 
     width: 560
     height: 260
@@ -144,6 +155,23 @@ def _action_button(normal_module: QQuickItem) -> QQuickItem:
         if isinstance(child, QQuickItem)
         and child.metaObject().className().startswith("InputActionButton")
         and child.metaObject().indexOfProperty("collapsedSize") >= 0
+    ]
+    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    return matches[0]
+
+
+def _hide_timer(normal_module: QQuickItem) -> QObject:
+    timer = normal_module.findChild(QObject, "lineEditNormalHideTimer")
+    assert timer is not None
+    return timer
+
+
+def _text_input(normal_module: QQuickItem) -> QQuickItem:
+    matches = [
+        child
+        for child in _descendants(normal_module)
+        if isinstance(child, QQuickItem)
+        and child.metaObject().className().startswith("QQuickTextInput")
     ]
     assert len(matches) == 1, [item.metaObject().className() for item in matches]
     return matches[0]
@@ -289,6 +317,48 @@ def test_collapsible_search_animates_width_and_keeps_action_height(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_collapsible_search_preserves_delayed_hide_timer_lifecycle(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, inputs, warnings = _create_scene()
+    search_control = inputs["searchInput"]
+    search_module = _normal_module(search_control)
+    search_action = _action_button(search_module)
+    hide_timer = _hide_timer(search_module)
+    normal_text_input = _text_input(_normal_module(inputs["normalInput"]))
+    try:
+        assert hide_timer.parent() is search_module
+        assert hide_timer.property("host") == search_module
+        assert hide_timer.property("interval") == window.property("expectedHideDelay")
+        assert hide_timer.property("repeat") is False
+        assert hide_timer.property("running") is False
+        assert search_module.property("_textInputVisible") is False
+
+        _click(window, search_action)
+        assert _wait_for(lambda: search_module.property("expanded"))
+        assert search_module.property("_textInputVisible") is True
+
+        normal_text_input.forceActiveFocus()
+        assert _wait_for(lambda: not search_module.property("expanded"))
+        assert hide_timer.property("running") is True
+        assert search_module.property("_textInputVisible") is True
+
+        _click(window, search_action)
+        assert _wait_for(lambda: search_module.property("expanded"))
+        assert _wait_for(lambda: not hide_timer.property("running"))
+        assert search_module.property("_textInputVisible") is True
+
+        normal_text_input.forceActiveFocus()
+        assert _wait_for(lambda: not search_module.property("expanded"))
+        assert hide_timer.property("running") is True
+        assert _wait_for(lambda: not search_module.property("_textInputVisible"))
+        assert hide_timer.property("running") is False
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_line_edit_normal_source_conventions_and_clear_button_token():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -302,3 +372,14 @@ def test_line_edit_normal_source_conventions_and_clear_button_token():
     assert "size: 20" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int lineEditClearButtonSize: 20" in metrics
+
+
+def test_line_edit_normal_hide_timer_source_conventions():
+    source = HIDE_TIMER_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(HIDE_TIMER_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []

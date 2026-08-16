@@ -2539,6 +2539,34 @@ def test_line_edit_core_keeps_variant_factories_modularized():
         assert marker not in source
 
 
+def test_line_edit_normal_keeps_hide_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/LineEditNormal.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/_internal/"
+        "LineEditNormalHideTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 210
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as LineEditInternal' in source
+    assert "LineEditInternal.LineEditNormalHideTimer {" in source
+    assert "id: _hideTimer" in source
+    assert "host: normalInput" in source
+    assert "_hideTimer.restart()" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "lineEditNormalHideTimer"' in helper_source
+    assert "interval: Enums.duration.medium" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: if (!host.expanded) host._textInputVisible = false" in helper_source
+    assert "onTriggered: if (!normalInput.expanded)" not in source
+
+
 def test_pivot_keeps_indicator_sync_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/Pivot.qml")
     helper = _source(
