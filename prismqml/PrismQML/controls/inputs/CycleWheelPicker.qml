@@ -235,14 +235,10 @@ Item {
         }
     }
 
-    Timer {
+    InputInternal.CycleWheelPickerRepeatTimer {
         id: repeatTimer
 
-        interval: control._repeatStarted
-            ? Enums.duration.wheelPickerRepeatInterval
-            : Enums.duration.wheelPickerRepeatDelay
-        repeat: true
-        onTriggered: control._triggerRepeat()
+        wheelControl: control
     }
     
     // Scroll buttons 滚动按钮

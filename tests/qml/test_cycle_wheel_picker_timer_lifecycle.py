@@ -157,6 +157,11 @@ def test_cycle_wheel_picker_first_button_presses_keep_visuals_and_repeat_state(q
         hover_hash = _image_hash(hover_image)
         timers = _timers(picker)
         object_count = len(picker.findChildren(QObject))
+        assert len(timers) == 1
+        repeat_timer = timers[0]
+        assert repeat_timer.objectName() == "cycleWheelPickerRepeatTimer"
+        assert repeat_timer.parent() is picker
+        assert repeat_timer.property("wheelControl") == picker
 
         QTest.mouseMove(window, QPoint(100, 20))
         assert _wait_for(lambda: picker.property("_hovered"))
@@ -194,7 +199,6 @@ def test_cycle_wheel_picker_first_button_presses_keep_visuals_and_repeat_state(q
             f"objects={object_count}",
             f"hover_hash={hover_hash}",
         )
-        assert len(timers) == 1
         assert object_count == 33
         if os.name == "nt":
             assert hover_hash == WINDOWS_HOVER_HASH

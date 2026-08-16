@@ -45,6 +45,9 @@ PATH_DELEGATE_SOURCE_PATH = (
 LIST_DELEGATE_SOURCE_PATH = PATH_DELEGATE_SOURCE_PATH.with_name(
     "CycleWheelPickerListDelegate.qml"
 )
+REPEAT_TIMER_SOURCE_PATH = PATH_DELEGATE_SOURCE_PATH.with_name(
+    "CycleWheelPickerRepeatTimer.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-conventions.qml")
@@ -290,6 +293,10 @@ def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
             LIST_DELEGATE_SOURCE_PATH,
             LIST_DELEGATE_SOURCE_PATH.read_text(encoding="utf-8"),
         ),
+        (
+            REPEAT_TIMER_SOURCE_PATH,
+            REPEAT_TIMER_SOURCE_PATH.read_text(encoding="utf-8"),
+        ),
     )
     violations = []
     for path, source in sources:
@@ -303,12 +310,16 @@ def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
     assert violations == []
     source = SOURCE_PATH.read_text(encoding="utf-8")
     for token in (
-        "Enums.duration.wheelPickerRepeatInterval",
-        "Enums.duration.wheelPickerRepeatDelay",
         "Enums.controlSize.wheelPickerMaxFlickVelocity",
         "Enums.controlSize.wheelPickerFlickDeceleration",
     ):
         assert token in source
+    repeat_timer_source = REPEAT_TIMER_SOURCE_PATH.read_text(encoding="utf-8")
+    for token in (
+        "Enums.duration.wheelPickerRepeatInterval",
+        "Enums.duration.wheelPickerRepeatDelay",
+    ):
+        assert token in repeat_timer_source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int wheelPickerRepeatInterval: 50" in metrics
     assert "readonly property int wheelPickerRepeatDelay: 500" in metrics

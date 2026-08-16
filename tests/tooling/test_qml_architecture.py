@@ -2279,6 +2279,32 @@ def test_cycle_wheel_picker_keeps_delegates_modularized():
         assert marker not in source
 
 
+def test_cycle_wheel_picker_keeps_repeat_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/CycleWheelPicker.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/_internal/"
+        "CycleWheelPickerRepeatTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 255
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as InputInternal' in source
+    assert "InputInternal.CycleWheelPickerRepeatTimer {" in source
+    assert "id: repeatTimer" in source
+    assert "wheelControl: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var wheelControl" in helper_source
+    assert 'objectName: "cycleWheelPickerRepeatTimer"' in helper_source
+    assert "interval: wheelControl._repeatStarted" in helper_source
+    assert "Enums.duration.wheelPickerRepeatInterval" in helper_source
+    assert "Enums.duration.wheelPickerRepeatDelay" in helper_source
+    assert "repeat: true" in helper_source
+    assert "onTriggered: wheelControl._triggerRepeat()" in helper_source
+
+
 def test_pips_pager_keeps_navigation_button_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/FlipView/PipsPagerCore.qml"
