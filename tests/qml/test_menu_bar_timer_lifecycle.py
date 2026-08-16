@@ -42,6 +42,7 @@ SOURCE_PATH = (
     / "navigation"
     / "MenuBar.qml"
 )
+TIMER_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "MenuBarCloseTimer.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "menu-bar-timer-lifecycle.qml")
 )
@@ -254,9 +255,18 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         )
         popup = _popup_core(menu_bar)
         assert popup.property("popupHeight") >= 3 * 32
+        owner_item = file_button.parentItem()
 
         assert QMetaObject.invokeMethod(popup, "close")
         closing_timers = _timers(menu_bar)
+        close_timer = owner_item.property("_closeTimer")
+        assert close_timer is not None
+        assert close_timer.objectName() == "menuBarCloseTimer"
+        assert close_timer.parent() is owner_item
+        assert close_timer.property("menuBar") == menu_bar
+        assert close_timer.property("menuButton") == file_button
+        assert close_timer.property("ownerItem") == owner_item
+        assert close_timer.property("repeat") is False
         QTest.mouseMove(window, QPoint(window.width() - 5, window.height() - 5))
         assert _wait_for(
             lambda: _new_visible_windows(windows_before, window) == []
@@ -279,16 +289,18 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
             f"hashes={initial_hash}/{restored_hash}",
         )
 
-        assert len(initial_timers) == 16
-        assert len(restored_timers) == 16
-        assert len(interaction_timers) == 4
-        assert len(closing_timers) == 5
-        assert len(restored_interaction_timers) == 4
+        # Steady timers are named helper types; the on-demand slot is tracked explicitly.
+        # 常驻计时器均为命名 helper 类型；按需槽位通过显式属性追踪。
+        assert len(initial_timers) == 0
+        assert len(restored_timers) == 0
+        assert len(interaction_timers) == 0
+        assert len(closing_timers) == 1
+        assert len(restored_interaction_timers) == 0
         # Four unopened menus no longer instantiate one native Window each.
         # 四个未打开菜单不再各自提前实例化一个原生 Window。
         if os.name == "nt":
             # PopupAnimations and PopupSurface now contribute eight stable objects to the measured menu tree. PopupAnimations 与 PopupSurface 当前为测量菜单树稳定增加八个对象。
-            assert initial_objects == 371
+            assert initial_objects == 379
         else:
             assert initial_objects > 0
         assert restored_objects == initial_objects
@@ -306,9 +318,12 @@ def test_menu_bar_source_creates_close_timer_on_demand():
     每个菜单仅在需要时创建自己的关闭计时器。
     """
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    timer_source = TIMER_SOURCE_PATH.read_text(encoding="utf-8")
     assert "id: closeTimer\n" not in source
     assert "id: closeTimerComponent" in source
     assert "closeTimerComponent.createObject(" in source
-    assert "if (!menuButton.hovered)" in source
-    assert "ownerItem._closeTimer = null" in source
-    assert "destroy()" in source
+    assert "NavigationInternal.MenuBarCloseTimer {" in source
+    assert "menuBar: control" in source
+    assert "if (!menuButton.hovered)" in timer_source
+    assert "ownerItem._closeTimer = null" in timer_source
+    assert "destroy()" in timer_source

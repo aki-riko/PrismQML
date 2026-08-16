@@ -1997,6 +1997,38 @@ def test_paginator_keeps_page_settle_timer_modularized():
     assert "if (!pageSlideAnimation.running) root._settleLoadedPages()" not in source
 
 
+def test_menu_bar_keeps_dynamic_close_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/MenuBar.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/MenuBarCloseTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 180
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as NavigationInternal' in source
+    assert "id: closeTimerComponent" in source
+    assert "NavigationInternal.MenuBarCloseTimer {" in source
+    assert "menuBar: control" in source
+    assert "closeTimerComponent.createObject(" in source
+    assert '"menuButton": menuBtn' in source
+    assert '"ownerItem": menuItemContainer' in source
+    assert "required property Item menuBar" in helper_source
+    assert "required property Item menuButton" in helper_source
+    assert "required property Item ownerItem" in helper_source
+    assert 'objectName: "menuBarCloseTimer"' in helper_source
+    assert "interval: Enums.duration.fast" in helper_source
+    assert "repeat: false" in helper_source
+    assert "ownerItem._closeTimer = null" in helper_source
+    assert "destroy()" in helper_source
+    assert "\n        Timer {" not in source
+    assert "if (!menuButton.hovered)" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

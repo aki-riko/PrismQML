@@ -7,6 +7,7 @@ import "../.."
 import "../menus"
 import "../buttons"
 import "../data"
+import "_internal" as NavigationInternal
 
 // MenuBar - Fluent Design menu bar 菜单栏
 // Supports hover switching, smooth animation, and custom popups 支持悬停切换、平滑动画和自定义弹出菜单
@@ -168,16 +169,8 @@ Rectangle {
     Component {
         id: closeTimerComponent
 
-        Timer {
-            required property Item menuButton
-            required property Item ownerItem
-
-            interval: Enums.duration.fast
-            onTriggered: {
-                if (!menuButton.hovered) control.activeIndex = -1
-                ownerItem._closeTimer = null
-                destroy()
-            }
+        NavigationInternal.MenuBarCloseTimer {
+            menuBar: control
         }
     }
 }
