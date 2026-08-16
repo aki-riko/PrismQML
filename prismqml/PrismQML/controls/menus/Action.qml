@@ -7,6 +7,7 @@ import "../.."
 import "../icons"
 import "../data"
 import "../feedback/Tooltip"
+import "_internal" as MenuInternal
 
 // Action - Menu action item 菜单动作项
 // Supports text position: side (default) or bottom 支持文本位置：侧边（默认）或底部
@@ -176,10 +177,12 @@ Rectangle {
             x: itemArea.mouseX + Enums.spacing.m
             y: control.height + Enums.spacing.xxs
 
-            Timer {
-                interval: 600
-                running: control.toolTip !== "" && itemArea.containsMouse
-                onTriggered: actionTooltip.show()
+            MenuInternal.ActionTooltipShowTimer {
+                id: tooltipShowTimer
+
+                actionControl: control
+                hoverArea: itemArea
+                tooltip: actionTooltip
             }
         }
     }

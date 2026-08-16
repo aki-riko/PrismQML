@@ -34,6 +34,7 @@ ROOT = Path(
 SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "controls" / "menus" / "Action.qml"
 )
+TIMER_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "ActionTooltipShowTimer.qml"
 TOOLTIP_SOURCE_PATH = (
     ROOT
     / "prismqml"
@@ -178,6 +179,14 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         )
         assert _wait_for(lambda: loader.property("item") is not None)
         tooltip = loader.property("item")
+        show_timer = tooltip.findChild(QObject, "actionTooltipShowTimer")
+        assert show_timer is not None
+        assert show_timer.parent() is tooltip
+        assert show_timer.property("actionControl") == action
+        assert show_timer.property("tooltip") == tooltip
+        assert show_timer.property("hoverArea").parent() is action
+        assert show_timer.property("interval") == 600
+        assert show_timer.property("repeat") is False
         loaded_timers = _timers(action)
         loaded_objects = len(action.findChildren(QObject))
         assert _wait_for(lambda: bool(tooltip.property("_windowVisible")), 1_400)
@@ -236,11 +245,16 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
 def test_action_source_loads_timer_with_tooltip():
     """The delay timer must share the tooltip lifecycle. 延迟计时器必须跟随提示生命周期。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    timer_source = TIMER_SOURCE_PATH.read_text(encoding="utf-8")
     assert "id: tipTimer" not in source
     assert "id: actionTooltip" in source
     assert "itemArea.containsMouse || item !== null" in source
-    assert 'running: control.toolTip !== "" && itemArea.containsMouse' in source
-    assert "onTriggered: actionTooltip.show()" in source
+    assert "MenuInternal.ActionTooltipShowTimer {" in source
+    assert "actionControl: control" in source
+    assert "hoverArea: itemArea" in source
+    assert "tooltip: actionTooltip" in source
+    assert 'running: actionControl.toolTip !== "" && hoverArea.containsMouse' in timer_source
+    assert "onTriggered: tooltip.show()" in timer_source
 
 
 def test_tooltip_source_loads_follow_timer_with_window_host():

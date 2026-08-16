@@ -1722,6 +1722,35 @@ def test_tooltip_core_keeps_follow_anchor_timer_modularized():
     assert "running: control.followAnchor && windowHost.windowVisible" not in source
 
 
+def test_action_keeps_tooltip_show_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/menus/Action.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/menus/_internal/ActionTooltipShowTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 220
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as MenuInternal' in source
+    assert "MenuInternal.ActionTooltipShowTimer {" in source
+    assert "id: tooltipShowTimer" in source
+    assert "actionControl: control" in source
+    assert "hoverArea: itemArea" in source
+    assert "tooltip: actionTooltip" in source
+    assert "\n            Timer {" not in source
+    assert "required property var actionControl" in helper_source
+    assert "required property var hoverArea" in helper_source
+    assert "required property var tooltip" in helper_source
+    assert 'objectName: "actionTooltipShowTimer"' in helper_source
+    assert "interval: 600" in helper_source
+    assert "repeat: false" in helper_source
+    assert 'running: actionControl.toolTip !== "" && hoverArea.containsMouse' in helper_source
+    assert "onTriggered: tooltip.show()" in helper_source
+    assert "onTriggered: actionTooltip.show()" not in source
+
+
 def test_auto_updater_keeps_update_dialog_wiring_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/feedback/AutoUpdater.qml"
