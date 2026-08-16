@@ -528,6 +528,25 @@ def test_drawer_keeps_outside_window_modularized():
     ):
         assert token not in source
 
+    surface = _source(
+        "prismqml/PrismQML/controls/containers/Drawer/_internal/DrawerSurface.qml"
+    )
+    surface_source = surface.read_text(encoding="utf-8")
+    assert len(source.splitlines()) < 370
+    assert surface.exists()
+    assert len(surface_source.splitlines()) < 220
+    assert "DrawerInternal.DrawerSurface {" in source
+    assert "required property var drawerControl" in surface_source
+    assert "default property alias content: contentItem.data" in surface_source
+    assert "readonly property alias panel: drawer" in surface_source
+    for token in (
+        "RectangularShadow {",
+        "NeumorphicShadow {",
+        "\n        id: drawer\n",
+        "\n        id: contentItem\n",
+    ):
+        assert token not in source
+
 
 def test_smooth_scroll_helper_keeps_wheel_input_modularized():
     entry = _source(

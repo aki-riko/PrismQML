@@ -4,9 +4,7 @@
 
 import QtQuick
 import QtQuick.Window
-import QtQuick.Effects
 import "../../.."
-import "../../../effects"
 import "../../dialogs"
 import "_internal" as DrawerInternal
 
@@ -25,7 +23,7 @@ OverlayDialogCore {
     /// 抽屉滑入/滑出动画时长 (毫秒)。默认与全局慢速一致;
     /// 紧凑场景可调小,例如 200。
     property int animationDuration: Enums.duration.slow
-    default property alias content: contentItem.data
+    default property alias content: drawerSurface.content
     readonly property bool isHorizontal: position === Enums.position.left || position === Enums.position.right
     
     // Qt-style state alias Qt风格状态别名
@@ -323,101 +321,12 @@ OverlayDialogCore {
         onFinished: control._finishOutsideAnimation()
     }
 
-    // Drawer shadow 抽屉阴影
-    // Shadow for drawer 抽屉阴影
-    RectangularShadow {
-        anchors.fill: drawer
-        radius: control._effectiveRadius
-        color: Enums.shadow.level28.color
-        blur: Enums.shadow.level28.blur
-        offset.x: 0
-        offset.y: Enums.shadow.level28.offset
-        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
-                 && (control._isOpen || control._isClosing)
-    }
+    // Inside drawer visual layer 内侧抽屉视觉层
+    DrawerInternal.DrawerSurface {
+        id: drawerSurface
 
-    NeumorphicShadow {
-        target: drawer
-        visible: Enums.isNeumorphism && (control._isOpen || control._isClosing)
-        z: drawer.z - 1
-    }
-    
-    // Drawer panel 抽屉面板
-    Rectangle {
-        id: drawer
-
-        readonly property real effectiveWidth: control.width > 0 ? control.width : (control.parent ? control.parent.width : 0)
-        readonly property real effectiveHeight: control.height > 0 ? control.height : (control.parent ? control.parent.height : 0)
-
-        color: control._drawerBackground
-        radius: control._effectiveRadius
-        // Drawer boundary for non-Fluent skins 非 Fluent 皮肤抽屉边界
-        border.width: control._drawerBorderWidth
-        border.color: control._drawerBorderColor
-        
-        // Use parent size directly when control size is 0 (Python setParentItem timing issue) 当 control 尺寸为 0 时直接使用 parent 尺寸（Python setParentItem 时序问题）
-
-        width: isHorizontal ? control.drawerWidth : effectiveWidth
-        height: isHorizontal ? effectiveHeight : control.drawerHeight
-
-        TicketPaper {
-            anchors.fill: parent
-        }
-
-        // Block clicks from reaching the overlay mask 阻止点击穿透到遮罩层
-        MouseArea {
-            anchors.fill: parent
-            // Consume all clicks so they don't propagate to the mask 消费点击防止穿透
-        }
-        
-        // Use states to manage position 使用states管理位置
-        states: [
-            State {
-                name: "open"
-                when: control._isOpen
-                PropertyChanges {
-                    target: drawer
-                    x: position === Enums.position.left ? 0 : 
-                       (position === Enums.position.right ? drawer.effectiveWidth - drawer.width : 0)
-                    y: position === Enums.position.top ? 0 :
-                       (position === Enums.position.bottom ? drawer.effectiveHeight - drawer.height : 0)
-                }
-            },
-            State {
-                name: "closed"
-                when: !control._isOpen
-                PropertyChanges {
-                    target: drawer
-                    x: position === Enums.position.left ? -drawer.width :
-                       (position === Enums.position.right ? drawer.effectiveWidth : 0)
-                    y: position === Enums.position.top ? -drawer.height :
-                       (position === Enums.position.bottom ? drawer.effectiveHeight : 0)
-                }
-            }
-        ]
-
-        transitions: Transition {
-            enabled: control._insideAnimationReady
-            NumberAnimation { properties: "x,y"; duration: control.animationDuration; easing.type: Easing.OutCubic }
-        }
-    }
-
-    // Shared content host moves between inside and outside panels
-    // 共享内容宿主在内侧与外侧面板间移动
-    Item {
-        id: contentItem
-        objectName: "contentItem"  // For Python findChild 供Python查找
-
-        parent: control._isOutside ? control._outsideDrawerPanel : drawer
         anchors.fill: parent
-        anchors.margins: Enums.spacing.xl
-
-        // Clear input focus when clicking empty content area 点击内容空白处清除输入焦点
-        MouseArea {
-            anchors.fill: parent
-            z: Enums.zIndex.background
-            onClicked: contentItem.forceActiveFocus()
-        }
+        drawerControl: control
     }
 
     Connections {
