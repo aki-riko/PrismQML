@@ -1833,6 +1833,34 @@ def test_toast_keeps_progress_complete_timer_modularized():
     assert "onTriggered: host.hide()" in helper_source
 
 
+def test_desktop_notification_keeps_auto_close_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/"
+        "DesktopNotification.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "DesktopNotificationAutoCloseTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 235
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 35
+    assert 'import "_internal" as NotificationInternal' in source
+    assert "NotificationInternal.DesktopNotificationAutoCloseTimer {" in source
+    assert "id: autoCloseTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "interval: duration" not in source
+    assert "onTriggered: control.hide()" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "desktopNotificationAutoCloseTimer"' in helper_source
+    assert "interval: host.duration" in helper_source
+    assert "onTriggered: host.hide()" in helper_source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

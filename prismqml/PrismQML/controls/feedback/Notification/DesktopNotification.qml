@@ -8,6 +8,7 @@ import "../../../effects"
 import "../../icons"
 import "../../buttons"
 import "../../data"
+import "_internal" as NotificationInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
 
@@ -75,7 +76,11 @@ Window {
     )
 
     // ==================== Content 内容 ====================
-    Timer { id: autoCloseTimer; interval: duration; onTriggered: control.hide() }
+    NotificationInternal.DesktopNotificationAutoCloseTimer {
+        id: autoCloseTimer
+
+        host: control
+    }
 
     property alias animator: animator
     NotificationAnimator {

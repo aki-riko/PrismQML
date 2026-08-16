@@ -619,6 +619,12 @@ def test_standalone_desktop_notification_counts_custom_content_once(qapp):
         root.createStandaloneNotification()
         standalone = root.property("standalone")
         assert isinstance(standalone, QQuickWindow)
+        auto_close_timer = standalone.findChild(
+            QObject, "desktopNotificationAutoCloseTimer"
+        )
+        assert auto_close_timer is not None
+        assert auto_close_timer.parent() is standalone.contentItem()
+        assert auto_close_timer.property("running") is False
         action = standalone.findChild(QQuickItem, "standaloneAction")
         assert action is not None
 
