@@ -2536,6 +2536,32 @@ def test_pivot_keeps_indicator_sync_timer_modularized():
     assert "onTriggered: host._updateIndicatorWithAnimation()" in helper_source
 
 
+def test_teaching_tour_keeps_state_reset_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Overlay/TeachingTour.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Overlay/_internal/"
+        "TeachingTourStateResetTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 365
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as OverlayInternal' in source
+    assert "OverlayInternal.TeachingTourStateResetTimer {" in source
+    assert "id: stateResetTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "teachingTourStateResetTimer"' in helper_source
+    assert "interval: Enums.duration.tipHide" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: if (!host._active) host._currentIndex = -1" in helper_source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(

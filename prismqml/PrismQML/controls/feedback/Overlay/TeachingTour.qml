@@ -7,6 +7,7 @@ import "../../.."
 import "../../../effects"
 import "../../utils/_internal"
 import "../Tooltip"
+import "_internal" as OverlayInternal
 import QtQuick.Window  // Keep native Window attached properties unshadowed 保持原生Window附加属性不被遮蔽
 
 // TeachingTour - Multi-step onboarding tour with an inverse opacity mask 反向透明蒙版式多步骤新手指引
@@ -354,11 +355,9 @@ Item {
         onTargetOutOfView: control._handleTargetUnavailable()
     }
 
-    Timer {
+    OverlayInternal.TeachingTourStateResetTimer {
         id: stateResetTimer
 
-        interval: Enums.duration.tipHide
-        repeat: false
-        onTriggered: if (!control._active) control._currentIndex = -1
+        host: control
     }
 }

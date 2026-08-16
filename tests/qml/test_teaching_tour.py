@@ -16,6 +16,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
     QMetaObject,
+    QObject,
 )
 from PySide6.QtGui import QWindow
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -42,6 +43,11 @@ TEACHING_TOUR_SOURCE = (
     / "feedback"
     / "Overlay"
     / "TeachingTour.qml"
+)
+TEACHING_TOUR_RESET_TIMER_SOURCE = (
+    TEACHING_TOUR_SOURCE.parent
+    / "_internal"
+    / "TeachingTourStateResetTimer.qml"
 )
 TIP_POPUP_SOURCE = (
     ROOT
@@ -70,6 +76,7 @@ Window {
     property int completedCount: 0
     property int skippedCount: 0
     property int stepChangeCount: 0
+    readonly property int expectedStateResetInterval: Enums.duration.tipHide
 
     function startTour() { return tour.start() }
     function moveFirstTarget() { firstTarget.x += 48 }
@@ -292,6 +299,15 @@ def test_tour_spotlight_tracks_target_and_keeps_hole_clickable(tour_scene):
 
 def test_tip_actions_advance_finish_and_skip(tour_scene):
     window, tour = tour_scene
+    reset_timer = tour.findChild(QObject, "teachingTourStateResetTimer")
+    assert reset_timer is not None
+    assert reset_timer.parent() is tour
+    assert reset_timer.property("host") == tour
+    assert reset_timer.property("interval") == window.property(
+        "expectedStateResetInterval"
+    )
+    assert reset_timer.property("repeat") is False
+    assert reset_timer.property("running") is False
     assert tour.findChildren(QWindow) == []
     assert QMetaObject.invokeMethod(window, "startTour")
     assert _wait_for(lambda: tour.property("active"))
@@ -311,6 +327,9 @@ def test_tip_actions_advance_finish_and_skip(tour_scene):
     assert QMetaObject.invokeMethod(primary, "click")
     assert _wait_for(lambda: not tour.property("active"))
     assert window.property("completedCount") == 1
+    assert reset_timer.property("running") is True
+    assert _wait_for(lambda: tour.property("currentIndex") == -1)
+    assert reset_timer.property("running") is False
     assert tour.findChildren(QWindow) == tip_windows
     assert _wait_for(
         lambda: not any(tip_window.isVisible() for tip_window in tip_windows)
@@ -322,6 +341,9 @@ def test_tip_actions_advance_finish_and_skip(tour_scene):
     assert QMetaObject.invokeMethod(secondary, "click")
     assert _wait_for(lambda: not tour.property("active"))
     assert window.property("skippedCount") == 1
+    assert reset_timer.property("running") is True
+    assert _wait_for(lambda: tour.property("currentIndex") == -1)
+    assert reset_timer.property("running") is False
 
 
 def test_tour_components_are_public_and_follow_qml_conventions():
@@ -348,7 +370,12 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert 'objectName: "galleryTeachingTourStartButton"' in gallery_source
     assert 'objectName: "galleryTeachingTour"' in gallery_source
 
-    for source_path in (OPACITY_MASK_SOURCE, TEACHING_TOUR_SOURCE, TIP_POPUP_SOURCE):
+    for source_path in (
+        OPACITY_MASK_SOURCE,
+        TEACHING_TOUR_SOURCE,
+        TEACHING_TOUR_RESET_TIMER_SOURCE,
+        TIP_POPUP_SOURCE,
+    ):
         source = source_path.read_text(encoding="utf-8")
         relative_path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations = scan_source_text(source, relative_path)
