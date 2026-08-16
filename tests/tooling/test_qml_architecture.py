@@ -498,6 +498,32 @@ def test_tab_widget_keeps_tab_delegate_modularized():
     assert "TabItem {" in entry.read_text(encoding="utf-8")
 
 
+def test_tab_widget_keeps_edge_auto_scroll_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/TabEdgeAutoScroll.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 450
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert "TabEdgeAutoScroll {" in source
+    assert "FrameAnimation {" in helper_source
+    assert "required property Item host" in helper_source
+    assert "required property Flickable tabFlickable" in helper_source
+    assert "host._dragging" in helper_source
+    assert "host._dragPointerRowX" in helper_source
+    assert "frameTime" in helper_source
+    assert "onTriggered:" in helper_source
+    assert "var edgeMargin = 40" not in source
+    assert "var step = 480 * frameTime" not in source
+    assert "id: _edgeAutoScrollTimer" in source
+    assert "host: control" in source
+    assert "tabFlickable: tabFlickable" in source
+
+
 def test_bar_chart_keeps_single_series_delegate_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/BarChartContent.qml"

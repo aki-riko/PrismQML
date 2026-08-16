@@ -147,27 +147,13 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
-    // 拖到边缘时自动滚动 Flickable
-    // FrameAnimation 跟随屏幕刷新率(120Hz/144Hz/240Hz 均逐帧驱动), 不绑 60fps
-    FrameAnimation {
+    // Drag edge auto-scroll follows the display refresh rate.
+    // 拖拽边缘自动滚动跟随屏幕刷新率。
+    TabEdgeAutoScroll {
         id: _edgeAutoScrollTimer
+        host: control
+        tabFlickable: tabFlickable
         running: control._dragging
-        onTriggered: {
-            if (!control._dragging) return
-            var edgeMargin = 40
-            var visibleLeft = tabFlickable.contentX
-            var visibleRight = visibleLeft + tabFlickable.width
-            var pointerX = control._dragPointerRowX
-            // step 按本帧实际时长(秒)换算为"每秒 480 像素"恒定速度
-            // 对 60Hz: 8px/帧, 120Hz: 4px/帧, 240Hz: 2px/帧 — 视觉滚动速度一致
-            var step = 480 * frameTime
-            if (pointerX < visibleLeft + edgeMargin && tabFlickable.contentX > 0) {
-                tabFlickable.contentX = Math.max(0, tabFlickable.contentX - step)
-            } else if (pointerX > visibleRight - edgeMargin) {
-                var maxX = Math.max(0, tabFlickable.contentWidth - tabFlickable.width)
-                tabFlickable.contentX = Math.min(maxX, tabFlickable.contentX + step)
-            }
-        }
     }
     
     // Tab bar background with clip 标签栏背景（带裁剪）
