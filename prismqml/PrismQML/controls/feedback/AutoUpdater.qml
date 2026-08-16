@@ -266,10 +266,8 @@ Item {
     }
 
     // ---- 短时反馈生命周期 ----
-    Timer {
-        interval: root._feedbackDuration
-        running: root._feedbackActive && root._feedbackDuration > Enums.duration.none
-        onTriggered: root._dismissFeedback()
+    FeedbackInternal.AutoUpdaterFeedbackTimer {
+        host: root
     }
 
     // ---- 接底层 updater 信号 ----

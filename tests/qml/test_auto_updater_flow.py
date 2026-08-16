@@ -398,6 +398,10 @@ def test_progress_dialog_shows_ready_icon(auto_updater_scene, qapp):
 
 def test_progress_dialog_ready_state_uses_completion_timeout(auto_updater_scene):
     root = auto_updater_scene
+    feedback_timer = root.findChild(QObject, "autoUpdaterFeedbackTimer")
+    assert feedback_timer is not None
+    assert feedback_timer.property("running") is False
+
     assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
     assert QMetaObject.invokeMethod(root, "triggerDualSlotPreparation")
     assert QMetaObject.invokeMethod(root, "finishDualSlotPreparation")
@@ -406,11 +410,16 @@ def test_progress_dialog_ready_state_uses_completion_timeout(auto_updater_scene)
     assert dialog is not None
     assert root.property("facadeFeedbackActive") is True
     assert dialog.property("_isOpen") is True
+    assert feedback_timer.property("interval") == root.property(
+        "progressCompleteDuration"
+    )
+    assert feedback_timer.property("running") is True
 
     QTest.qWait(int(root.property("progressCompleteDuration")) + 50)
 
     assert root.property("facadeFeedbackActive") is False
     assert dialog.property("_isOpen") is False
+    assert feedback_timer.property("running") is False
 
 
 def test_developer_component_receives_shared_feedback_model(auto_updater_scene, qapp):

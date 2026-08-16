@@ -1696,6 +1696,31 @@ def test_auto_updater_keeps_update_dialog_wiring_modularized():
         assert marker not in source
 
 
+def test_auto_updater_keeps_feedback_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/AutoUpdater.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/"
+        "AutoUpdaterFeedbackTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 50
+    assert 'import "_internal" as FeedbackInternal' in source
+    assert "FeedbackInternal.AutoUpdaterFeedbackTimer {" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "autoUpdaterFeedbackTimer"' in helper_source
+    assert "interval: host._feedbackDuration" in helper_source
+    assert "running: host._feedbackActive" in helper_source
+    assert "host._feedbackDuration > Enums.duration.none" in helper_source
+    assert "onTriggered: host._dismissFeedback()" in helper_source
+    assert "\n    Timer {" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
