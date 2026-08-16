@@ -34,6 +34,13 @@ Item {
         scale: control._animScale
         clip: true
 
+        // Window-level ticket paper keeps the title bar on the same grid.
+        // 窗口级票据纸纹让标题栏与下方区域保持同一网格。
+        TicketPaper {
+            objectName: "windowTicketPaper"
+            anchors.fill: parent
+        }
+
         // Top layout title bar. 顶部布局标题栏。
         Rectangle {
             id: titleBar

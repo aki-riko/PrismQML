@@ -560,6 +560,15 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "window.showNormal()" not in source
     assert "WindowsCoreFrame {" in source
     assert "WindowDragHandle {" not in source
+    window_frame_index = frame_source.index("id: windowFrame")
+    window_ticket_paper_index = frame_source.index(
+        'objectName: "windowTicketPaper"'
+    )
+    title_bar_index = frame_source.index("id: titleBar")
+    assert window_frame_index < window_ticket_paper_index < title_bar_index
+    assert "TicketPaper {" in frame_source[
+        window_frame_index:title_bar_index
+    ]
     assert frame_source.count("WindowDragHandle {") == 3
     assert "window.startSystemMove()" not in source
     assert "property bool enableDrag: true" in drag_handle_source
