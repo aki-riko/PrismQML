@@ -118,6 +118,7 @@ def test_notification_geometry_timer_coalesces_and_stops_on_hide(qapp):
         assert timer.property("interval") == root.property("noDelay")
         assert timer.property("repeat") is False
         assert timer.property("running") is False
+        assert animator.property("reverseShowDirection") is False
         assert root.findChildren(
             QObject, "notificationAnimatorGeometryUpdateTimer"
         ) == [timer]
@@ -126,10 +127,16 @@ def test_notification_geometry_timer_coalesces_and_stops_on_hide(qapp):
         assert timer.property("running") is False
         assert root.property("animatorBaseX") == 0
 
+        animator.setProperty("showDuration", 120)
         assert QMetaObject.invokeMethod(root, "showAnimator")
         assert root.property("animatorPositioned") is True
         assert target.property("visible") is True
         assert root.property("animatorBaseX") == _expected_right_x(root, target)
+        assert target.x() > animator.property("_baseX")
+        assert _wait_for(
+            lambda: target.x() == animator.property("_baseX")
+            and target.y() == animator.property("_baseY")
+        )
 
         root.setWidth(400)
         assert timer.property("running") is True

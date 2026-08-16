@@ -141,6 +141,7 @@ Window {
         target: control
         position: control.position
         parentItem: outsideGeometry
+        reverseShowDirection: true
         stackOffset: control.stackOffset
         onHideFinished: control._finishClose()
     }

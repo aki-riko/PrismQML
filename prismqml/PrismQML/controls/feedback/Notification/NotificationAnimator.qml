@@ -6,13 +6,11 @@ import QtQuick
 import QtQuick.Window
 import "../../.."
 import "_internal" as NotificationInternal
-
 // NotificationAnimator - Shared slide animation for notifications 通知滑动动画共享组件
 // Used by Toast, InfoBar and desktop windows 供Toast、InfoBar和桌面窗口使用
 // Supports both window-relative and available-screen positioning 支持窗口相对定位和屏幕可用工作区定位
 QtObject {
     id: animator
-
     // ==================== Required Props 必需属性 ====================
     required property var target         // Target item/window to animate 动画目标（Item或Window）
     required property int position       // Nine-grid position enum (0-8) 九宫格位置枚举
@@ -20,6 +18,7 @@ QtObject {
     // ==================== Public Props 公开属性 ====================
     property var parentItem: null        // Parent for position calculation (window mode) 用于位置计算的父容器（窗口模式）
     property bool desktopMode: false     // Use screen coordinates instead of parent 使用屏幕坐标而非父容器
+    property bool reverseShowDirection: false // Reverse entry side while keeping final position 保持终点不变并反转入场侧
     property int showDuration: Enums.notification.animation.showDuration
     property int hideDuration: Enums.notification.animation.hideDuration
     property real stackOffset: 0         // Stack offset for multiple notifications 多通知堆叠偏移
@@ -221,16 +220,17 @@ QtObject {
     }
 
     function _setStartPosition() {
+        var direction = reverseShowDirection ? -1 : 1
         if (_isLeft) {
-            target.x = _baseX - _slideOffset
+            target.x = _baseX - _slideOffset * direction
             target.y = _baseY
         } else if (_isRight) {
-            target.x = _baseX + _slideOffset
+            target.x = _baseX + _slideOffset * direction
             target.y = _baseY
         } else {
             target.x = _baseX
-            target.y = _isTop ? _baseY - _slideOffsetY
-                : (_isBottom ? _baseY + _slideOffsetY : _baseY)
+            target.y = _isTop ? _baseY - _slideOffsetY * direction
+                : (_isBottom ? _baseY + _slideOffsetY * direction : _baseY)
         }
     }
 

@@ -2113,8 +2113,10 @@ def test_window_outside_notification_keeps_native_overlay_lifecycle_internal():
     assert "if (!_attached) return false" in source
     assert "NotificationInternal.WindowOutsideGeometry {" in source
     assert "parentItem: outsideGeometry" in source
+    assert "reverseShowDirection: true" in source
     assert "NotificationAnimator {" in source
     assert "target: control" in source
+    assert "property bool reverseShowDirection: false" in animator_source
     assert "WindowHelper.registerWindowAttachment(" in source
     assert "WindowHelper.unregisterWindowAttachment(control)" in source
     assert "target: control.hostWindow" in source

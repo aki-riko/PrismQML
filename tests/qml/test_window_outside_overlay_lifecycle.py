@@ -189,7 +189,9 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene():
+def _create_scene(
+    position: int = 5, show_duration: int = 0, hide_duration: int = 0
+):
     engine = QQmlApplicationEngine()
     warnings: list[str] = []
     engine.warnings.connect(
@@ -215,7 +217,7 @@ def _create_scene():
         error.toString() for error in overlay_component.errors()
     ]
     overlay = overlay_component.createWithInitialProperties(
-        {"hostWindow": host, "position": 5}, engine.rootContext()
+        {"hostWindow": host, "position": position}, engine.rootContext()
     )
     assert isinstance(overlay, QQuickWindow), [
         error.toString() for error in overlay_component.errors()
@@ -230,8 +232,8 @@ def _create_scene():
         None,
     )
     assert animator is not None
-    animator.setProperty("showDuration", 0)
-    animator.setProperty("hideDuration", 0)
+    animator.setProperty("showDuration", show_duration)
+    animator.setProperty("hideDuration", hide_duration)
     content = overlay.property("content")
     assert isinstance(content, QQuickItem)
     notification = QQuickItem(content)
@@ -266,6 +268,58 @@ def _dispose_scene(engine, host_component, overlay_component, host, overlay) -> 
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+
+
+@pytest.mark.parametrize(
+    ("position", "axis", "host_direction"),
+    [
+        (3, "x", 1),
+        (5, "x", -1),
+        (1, "y", 1),
+        (7, "y", -1),
+    ],
+)
+def test_window_outside_overlay_enters_from_host_side(
+    position, axis, host_direction, qapp
+):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene(
+        position=position, show_duration=120, hide_duration=120
+    )
+    (
+        engine,
+        host_component,
+        overlay_component,
+        host,
+        overlay,
+        _notification,
+        helper,
+        warnings,
+    ) = scene
+    try:
+        assert QMetaObject.invokeMethod(overlay, "show")
+        assert overlay.isVisible()
+        assert helper.geometry_calls
+
+        final_geometry = helper.geometry_calls[-1]
+        start_coordinate = overlay.x() if axis == "x" else overlay.y()
+        final_coordinate = final_geometry[axis]
+        assert (start_coordinate - final_coordinate) * host_direction > 0
+
+        assert _wait_for(
+            lambda: (overlay.x(), overlay.y())
+            == (final_geometry["x"], final_geometry["y"])
+        )
+        assert QMetaObject.invokeMethod(overlay, "hide")
+        assert _wait_for(lambda: not overlay.isVisible())
+
+        hide_coordinate = overlay.x() if axis == "x" else overlay.y()
+        assert (hide_coordinate - final_coordinate) * host_direction < 0
+    finally:
+        _dispose_scene(engine, host_component, overlay_component, host, overlay)
+
+    assert warnings == []
+    assert _new_visible_windows(windows_before) == []
 
 
 def test_window_outside_overlay_registers_repositions_and_releases_once(qapp):
