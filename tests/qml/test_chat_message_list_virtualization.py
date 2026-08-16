@@ -182,6 +182,28 @@ def _assert_slot_layout_timer_contract(message_list: QQuickItem) -> None:
     assert message_list.property("_layoutPending") is False
 
 
+def _assert_load_range_timer_contract(message_list: QQuickItem) -> None:
+    timer = message_list.findChild(
+        QObject, "chatMessageListLoadRangeTimer"
+    )
+    assert timer is not None
+    assert timer.parent() is message_list
+    assert timer.property("host") is message_list
+    assert timer.property("interval") == 0
+    assert timer.property("repeat") is False
+
+    timer.stop()
+    assert _evaluate(
+        message_list,
+        "_rangeUpdatePending = false; _scheduleLoadRangeUpdate(); true",
+    ) is True
+    assert message_list.property("_rangeUpdatePending") is True
+    assert timer.property("running") is True
+    _pump(20)
+    assert timer.property("running") is False
+    assert message_list.property("_rangeUpdatePending") is False
+
+
 def _has_measured_viewport_slot(
     message_list: QQuickItem, viewport: QQuickItem
 ) -> bool:
@@ -382,6 +404,23 @@ def test_chat_message_list_slot_layout_timer_preserves_lifecycle_contract(qapp):
         message_list = window.findChild(QQuickItem, "messages")
         assert message_list is not None
         _assert_slot_layout_timer_contract(message_list)
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)
+
+
+def test_chat_message_list_load_range_timer_preserves_lifecycle_contract(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = window = None
+    try:
+        component, window = _create(engine)
+        message_list = window.findChild(QQuickItem, "messages")
+        assert message_list is not None
+        _assert_load_range_timer_contract(message_list)
     finally:
         if window is not None:
             window.deleteLater()

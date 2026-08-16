@@ -1453,7 +1453,7 @@ def test_chat_message_list_keeps_scroll_timer_modularized():
     assert "ChatInternal.ChatMessageListScrollToBottomTimer {" in source
     assert "id: scrollToBottomTimer" in source
     assert "host: control" in source
-    assert source.count("\n    Timer {") == 1
+    assert source.count("\n    Timer {") == 0
     assert "required property var host" in helper_source
     assert 'objectName: "chatMessageListScrollToBottomTimer"' in helper_source
     assert "interval: 0" in helper_source
@@ -1480,7 +1480,7 @@ def test_chat_message_list_keeps_slot_layout_timer_modularized():
     assert "ChatInternal.ChatMessageListSlotLayoutTimer {" in source
     assert "id: slotLayoutTimer" in source
     assert "host: control" in source
-    assert source.count("\n    Timer {") == 1
+    assert source.count("\n    Timer {") == 0
     assert "required property var host" in helper_source
     assert 'objectName: "chatMessageListSlotLayoutTimer"' in helper_source
     assert "interval: 0" in helper_source
@@ -1496,6 +1496,40 @@ def test_chat_message_list_keeps_slot_layout_timer_modularized():
         assert marker in helper_source
     assert "control._layoutPending = false" not in source
     assert "control.messageColumn.height = nextY" not in source
+
+
+def test_chat_message_list_keeps_load_range_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/"
+        "ChatMessageListLoadRangeTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 350
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 70
+    assert 'import "_internal" as ChatInternal' in source
+    assert "ChatInternal.ChatMessageListLoadRangeTimer {" in source
+    assert "id: loadRangeTimer" in source
+    assert "host: control" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "chatMessageListLoadRangeTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    for marker in (
+        "host._rangeUpdatePending = false",
+        "host.messageRepeater.itemAt",
+        "host._applyLoadRange(-1, -1)",
+        "host._scheduleSlotLayout(0)",
+        "host._findFirstLoadIndex(topY)",
+        "host._findLastLoadIndex(bottomY)",
+        "host._applyLoadRange(firstIndex, lastIndex)",
+    ):
+        assert marker in helper_source
+    assert "control._rangeUpdatePending = false" not in source
+    assert "control._applyLoadRange(firstIndex, lastIndex)" not in source
 
 
 def test_chat_message_list_keeps_viewport_content_modularized():

@@ -273,34 +273,9 @@ Item {
         host: control
     }
 
-    Timer {
+    ChatInternal.ChatMessageListLoadRangeTimer {
         id: loadRangeTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: {
-            control._rangeUpdatePending = false
-            var count = messageRepeater.count
-            if (count === 0) {
-                control._applyLoadRange(-1, -1)
-                return
-            }
-            var finalSlot = messageRepeater.itemAt(count - 1)
-            if (!finalSlot || !finalSlot._layoutReady) {
-                control._scheduleSlotLayout(0)
-                return
-            }
-            var topY = messageViewport.contentY - control._loadMargin
-            var bottomY = messageViewport.contentY + messageViewport.height
-                + control._loadMargin
-            var firstIndex = control._findFirstLoadIndex(topY)
-            var lastIndex = control._findLastLoadIndex(bottomY)
-            if (firstIndex > lastIndex) {
-                control._applyLoadRange(-1, -1)
-                return
-            }
-            control._applyLoadRange(firstIndex, lastIndex)
-        }
+        host: control
     }
 
     // ==================== Content 内容 ====================
