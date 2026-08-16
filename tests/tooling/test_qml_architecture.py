@@ -2156,6 +2156,37 @@ def test_viewport_mixin_keeps_init_timer_modularized():
     assert "onTriggered: _init()" not in source
 
 
+def test_widget_keeps_center_children_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/containers/Widget.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/_internal/"
+        "WidgetCenterChildrenTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 160
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 40
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as ContainerInternal' in source
+    assert "readonly property Loader _centerChildrenDelayed: Loader" in source
+    assert "active: widget.centerContent" in source
+    assert "onLoaded: widget._scheduleCenterChildren()" in source
+    assert "sourceComponent: ContainerInternal.WidgetCenterChildrenTimer {" in source
+    assert "host: widget" in source
+    assert "required property Item host" in helper_source
+    assert 'objectName: "widgetCenterChildrenTimer"' in helper_source
+    assert "interval: Enums.duration.tick" in helper_source
+    assert "repeat: false" in helper_source
+    assert "for (var i = 0; i < host.children.length; i++)" in helper_source
+    assert "if (host._isCenterableChild(child))" in helper_source
+    assert "child.anchors.centerIn = host" in helper_source
+    assert "sourceComponent: Timer {" not in source
+    assert "for (var i = 0; i < widget.children.length; i++)" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

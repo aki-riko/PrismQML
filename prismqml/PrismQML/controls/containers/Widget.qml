@@ -4,6 +4,7 @@
 
 import QtQuick.Layouts
 import "../.."
+import "_internal" as ContainerInternal
 import QtQuick  // Keep native types unprefixed after library imports 库导入后保留无前缀原生类型
 import QtQuick.Window  // Keep native Window unprefixed after library imports 库导入后保留无前缀原生 Window
 
@@ -43,18 +44,8 @@ Item {
         active: widget.centerContent
         onLoaded: widget._scheduleCenterChildren()
 
-        sourceComponent: Timer {
-            interval: Enums.duration.tick
-            onTriggered: {
-                for (var i = 0; i < widget.children.length; i++) {
-                    var child = widget.children[i]
-                    if (widget._isCenterableChild(child)) {
-                        // Center through anchors for broad child compatibility 使用锚点居中以兼容不同子项。
-                        child.anchors.centerIn = widget
-                        break
-                    }
-                }
-            }
+        sourceComponent: ContainerInternal.WidgetCenterChildrenTimer {
+            host: widget
         }
     }
 
