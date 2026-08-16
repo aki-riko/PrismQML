@@ -17,6 +17,7 @@
 #include <QColor>
 #include <QDebug>
 #include <QDir>
+#include <QEasingCurve>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -151,6 +152,21 @@ static void testAvailableScreenGeometry() {
               && actualFull.value(QStringLiteral("width")).toInt() == expectedFull.width()
               && actualFull.value(QStringLiteral("height")).toInt() == expectedFull.height(),
           "WindowHelper returns full QScreen geometry");
+}
+
+static void testEasingValueForProgress() {
+    prism::WindowHelper *helper = prism::WindowHelper::instance();
+    const qreal progress = 0.5;
+    const qreal expected = QEasingCurve(QEasingCurve::OutQuart)
+                               .valueForProgress(progress);
+    CHECK(qAbs(helper->easingValueForProgress(QEasingCurve::OutQuart, progress)
+                   - expected) < 0.000001,
+          "WindowHelper preserves Qt easing curves");
+    CHECK(helper->easingValueForProgress(-1, -0.5) == 0
+              && helper->easingValueForProgress(-1, 1.5) == 1
+              && helper->easingValueForProgress(
+                     QEasingCurve::NCurveTypes, progress) == progress,
+          "WindowHelper clamps progress and invalid easing types");
 }
 
 static void testDroppedFolderPathValidation() {
@@ -375,6 +391,7 @@ int main(int argc, char *argv[]) {
     testApplicationIconFacade(app);
     testWindowRestoresLazyLoading(app);
     testAvailableScreenGeometry();
+    testEasingValueForProgress();
     testDroppedFolderPathValidation();
     testWindowFollowerGeometry();
     testTrayCheckableActionContract();

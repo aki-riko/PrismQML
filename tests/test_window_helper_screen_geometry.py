@@ -6,7 +6,7 @@
 from typing import ClassVar, Optional
 
 import pytest
-from PySide6.QtCore import QPoint
+from PySide6.QtCore import QEasingCurve, QPoint
 
 from prismqml.python.core import window_helper as window_helper_module
 from prismqml.python.core.window_helper import WindowHelper
@@ -136,3 +136,29 @@ def test_device_pixel_ratio_falls_back_without_application(
         assert WindowHelper().devicePixelRatioAt(0, 0) == 1.0
     finally:
         _FakeQGuiApplication.current = previous_application
+
+
+@pytest.mark.parametrize(
+    "curve_type",
+    [
+        QEasingCurve.Type.Linear,
+        QEasingCurve.Type.OutCubic,
+        QEasingCurve.Type.OutQuart,
+        QEasingCurve.Type.OutBack,
+        QEasingCurve.Type.OutBounce,
+    ],
+)
+def test_easing_value_matches_qt_curve(curve_type: QEasingCurve.Type) -> None:
+    helper = WindowHelper()
+    expected_curve = QEasingCurve(curve_type)
+
+    for progress in (0.0, 0.2, 0.5, 0.8, 1.0):
+        assert helper.easingValueForProgress(curve_type.value, progress) == pytest.approx(
+            expected_curve.valueForProgress(progress)
+        )
+
+    assert helper.easingValueForProgress(-1, -0.5) == 0.0
+    assert helper.easingValueForProgress(-1, 1.5) == 1.0
+    assert helper.easingValueForProgress(
+        QEasingCurve.Type.NCurveTypes.value, 0.5
+    ) == pytest.approx(0.5)

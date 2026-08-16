@@ -26,6 +26,7 @@ public slots:
     QString resolveDroppedFolderPath(const QUrl &folderUrl) const;
     QVariantMap availableScreenGeometryAt(int x, int y) const;
     QVariantMap screenGeometryAt(int x, int y) const;
+    qreal easingValueForProgress(int easingType, qreal progress) const;
     bool ensurePopupWindowOwner(
         const QVariant &popupWindow, const QVariant &ownerWindow);
     bool releasePopupWindowCapture(

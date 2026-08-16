@@ -9,7 +9,16 @@ import sys
 import time
 from typing import Any, Optional
 
-from PySide6.QtCore import QObject, QPoint, QRect, QResource, QUrl, Signal, Slot
+from PySide6.QtCore import (
+    QEasingCurve,
+    QObject,
+    QPoint,
+    QRect,
+    QResource,
+    QUrl,
+    Signal,
+    Slot,
+)
 from PySide6.QtGui import QGuiApplication, QIcon, Qt
 
 from ._icon_path import resolve_icon_path
@@ -93,6 +102,7 @@ class WindowHelper(QObject):
         self._cached_svg_icon_path = ""
         self._cached_svg_icon_signature: Optional[tuple[Any, ...]] = None
         self._cached_svg_icon: Optional[QIcon] = None
+        self._easing_curves: dict[int, QEasingCurve] = {}
         self._initialized = True
 
     def _ensure_follower_filter(self) -> Optional[_WindowFollowerFilter]:
@@ -502,6 +512,22 @@ class WindowHelper(QObject):
         except (AttributeError, RuntimeError, TypeError, ValueError):
             return 1.0
         return ratio if ratio > 0 else 1.0
+
+    @Slot(int, float, result=float)
+    def easingValueForProgress(self, easing_type: int, progress: float) -> float:
+        """Evaluate one Qt easing curve. 计算一个 Qt 缓动曲线值。"""
+        curve = self._easing_curves.get(easing_type)
+        if curve is None:
+            try:
+                curve_type = QEasingCurve.Type(easing_type)
+            except (TypeError, ValueError):
+                curve_type = QEasingCurve.Type.Linear
+            if curve_type.value >= QEasingCurve.Type.NCurveTypes.value:
+                curve_type = QEasingCurve.Type.Linear
+            curve = QEasingCurve(curve_type)
+            self._easing_curves[easing_type] = curve
+        bounded_progress = max(0.0, min(1.0, progress))
+        return float(curve.valueForProgress(bounded_progress))
 
     def _try_set_svg_icon(
         self,

@@ -117,13 +117,13 @@ Item {
             _isOutwardBounceV = false
             _boundaryTargetV = 0
             _targetY = target.contentY
-            _smoothY = target.contentY
+            verticalFrameDriver.moveTo(target.contentY)
         } else {
             _stopBounceTimer(false)
             _isOutwardBounceH = false
             _boundaryTargetH = 0
             _targetX = target.contentX
-            _smoothX = target.contentX
+            horizontalFrameDriver.moveTo(target.contentX)
         }
         _syncing = false
     }
@@ -131,6 +131,12 @@ Item {
     function _clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, value))
     }
+
+    function _setSmoothPosition(verticalAxis, value) {
+        if (verticalAxis) _smoothY = value
+        else _smoothX = value
+    }
+
     function _refreshDevicePixelRatio() {
         if (typeof WindowHelper === "undefined" || !WindowHelper
                 || typeof WindowHelper.devicePixelRatioAt !== "function") {
@@ -224,7 +230,7 @@ Item {
         _discardingStaleFrameV = true
         _stopBounceTimer(true)
         _syncing = true
-        _smoothY = _lastPublishedY
+        verticalFrameDriver.moveTo(_lastPublishedY)
         _syncing = false
         _discardingStaleFrameV = false
         _bounceBackV()
@@ -234,7 +240,7 @@ Item {
         _discardingStaleFrameH = true
         _stopBounceTimer(false)
         _syncing = true
-        _smoothX = _lastPublishedX
+        horizontalFrameDriver.moveTo(_lastPublishedX)
         _syncing = false
         _discardingStaleFrameH = false
         _bounceBackH()
@@ -244,12 +250,12 @@ Item {
     // ListView/GridView 复用 delegate 时可能动态改变 origin，目标与动画值必须同步回合法区间。
     function _reconcileVerticalBounds() {
         if (!target) return
-        if (_boundaryTargetV === 0 && !smoothYAnimation.running && !_isOvershotV) {
+        if (_boundaryTargetV === 0 && !verticalFrameDriver.running && !_isOvershotV) {
             var currentY = _clamp(target.contentY, _minY, _maxY)
             if (currentY === _targetY && currentY === _smoothY) return
             _syncing = true
             _targetY = currentY
-            _smoothY = currentY
+            verticalFrameDriver.moveTo(currentY)
             _syncing = false
             return
         }
@@ -264,20 +270,20 @@ Item {
         _targetY = targetY
         if (smoothY !== _smoothY) {
             _syncing = true
-            _smoothY = smoothY
+            verticalFrameDriver.moveTo(smoothY)
             _syncing = false
         }
-        if (_smoothY !== _targetY) _smoothY = _targetY
+        if (_smoothY !== _targetY) verticalFrameDriver.moveTo(_targetY)
     }
 
     function _reconcileHorizontalBounds() {
         if (!target) return
-        if (_boundaryTargetH === 0 && !smoothXAnimation.running && !_isOvershotH) {
+        if (_boundaryTargetH === 0 && !horizontalFrameDriver.running && !_isOvershotH) {
             var currentX = _clamp(target.contentX, _minX, _maxX)
             if (currentX === _targetX && currentX === _smoothX) return
             _syncing = true
             _targetX = currentX
-            _smoothX = currentX
+            horizontalFrameDriver.moveTo(currentX)
             _syncing = false
             return
         }
@@ -292,10 +298,10 @@ Item {
         _targetX = targetX
         if (smoothX !== _smoothX) {
             _syncing = true
-            _smoothX = smoothX
+            horizontalFrameDriver.moveTo(smoothX)
             _syncing = false
         }
-        if (_smoothX !== _targetX) _smoothX = _targetX
+        if (_smoothX !== _targetX) horizontalFrameDriver.moveTo(_targetX)
     }
 
     // Vertical implementation 垂直实现
@@ -304,7 +310,7 @@ Item {
         _isOutwardBounceV = false
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
-        _smoothY = _targetY
+        verticalFrameDriver.moveTo(_targetY)
     }
 
     function _scrollByY(delta) {
@@ -316,7 +322,7 @@ Item {
             _isOutwardBounceV = false
             _targetY = newTarget
             _isOvershotV = false
-            _smoothY = _targetY
+            verticalFrameDriver.moveTo(_targetY)
             return
         }
 
@@ -335,7 +341,8 @@ Item {
             _lastBounceFrameTimestampV = Date.now()
             var overshootDelta = _minY - newTarget
             var currentOvershoot = _smoothY < _minY ? _minY - _smoothY : 0
-            _smoothY = _minY - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            var nextOvershoot = Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            verticalFrameDriver.moveTo(_minY - nextOvershoot)
             _restartBounceTimer(true)
         } else {
             // Bottom overshoot 底部超出
@@ -346,7 +353,9 @@ Item {
             _lastBounceFrameTimestampV = Date.now()
             var overshootDeltaBottom = newTarget - _maxY
             var currentOvershootBottom = _smoothY > _maxY ? _smoothY - _maxY : 0
-            _smoothY = _maxY + Math.min(currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
+            var nextOvershootBottom = Math.min(
+                currentOvershootBottom + overshootDeltaBottom, _maxOvershoot)
+            verticalFrameDriver.moveTo(_maxY + nextOvershootBottom)
             _restartBounceTimer(true)
         }
     }
@@ -354,7 +363,7 @@ Item {
     function _bounceBackV() {
         _isOutwardBounceV = false
         _isOvershotV = true
-        _smoothY = _targetY
+        verticalFrameDriver.moveTo(_targetY)
     }
 
     // Horizontal implementation 水平实现
@@ -363,7 +372,7 @@ Item {
         _isOutwardBounceH = false
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
-        _smoothX = _targetX
+        horizontalFrameDriver.moveTo(_targetX)
     }
 
     function _scrollByX(delta) {
@@ -375,7 +384,7 @@ Item {
             _isOutwardBounceH = false
             _targetX = newTarget
             _isOvershotH = false
-            _smoothX = _targetX
+            horizontalFrameDriver.moveTo(_targetX)
             return
         }
 
@@ -394,7 +403,8 @@ Item {
             _lastBounceFrameTimestampH = Date.now()
             var overshootDelta = _minX - newTarget
             var currentOvershoot = _smoothX < _minX ? _minX - _smoothX : 0
-            _smoothX = _minX - Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            var nextOvershoot = Math.min(currentOvershoot + overshootDelta, _maxOvershoot)
+            horizontalFrameDriver.moveTo(_minX - nextOvershoot)
             _restartBounceTimer(false)
         } else {
             // Right overshoot 右侧超出
@@ -405,7 +415,9 @@ Item {
             _lastBounceFrameTimestampH = Date.now()
             var overshootDeltaRight = newTarget - _maxX
             var currentOvershootRight = _smoothX > _maxX ? _smoothX - _maxX : 0
-            _smoothX = _maxX + Math.min(currentOvershootRight + overshootDeltaRight, _maxOvershoot)
+            var nextOvershootRight = Math.min(
+                currentOvershootRight + overshootDeltaRight, _maxOvershoot)
+            horizontalFrameDriver.moveTo(_maxX + nextOvershootRight)
             _restartBounceTimer(false)
         }
     }
@@ -413,7 +425,7 @@ Item {
     function _bounceBackH() {
         _isOutwardBounceH = false
         _isOvershotH = true
-        _smoothX = _targetX
+        horizontalFrameDriver.moveTo(_targetX)
     }
 
     // Bindings 绑定
@@ -432,34 +444,28 @@ Item {
     Component.onCompleted: {
         if (target) {
             _targetY = target.contentY
-            _smoothY = target.contentY
+            verticalFrameDriver.setImmediate(target.contentY)
             _lastPublishedY = target.contentY
             _targetX = target.contentX
-            _smoothX = target.contentX
+            horizontalFrameDriver.setImmediate(target.contentX)
             _lastPublishedX = target.contentX
         }
     }
 
-    // Animations 动画
-    Behavior on _smoothY {
-        enabled: helper.enabled && helper._isVertical && !helper._syncing
-        NumberAnimation {
-            id: smoothYAnimation
-            duration: helper._isOvershotV ? Enums.duration.bounce : helper.duration
-            easing.type: helper._isOvershotV ? Easing.OutBack : helper.easing
-        }
+    // ==================== Content 内容 ====================
+    // Refresh-synchronized axis drivers 跟随刷新率的双轴驱动器
+    ScrollBarInternal.SmoothScrollFrameDriver {
+        id: verticalFrameDriver
+        scrollHelper: helper
+        verticalAxis: true
     }
 
-    Behavior on _smoothX {
-        enabled: helper.enabled && !helper._isVertical && !helper._syncing
-        NumberAnimation {
-            id: smoothXAnimation
-            duration: helper._isOvershotH ? Enums.duration.bounce : helper.duration
-            easing.type: helper._isOvershotH ? Easing.OutBack : helper.easing
-        }
+    ScrollBarInternal.SmoothScrollFrameDriver {
+        id: horizontalFrameDriver
+        scrollHelper: helper
+        verticalAxis: false
     }
-    
-    // ==================== Content 内容 ====================
+
     // On-demand bounce timer 按需回弹计时器
     Component {
         id: bounceTimerComponent

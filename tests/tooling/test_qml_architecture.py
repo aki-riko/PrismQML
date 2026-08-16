@@ -1223,6 +1223,36 @@ def test_smooth_scroll_helper_keeps_wheel_input_modularized():
     assert "onWheel:" not in source
 
 
+def test_smooth_scroll_helper_keeps_frame_driver_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"
+    )
+    driver = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "SmoothScrollFrameDriver.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    driver_source = driver.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert driver.exists()
+    assert len(driver_source.splitlines()) < 120
+    assert source.count("ScrollBarInternal.SmoothScrollFrameDriver {") == 2
+    assert "Behavior on _smoothY" not in source
+    assert "Behavior on _smoothX" not in source
+    assert "NumberAnimation {" not in source
+    assert "Connections {" in driver_source
+    assert "required property var scrollHelper" in driver_source
+    assert "required property bool verticalAxis" in driver_source
+    assert "function onFrameSwapped()" in driver_source
+    assert "target.update()" in driver_source
+    assert "WindowHelper.easingValueForProgress" in driver_source
+    assert "Easing.valueForProgress" not in driver_source
+    assert "AnimationController {" not in driver_source
+    assert "FrameAnimation {" not in driver_source
+    assert "Timer {" not in driver_source
+
+
 def test_smooth_scroll_helper_keeps_bounce_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"

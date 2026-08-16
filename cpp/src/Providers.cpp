@@ -14,6 +14,7 @@
 #include <QGuiApplication>
 #include <QClipboard>
 #include <QDir>
+#include <QEasingCurve>
 #include <QIcon>
 #include <QImage>
 #include <QList>
@@ -136,6 +137,14 @@ QVariantMap WindowHelper::availableScreenGeometryAt(int x, int y) const {
 
 QVariantMap WindowHelper::screenGeometryAt(int x, int y) const {
     return screenGeometryMapAt(x, y, false);
+}
+
+qreal WindowHelper::easingValueForProgress(int easingType, qreal progress) const {
+    const bool validType = easingType >= QEasingCurve::Linear
+        && easingType < QEasingCurve::NCurveTypes;
+    const auto type = validType
+        ? static_cast<QEasingCurve::Type>(easingType) : QEasingCurve::Linear;
+    return QEasingCurve(type).valueForProgress(qBound<qreal>(0, progress, 1));
 }
 
 qulonglong WindowHelper::winIdFromVariant(const QVariant &window) {

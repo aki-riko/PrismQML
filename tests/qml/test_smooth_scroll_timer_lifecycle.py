@@ -277,8 +277,8 @@ def test_smooth_scroll_bounce_timer_and_pixels(qapp):
         assert len(active_horizontal_timers) == 3
         assert len(settled_vertical_timers) == 2
         assert len(settled_horizontal_timers) == 2
-        assert initial_objects == (9, 9)
-        assert settled_objects == (9, 9)
+        assert initial_objects == (7, 7)
+        assert settled_objects == (7, 7)
         assert peak_vertical > vertical_maximum
         assert peak_horizontal > horizontal_maximum
         assert repeated_hash == settled_hash
