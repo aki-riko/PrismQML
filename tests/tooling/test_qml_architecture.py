@@ -2235,6 +2235,38 @@ def test_spin_box_keeps_dynamic_button_components_modularized():
         assert marker not in source
 
 
+def test_spin_box_keeps_feedback_timers_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/SpinBox/SpinBoxCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/SpinBox/_internal/"
+        "SpinBoxFeedbackTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 330
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert 'import "_internal" as SpinBoxInternal' in source
+    assert source.count("SpinBoxInternal.SpinBoxFeedbackTimer {") == 2
+    assert "id: upFeedbackTimer" in source
+    assert "id: downFeedbackTimer" in source
+    assert source.count("spinControl: control") == 3
+    assert "increase: true" in source
+    assert "increase: false" in source
+    assert "required property var spinControl" in helper_source
+    assert "required property bool increase" in helper_source
+    assert 'objectName: increase' in helper_source
+    assert "interval: Enums.duration.fast" in helper_source
+    assert "repeat: false" in helper_source
+    assert "spinControl._increaseButton" in helper_source
+    assert "spinControl._decreaseButton" in helper_source
+    assert "pseudoHovered = false" in helper_source
+    assert "pseudoPressed = false" in helper_source
+    assert "\n    Timer {\n        id: upFeedbackTimer" not in source
+    assert "\n    Timer {\n        id: downFeedbackTimer" not in source
+
+
 def test_expander_keeps_header_visuals_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/containers/Expander/ExpanderCore.qml"

@@ -276,23 +276,15 @@ InputCore {
     }
 
     // Wheel feedback timers 滚轮反馈计时器
-    Timer {
+    SpinBoxInternal.SpinBoxFeedbackTimer {
         id: upFeedbackTimer
-        interval: Enums.duration.fast
-        onTriggered: {
-            if (!control._increaseButton) return
-            control._increaseButton.pseudoHovered = false
-            control._increaseButton.pseudoPressed = false
-        }
+        spinControl: control
+        increase: true
     }
     
-    Timer {
+    SpinBoxInternal.SpinBoxFeedbackTimer {
         id: downFeedbackTimer
-        interval: Enums.duration.fast
-        onTriggered: {
-            if (!control._decreaseButton) return
-            control._decreaseButton.pseudoHovered = false
-            control._decreaseButton.pseudoPressed = false
-        }
+        spinControl: control
+        increase: false
     }
 }

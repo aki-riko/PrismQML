@@ -10,6 +10,7 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QObject,
     QPoint,
     QPointF,
     QTimer,
@@ -34,6 +35,9 @@ SOURCE_PATH = (
     / "inputs"
     / "SpinBox"
     / "SpinBoxCore.qml"
+)
+FEEDBACK_TIMER_PATH = (
+    SOURCE_PATH.parent / "_internal" / "SpinBoxFeedbackTimer.qml"
 )
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 INPUT_ENUM_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Input.qml"
@@ -384,6 +388,7 @@ def test_spin_box_public_methods_wrap_and_signal_characterization(qapp):
 
 def test_spin_box_core_source_conventions_and_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    feedback_timer_source = FEEDBACK_TIMER_PATH.read_text(encoding="utf-8")
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     input_enum = INPUT_ENUM_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -401,11 +406,37 @@ def test_spin_box_core_source_conventions_and_tokens():
         "Enums.controlSize.spinBoxWidth",
     ):
         assert token in source
-    assert source.count("interval: Enums.duration.fast") == 2
+    assert source.count("SpinBoxInternal.SpinBoxFeedbackTimer {") == 2
+    assert feedback_timer_source.count("interval: Enums.duration.fast") == 1
+    assert "required property var spinControl" in feedback_timer_source
+    assert "required property bool increase" in feedback_timer_source
     assert "readonly property int spinBoxRepeatDelay: 500" in metrics
     assert "readonly property int spinBoxRepeatInterval: 60" in metrics
     assert "readonly property int spinBoxRepeatMinInterval: 20" in metrics
     assert "readonly property real spinBoxRepeatAcceleration: 0.85" in input_enum
+
+
+def test_spin_box_feedback_timer_lifecycle_contract(qapp):
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        normal = controls["normal"]
+        for timer_name, is_increase in (
+            ("spinBoxIncreaseFeedbackTimer", True),
+            ("spinBoxDecreaseFeedbackTimer", False),
+        ):
+            timer = normal.findChild(QObject, timer_name)
+            assert timer is not None
+            assert timer.parent() is normal
+            assert timer.property("spinControl") is normal
+            assert timer.property("increase") is is_increase
+            assert timer.property("interval") == window.property("feedbackDuration")
+            assert timer.property("repeat") is False
+            timer.restart()
+            assert timer.property("running") is True
+            assert _wait_for(lambda: timer.property("running") is False)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
 
 
 def test_spin_box_text_edit_and_wheel_focus_contracts(qapp):
