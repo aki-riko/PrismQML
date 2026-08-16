@@ -200,7 +200,11 @@ def test_carousel_prepares_navigation_before_hover_and_first_click(qapp):
 
 def test_carousel_navigation_buttons_are_mode_gated_in_source():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    factory_source = (SOURCE_PATH.parent / "_internal" / "CarouselFactories.qml").read_text(
+        encoding="utf-8"
+    )
     assert "readonly property bool _hasNavButtons:" in source
-    assert source.count("CarouselNavButton {") == 1
-    assert "navButtonComponent.createObject(control" in source
+    assert "CarouselNavButton {" not in source
+    assert factory_source.count("CarouselNavButton {") == 1
+    assert "carouselFactories.navButtonComponent.createObject(control" in source
     assert "previous._revealEnabled = true" in source

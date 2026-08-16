@@ -7,7 +7,7 @@ import QtQuick.Effects
 import "../../.."
 import "../../../effects"
 import "../FlipView" as FlipViewControls
-import "_internal"
+import "_internal" as CarouselInternal
 
 // Carousel - Carousel component 轮播组件
 // 两个正交维度：
@@ -115,8 +115,8 @@ Item {
         if (_prevNavButton && _nextNavButton) return
         _destroyNavButtons()
 
-        const previous = navButtonComponent.createObject(control, { "isNext": false })
-        const following = navButtonComponent.createObject(control, { "isNext": true })
+        const previous = carouselFactories.navButtonComponent.createObject(control, { "isNext": false })
+        const following = carouselFactories.navButtonComponent.createObject(control, { "isNext": true })
         if (!previous || !following) {
             if (previous) previous.destroy()
             if (following) following.destroy()
@@ -155,7 +155,7 @@ Item {
 
     function _createIndicator() {
         if (_indicator) return
-        const indicator = indicatorComponent.createObject(control)
+        const indicator = carouselFactories.indicatorComponent.createObject(control)
         if (!indicator) {
             console.error("Carousel: failed to create indicator")
             return
@@ -178,7 +178,7 @@ Item {
 
     function _createContentArea() {
         if (_contentArea) return
-        const area = contentAreaComponent.createObject(control)
+        const area = carouselFactories.contentAreaComponent.createObject(control)
         if (!area) {
             console.error("Carousel: failed to create content area")
             return
@@ -278,75 +278,11 @@ Item {
         z: control._contentArea ? control._contentArea.z - 1 : 0
     }
 
-    // Content area factory 内容区域工厂
-    Component {
-        id: contentAreaComponent
+    // Dynamic content, indicator, and navigation factories 动态内容、指示器与导航工厂
+    CarouselInternal.CarouselFactories {
+        id: carouselFactories
 
-        CarouselContent {
-            anchors.fill: parent
-            model: control._safeModel
-            effect: control.effect
-            orientation: control.orientation
-            currentIndex: control.currentIndex
-            itemDelegate: control.itemDelegate
-            borderRadius: control._effectiveBorderRadius
-
-            onIndexChanged: (index) => {
-                control.currentIndex = index
-                control.indexChanged(index)
-            }
-        }
-    }
-    
-    // Indicator factory 指示器工厂
-    Component {
-        id: indicatorComponent
-
-        FlipViewControls.PipsPager {
-            visible: control._hasIndicator
-            count: control._modelCount
-            currentIndex: control.currentIndex
-            orientation: control.orientation
-
-            anchors.horizontalCenter: control.isVertical ? undefined : parent.horizontalCenter
-            anchors.bottom: control.isVertical ? undefined : parent.bottom
-            anchors.bottomMargin: control.isVertical ? Enums.spacing.none : Enums.spacing.l
-            anchors.verticalCenter: control.isVertical ? parent.verticalCenter : undefined
-            anchors.right: control.isVertical ? parent.right : undefined
-            anchors.rightMargin: control.isVertical ? Enums.spacing.l : Enums.spacing.none
-
-            onIndexClicked: (index) => control.goTo(index)
-        }
-    }
-
-    // Navigation button factory 导航按钮工厂
-    Component {
-        id: navButtonComponent
-
-        CarouselNavButton {
-            property bool _revealEnabled: false
-
-            visible: control._navVisible
-            opacity: _revealEnabled && control._navVisible ? 1 : 0
-            isVertical: control.isVertical
-
-            x: control.isVertical
-                ? (parent.width - width) / 2
-                : (isNext ? parent.width - width - Enums.spacing.m : Enums.spacing.m)
-            y: control.isVertical
-                ? (isNext ? parent.height - height - Enums.spacing.m : Enums.spacing.m)
-                : (parent.height - height) / 2
-
-            HoverBehavior on opacity {
-                active: _revealEnabled && control._navVisible
-                enterDuration: Enums.duration.fast
-            }
-
-            onClicked: {
-                if (isNext) control.next()
-                else control.previous()
-            }
-        }
+        carouselControl: control
     }
     
     // Auto play timer 自动播放定时器

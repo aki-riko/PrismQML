@@ -260,6 +260,10 @@ Carousel {
 
 def test_carousel_content_area_is_lazily_declared_in_source():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    factory_source = (SOURCE_PATH.parent / "_internal" / "CarouselFactories.qml").read_text(
+        encoding="utf-8"
+    )
     assert "readonly property bool _needsContentArea:" in source
-    assert source.count("CarouselContent {") == 1
-    assert "contentAreaComponent.createObject(control)" in source
+    assert "CarouselContent {" not in source
+    assert factory_source.count("CarouselContent {") == 1
+    assert "carouselFactories.contentAreaComponent.createObject(control)" in source

@@ -1120,6 +1120,36 @@ def test_pips_pager_keeps_pips_content_modularized():
     assert "property real _scrollOffset" not in source
 
 
+def test_carousel_keeps_dynamic_factories_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/Carousel/Carousel.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Carousel/_internal/"
+        "CarouselFactories.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 320
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as CarouselInternal' in source
+    assert "CarouselInternal.CarouselFactories {" in source
+    assert "required property var carouselControl" in helper_source
+    for component_name in (
+        "contentAreaComponent",
+        "indicatorComponent",
+        "navButtonComponent",
+    ):
+        assert f"property alias {component_name}:" in helper_source
+        assert f"carouselFactories.{component_name}.createObject(control" in source
+    for marker in (
+        "CarouselContent {",
+        "FlipViewControls.PipsPager {",
+        "CarouselNavButton {",
+    ):
+        assert marker not in source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"

@@ -131,6 +131,10 @@ def test_carousel_reuses_one_indicator_across_orientation_changes(qapp):
 
 def test_carousel_indicator_is_mode_gated_in_source():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    factory_source = (SOURCE_PATH.parent / "_internal" / "CarouselFactories.qml").read_text(
+        encoding="utf-8"
+    )
     assert "readonly property bool _hasIndicator:" in source
-    assert source.count("FlipViewControls.PipsPager {") == 1
-    assert "indicatorComponent.createObject(control)" in source
+    assert "FlipViewControls.PipsPager {" not in source
+    assert factory_source.count("FlipViewControls.PipsPager {") == 1
+    assert "carouselFactories.indicatorComponent.createObject(control)" in source
