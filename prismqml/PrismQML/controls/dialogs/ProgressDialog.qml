@@ -10,6 +10,7 @@ import "../../effects"
 import "../feedback"
 import "../data"
 import "../dialogs"
+import "_internal" as DialogInternal
 
 // ProgressDialog - Progress dialog 进度对话框
 // Inherits from OverlayDialogCore for mask layer reuse 继承自OverlayDialogCore以复用遮罩层
@@ -168,16 +169,9 @@ OverlayDialogCore {
         }
     }
     
-    // Timeout timer 超时定时器
-
-    Timer {
+    DialogInternal.ProgressDialogTimeoutTimer {
         id: timeoutTimer
-        interval: control.maxWaitingTime
-        running: control._isOpen && control.maxWaitingTime > 0
-        onTriggered: {
-            control.timeout()
-            control.close()
-        }
+
+        host: control
     }
-    
 }

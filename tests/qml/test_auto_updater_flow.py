@@ -19,7 +19,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtTest import QTest
+from PySide6.QtTest import QSignalSpy, QTest
 
 from prismqml import register_types
 
@@ -381,6 +381,31 @@ def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp)
     assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
     qapp.processEvents()
     assert dialog.property("progress") == pytest.approx(25)
+
+
+def test_progress_dialog_timeout_timer_lifecycle(auto_updater_scene, qapp):
+    root = auto_updater_scene
+    assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
+    qapp.processEvents()
+
+    dialog = root.findChild(QObject, "autoUpdaterProgressDialog")
+    assert dialog is not None
+    timeout_timer = dialog.findChild(QObject, "progressDialogTimeoutTimer")
+    assert timeout_timer is not None
+    assert timeout_timer.parent() is dialog
+    assert timeout_timer.property("host") == dialog
+    assert timeout_timer.property("running") is False
+
+    timeout_spy = QSignalSpy(dialog.timeout)
+    assert dialog.setProperty("maxWaitingTime", 20)
+    qapp.processEvents()
+    assert timeout_timer.property("interval") == 20
+    assert timeout_timer.property("running") is True
+
+    QTest.qWait(80)
+    assert timeout_spy.count() == 1
+    assert dialog.property("_isOpen") is False
+    assert timeout_timer.property("running") is False
 
 
 def test_progress_dialog_shows_ready_icon(auto_updater_scene, qapp):

@@ -2409,6 +2409,31 @@ def test_confirm_dialog_keeps_countdown_timer_modularized():
     assert "if (host._countdownRemaining === 0) running = false" in helper_source
 
 
+def test_progress_dialog_keeps_timeout_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/dialogs/ProgressDialog.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/dialogs/_internal/"
+        "ProgressDialogTimeoutTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 190
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert 'import "_internal" as DialogInternal' in source
+    assert "DialogInternal.ProgressDialogTimeoutTimer {" in source
+    assert "id: timeoutTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "progressDialogTimeoutTimer"' in helper_source
+    assert "interval: host.maxWaitingTime" in helper_source
+    assert "running: host._isOpen && host.maxWaitingTime > 0" in helper_source
+    assert "host.timeout()" in helper_source
+    assert "host.close()" in helper_source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"
