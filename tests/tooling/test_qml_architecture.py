@@ -1721,6 +1721,33 @@ def test_auto_updater_keeps_feedback_timer_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_auto_updater_toast_presenter_keeps_sync_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/AutoUpdaterToastPresenter.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/"
+        "AutoUpdaterToastSyncTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 120
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 40
+    assert 'import "_internal" as FeedbackInternal' in source
+    assert "FeedbackInternal.AutoUpdaterToastSyncTimer {" in source
+    assert "id: syncTimer" in source
+    assert "host: root" in source
+    assert "syncTimer.restart()" in source
+    assert source.count("syncTimer.stop()") == 2
+    assert "required property var host" in helper_source
+    assert 'objectName: "autoUpdaterToastSyncTimer"' in helper_source
+    assert "interval: Enums.duration.none" in helper_source
+    assert "onTriggered: host._sync()" in helper_source
+    assert "\n    Timer {" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")

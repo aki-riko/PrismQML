@@ -4,6 +4,7 @@
 
 import QtQuick
 import PrismQML
+import "_internal" as FeedbackInternal
 
 // AutoUpdaterToastPresenter - Default AutoUpdater feedback presenter 默认自动更新反馈展示器
 // Maps the shared feedback model to an in-window Toast. 将共享反馈模型映射到窗口内 Toast。
@@ -88,10 +89,10 @@ Item {
     Component.onDestruction: root._hideToast()
 
     // ==================== Content 内容 ====================
-    Timer {
+    FeedbackInternal.AutoUpdaterToastSyncTimer {
         id: syncTimer
-        interval: Enums.duration.none
-        onTriggered: root._sync()
+
+        host: root
     }
 
     Connections {

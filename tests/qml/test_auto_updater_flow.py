@@ -278,6 +278,8 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp)
     windows_before = set(QGuiApplication.topLevelWindows())
 
     assert QMetaObject.invokeMethod(root, "triggerDoubleCheck")
+    sync_timer = root.findChild(QObject, "autoUpdaterToastSyncTimer")
+    assert sync_timer is not None
     toast = root.findChild(QObject, "autoUpdaterToast")
     assert toast is not None
     assert toast.metaObject().className().startswith("Toast_QMLTYPE_")
@@ -293,7 +295,9 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp)
     assert toast.property("message") == "25%  (25.0 MB / 100.0 MB)"
 
     assert QMetaObject.invokeMethod(root, "emitSecondDownloadProgress")
+    assert sync_timer.property("running") is True
     qapp.processEvents()
+    assert sync_timer.property("running") is False
     assert root.findChild(QObject, "autoUpdaterToast") is toast
     assert toast.property("progress") == pytest.approx(0.5)
     assert toast.property("message") == "50%  (50.0 MB / 100.0 MB)"
