@@ -29,6 +29,7 @@ BUTTON_CORE_SOURCE = (
 )
 ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 BUTTON_STYLE_HELPER_SOURCE = BUTTON_CORE_SOURCE.with_name("ButtonStyleHelper.qml")
+BUTTON_SURFACE_SOURCE = BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonSurface.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-core-conventions.qml")
 )
@@ -491,12 +492,14 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     gradient_a = _active_gradient(_button(root, "gradientButtonA"))
     gradient_b = _active_gradient(_button(root, "gradientButtonB"))
     button_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    surface_source = BUTTON_SURFACE_SOURCE.read_text(encoding="utf-8")
     enums_source = ENUMS_SOURCE.read_text(encoding="utf-8")
 
     assert gradient_a is gradient_b
     assert "property Gradient _gradientDef" not in button_source
-    assert "gradient: style === Enums.button.style_gradient && !Enums.isVintageTicket" in button_source
-    assert "? Enums._buttonGradientDef : null" in button_source
+    assert "gradient: surface.buttonControl.style === Enums.button.style_gradient" in surface_source
+    assert "&& !Enums.isVintageTicket ? Enums._buttonGradientDef : null" in surface_source
+    assert "? Enums._buttonGradientDef : null" in surface_source
     assert "readonly property Gradient _buttonGradientDef: Gradient" in enums_source
     assert "color: Qt.lighter(root.accentColor, _button.gradientLighten)" in enums_source
     assert "color: root.accentColor" in enums_source
@@ -512,7 +515,9 @@ def test_button_core_defers_neo_press_transform(button_core_scene):
         for child in _descendants(button)
     )
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
-    assert "sourceComponent: ButtonNeoShadow" in source
+    surface_source = BUTTON_SURFACE_SOURCE.read_text(encoding="utf-8")
+    assert "ButtonInternal.ButtonSurface {" in source
+    assert "sourceComponent: ButtonNeoShadow" in surface_source
     assert "Behavior on _neoPressShift" not in source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []

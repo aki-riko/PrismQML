@@ -194,6 +194,11 @@ def test_button_core_keeps_behavior_modularized():
             "ButtonCountdown.qml",
             "ButtonCountdown",
         ),
+        (
+            "prismqml/PrismQML/controls/buttons/Button/_internal/"
+            "ButtonSurface.qml",
+            "ButtonSurface",
+        ),
     )
     source = entry.read_text(encoding="utf-8")
 
@@ -215,6 +220,41 @@ def test_button_core_keeps_behavior_modularized():
     assert "ButtonLogic.click(control, Enums)" in source
     assert "ButtonLogic.updateTargetColors(" in source
     assert "ButtonLogic.prewarmMenu(control, Enums," in source
+
+
+def test_button_core_keeps_surface_visuals_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonSurface.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as ButtonInternal' in source
+    assert "ButtonInternal.ButtonSurface {" in source
+    assert "required property var buttonControl" in helper_source
+    for alias in (
+        "background",
+        "border",
+        "bgColorAnimation",
+        "borderColorAnimation",
+    ):
+        assert f"property alias {alias}:" in helper_source
+    assert "readonly property real animatedPressShift:" in helper_source
+    assert "readonly property var pressTransform:" in helper_source
+    assert "RectangularShadow {" in helper_source
+    assert "NeumorphicShadow {" in helper_source
+    assert "sourceComponent: ButtonNeoShadow" in helper_source
+    assert "ColorAnimation {" in helper_source
+    assert "RectangularShadow {" not in source
+    assert "NeumorphicShadow {" not in source
+    assert "sourceComponent: ButtonNeoShadow" not in source
+    assert "ColorAnimation {" not in source
 
 
 def test_popup_window_core_keeps_animation_logic_modularized():

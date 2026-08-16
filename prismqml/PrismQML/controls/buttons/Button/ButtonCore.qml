@@ -4,8 +4,6 @@
 
 import QtQuick
 import "../../.."
-import "../../../effects"
-import QtQuick.Effects
 import "../../utils"
 import "../../containers"
 import "ButtonStyle.js" as ButtonStyle
@@ -39,6 +37,7 @@ Widget {
                            ? Enums.iconSize.xl
                            : Enums.iconSize.m
     default property alias contentData: customContentContainer.data  // Custom content 自定义内容
+    property alias border: surface.border
     property bool hasCustomContent: false
 
     // Button features 按钮功能
@@ -116,7 +115,7 @@ Widget {
         (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
     // The loaded Neo surface owns animation; Fluent keeps no resident Behavior. 动画由已加载的Neo表面持有，Fluent不常驻Behavior。
     property real _neoPressShift:
-        neoShadowLoader.item ? neoShadowLoader.item.animatedPressShift : 0
+        surface.animatedPressShift
     readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
                                             feature === Enums.button.feature_split
     readonly property bool _hasProgressBarFeature:
@@ -168,12 +167,16 @@ Widget {
 
     function _updateTargetColors(hoverActive) {
         ButtonLogic.updateTargetColors(
-            control, Enums, hoverActive, bgColorAnim, borderColorAnim
+            control, Enums, hoverActive,
+            surface.bgColorAnimation, surface.borderColorAnimation
         )
     }
 
     function _completeHoverExit() {
-        ButtonLogic.completeHoverExit(control, Enums, bgColorAnim, borderColorAnim)
+        ButtonLogic.completeHoverExit(
+            control, Enums,
+            surface.bgColorAnimation, surface.borderColorAnimation
+        )
     }
 
     function _syncCustomContentState() {
@@ -263,8 +266,8 @@ Widget {
     onPressedChanged: {
         if (pressed) {
             // Instant press: stop any running animation and set directly 按下瞬间：停止动画直接设置
-            bgColorAnim.stop()
-            borderColorAnim.stop()
+            surface.bgColorAnimation.stop()
+            surface.borderColorAnimation.stop()
             _animatedBgColor = _styleBgColor
             _animatedBorderColor = _styleBorderColor
         }
@@ -310,76 +313,9 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    // Shadow layer 阴影层
-    // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯色矩形, 无模糊)。
-    RectangularShadow {
-        anchors.fill: _bg
-        radius: _bg.radius
-        color: Enums.shadow.level2.color
-        blur: Enums.shadow.level2.blur
-        offset.x: 0
-        offset.y: Enums.shadow.level2.offset
-        visible: !control.flat && Enums.usesSoftElevation && !Enums.isNeumorphism
-                 && !Enums.isNeumorphism
-    }
-
-    NeumorphicShadow {
-        target: _bg
-        inset: control.pressed
-        pressed: control.pressed
-        visible: !control.flat && Enums.isNeumorphism
-        z: _bg.z - 1
-    }
-
-    // Neobrutalism 硬阴影: 复用 NeoShadow 组件(纯黑零模糊, 偏移)。按下位移由下方 Translate 压平。
-    Loader {
-        id: neoShadowLoader
-        active: Enums.isNeobrutalism && !control.flat
-        z: _bg.z - 1
-
-        sourceComponent: ButtonNeoShadow {
-            target: _bg
-            targetPressShift: control._neoPressTargetShift
-        }
-    }
-
-    // Background 背景
-    // Keep border alias next to child _bg per ordering rule 按排序规则将 border 别名紧邻子项 _bg
-    property alias border: _bg.border
-    Rectangle {
-        id: _bg
-        anchors.fill: parent
-        radius: control.radius
-        color: _animatedBgColor
-        border.width: flat ? 0 : Enums.surfaceBorderWidth(
-            (_styleToggleChecked && style === Enums.button.style_primary)
-                ? Enums.border.normal : Enums.border.thin)
-        border.color: _animatedBorderColor  // neo 黑边由 styleHelper.borderColor 经 token 返回
-
-        // Gradient (for gradient style) 渐变
-        gradient: style === Enums.button.style_gradient && !Enums.isVintageTicket
-                  ? Enums._buttonGradientDef : null
-
-        // Neobrutalism 按下位移: face 向右下滑向硬阴影, 视觉压平。Fluent 下 shift 恒 0 无影响。
-        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
-
-    }
-
-    ColorAnimation {
-        id: bgColorAnim
-        target: control
-        property: "_animatedBgColor"
-        to: control._targetBgColor
-        duration: Enums.duration.medium
-        easing.type: Easing.InOutCubic
-    }
-
-    ColorAnimation {
-        id: borderColorAnim
-        target: control
-        property: "_animatedBorderColor"
-        to: control._targetBorderColor
-        duration: Enums.duration.medium
+    ButtonInternal.ButtonSurface {
+        id: surface
+        buttonControl: control
     }
 
     // Modular content 模块化内容
@@ -400,7 +336,7 @@ Widget {
         onChildrenChanged: control._syncCustomContentState()
         Component.onCompleted: control._syncCustomContentState()
         // Neobrutalism 按下位移: 内容随 face 一起滑动
-        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
+        transform: surface.pressTransform
     }
 
     Loader {
@@ -423,7 +359,7 @@ Widget {
         z: Enums.zIndex.content
         active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
         // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
-        transform: neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
+        transform: surface.pressTransform
         sourceComponent: ButtonContent {
             feature: control.feature
             style: control.style
@@ -449,7 +385,7 @@ Widget {
     ButtonInternal.ButtonFeatureLoader {
         id: featureLoader
         button: control
-        background: _bg
+        background: surface.background
         mainHovered: mouseArea.containsMouse
     }
 
