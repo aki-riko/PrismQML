@@ -49,7 +49,7 @@ PopupWindowCore {
  property var _pendingSubmenuAction: null
  property var _pendingSubmenuComponent: null
  property var _pendingSubmenuProperties: null
- property var _logicalItems: []
+ property MenuItemRegistry _itemRegistry: MenuItemRegistry {}
 
  // ==================== Signals 信号 ====================
  signal dismissed()
@@ -57,17 +57,11 @@ PopupWindowCore {
  
  // ==================== Internal Methods 内部方法 ====================
  function _registerMenuItem(item) {
- if (!item || _logicalItems.indexOf(item) !== -1) return
- _logicalItems = _logicalItems.concat([item])
+ _itemRegistry.registerItem(item)
  }
 
  function _unregisterMenuItem(item) {
- var remaining = []
- for (var i = 0; i < _logicalItems.length; i++) {
- var current = _logicalItems[i]
- if (current && current !== item) remaining.push(current)
- }
- _logicalItems = remaining
+ _itemRegistry.unregisterItem(item)
  }
 
  function _syncMenuItems() {
@@ -79,46 +73,20 @@ PopupWindowCore {
  }
 
  function _menuItems() {
- var result = []
- for (var i = 0; i < _logicalItems.length; i++) {
- var item = _logicalItems[i]
- if (item) result.push(item)
- }
- _logicalItems = result
- return result
+ return _itemRegistry.liveItems()
  }
 
  function _calcWidth() {
  // Guard against destroyed object or invalid context 防止对象已销毁或上下文无效
  if (_isDestroyed || typeof Math === 'undefined') return minWidth
- var maxW = minWidth
- var items = _menuItems()
- for (var i = 0; i < items.length; i++) {
- var child = items[i]
- if (child && child.implicitWidth) {
- maxW = Math.max(maxW, child.implicitWidth)
- }
- }
- return maxW
+ return _itemRegistry.measuredWidth(minWidth)
  }
  
  function _calcHeight() {
  // Guard against destroyed object or invalid context 防止对象已销毁或上下文无效
  if (_isDestroyed || typeof Math === 'undefined') return Enums ? Enums.controlSize.emptyStateButtonHeight : 0
  if (!Enums || !Enums.spacing) return 0
- var h = 0
- var items = _menuItems()
- for (var i = 0; i < items.length; i++) {
- var child = items[i]
- if (child && child.visible !== false) {
- // Use height if set, otherwise implicitHeight 优先使用height
- var itemH = child.height > 0 ? child.height : child.implicitHeight
- if (itemH > 0) {
- h += itemH
- }
- }
- }
- return h
+ return _itemRegistry.measuredHeight()
  }
  
  function _updateSize() {
@@ -367,8 +335,7 @@ PopupWindowCore {
  // Clear all items 清空所有项
  function clear() {
  _closeOpenSubmenu()
- var items = _menuItems()
- _logicalItems = []
+ var items = _itemRegistry.clear()
  for (var i = items.length - 1; i >= 0; i--) {
  var child = items[i]
  // destroy() 是延迟执行的，先设 visible=false 防止 _calcHeight 计入

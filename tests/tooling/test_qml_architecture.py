@@ -2348,6 +2348,24 @@ def test_menu_core_keeps_visual_content_modularized():
     assert "MenuContent {" in entry.read_text(encoding="utf-8")
 
 
+def test_menu_core_keeps_logical_item_registry_modularized():
+    entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/menus/_internal/MenuItemRegistry.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 410
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "MenuItemRegistry {" in source
+    for marker in ("property var items: []", "function liveItems()",
+                   "function measuredWidth(", "function measuredHeight()"):
+        assert marker in helper_source
+        assert marker not in source
+
+
 def test_menu_core_keeps_submenu_open_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source(
