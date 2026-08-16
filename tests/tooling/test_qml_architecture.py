@@ -418,6 +418,11 @@ def test_navigation_panel_keeps_background_layer_modularized():
         assert "required property var panel" in helper_source
         assert "readonly property var control: panel" in helper_source
     assert "z: -2" in background.read_text(encoding="utf-8")
+    assert "property bool ticketPaperEnabled: true" in source
+    assert (
+        "visible: control.ticketPaperEnabled && Enums.isVintageTicket"
+        in background.read_text(encoding="utf-8")
+    )
     assert "id: bgCanvas" not in source
     assert "id: acrylicLayer" not in source
     assert "id: rightBorderCanvas" not in source

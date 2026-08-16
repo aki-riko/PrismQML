@@ -66,6 +66,7 @@ Item {
         anchors.fill: parent
         patternOriginX: control.paperOriginX
         patternOriginY: control.paperOriginY
+        visible: control.ticketPaperEnabled && Enums.isVintageTicket
         z: 1
     }
 

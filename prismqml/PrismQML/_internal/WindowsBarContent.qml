@@ -23,6 +23,8 @@ Item {
         typeof PlatformInfo !== "undefined" && PlatformInfo && PlatformInfo.isCompact
     readonly property bool _loadingOverlayActive:
         !!(hostWindow && hostWindow._pythonLoading)
+    readonly property bool _usesWindowTicketPaper:
+        !!hostWindow && Enums.isVintageTicket && !root._compactNav
     readonly property real _windowPaperOriginY:
         hostWindow && typeof hostWindow.titleBarHeight === "number"
         ? hostWindow.titleBarHeight + contentTopMargin : contentTopMargin
@@ -57,10 +59,12 @@ Item {
         smoothScroll: root.hostWindow ? root.hostWindow.navigationSmoothScroll : true
         scrollDuration: root.hostWindow ? root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll
         scrollStep: root.hostWindow ? root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep
-        backgroundColor: root.hostWindow && root.hostWindow._micaActive
+        backgroundColor: root._usesWindowTicketPaper
             ? Enums.transparent
-            : Enums.backgroundColor
+            : (root.hostWindow && root.hostWindow._micaActive
+                ? Enums.transparent : Enums.backgroundColor)
         currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
+        ticketPaperEnabled: !root._usesWindowTicketPaper
         paperOriginY: root._windowPaperOriginY
 
         onItemClicked: (index) => {
@@ -118,8 +122,11 @@ Item {
         anchors.topMargin: root.contentTopMargin
         anchors.right: parent.right
         anchors.bottom: root._compactNav ? bottomTabBarLoader.top : parent.bottom
-        backgroundColor: root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg
+        backgroundColor: root._usesWindowTicketPaper
+            ? Enums.transparent
+            : (root.hostWindow ? root.hostWindow.contentBgColor : Enums.stateColor.contentBg)
         cornerRadius: root.hostWindow ? root.hostWindow.contentCornerRadius : Enums.radius.large
+        ticketPaperEnabled: !root._usesWindowTicketPaper
         paperOriginX: root._compactNav ? 0 : navigationBar.width
         paperOriginY: root._windowPaperOriginY
 

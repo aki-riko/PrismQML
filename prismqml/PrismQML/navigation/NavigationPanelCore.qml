@@ -18,6 +18,7 @@ Item {
     property var bottomItems: []
     property bool indicatorAnimationEnabled: true
     property color backgroundColor: Enums.transparent
+    property bool ticketPaperEnabled: true
     property real paperOriginX: 0
     property real paperOriginY: 0
     

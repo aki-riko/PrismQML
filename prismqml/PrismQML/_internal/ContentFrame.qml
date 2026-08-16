@@ -16,6 +16,7 @@ Item {
     required property int cornerRadius
     
     // ==================== Public Props 公开属性 ====================
+    property bool ticketPaperEnabled: true
     property real paperOriginX: 0
     property real paperOriginY: 0
     default property alias content: contentItem.data
@@ -36,6 +37,7 @@ Item {
             anchors.fill: parent
             patternOriginX: root.paperOriginX
             patternOriginY: root.paperOriginY
+            visible: root.ticketPaperEnabled && Enums.isVintageTicket
         }
         
         // Bottom-left corner fill. 左下角填充。
