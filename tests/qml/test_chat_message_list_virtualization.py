@@ -136,6 +136,29 @@ def _is_slot_measured(slot: QQuickItem) -> bool:
     )
 
 
+def _assert_scroll_timer_contract(message_list: QQuickItem) -> None:
+    timer = message_list.findChild(
+        QObject, "chatMessageListScrollToBottomTimer"
+    )
+    assert timer is not None
+    assert timer.parent() is message_list
+    assert timer.property("host") is message_list
+    assert timer.property("interval") == 0
+    assert timer.property("repeat") is False
+
+    timer.stop()
+    assert _evaluate(
+        message_list,
+        "_scrollPending = false; _followBottom = true; "
+        "_scheduleScrollToBottom(); true",
+    ) is True
+    assert message_list.property("_scrollPending") is True
+    assert timer.property("running") is True
+    _pump(20)
+    assert timer.property("running") is False
+    assert message_list.property("_scrollPending") is False
+
+
 def _has_measured_viewport_slot(
     message_list: QQuickItem, viewport: QQuickItem
 ) -> bool:
@@ -302,6 +325,23 @@ def test_chat_message_slot_measurement_timer_preserves_lifecycle_contract(qapp):
         assert timer.property("running") is True
         _pump(20)
         assert timer.property("running") is False
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)
+
+
+def test_chat_message_list_scroll_timer_preserves_lifecycle_contract(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = window = None
+    try:
+        component, window = _create(engine)
+        message_list = window.findChild(QQuickItem, "messages")
+        assert message_list is not None
+        _assert_scroll_timer_contract(message_list)
     finally:
         if window is not None:
             window.deleteLater()

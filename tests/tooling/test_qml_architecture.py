@@ -1437,6 +1437,33 @@ def test_code_block_keeps_copy_feedback_timer_modularized():
     assert "\n            Timer {" not in source
 
 
+def test_chat_message_list_keeps_scroll_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/"
+        "ChatMessageListScrollToBottomTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 400
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert 'import "_internal" as ChatInternal' in source
+    assert "ChatInternal.ChatMessageListScrollToBottomTimer {" in source
+    assert "id: scrollToBottomTimer" in source
+    assert "host: control" in source
+    assert source.count("\n    Timer {") == 2
+    assert "required property var host" in helper_source
+    assert 'objectName: "chatMessageListScrollToBottomTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    assert "host._scrollPending = false" in helper_source
+    assert "if (host._followBottom) host._scrollToBottom()" in helper_source
+    assert "control._scrollPending = false" not in source
+    assert "if (control._followBottom) control._scrollToBottom()" not in source
+
+
 def test_chat_message_list_keeps_viewport_content_modularized():
     entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
     helper = _source(

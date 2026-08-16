@@ -263,15 +263,9 @@ Item {
     Component.onCompleted: _scheduleScrollBarUpdate()
 
     // ==================== Deferred Work 延迟任务 ====================
-    Timer {
+    ChatInternal.ChatMessageListScrollToBottomTimer {
         id: scrollToBottomTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: {
-            control._scrollPending = false
-            if (control._followBottom) control._scrollToBottom()
-        }
+        host: control
     }
 
     Timer {
