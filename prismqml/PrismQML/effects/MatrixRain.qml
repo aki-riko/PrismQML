@@ -6,6 +6,7 @@ import QtQuick
 import ".."
 import "_internal" as MatrixRainInternal
 import "_internal/MatrixRainPresets.js" as MatrixRainPresets
+import "_internal/MatrixRainCharsets.js" as MatrixRainCharsets
 
 // MatrixRain - The Matrix digital rain effect 黑客帝国数字雨效果
 // Usage 使用方式:
@@ -76,18 +77,7 @@ Rectangle {
     property bool isHorizontal: direction === "left" || direction === "right"
     
     // Charset presets 预设字符集
-    readonly property var _charsetPresets: ({
-        "japanese": "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ",
-        "katakana": "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン",
-        "binary": "01",
-        "digits": "0123456789",
-        "hex": "0123456789ABCDEF",
-        "chinese": "中国日本韩国美丽世界和平发展科技未来数据矩阵代码程序",
-        "symbols": "!@#$%^&*()_+-=[]{}|;:,.<>?/~`",
-        "ascii": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-        "greek": "αβγδεζηθικλμνξοπρστυφχψω",
-        "runic": "ᚠᚡᚢᚣᚤᚥᚦᚧᚨᚩᚪᚫᚬᚭᚮᚯᚰᚱᚲᚳᚴᚵᚶᚷᚸᚹᚺᚻᚼᚽᚾᚿᛀᛁᛂᛃᛄᛅᛆᛇᛈᛉᛊᛋᛌᛍᛎᛏᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛠᛡᛢᛣᛤᛥᛦᛧᛨᛩᛪ"
-    })
+    readonly property var _charsetPresets: MatrixRainCharsets.presets
     
     // Active charset 当前使用的字符集
     readonly property string _activeCharset: charsetPreset && _charsetPresets[charsetPreset] 
