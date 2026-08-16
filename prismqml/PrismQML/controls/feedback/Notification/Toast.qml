@@ -142,10 +142,9 @@ Widget {
     }
     
     // Progress complete timer 进度完成后延迟关闭
-    Timer {
+    NotificationInternal.ToastProgressCompleteTimer {
         id: completeTimer
-        running: _progressComplete && control.visible
-        interval: control.completeDuration
-        onTriggered: control.hide()
+
+        host: control
     }
 }

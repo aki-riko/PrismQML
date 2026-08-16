@@ -154,10 +154,7 @@ def _timers(toast: QQuickItem) -> list[QObject]:
         obj
         for obj in toast.findChildren(QObject)
         if obj.parent() is toast
-        and (
-            obj.objectName() == "toastHideTimer"
-            or obj.metaObject().className().startswith("QQmlTimer")
-        )
+        and obj.objectName() in {"toastHideTimer", "toastCompleteTimer"}
     ]
 
 
@@ -175,7 +172,10 @@ def test_toast_keeps_two_close_timers(qapp):
         )
 
         assert len(timers) == 2
-        assert any(timer.objectName() == "toastHideTimer" for timer in timers)
+        assert {timer.objectName() for timer in timers} == {
+            "toastHideTimer",
+            "toastCompleteTimer",
+        }
         assert object_count == 66
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []

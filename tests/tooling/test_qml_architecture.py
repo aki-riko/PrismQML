@@ -1796,14 +1796,40 @@ def test_toast_keeps_auto_close_timer_modularized():
     assert "NotificationInternal.ToastAutoCloseTimer {" in source
     assert "id: hideTimer" in source
     assert "host: control" in source
-    assert source.count("\n    Timer {") == 1
+    assert "\n    Timer {" not in source
     assert "\n        interval: control.duration\n" not in source
     assert "\n        running: control.visible && control.duration > 0 && !_isProgressMode\n" not in source
-    assert source.count("onTriggered: control.hide()") == 1
+    assert "onTriggered: control.hide()" not in source
     assert "required property var host" in helper_source
     assert 'objectName: "toastHideTimer"' in helper_source
     assert "interval: host.duration" in helper_source
     assert "running: host.visible && host.duration > 0 && !host._isProgressMode" in helper_source
+    assert "onTriggered: host.hide()" in helper_source
+
+
+def test_toast_keeps_progress_complete_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/Toast.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "ToastProgressCompleteTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 155
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 35
+    assert 'import "_internal" as NotificationInternal' in source
+    assert "NotificationInternal.ToastProgressCompleteTimer {" in source
+    assert "id: completeTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "toastCompleteTimer"' in helper_source
+    assert "running: host._progressComplete && host.visible" in helper_source
+    assert "interval: host.completeDuration" in helper_source
     assert "onTriggered: host.hide()" in helper_source
 
 
