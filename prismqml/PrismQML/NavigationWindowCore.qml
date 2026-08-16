@@ -107,6 +107,10 @@ WindowsCore {
         }
         profileTime("NavigationWindowCore apply Mica " + reason + " start")
         var success = MicaManager.setMicaEffect(window, _micaActive, Enums.isDark)
+        // Mica writes DWMWCP_ROUND even when disabling the backdrop, so restore
+        // the native corner that matches the QML frame. Mica 即使关闭背板也会写入
+        // DWMWCP_ROUND，因此需恢复与 QML 窗框一致的原生边角。
+        _syncNativeCorner("mica:" + reason)
         _micaNativeApplySucceeded = success
         _micaBackdropReady = false
         _micaBackdropCommitTimer.stop()

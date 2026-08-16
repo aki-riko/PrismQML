@@ -137,6 +137,16 @@ Window {
         WindowHelper.setAppIcon(windowIcon)
         profileTime("WindowHelper.setAppIcon " + reason + " done")
     }
+    function _syncNativeCorner(reason) {
+        if (!_dwmInitializationDone ||
+                typeof MicaManager === "undefined" || !MicaManager ||
+                typeof MicaManager.setWindowCorner !== "function") return false
+        profileTime("WindowsCore sync native corner " + reason + " start")
+        var success = MicaManager.setWindowCorner(window, windowRadius > 0)
+        profileTime("WindowsCore sync native corner " + reason +
+                    " done success=" + success)
+        return success
+    }
 
     // ==================== Public Methods 公开方法 ====================
     function prepareBeforeShow() { nativeWindowStartup.prepareBeforeShow() }
@@ -182,12 +192,16 @@ Window {
     title: windowTitle  // Sync to native Window.title for taskbar 同步到原生标题用于任务栏显示
 
     onWindowIconChanged: _syncTaskbarIcon("windowIconChanged")
+    onWindowRadiusChanged: _syncNativeCorner("windowRadiusChanged")
     // Reapply after the native HWND/taskbar button exists so Windows Shell does
     // not keep the generic icon cached from first show. 原生窗口与任务栏按钮
     // 就绪后再次同步，避免 Windows Shell 保留首次显示时的通用图标缓存。
-    onNativeHookReady: Qt.callLater(function() {
-        window._syncTaskbarIcon("nativeHookReady")
-    })
+    onNativeHookReady: {
+        _syncNativeCorner("nativeHookReady")
+        Qt.callLater(function() {
+            window._syncTaskbarIcon("nativeHookReady")
+        })
+    }
     Component.onCompleted: {
         profileTime("Component.onCompleted start; NativeWindow defined=" +
                     (typeof NativeWindow !== "undefined"))

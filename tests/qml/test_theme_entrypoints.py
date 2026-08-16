@@ -44,6 +44,7 @@ class _FakeMicaManager(QObject):
     def __init__(self):
         super().__init__()
         self.calls: list[tuple[bool, bool]] = []
+        self.corner_calls: list[bool] = []
 
     @Property(bool, constant=True)
     def isMicaSupported(self) -> bool:
@@ -52,6 +53,11 @@ class _FakeMicaManager(QObject):
     @Slot(QObject, bool, bool, result=bool)
     def setMicaEffect(self, _window: QObject, enabled: bool, dark: bool) -> bool:
         self.calls.append((enabled, dark))
+        return True
+
+    @Slot(QObject, bool, result=bool)
+    def setWindowCorner(self, _window: QObject, rounded: bool) -> bool:
+        self.corner_calls.append(rounded)
         return True
 
 
@@ -297,12 +303,14 @@ NavigationWindowCore {
 }
 """,
         )
-        _evaluate(instance, "_nativeHookReady = false")
+        _evaluate(instance, "_nativeHookReady = false; _dwmInitializationDone = true")
         fake_mica.calls.clear()
+        fake_mica.corner_calls.clear()
         _evaluate(instance, "nativeHookReady()")
         _pump(1)
         assert instance.property("_nativeHookReady") is True
         assert fake_mica.calls[-1] == (True, False)
+        assert fake_mica.corner_calls[-1] is True
         assert instance.property("_micaBackdropReady") is False
         _pump(100)
         assert instance.property("_micaBackdropReady") is True
@@ -311,18 +319,22 @@ NavigationWindowCore {
         _pump(1)
         assert instance.property("_micaActive") is False
         assert fake_mica.calls[-1] == (False, False)
+        assert fake_mica.corner_calls[-1] is True
         assert instance.property("_micaBackdropReady") is False
 
         setSkin(Skin.VINTAGE_TICKET)
         _pump(1)
         assert instance.property("_micaActive") is False
         assert fake_mica.calls[-1] == (False, False)
+        assert instance.property("windowRadius") == 0
+        assert fake_mica.corner_calls[-1] is False
         assert instance.property("_micaBackdropReady") is False
 
         setSkin(Skin.FLUENT)
         _pump(1)
         assert instance.property("_micaActive") is True
         assert fake_mica.calls[-1] == (True, False)
+        assert fake_mica.corner_calls[-1] is True
         _pump(100)
         assert instance.property("_micaBackdropReady") is True
     finally:
