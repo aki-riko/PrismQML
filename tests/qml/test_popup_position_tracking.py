@@ -48,6 +48,7 @@ TRACKER_SOURCE = (
     / "_internal"
     / "PopupPositionTracker.qml"
 )
+TRACKER_TIMER_SOURCE = TRACKER_SOURCE.with_name("PopupPositionUpdateTimer.qml")
 METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "popup-position-tracking.qml")
@@ -406,6 +407,7 @@ def test_popup_tracking_source_is_event_driven():
     popup_source = POPUP_SOURCE.read_text(encoding="utf-8")
     tip_source = TIP_SOURCE.read_text(encoding="utf-8")
     tracker_source = TRACKER_SOURCE.read_text(encoding="utf-8")
+    tracker_timer_source = TRACKER_TIMER_SOURCE.read_text(encoding="utf-8")
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
 
     for source in (popup_source, tip_source):
@@ -417,10 +419,33 @@ def test_popup_tracking_source_is_event_driven():
     assert "function onAfterAnimating()" in tracker_source
     assert "function scheduleUpdate()" in tracker_source
     assert "Qt.callLater" not in tracker_source
-    assert "Timer {" in tracker_source
-    assert "repeat: false" in tracker_source
+    assert "PopupInternal.PopupPositionUpdateTimer {" in tracker_source
+    assert "\n    Timer {" not in tracker_source
+    assert "repeat: false" in tracker_timer_source
+    assert "repeat: true" not in tracker_timer_source
     assert "repeat: true" not in tracker_source
     assert "trackerIntervalMs" not in metrics_source
+
+
+def test_popup_position_update_timer_preserves_lifecycle_contract(popup_scene):
+    window, items, warnings, _windows_before = popup_scene
+    popup = items["popup"]
+    tracker = _popup_trackers(popup)[0]
+    timer = tracker.findChild(QObject, "popupPositionUpdateTimer")
+    assert timer is not None
+    assert timer.parent() is tracker
+    assert timer.property("host") is tracker
+    assert timer.property("interval") == 0
+    assert timer.property("repeat") is False
+    assert timer.property("running") is False
+
+    assert QMetaObject.invokeMethod(window, "openPopup")
+    assert _wait_for(lambda: popup.property("isOpen"))
+    timer.stop()
+    assert QMetaObject.invokeMethod(tracker, "scheduleUpdate")
+    assert timer.property("running") is True
+    assert _wait_for(lambda: not timer.property("running"))
+    assert warnings == []
 
 
 def test_popup_tracking_connections_only_exist_while_tracking(popup_scene):

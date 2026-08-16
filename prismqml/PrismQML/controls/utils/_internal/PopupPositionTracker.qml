@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "." as PopupInternal
 
 // PopupPositionTracker - Event-driven popup anchor tracker 事件驱动弹层锚点跟踪器
 Item {
@@ -59,12 +60,9 @@ Item {
 
     // Coalesce geometry signals while keeping queued work bound to this lifecycle.
     // 合并几何信号，并让待执行任务跟随当前对象生命周期销毁。
-    Timer {
+    PopupInternal.PopupPositionUpdateTimer {
         id: updateTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: tracker._updatePosition()
+        host: tracker
     }
 
     // Delay QQmlConnections creation until the popup is actively tracking.

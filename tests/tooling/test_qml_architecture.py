@@ -754,6 +754,32 @@ def test_popup_window_core_keeps_lifecycle_timers_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_popup_position_tracker_keeps_update_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/utils/_internal/PopupPositionTracker.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/utils/_internal/PopupPositionUpdateTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 140
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert 'import "." as PopupInternal' in source
+    assert "PopupInternal.PopupPositionUpdateTimer {" in source
+    assert "id: updateTimer" in source
+    assert "host: tracker" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "popupPositionUpdateTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._updatePosition()" in helper_source
+    assert "onTriggered: tracker._updatePosition()" not in source
+
+
 def test_list_widget_keeps_data_and_selection_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/List/ListWidget.qml"
