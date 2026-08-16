@@ -135,11 +135,10 @@ Widget {
     }
 
     // Auto close 自动关闭
-    Timer {
+    NotificationInternal.ToastAutoCloseTimer {
         id: hideTimer
-        interval: control.duration
-        running: control.visible && control.duration > 0 && !_isProgressMode
-        onTriggered: control.hide()
+
+        host: control
     }
     
     // Progress complete timer 进度完成后延迟关闭
