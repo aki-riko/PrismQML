@@ -2384,6 +2384,31 @@ def test_carousel_keeps_auto_play_timer_modularized():
     assert "onTriggered: host.next()" in helper_source
 
 
+def test_confirm_dialog_keeps_countdown_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/dialogs/ConfirmDialog.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/dialogs/_internal/"
+        "ConfirmDialogCountdownTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 220
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert 'import "_internal" as DialogInternal' in source
+    assert "DialogInternal.ConfirmDialogCountdownTimer {" in source
+    assert "id: countdownTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "confirmDialogCountdownTimer"' in helper_source
+    assert "interval: 1000" in helper_source
+    assert "repeat: true" in helper_source
+    assert "host._countdownRemaining--" in helper_source
+    assert "if (host._countdownRemaining === 0) running = false" in helper_source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"

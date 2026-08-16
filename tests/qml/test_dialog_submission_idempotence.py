@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QObject,
     QPoint,
     QPointF,
     QTimer,
@@ -238,6 +239,43 @@ def test_confirm_dialog_derived_signals_submit_once(qapp):
         _rapid_double_click(window, cancel_button)
         assert window.property("rejectedCount") == 1
         assert window.property("cancelledCount") == 1
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_confirm_dialog_countdown_timer_lifecycle(qapp):
+    engine, component, window, warnings = _create_scene(CONFIRM_DIALOG_SCENE)
+    try:
+        dialog = window.findChild(QQuickItem, "dialog")
+        assert dialog is not None
+        countdown_timer = dialog.findChild(
+            QObject, "confirmDialogCountdownTimer"
+        )
+        body_columns = [
+            item
+            for item in dialog.findChildren(QQuickItem)
+            if item.metaObject().className().startswith("QQuickColumnLayout")
+        ]
+        assert countdown_timer is not None
+        assert len(body_columns) == 1
+        assert countdown_timer.parent() is body_columns[0].parentItem()
+        assert countdown_timer.property("host") == dialog
+        assert countdown_timer.property("interval") == 1000
+        assert countdown_timer.property("repeat") is True
+        assert countdown_timer.property("running") is False
+
+        cancel_button = _button_by_text(window, "Cancel")
+        _click(window, cancel_button)
+        assert _wait_for(lambda: dialog.property("isOpen") is False)
+
+        assert dialog.setProperty("countdown", 2)
+        assert countdown_timer.setProperty("interval", 1)
+        assert QMetaObject.invokeMethod(window, "reopen")
+        assert _wait_for(
+            lambda: dialog.property("_countdownRemaining") == 0
+        )
+        assert countdown_timer.property("running") is False
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

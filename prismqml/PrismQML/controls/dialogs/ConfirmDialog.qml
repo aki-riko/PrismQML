@@ -8,6 +8,7 @@ import "../.."
 import "../buttons/Button"
 import "../data/Label"
 import "../icons"
+import "_internal" as DialogInternal
 
 // ConfirmDialog - 通用二次确认对话框 (设计感版)
 //
@@ -151,16 +152,10 @@ DialogBoxCore {
     }
 
     // ==================== Content 内容 ====================
-    Timer {
+    DialogInternal.ConfirmDialogCountdownTimer {
         id: countdownTimer
-        interval: 1000
-        repeat: true
-        onTriggered: {
-            if (control._countdownRemaining > 0) {
-                control._countdownRemaining--
-                if (control._countdownRemaining === 0) running = false
-            }
-        }
+
+        host: control
     }
 
     ColumnLayout {
