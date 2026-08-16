@@ -2512,6 +2512,30 @@ def test_line_edit_core_keeps_variant_factories_modularized():
         assert marker not in source
 
 
+def test_pivot_keeps_indicator_sync_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/Pivot.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/"
+        "PivotIndicatorSyncTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 215
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal"' in source
+    assert "PivotIndicatorSyncTimer {" in source
+    assert "id: indicatorSyncTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "pivotIndicatorSyncTimer"' in helper_source
+    assert "interval: Enums.duration.tick" in helper_source
+    assert "repeat: true" in helper_source
+    assert "onTriggered: host._updateIndicatorWithAnimation()" in helper_source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(

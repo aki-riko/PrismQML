@@ -201,11 +201,10 @@ Item {
         visible: control._safeItems.length > 0 && control._initialized
     }
 
-    Timer {
+    PivotIndicatorSyncTimer {
         id: indicatorSyncTimer
-        interval: Enums.duration.tick
-        repeat: true
-        onTriggered: control._updateIndicatorWithAnimation()
+
+        host: control
     }
 
 }

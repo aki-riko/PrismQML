@@ -30,6 +30,7 @@ Item {
     width: 640
     height: 160
     property int requestedIndex: 0
+    readonly property int expectedIndicatorSyncInterval: Enums.duration.tick
     property var pivotItems: [
         { key: "general", text: "General" },
         { key: "personalization", text: "Personalization" },
@@ -122,6 +123,15 @@ def test_external_current_index_binding_keeps_indicator_in_sync(qapp):
         assert pivot is not None
         assert pivot.property("currentIndex") == 0
         assert pivot.property("_prevIndex") == 0
+        sync_timer = pivot.findChild(QObject, "pivotIndicatorSyncTimer")
+        assert sync_timer is not None
+        assert sync_timer.parent() is pivot
+        assert sync_timer.property("host") == pivot
+        assert sync_timer.property("interval") == root.property(
+            "expectedIndicatorSyncInterval"
+        )
+        assert sync_timer.property("repeat") is True
+        assert sync_timer.property("running") is False
 
         assert root.setProperty("requestedIndex", 2)
         QTest.qWait(STATE_SETTLE_MS)
