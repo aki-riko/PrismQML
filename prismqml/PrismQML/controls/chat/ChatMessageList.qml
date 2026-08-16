@@ -268,46 +268,9 @@ Item {
         host: control
     }
 
-    Timer {
+    ChatInternal.ChatMessageListSlotLayoutTimer {
         id: slotLayoutTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: {
-            control._layoutPending = false
-            var slotCount = messageRepeater.count
-            var layoutStart = Math.max(0, Math.min(slotCount, control._layoutStartIndex))
-            control._layoutStartIndex = -1
-            var nextY = 0
-            if (layoutStart > 0) {
-                var previousSlot = messageRepeater.itemAt(layoutStart - 1)
-                if (previousSlot && previousSlot._layoutReady) {
-                    nextY = previousSlot.y + previousSlot.height + Enums.spacing.xs
-                } else {
-                    layoutStart = 0
-                }
-            }
-            control._lastLayoutStartIndex = layoutStart
-            for (var i = layoutStart; i < slotCount; i++) {
-                var slot = messageRepeater.itemAt(i)
-                if (!slot) continue
-                slot.y = nextY
-                nextY += slot.height
-                if (i + 1 < slotCount) nextY += Enums.spacing.xs
-                if (!slot._layoutReady) slot._layoutReady = true
-            }
-            messageColumn.height = nextY
-            control._scheduleLoadRangeUpdate()
-            if (control._followBottom) {
-                control._pendingAnchorDelta = 0
-                control._scheduleScrollToBottom()
-            } else if (Math.abs(control._pendingAnchorDelta)
-                    >= control._heightChangeTolerance) {
-                var anchorDelta = control._pendingAnchorDelta
-                control._pendingAnchorDelta = 0
-                control._setContentY(messageViewport.contentY + anchorDelta, false)
-            }
-        }
+        host: control
     }
 
     Timer {

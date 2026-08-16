@@ -1453,7 +1453,7 @@ def test_chat_message_list_keeps_scroll_timer_modularized():
     assert "ChatInternal.ChatMessageListScrollToBottomTimer {" in source
     assert "id: scrollToBottomTimer" in source
     assert "host: control" in source
-    assert source.count("\n    Timer {") == 2
+    assert source.count("\n    Timer {") == 1
     assert "required property var host" in helper_source
     assert 'objectName: "chatMessageListScrollToBottomTimer"' in helper_source
     assert "interval: 0" in helper_source
@@ -1462,6 +1462,40 @@ def test_chat_message_list_keeps_scroll_timer_modularized():
     assert "if (host._followBottom) host._scrollToBottom()" in helper_source
     assert "control._scrollPending = false" not in source
     assert "if (control._followBottom) control._scrollToBottom()" not in source
+
+
+def test_chat_message_list_keeps_slot_layout_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/"
+        "ChatMessageListSlotLayoutTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 350
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 90
+    assert 'import "_internal" as ChatInternal' in source
+    assert "ChatInternal.ChatMessageListSlotLayoutTimer {" in source
+    assert "id: slotLayoutTimer" in source
+    assert "host: control" in source
+    assert source.count("\n    Timer {") == 1
+    assert "required property var host" in helper_source
+    assert 'objectName: "chatMessageListSlotLayoutTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    for marker in (
+        "host._layoutPending = false",
+        "host.messageRepeater.itemAt",
+        "host.messageColumn.height = nextY",
+        "host._scheduleLoadRangeUpdate()",
+        "host._scheduleScrollToBottom()",
+        "host._setContentY(host.messageViewport.contentY + anchorDelta, false)",
+    ):
+        assert marker in helper_source
+    assert "control._layoutPending = false" not in source
+    assert "control.messageColumn.height = nextY" not in source
 
 
 def test_chat_message_list_keeps_viewport_content_modularized():
