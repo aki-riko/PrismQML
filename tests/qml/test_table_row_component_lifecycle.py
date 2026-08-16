@@ -26,8 +26,8 @@ ROOT = Path(
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "table-row-component-lifecycle.qml")
 )
-# TableWidgetContent adds one stable visual owner; row/component counts stay unchanged.
-EXPECTED_NORMAL_OBJECTS = 928
+# TableWidgetContent adds one visual owner; frame-synchronized scrolling removes one.
+EXPECTED_NORMAL_OBJECTS = 927
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

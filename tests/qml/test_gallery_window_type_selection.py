@@ -33,8 +33,14 @@ class _GalleryConfig(QObject):
         super().__init__()
         self._window_type = window_type
 
-    def _bind_appearance_runtime(self, _callback) -> None:
+    def _bind_appearance_runtime(
+        self, _callback, *, apply_persisted: bool = True
+    ) -> None:
         pass
+
+    @Property(bool, constant=True)
+    def appearancePersistenceEnabled(self) -> bool:
+        return True
 
     @Property(int, notify=windowTypeChanged)
     def windowType(self) -> int:
@@ -59,10 +65,14 @@ def _normalized_type(obj: QObject) -> str:
     return re.sub(r"_QML_\d+", "", name)
 
 
-def _create_gallery():
+def _create_gallery(config_path: Path):
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
+    register_types(
+        engine,
+        config_path=config_path,
+        persist_appearance=True,
+    )
     component = QQmlComponent(engine, QUrl.fromLocalFile(str(GALLERY_QML)))
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
@@ -83,11 +93,13 @@ def _destroy_gallery(engine, component, root, qapp) -> None:
 
 @pytest.mark.parametrize(("window_type", "expected_type"), WINDOW_TYPES)
 def test_gallery_creates_only_configured_window_type(
-    qapp, monkeypatch, window_type: int, expected_type: str
+    qapp, monkeypatch, tmp_path, window_type: int, expected_type: str
 ) -> None:
     manager = _GalleryConfig(window_type)
-    monkeypatch.setattr(config_module, "getConfigManager", lambda: manager)
-    engine, component, root = _create_gallery()
+    monkeypatch.setattr(
+        config_module, "getConfigManager", lambda *_args, **_kwargs: manager
+    )
+    engine, component, root = _create_gallery(tmp_path / "gallery.json")
     try:
         window = root.property("windowInstance")
         assert window is not None

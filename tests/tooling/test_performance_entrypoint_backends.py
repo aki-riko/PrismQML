@@ -41,7 +41,10 @@ def test_python_host_requests_direct3d11_as_its_only_graphics_backend():
     host_source = PYTHON_HOST.read_text(encoding="utf-8")
     runtime_source = PYTHON_APPLICATION_RUNTIME.read_text(encoding="utf-8")
 
-    assert "prepare_application_environment(allow_qml_file_read)" in host_source
+    assert (
+        "prepare_application_environment(allow_qml_file_read, config_path)"
+        in host_source
+    )
     assert "QSGRendererInterface.GraphicsApi.Direct3D11" in runtime_source
     assert "QSGRendererInterface.OpenGL" not in host_source + runtime_source
     assert "GraphicsApi.OpenGL" not in host_source + runtime_source

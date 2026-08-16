@@ -17,7 +17,8 @@ on:
       - ".github/workflows/**"
 
 env:
-  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "720"
+  # Windows currently needs about 17 minutes for the complete protected suite.
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
 
 jobs:
   qml_conventions:

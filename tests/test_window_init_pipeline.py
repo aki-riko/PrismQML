@@ -57,12 +57,14 @@ _ERROR_TYPES = (RuntimeError, ValueError, KeyboardInterrupt, SystemExit)
 
 
 class _ConfigProbe:
+    appearancePersistenceEnabled = True
+
     def __init__(self, events, value, error=None):
         self._events = events
         self._value = value
         self._error = error
 
-    def _bind_appearance_runtime(self, _callback):
+    def _bind_appearance_runtime(self, _callback, *, apply_persisted=True):
         pass
 
     @property
@@ -101,7 +103,8 @@ class _RecordingWindowCore(window_core.WindowCore):
 def _install_config_value(monkeypatch, value):
     manager = SimpleNamespace(
         lazyLoading=value,
-        _bind_appearance_runtime=lambda _callback: None,
+        appearancePersistenceEnabled=True,
+        _bind_appearance_runtime=lambda _callback, *, apply_persisted=True: None,
     )
     monkeypatch.setattr(config, "getConfigManager", lambda: manager)
 

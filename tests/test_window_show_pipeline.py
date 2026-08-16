@@ -49,7 +49,8 @@ class _RecordingWindow:
 def manager(monkeypatch):
     config_manager = SimpleNamespace(
         lazyLoading=True,
-        _bind_appearance_runtime=lambda _callback: None,
+        appearancePersistenceEnabled=True,
+        _bind_appearance_runtime=lambda _callback, *, apply_persisted=True: None,
     )
     monkeypatch.setattr(config, "getConfigManager", lambda: config_manager)
     original_current = window_core.WindowCore._current_window_instance
