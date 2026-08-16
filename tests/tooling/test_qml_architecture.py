@@ -199,6 +199,11 @@ def test_button_core_keeps_behavior_modularized():
             "ButtonSurface.qml",
             "ButtonSurface",
         ),
+        (
+            "prismqml/PrismQML/controls/buttons/Button/_internal/"
+            "ButtonContentLayer.qml",
+            "ButtonContentLayer",
+        ),
     )
     source = entry.read_text(encoding="utf-8")
 
@@ -255,6 +260,31 @@ def test_button_core_keeps_surface_visuals_modularized():
     assert "NeumorphicShadow {" not in source
     assert "sourceComponent: ButtonNeoShadow" not in source
     assert "ColorAnimation {" not in source
+
+
+def test_button_core_keeps_content_layer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonContentLayer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 370
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 150
+    assert "ButtonInternal.ButtonContentLayer {" in source
+    assert "required property var buttonControl" in helper_source
+    assert "required property var pressTransform" in helper_source
+    assert "default property alias contentData: customContentContainer.data" in helper_source
+    assert "property alias customContentContainer: customContentContainer" in helper_source
+    assert "property alias contentLoader: contentLoader" in helper_source
+    assert "ButtonContent {" in helper_source
+    assert "Item {\n        id: customContentContainer" not in source
+    assert "Loader {\n        id: contentLoader" not in source
+    assert "ButtonContent {" not in source
 
 
 def test_popup_window_core_keeps_animation_logic_modularized():

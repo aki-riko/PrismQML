@@ -30,6 +30,9 @@ BUTTON_CORE_SOURCE = (
 ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 BUTTON_STYLE_HELPER_SOURCE = BUTTON_CORE_SOURCE.with_name("ButtonStyleHelper.qml")
 BUTTON_SURFACE_SOURCE = BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonSurface.qml"
+BUTTON_CONTENT_LAYER_SOURCE = (
+    BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonContentLayer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "button-core-conventions.qml")
 )
@@ -436,9 +439,11 @@ def test_button_core_border_alias_and_custom_content(button_core_scene):
 
 def test_button_core_custom_content_state_is_not_a_live_children_binding():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    content_source = BUTTON_CONTENT_LAYER_SOURCE.read_text(encoding="utf-8")
     assert "property bool hasCustomContent: false" in source
     assert "function _syncCustomContentState()" in source
-    assert "onChildrenChanged: control._syncCustomContentState()" in source
+    assert "onChildrenChanged: contentLayer.buttonControl._syncCustomContentState()" in content_source
+    assert "Component.onCompleted: contentLayer.buttonControl._syncCustomContentState()" in content_source
     assert (
         "hasCustomContent: customContentContainer.children.length" not in source
     )

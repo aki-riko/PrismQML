@@ -36,7 +36,7 @@ Widget {
     property int iconSize: isToolButton && !_hasMenuFeature
                            ? Enums.iconSize.xl
                            : Enums.iconSize.m
-    default property alias contentData: customContentContainer.data  // Custom content 自定义内容
+    default property alias contentData: contentLayer.contentData  // Custom content 自定义内容
     property alias border: surface.border
     property bool hasCustomContent: false
 
@@ -180,7 +180,9 @@ Widget {
     }
 
     function _syncCustomContentState() {
-        ButtonLogic.syncCustomContentState(control, customContentContainer)
+        ButtonLogic.syncCustomContentState(
+            control, contentLayer.customContentContainer
+        )
     }
 
     function getText() { return text }
@@ -245,8 +247,8 @@ Widget {
                    (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
         }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
-        var cw = contentLoader.item ?
-            contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
+        var cw = contentLayer.contentLoader.item ?
+            contentLayer.contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
         var extraWidth = feature === Enums.button.feature_split ? Enums.controlSize.splitButtonArrowWidth :
                         (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
         if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
@@ -276,9 +278,9 @@ Widget {
     onShowDropdownIndicatorChanged: {
         if (showDropdownIndicator &&
                 feature === Enums.button.feature_dropdown &&
-                contentLoader.item) {
-            contentLoader._indicatorTransitionWidth = Math.max(
-                contentLoader.item.implicitWidth,
+                contentLayer.contentLoader.item) {
+            contentLayer.contentLoader._indicatorTransitionWidth = Math.max(
+                contentLayer.contentLoader.item.implicitWidth,
                 width - _contentLeadingPadding - _contentTrailingPadding)
         }
     }
@@ -318,67 +320,10 @@ Widget {
         buttonControl: control
     }
 
-    // Modular content 模块化内容
-    // Custom content container 自定义内容容器
-    Item {
-        id: customContentContainer
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: contentAlignment === Enums.button.align_left ? parent.left : undefined
-        anchors.right: contentAlignment === Enums.button.align_right ? parent.right : undefined
-        anchors.horizontalCenter: contentAlignment === Enums.button.align_center ? parent.horizontalCenter : undefined
-        anchors.leftMargin: contentAlignment === Enums.button.align_left ? control._contentLeadingPadding : 0
-        anchors.rightMargin: contentAlignment === Enums.button.align_right ? control._contentTrailingPadding : 0
-        anchors.horizontalCenterOffset: contentAlignment === Enums.button.align_center ?
-                                        (feature === Enums.button.feature_split ? -Enums.controlSize.splitButtonContentOffset :
-                                        (control._showsDropdownIndicator ? -Enums.spacing.m : 0)) : 0
-        z: Enums.zIndex.content
-        visible: control.hasCustomContent
-        onChildrenChanged: control._syncCustomContentState()
-        Component.onCompleted: control._syncCustomContentState()
-        // Neobrutalism 按下位移: 内容随 face 一起滑动
-        transform: surface.pressTransform
-    }
-
-    Loader {
-        id: contentLoader
-        property real _indicatorTransitionWidth: -1
-
-        width: item ? (_indicatorTransitionWidth >= 0
-                       ? _indicatorTransitionWidth : item.implicitWidth) : 0
-        x: {
-            if (contentAlignment === Enums.button.align_left)
-                return control._contentLeadingPadding
-            if (contentAlignment === Enums.button.align_right)
-                return parent.width - width - control._contentTrailingPadding
-            var centerOffset = feature === Enums.button.feature_split
-                               ? -Enums.controlSize.splitButtonContentOffset
-                               : (control._showsDropdownIndicator ? -Enums.spacing.m : 0)
-            return (parent.width - width) / 2 + centerOffset
-        }
-        anchors.verticalCenter: parent.verticalCenter
-        z: Enums.zIndex.content
-        active: !control.hasCustomContent  // Only load default content when no custom content 仅在无自定义内容时加载默认内容
-        // Neobrutalism 按下位移: 默认内容(文字/图标)随 face 一起滑动
-        transform: surface.pressTransform
-        sourceComponent: ButtonContent {
-            feature: control.feature
-            style: control.style
-            text: control.text
-            icon: control.icon
-            iconSize: control.iconSize
-            loading: control.loading
-            loadingText: control.loadingText
-            progress: control.progress
-            textColor: control.getTextColor()
-            fontSize: control.fontSize
-            fontBold: control.fontBold
-            fontItalic: control.fontItalic
-            fontUnderline: control.fontUnderline
-            fontStrikeout: control.fontStrikeout
-            countdownActive: control._countdownActive
-            countdownRemaining: control._countdownRemaining
-            countdownText: control.countdownText
-        }
+    ButtonInternal.ButtonContentLayer {
+        id: contentLayer
+        buttonControl: control
+        pressTransform: surface.pressTransform
     }
 
     // Menu, progress, and toggle features are mutually exclusive. 菜单、进度与切换功能互斥。
