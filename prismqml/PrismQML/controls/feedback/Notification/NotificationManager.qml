@@ -17,6 +17,9 @@ QtObject {
     
     // ==================== Internal Props 内部属性 ====================
     property NotificationStackManager _stackManager: NotificationStackManager {}
+    property NotificationItemLifecycle _itemLifecycle: NotificationItemLifecycle {
+        stackManager: manager._stackManager
+    }
     property NotificationOverlayLifecycle _overlayLifecycle: NotificationOverlayLifecycle {
         stackManager: manager._stackManager
     }
@@ -309,25 +312,10 @@ QtObject {
         }
         var windowParent = _getWindowParent(parent)
         var component = _getInfoBarComponent()
-        if (component.status !== Component.Ready) {
-            console.error("NotificationManager: InfoBar component not ready:", component.errorString())
-            return null
-        }
-        var item = component.createObject(windowParent, {
+        return _itemLifecycle.create(component, windowParent, {
             "severity": severity, "title": title, "message": content,
             "duration": duration, "position": position, "feature": feature
-        })
-        if (item) {
-            item.z = Enums.zIndex.overlay
-            _stackManager.addToStack(item, position)
-            _stackManager.setPosition(item, windowParent, position, Enums.spacing.m)
-            item.closed.connect(function() {
-                _stackManager.removeFromStack(item, position)
-                item.destroy()
-            })
-            item.show()
-        }
-        return item
+        }, position, Enums.spacing.m)
     }
     
     function _createToast(parent, severity, title, message, duration, position, mode) {
@@ -345,27 +333,12 @@ QtObject {
         }
         var windowParent = _getWindowParent(parent)
         var component = _getToastComponent()
-        if (component.status !== Component.Ready) {
-            console.error("NotificationManager: Toast component not ready:", component.errorString())
-            return null
-        }
-        var item = component.createObject(windowParent, {
+        return _itemLifecycle.create(component, windowParent, {
             "severity": severity, "title": title, "message": message,
             "duration": duration, "position": position, "feature": feature,
             // 长文本/多行自动用垂直布局(水平布局高度受限,长内容易裁切)
             "orient": orientationForMessage(message)
-        })
-        if (item) {
-            item.z = Enums.zIndex.overlay
-            _stackManager.addToStack(item, position)
-            _stackManager.setPosition(item, windowParent, position)
-            item.closed.connect(function() {
-                _stackManager.removeFromStack(item, position)
-                item.destroy()
-            })
-            item.show()
-        }
-        return item
+        }, position)
     }
 
     function _createWindowOutside(parent, severity, title, message, duration, position, feature, infoBarMode) {

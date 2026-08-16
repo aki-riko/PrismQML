@@ -1061,6 +1061,32 @@ def test_notification_manager_keeps_overlay_lifecycle_internal():
         assert marker not in source
 
 
+def test_notification_manager_keeps_item_lifecycle_internal():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/NotificationManager.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/NotificationItemLifecycle.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 410
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "NotificationItemLifecycle {" in source
+    assert "required property var stackManager" in helper_source
+    for marker in (
+        "component.createObject(parentItem, properties)",
+        "stackManager.addToStack(item, position)",
+        "stackManager.setPosition(item, parentItem, position)",
+        "stackManager.removeFromStack(item, position)",
+        "item.destroy()",
+    ):
+        assert marker in helper_source
+        assert marker not in source
+
+
 def test_line_chart_content_keeps_canvas_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/_internal/LineChartContent.qml"
