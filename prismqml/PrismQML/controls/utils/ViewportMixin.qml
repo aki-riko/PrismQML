@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "_internal" as UtilsInternal
 
 // ViewportMixin - Viewport visibility detection mixin 可视区域检测混入组件
 // Used to optimize scroll performance, pauses animations when not visible 用于优化滚动性能，不可见时暂停动画
@@ -22,10 +23,8 @@ QtObject {
     // ==================== Internal Props 内部属性 ====================
     property var _flickableAncestor: null
 
-    property Timer initTimer: Timer {
-        interval: 50  // 50ms 足够布局完成
-        repeat: false
-        onTriggered: _init()
+    property Timer initTimer: UtilsInternal.ViewportInitTimer {
+        host: mixin
     }
 
     // ==================== Internal Methods 内部方法 ====================

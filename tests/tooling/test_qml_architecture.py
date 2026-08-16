@@ -2129,6 +2129,33 @@ def test_hover_behavior_keeps_unmatched_target_timer_modularized():
     assert "onTriggered: root._awaitingActiveAfterTarget = false" not in source
 
 
+def test_viewport_mixin_keeps_init_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/utils/ViewportMixin.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/utils/_internal/ViewportInitTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 110
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as UtilsInternal' in source
+    assert "property Timer initTimer:" in source
+    assert "UtilsInternal.ViewportInitTimer {" in source
+    assert "host: mixin" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "viewportInitTimer"' in helper_source
+    assert "interval: 50" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._init()" in helper_source
+    assert "Component.onCompleted: initTimer.start()" in source
+    assert "property Timer initTimer: Timer {" not in source
+    assert "onTriggered: _init()" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
