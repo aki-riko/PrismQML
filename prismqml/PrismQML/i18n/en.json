@@ -924,5 +924,15 @@
   "gallery_94c0372cbcf556d1": "Already up to date ",
   "gallery_a621ab606db2a11f": "Password",
   "gallery_8b6903f932b56197": "PrismQML Gallery",
-  "gallery_90b8157cfce0dbe5": "PrismQML Gallery (C++ host)"
+  "gallery_90b8157cfce0dbe5": "PrismQML Gallery (C++ host)",
+  "gallery_7d40e038e4694fcc": "Notification manager",
+  "gallery_a598c8a19da5da6a": "Choose the notification type, surface, and popup position",
+  "gallery_8c2a398b8ff2e713": "Message bar",
+  "gallery_921acd914acd6c57": "Toast",
+  "gallery_e70b45ef67e88235": "In window",
+  "gallery_a84df74251f7f8da": "Outside window",
+  "gallery_f48d334495f6e4f4": "Desktop",
+  "gallery_14eeea875dc5c658": "Left position",
+  "gallery_c4162f1fe3ee4751": "Center position",
+  "gallery_ca75b858e7559fa3": "Right position"
 }

@@ -56,7 +56,25 @@ def _catalog(language: str) -> dict[str, str]:
 
 def test_gallery_catalogs_cover_every_supported_language():
     assert {path.stem for path in I18N_ROOT.glob("*.json")} == EXPECTED_LANGUAGES
-    assert gallery_i18n.validate_catalogs() == 692
+    assert gallery_i18n.validate_catalogs() == 707
+
+
+def test_gallery_notification_menu_uses_reviewed_chinese_terminology():
+    simplified = _catalog("zh_CN")
+    expected = {
+        "通知管理器": "通知管理器",
+        "选择通知类型、承载区域和弹出位置": "选择通知类型、承载区域和弹出位置",
+        "消息条": "消息条",
+        "吐司": "吐司",
+        "窗口内部": "窗口内部",
+        "窗口外部": "窗口外部",
+        "桌面": "桌面",
+        "左侧位置": "左侧位置",
+        "中心位置": "中心位置",
+        "右侧位置": "右侧位置",
+    }
+    for source, translation in expected.items():
+        assert simplified[gallery_i18n.translation_key(source)] == translation
 
 
 def test_non_chinese_gallery_catalogs_do_not_reuse_source_strings():

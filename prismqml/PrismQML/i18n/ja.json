@@ -924,5 +924,15 @@
   "gallery_94c0372cbcf556d1": "最新バージョンです ",
   "gallery_a621ab606db2a11f": "パスワード",
   "gallery_8b6903f932b56197": "PrismQML Gallery",
-  "gallery_90b8157cfce0dbe5": "PrismQML Gallery（C++ ホスト）"
+  "gallery_90b8157cfce0dbe5": "PrismQML Gallery（C++ ホスト）",
+  "gallery_7d40e038e4694fcc": "通知マネージャー",
+  "gallery_a598c8a19da5da6a": "通知の種類、表示領域、表示位置を選択します",
+  "gallery_8c2a398b8ff2e713": "メッセージバー",
+  "gallery_921acd914acd6c57": "トースト",
+  "gallery_e70b45ef67e88235": "ウィンドウ内",
+  "gallery_a84df74251f7f8da": "ウィンドウ外",
+  "gallery_f48d334495f6e4f4": "デスクトップ",
+  "gallery_14eeea875dc5c658": "左位置",
+  "gallery_c4162f1fe3ee4751": "中央位置",
+  "gallery_ca75b858e7559fa3": "右位置"
 }

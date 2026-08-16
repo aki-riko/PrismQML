@@ -8,7 +8,12 @@ from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -51,6 +56,13 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _evaluate(scope, source: str):
+    expression = QQmlExpression(QQmlEngine.contextForObject(scope), scope, source)
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    return result[0] if isinstance(result, tuple) else result
 
 
 def _create_showcase():
@@ -181,15 +193,31 @@ def test_gallery_notification_menu_routes_all_surfaces():
     assert "notificationParent: root" in page_source
     assert "feature: Enums.button.feature_dropdown" in menu_source
     assert menu_source.count("addSubmenu(") == 2
-    for action_id in (
-        "toast.in_app",
-        "toast.outside",
-        "toast.desktop",
-        "infobar.in_app",
-        "infobar.outside",
-        "infobar.desktop",
+    assert menu_source.count("addSubmenuActions(") == 6
+    assert 'root._positionActions("toast", "in_app")' in menu_source
+    assert 'root._positionActions("toast", "outside")' in menu_source
+    assert 'root._positionActions("toast", "desktop")' in menu_source
+    assert 'root._positionActions("infobar", "in_app")' in menu_source
+    assert 'root._positionActions("infobar", "outside")' in menu_source
+    assert 'root._positionActions("infobar", "desktop")' in menu_source
+
+    for position_name in (
+        "posTopLeft",
+        "posTop",
+        "posTopRight",
+        "posLeft",
+        "posCenter",
+        "posRight",
+        "posBottomLeft",
+        "posBottom",
+        "posBottomRight",
     ):
-        assert f'"actionId": "{action_id}"' in menu_source
+        assert f'"position": Enums.notification.{position_name}' in menu_source
+
+    assert 'surface === "outside"' in menu_source
+    assert "!Enums.notification.isWindowOutsidePosition(" in menu_source
+    assert 'kind + "." + surface + "." + option.position' in menu_source
+    assert "var position = Number(parts[2])" in menu_source
 
     assert menu_source.count("Enums.notification.mode_window_outside") == 2
     assert menu_source.count("Enums.notification.mode_in_app") == 2
@@ -199,6 +227,57 @@ def test_gallery_notification_menu_routes_all_surfaces():
     assert "NotificationManager.desktop.infoBar(" in menu_source
     assert 'title: "NotificationManager.infoBar"' not in page_source
     assert 'title: "NotificationManager.toast"' not in page_source
+
+
+def test_gallery_notification_menu_has_no_untranslated_visible_labels():
+    menu_source = MENU_SHOWCASE_SOURCE.read_text(encoding="utf-8")
+
+    for literal in (
+        'addSubmenu("Toast"',
+        'addSubmenu("InfoBar"',
+        'addAction("Window outside"',
+        'addAction("Desktop"',
+        'text: "NotificationManager"',
+    ):
+        assert literal not in menu_source
+
+    for translation_key in (
+        "gallery_7d40e038e4694fcc",
+        "gallery_a598c8a19da5da6a",
+        "gallery_8c2a398b8ff2e713",
+        "gallery_921acd914acd6c57",
+        "gallery_e70b45ef67e88235",
+        "gallery_a84df74251f7f8da",
+        "gallery_f48d334495f6e4f4",
+        "gallery_14eeea875dc5c658",
+        "gallery_c4162f1fe3ee4751",
+        "gallery_ca75b858e7559fa3",
+    ):
+        assert f'"{translation_key}"' in menu_source
+
+
+def test_gallery_notification_position_counts_follow_notification_contract(qapp):
+    engine, component, root = _create_feedback_page()
+    try:
+        showcase = root.findChild(
+            QQuickItem, "galleryNotificationMenuShowcase"
+        )
+        assert showcase is not None
+        for kind in ("toast", "infobar"):
+            assert _evaluate(
+                showcase, f'_positionActions("{kind}", "in_app").length'
+            ) == 9
+            assert _evaluate(
+                showcase, f'_positionActions("{kind}", "desktop").length'
+            ) == 9
+            assert _evaluate(
+                showcase, f'_positionActions("{kind}", "outside").length'
+            ) == 8
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
 
 
 def test_gallery_desktop_toast_options_use_separate_example_card():
