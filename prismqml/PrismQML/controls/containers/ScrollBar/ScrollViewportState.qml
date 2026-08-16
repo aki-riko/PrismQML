@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "_internal" as ScrollBarInternal
 
 // ScrollViewportState - Stable scrollbar viewport state 稳定的滚动条视口状态
 // Measures overflow without gutters first, then adds only cross-axis overflow.
@@ -308,13 +309,9 @@ Item {
         ignoreUnknownSignals: true
     }
 
-    Timer {
+    ScrollBarInternal.ScrollViewportPhaseTimer {
         id: phaseTimer
-        interval: control._phase === control._phaseContentUpdate
-                  ? Enums.duration.fast
-                  : (control._phase === control._phaseSuppressionClear
-                     ? Enums.duration.instant : Enums.duration.none)
-        repeat: false
-        onTriggered: control._runPhase()
+
+        host: control
     }
 }

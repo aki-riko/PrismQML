@@ -36,6 +36,9 @@ SOURCE_PATH = (
     / "ScrollBar"
     / "ScrollViewportState.qml"
 )
+TIMER_SOURCE_PATH = (
+    SOURCE_PATH.parent / "_internal" / "ScrollViewportPhaseTimer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "scroll-viewport-state-timer-lifecycle.qml")
 )
@@ -116,7 +119,7 @@ def _direct_timers(state: QObject) -> list[QObject]:
     return [
         child
         for child in state.children()
-        if child.metaObject().className().startswith("QQmlTimer")
+        if child.objectName() == "scrollViewportPhaseTimer"
     ]
 
 
@@ -184,9 +187,9 @@ def _dispose_scene(qapp, engine, component, window) -> None:
 
 
 def test_scroll_viewport_state_timer_phase_baseline(qapp):
-    """Three timers remain exclusive across debounce and clear phases.
+    """One timer remains exclusive across debounce and clear phases.
 
-    三个计时器在内容防抖与抑制清理阶段保持互斥。
+    一个计时器在内容防抖与抑制清理阶段保持互斥。
     """
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, state, viewport, warnings = _create_scene()
@@ -194,6 +197,10 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
         initial_hash = _stable_hash(window)
         initial_object_count = len(state.findChildren(QObject))
         assert len(_direct_timers(state)) == 1
+        phase_timer = _direct_timers(state)[0]
+        assert phase_timer.parent() is state
+        assert phase_timer.property("host") == state
+        assert phase_timer.property("repeat") is False
         assert _running_timers(state) == []
 
         assert QMetaObject.invokeMethod(window, "growContent")
@@ -261,9 +268,14 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
 def test_scroll_viewport_state_source_reuses_one_phase_timer():
     """Exclusive roles reuse one timer. 互斥角色复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 1
+    timer_source = TIMER_SOURCE_PATH.read_text(encoding="utf-8")
+    assert "\n    Timer {" not in source
+    assert timer_source.count("Timer {") == 1
+    assert "ScrollBarInternal.ScrollViewportPhaseTimer {" in source
     assert "id: phaseTimer" in source
+    assert "host: control" in source
     assert "id: contentUpdateTimer" not in source
     assert "id: suppressionClearTimer" not in source
     assert "_phaseContentUpdate" in source
     assert "_phaseSuppressionClear" in source
+    assert "onTriggered: host._runPhase()" in timer_source

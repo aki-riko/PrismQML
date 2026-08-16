@@ -2065,6 +2065,41 @@ def test_breadcrumb_keeps_dynamic_stage_timer_modularized():
     assert "releaseCallback(stageTimer)" not in source
 
 
+def test_scroll_viewport_state_keeps_phase_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/ScrollViewportState.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "ScrollViewportPhaseTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 320
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 30
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as ScrollBarInternal' in source
+    assert "ScrollBarInternal.ScrollViewportPhaseTimer {" in source
+    assert "id: phaseTimer" in source
+    assert "host: control" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "scrollViewportPhaseTimer"' in helper_source
+    assert "host._phase === host._phaseContentUpdate" in helper_source
+    assert "host._phase === host._phaseSuppressionClear" in helper_source
+    assert "Enums.duration.fast" in helper_source
+    assert "Enums.duration.instant" in helper_source
+    assert "Enums.duration.none" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._runPhase()" in helper_source
+    assert "phaseTimer.restart()" in source
+    assert "phaseTimer.stop()" in source
+    assert "\n    Timer {" not in source
+    assert "onTriggered: control._runPhase()" not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
