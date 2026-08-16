@@ -57,10 +57,22 @@ def get_or_create_qml_engine() -> QQmlApplicationEngine:
         return engine
 
 
-def configure_application_engine(engine: QQmlApplicationEngine) -> None:
+def configure_application_engine(
+    engine: QQmlApplicationEngine,
+    *,
+    config_path=None,
+    persist_appearance: bool = None,
+) -> None:
     """Install App-owned QML integrations. 安装 App 使用的 QML 集成。"""
     from ..core.incubation import install_default_incubation_controller
     from . import register_types
 
     install_default_incubation_controller(engine)
-    register_types(engine)
+    if config_path is None and persist_appearance is None:
+        register_types(engine)
+    else:
+        register_types(
+            engine,
+            config_path=config_path,
+            persist_appearance=persist_appearance,
+        )

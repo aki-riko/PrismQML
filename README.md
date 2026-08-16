@@ -175,9 +175,13 @@ Rectangle {
 
 配置系统采用五层架构：`Validator` → `SettingEntry` → `SettingsCore` → `AppConfig` → `ConfigManager`
 
-- **JSON 持久化**：默认存储于 `~/.prismqml/app.json`
+- **JSON 持久化**：Window 设置默认存储于 `~/.prismqml/app.json`
 - **原子写入**：先写临时文件再替换，防止断电数据丢失
 - **QML 桥接**：通过 `ConfigManager` 单例暴露为 QML Property
+
+`App()` 的全局外观默认始终是 Fluent，不会再从共享文件隐式恢复其他应用的
+Theme/Skin/Language/AccentColor。需要应用级外观持久化时传入独立
+`config_path`；已有自身外观配置的宿主同时传 `persist_appearance=False`。
 
 ```python
 from prismqml.python.config import AppConfig, getConfigManager

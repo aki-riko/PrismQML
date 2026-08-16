@@ -18,11 +18,10 @@ from .context_registry import (
 def load_core_window_managers(profile):
     """Load core managers at the window startup boundary. 在窗口启动边界加载核心管理器。"""
     from ..core import ThemeManager
-    from .appearance import install_appearance_persistence
     from .configuration import get_config_manager
     from .window_services import getShadowManager
 
-    install_appearance_persistence()
+    get_config_manager()
     profile("导入核心管理器")
     return ThemeManager, getShadowManager, get_config_manager
 
@@ -43,18 +42,25 @@ def load_window_dependencies(profile):
     )
 
 
-def register_primary_context(context: QQmlContext) -> None:
+def register_primary_context(
+    context: QQmlContext,
+    *,
+    config_path=None,
+    persist_appearance: bool = None,
+) -> None:
     """Register shared managers and startup flags. 注册共享管理器与启动开关。"""
     from ..core.incubation import asynchronous_page_loader_enabled
-    from .appearance import getThemeManager, install_appearance_persistence
+    from .appearance import getThemeManager
     from .configuration import get_config_manager
 
-    install_appearance_persistence()
+    manager = get_config_manager(
+        config_path, persist_appearance=persist_appearance
+    )
     register_context_properties(
         context,
         (
             ("ThemeManager", getThemeManager),
-            ("ConfigManager", get_config_manager),
+            ("ConfigManager", lambda: manager),
             ("PrismQmlStartupProfileVerbose", startup_profile_verbose_enabled),
             (
                 "PrismQmlAsynchronousPageLoaderEnabled",

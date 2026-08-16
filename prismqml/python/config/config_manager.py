@@ -8,6 +8,8 @@
 """
 
 from collections import deque
+import json
+import os
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -20,8 +22,30 @@ from PySide6.QtCore import (
 )
 
 from .app_config import AppConfig, DEFAULT_APP_CONFIG
-from ._app_config_schema import resolve_app_config_path
-from ..core import debug, error, warning
+from ._app_config_schema import (
+    CONFIG_FILE_PATH_ENVIRONMENT,
+    resolve_app_config_path,
+)
+from ..core import debug, error, exception, warning
+
+
+def _write_window_mapping_preserving_appearance(
+    writer, file_path, mapping
+):
+    """Merge the latest unowned Appearance in the worker. 后台合并最新未托管外观。"""
+    try:
+        with open(file_path, encoding="utf-8") as stream:
+            current = json.load(stream)
+    except FileNotFoundError:
+        current = {}
+    if not isinstance(current, dict):
+        raise ValueError("configuration root must be an object")
+    appearance = current.get("Appearance")
+    if appearance is not None:
+        if not isinstance(appearance, dict):
+            raise ValueError("Appearance must be an object")
+        mapping["Appearance"] = appearance
+    writer(file_path, mapping)
 
 
 class ConfigManager(QObject):
@@ -41,20 +65,24 @@ class ConfigManager(QObject):
     accentColorChanged = Signal()
     persistencePendingChanged = Signal()
     
-    def __new__(cls, config_path: str = None):
+    def __new__(
+        cls, config_path: str = None, *, persist_appearance: bool = None
+    ):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
     
-    def __init__(self, config_path: str = None):
+    def __init__(
+        self, config_path: str = None, *, persist_appearance: bool = None
+    ):
         if self._initialized:
-            self._warn_ignored_config_path(config_path)
+            self._validate_existing_request(config_path, persist_appearance)
             return
         super().__init__()
         ready = False
         try:
-            self._initialize_config(config_path)
+            self._initialize_config(config_path, persist_appearance)
             self._initialized = True
             ready = True
         finally:
@@ -62,24 +90,46 @@ class ConfigManager(QObject):
                 self._initialized = False
                 type(self)._instance = None
 
-    def _warn_ignored_config_path(self, config_path):
-        """Warn when a second construction requests another file. 警告路径冲突。"""
-        if config_path is None or self._cfg.file is None:
-            return
-        from pathlib import Path
-
-        requested = Path(config_path)
-        if requested != self._cfg.file:
-            warning(
-                f"ConfigManager 已初始化（路径: {self._cfg.file}），"
-                f"忽略新路径: {requested}"
+    def _validate_existing_request(self, config_path, persist_appearance):
+        """Reject conflicting singleton configuration. 拒绝冲突的单例配置。"""
+        if config_path is not None:
+            requested = resolve_app_config_path(
+                config_path, default=DEFAULT_APP_CONFIG
+            )
+            if requested != self._cfg.file:
+                raise RuntimeError(
+                    "ConfigManager requested with a different configuration path: "
+                    f"initialized={self._cfg.file}, requested={requested}"
+                )
+        if (
+            persist_appearance is not None
+            and self._resolve_appearance_persistence(None, persist_appearance)
+            != self._persist_appearance
+        ):
+            raise RuntimeError(
+                "ConfigManager requested with a different appearance persistence policy"
             )
 
-    def _initialize_config(self, config_path):
+    @staticmethod
+    def _resolve_appearance_persistence(config_path, requested):
+        if requested is not None:
+            if type(requested) is not bool:
+                raise TypeError("persist_appearance must be a bool or None")
+            return requested
+        return bool(config_path) or bool(
+            os.environ.get(CONFIG_FILE_PATH_ENVIRONMENT)
+        )
+
+    def _initialize_config(self, config_path, persist_appearance):
         """Load, bind, and apply one config instance. 加载、绑定并应用配置。"""
         self._cfg = AppConfig()
         path = resolve_app_config_path(config_path, default=DEFAULT_APP_CONFIG)
+        self._persist_appearance = self._resolve_appearance_persistence(
+            config_path, persist_appearance
+        )
         self._cfg.load(path)
+        if not self._persist_appearance:
+            self._reset_loaded_appearance()
         self._pending_updates = deque()
         self._active_persistence = None
         self._runtime_overrides = {}
@@ -89,6 +139,26 @@ class ConfigManager(QObject):
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(lambda: self.waitForPersistence())
+
+    def _reset_loaded_appearance(self):
+        """Keep implicit hosts on runtime defaults. 隐式宿主保持运行时默认外观。"""
+        for entry in (
+            self._cfg.theme,
+            self._cfg.skin,
+            self._cfg.language,
+            self._cfg.accent_color,
+        ):
+            entry._replace_value(entry.default_value, False)
+
+    def _initialize_ephemeral_appearance(self, theme, skin, accent_color):
+        """Mirror explicit pre-registration runtime values. 镜像注册前显式运行时值。"""
+        for entry, value in (
+            (self._cfg.theme, theme),
+            (self._cfg.skin, skin),
+            (self._cfg.accent_color, accent_color),
+        ):
+            prepared = entry.prepare(value)
+            entry._replace_value(prepared, False)
 
     def _connect_config_signals(self):
         """Forward entry changes through the public QML signals. 转发配置信号。"""
@@ -108,7 +178,14 @@ class ConfigManager(QObject):
         """获取底层AppConfig Get underlying AppConfig"""
         return self._cfg
 
-    def _bind_appearance_runtime(self, apply_appearance):
+    @Property(bool, constant=True)
+    def appearancePersistenceEnabled(self) -> bool:
+        """Whether Appearance is application-owned and persisted. 是否持久化应用外观。"""
+        return self._persist_appearance
+
+    def _bind_appearance_runtime(
+        self, apply_appearance, *, apply_persisted: bool = True
+    ):
         """Bind and initialize the outer appearance port. 绑定并初始化外观端口。"""
         if self._appearance_runtime is apply_appearance:
             return
@@ -116,7 +193,8 @@ class ConfigManager(QObject):
         self._appearance_runtime = apply_appearance
         ready = False
         try:
-            self._apply_appearance_to_runtime()
+            if apply_persisted:
+                self._apply_appearance_to_runtime()
             ready = True
         finally:
             if not ready:
@@ -129,6 +207,12 @@ class ConfigManager(QObject):
         self._appearance_runtime("theme", self.theme)
         self._appearance_runtime("skin", self.skin)
         self._appearance_runtime("accent_color", self.accentColor)
+
+    def _set_ephemeral_appearance(self, entry, value, apply_runtime=None):
+        """Publish one process-only appearance value. 发布仅进程内生效的外观。"""
+        if apply_runtime is not None:
+            apply_runtime(value)
+        self._cfg.set(entry, value, save=False)
 
     def _apply_runtime_appearance(self, field, value):
         """Apply one runtime value when the outer port is bound. 应用单项运行时值。"""
@@ -145,7 +229,7 @@ class ConfigManager(QObject):
     ):
         """Persist on one serial worker before publishing. 串行后台落盘后发布。"""
         if QCoreApplication.instance() is None:
-            if self._cfg.set(entry, value):
+            if self._set_value_without_application(entry, value):
                 if after_commit is not None:
                     after_commit()
             elif after_failure is not None:
@@ -158,6 +242,25 @@ class ConfigManager(QObject):
         if not was_pending:
             self.persistencePendingChanged.emit()
         self._start_next_persistence()
+
+    def _set_value_without_application(self, entry, value):
+        """Persist synchronously before a Qt application exists. Qt 应用创建前同步保存。"""
+        if self._persist_appearance:
+            return self._cfg.set(entry, value)
+        update = self._cfg._prepare_update(entry, value)
+        if update is None:
+            return True
+        current, prepared, mapping = update
+        mapping.pop("Appearance", None)
+        try:
+            _write_window_mapping_preserving_appearance(
+                self._cfg._write_mapping_file, self._cfg.file, mapping
+            )
+        except Exception as exc:
+            exception(f"保存失败 Save failed: {exc}")
+            return False
+        self._cfg._commit_prepared_update(current, prepared)
+        return True
 
     def _set_runtime_value(
         self, entry, value, apply_runtime, apply_committed
@@ -206,12 +309,16 @@ class ConfigManager(QObject):
     def _launch_persistence(self, update, after_commit, after_failure):
         """Launch one prepared disk write. 启动一次已准备的磁盘写入。"""
         current, prepared, mapping = update
+        writer = self._cfg._write_mapping_file
+        arguments = (self._cfg.file, mapping)
+        if not self._persist_appearance:
+            mapping.pop("Appearance", None)
+            arguments = (writer, self._cfg.file, mapping)
+            writer = _write_window_mapping_preserving_appearance
         from ..core.task_runner import run_in_thread
 
         try:
-            handle = run_in_thread(
-                self._cfg._write_mapping_file, self._cfg.file, mapping
-            )
+            handle = run_in_thread(writer, *arguments)
         except Exception as exc:
             error(f"提交配置后台任务失败 Config persistence task failed: {exc}")
             if after_failure is not None:
@@ -343,6 +450,16 @@ class ConfigManager(QObject):
             warning(f"拒绝无效主题 Invalid theme rejected: {value!r}")
             return
 
+        if not self._persist_appearance:
+            self._set_ephemeral_appearance(
+                self._cfg.theme,
+                value,
+                lambda candidate: self._apply_runtime_appearance(
+                    "theme", candidate
+                ),
+            )
+            return
+
         self._set_runtime_value(
             self._cfg.theme,
             value,
@@ -362,6 +479,16 @@ class ConfigManager(QObject):
     def setSkin(self, value: str):
         if not self._cfg.skin.validator.accepts(value):
             warning(f"拒绝无效皮肤 Invalid skin rejected: {value!r}")
+            return
+
+        if not self._persist_appearance:
+            self._set_ephemeral_appearance(
+                self._cfg.skin,
+                value,
+                lambda candidate: self._apply_runtime_appearance(
+                    "skin", candidate
+                ),
+            )
             return
 
         self._set_runtime_value(
@@ -384,7 +511,10 @@ class ConfigManager(QObject):
         if not self._cfg.language.validator.accepts(value):
             warning(f"拒绝无效语言 Invalid language rejected: {value!r}")
             return
-        self._set_value(self._cfg.language, value)
+        if self._persist_appearance:
+            self._set_value(self._cfg.language, value)
+        else:
+            self._set_ephemeral_appearance(self._cfg.language, value)
 
     @Property(str, notify=accentColorChanged)
     def accentColor(self) -> str:
@@ -396,6 +526,16 @@ class ConfigManager(QObject):
 
         if not validate_accent_color(value):
             warning(f"拒绝无效主题色 Invalid accent color rejected: {value!r}")
+            return
+
+        if not self._persist_appearance:
+            self._set_ephemeral_appearance(
+                self._cfg.accent_color,
+                value,
+                lambda candidate: self._apply_runtime_appearance(
+                    "accent_color", candidate
+                ),
+            )
             return
 
         self._set_runtime_value(
@@ -414,6 +554,10 @@ class ConfigManager(QObject):
         return str(self._cfg.file) if self._cfg.file else ""
 
 
-def getConfigManager(config_path: str = None) -> ConfigManager:
+def getConfigManager(
+    config_path: str = None, *, persist_appearance: bool = None
+) -> ConfigManager:
     """获取配置管理器单例 Get config manager singleton"""
-    return ConfigManager(config_path)
+    return ConfigManager(
+        config_path, persist_appearance=persist_appearance
+    )

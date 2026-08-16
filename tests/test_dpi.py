@@ -30,6 +30,7 @@ _QT_DPI_ENVIRONMENT = (
 
 def test_dpi_import_defers_full_app_config_runtime():
     root = Path(__file__).resolve().parents[1]
+    cache_prefix = os.environ["PYTHONPYCACHEPREFIX"]
     code = """
 import os
 import sys
@@ -49,7 +50,15 @@ for name in (
         raise SystemExit(3)
 """
     result = subprocess.run(
-        [sys.executable, "-I", "-c", code, str(root)],
+        [
+            sys.executable,
+            "-I",
+            "-X",
+            f"pycache_prefix={cache_prefix}",
+            "-c",
+            code,
+            str(root),
+        ],
         check=False,
         capture_output=True,
         text=True,

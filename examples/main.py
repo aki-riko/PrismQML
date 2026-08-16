@@ -45,12 +45,15 @@ from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
 from prismqml import register_types
 from prismqml.python.core import install_qt_message_handler
-from prismqml.python.config import applyDpiScale
+from prismqml.python.config import DEFAULT_APP_CONFIG, applyDpiScale
+from prismqml.python.config._app_config_schema import resolve_app_config_path
 from prismqml.python.runtime import (
     get_svg_provider,
     install_application_dwm_filter,
 )
 from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
+
+GALLERY_CONFIG_PATH = resolve_app_config_path(default=DEFAULT_APP_CONFIG)
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
@@ -76,7 +79,7 @@ def main():
             QSGRendererInterface.GraphicsApi.Direct3D11
         )
 
-    applyDpiScale()
+    applyDpiScale(GALLERY_CONFIG_PATH)
     log_time("DPI缩放应用完成")
     
     app = QApplication(sys.argv)
@@ -111,7 +114,11 @@ def main():
     
     # Register the complete public QML runtime, including NativeWindow.
     # 注册完整公共 QML 运行时，包括 NativeWindow。
-    register_types(engine)
+    register_types(
+        engine,
+        config_path=GALLERY_CONFIG_PATH,
+        persist_appearance=True,
+    )
     # 注册SVG图片提供器（高质量SVG渲染）
     engine.addImageProvider("svg", get_svg_provider())
 

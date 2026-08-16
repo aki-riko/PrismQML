@@ -20,11 +20,20 @@ from .context_composition import (
 )
 
 
-def register_types(engine: QQmlApplicationEngine) -> None:
+def register_types(
+    engine: QQmlApplicationEngine,
+    *,
+    config_path=None,
+    persist_appearance: bool = None,
+) -> None:
     """Register public QML context and providers. 注册公开 QML 上下文与 provider。"""
     _enable_quick_window_alpha_buffer()
     context = engine.rootContext()
-    register_primary_context(context)
+    register_primary_context(
+        context,
+        config_path=config_path,
+        persist_appearance=persist_appearance,
+    )
     register_lazy_context(engine, context)
     register_window_context(engine, context)
     register_support_context(context)

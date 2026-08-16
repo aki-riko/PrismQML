@@ -22,7 +22,9 @@ def _configure_windows_graphics_api() -> None:
     )
 
 
-def prepare_application_environment(allow_qml_file_read: bool) -> None:
+def prepare_application_environment(
+    allow_qml_file_read: bool, config_path=None
+) -> None:
     """Prepare process-wide Qt settings before QApplication. 在创建应用前准备 Qt。"""
     from ..config import applyDpiScale
     from ..core import configure_qml_environment, install_qt_message_handler
@@ -33,7 +35,10 @@ def prepare_application_environment(allow_qml_file_read: bool) -> None:
     QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
-    applyDpiScale()
+    if config_path is None:
+        applyDpiScale()
+    else:
+        applyDpiScale(config_path)
     install_qt_message_handler()
 
 

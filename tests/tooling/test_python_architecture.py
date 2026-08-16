@@ -911,9 +911,8 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
         in appearance_imports
     )
     assert "_persist_appearance_change" in _function_names(appearance)
-    assert "install_appearance_persistence" in _function_names(appearance)
     assert "_apply_config_appearance" in _function_names(appearance)
-    assert "install_config_appearance_runtime" in _function_names(appearance)
+    assert "configure_appearance_persistence" in _function_names(appearance)
     assert (
         "prismqml.python.core.theme._bind_appearance_persistence"
         not in config_imports
@@ -939,16 +938,9 @@ def test_appearance_persistence_has_one_runtime_composition_owner():
                 )
     assert runtime_factory_violations == []
 
-    composition_imports = {
-        target for _line, target in _resolved_imports(composition)
-    }
-    assert (
-        "prismqml.python.runtime.appearance.install_appearance_persistence"
-        in composition_imports
-    )
-    assert _named_function_calls(composition, "install_appearance_persistence")
+    assert _named_function_calls(composition, "get_config_manager")
     for owner in (registry, window_registry):
-        assert not _named_function_calls(owner, "install_appearance_persistence")
+        assert not _named_function_calls(owner, "configure_appearance_persistence")
 
 
 def test_configuration_singleton_has_one_runtime_composition_owner():
@@ -966,10 +958,10 @@ def test_configuration_singleton_has_one_runtime_composition_owner():
     assert "get_config_manager" in _function_names(configuration)
     assert configuration_imports == {
         "prismqml.python.config.getConfigManager",
-        "prismqml.python.runtime.appearance.install_config_appearance_runtime",
+        "prismqml.python.runtime.appearance.configure_appearance_persistence",
     }
     assert _named_function_calls(
-        configuration, "install_config_appearance_runtime"
+        configuration, "configure_appearance_persistence"
     )
 
     for owner in (

@@ -153,9 +153,9 @@ Updater updater("owner/repo", "v1.0.0", "Setup",
 | 应用入口 | `App`（createWindow / setApplicationIcon / exec / engine / qapp） | window/app.py |
 | 窗口 | `Window`（addPage / setWindowTitle / resize / show / navigateTo），三布局 `WindowType` | window_core.py + _window_builder.py + _page_manager.py |
 | 主题 | `setTheme/getTheme` `isDark` `ThemeManager` | core/theme.py |
-| 皮肤 | `setSkin/getSkin`（Fluent / Neobrutalism） | core/theme.py |
+| 皮肤 | `setSkin/getSkin`（Fluent / Neobrutalism / Vintage Ticket / Neumorphism） | core/theme.py |
 | 主题色 | `setAccentColor/getAccentColor/accentQColor` | core/theme.py |
-| 配置 | `ConfigManager`（JSON 默认持久化 `~/.prismqml/app.json`；`PRISMQML_CONFIG_FILE` 可在首次使用前覆盖） | config/config_manager.py |
+| 配置 | `ConfigManager`（Window 默认持久化；Appearance 仅在 `App` 显式应用路径或策略授权后持久化） | config/config_manager.py |
 | 窗口阴影 | `ShadowManager`（Win32 DWM） | core/shadow.py |
 | 云母 | `MicaManager`（Win11 DWM backdrop） | window/mica_window.py |
 | 无边框 | `NativeWindow`（WS_CAPTION + WM_NCCALCSIZE 拦截） | window/native_window.py |

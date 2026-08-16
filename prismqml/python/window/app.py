@@ -61,11 +61,11 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     initialize_application_icon_state(owner)
 
 
-def _prepare_app_environment(allow_qml_file_read: bool) -> None:
+def _prepare_app_environment(allow_qml_file_read: bool, config_path) -> None:
     """Prepare process-wide Qt settings. 准备进程级 Qt 设置。"""
     from ..runtime import prepare_application_environment
 
-    prepare_application_environment(allow_qml_file_read)
+    prepare_application_environment(allow_qml_file_read, config_path)
 
 
 def _create_qt_application(owner, argv: List[str]) -> None:
@@ -83,7 +83,7 @@ def _create_qt_application(owner, argv: List[str]) -> None:
     install_application_dwm_filter()
 
 
-def _create_qml_engine(owner) -> None:
+def _create_qml_engine(owner, config_path, persist_appearance) -> None:
     """Create and fully register the QML engine. 创建并完整注册 QML 引擎。"""
     from ..runtime import (
         configure_application_engine,
@@ -94,7 +94,11 @@ def _create_qml_engine(owner) -> None:
     owner._engine = create_qml_engine()
     owner._engine_publish_started = True
     publish_qml_engine(owner._engine)
-    configure_application_engine(owner._engine)
+    configure_application_engine(
+        owner._engine,
+        config_path=config_path,
+        persist_appearance=persist_appearance,
+    )
 
 
 def _run_app_cleanup(label: str, action) -> None:
@@ -246,6 +250,8 @@ class App(ApplicationIconMixin):
     Qt 运行时并抛出 ``TaskShutdownTimeoutError``，传入 ``None`` 则安全地持续等待。
     ``auto_update_slot_redirect`` 默认读取安装器双槽状态并在创建 Qt 前切换到
     下次启动槽；源码开发态和普通单目录安装不受影响。
+    ``config_path`` 可指定应用独立配置；显式路径默认启用外观持久化。
+    ``persist_appearance=False`` 可让宿主自行管理主题、皮肤、语言和主题色。
     """
 
     _instance: "App" = None
@@ -259,6 +265,8 @@ class App(ApplicationIconMixin):
         application_icon: Optional[Union[str, os.PathLike]] = None,
         application_icon_colored: bool = True,
         auto_update_slot_redirect: bool = True,
+        config_path: Optional[Union[str, os.PathLike]] = None,
+        persist_appearance: Optional[bool] = None,
     ):
         if App._instance is not None:
             raise RuntimeError(
@@ -276,9 +284,9 @@ class App(ApplicationIconMixin):
         )
         committed = False
         try:
-            _prepare_app_environment(allow_qml_file_read)
+            _prepare_app_environment(allow_qml_file_read, config_path)
             _create_qt_application(self, argv or [])
-            _create_qml_engine(self)
+            _create_qml_engine(self, config_path, persist_appearance)
             configure_initial_application_icon(
                 self, application_icon, application_icon_colored
             )

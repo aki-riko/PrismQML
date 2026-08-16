@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QCoreApplication>
 #include <QEventLoop>
+#include <QFile>
 #include <QFileInfo>
 #include <QDebug>
 #include <QJsonDocument>
@@ -19,6 +20,8 @@
 #include <QtConcurrentRun>
 
 namespace prism {
+
+ConfigManager *ConfigManager::s_instance = nullptr;
 
 namespace {
 bool writeAtomically(const QString &path, const QByteArray &payload) {
@@ -48,18 +51,66 @@ bool writeAtomically(const QString &path, const QByteArray &payload) {
     }
     return true;
 }
+
+bool mergeLatestAppearance(const QString &path, QByteArray &payload) {
+    QFile file(path);
+    if (!file.exists()) return true;
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "prism::ConfigManager 无法读取未托管 Appearance:"
+                   << file.errorString();
+        return false;
+    }
+    const QJsonDocument current = QJsonDocument::fromJson(file.readAll());
+    QJsonDocument candidate = QJsonDocument::fromJson(payload);
+    if (!current.isObject() || !candidate.isObject()) {
+        qWarning() << "prism::ConfigManager 无法合并未托管 Appearance";
+        return false;
+    }
+    const QJsonValue appearance = current.object().value(
+        QStringLiteral("Appearance"));
+    if (appearance.isUndefined()) return true;
+    if (!appearance.isObject()) {
+        qWarning() << "prism::ConfigManager 未托管 Appearance 不是对象";
+        return false;
+    }
+    QJsonObject root = candidate.object();
+    root[QStringLiteral("Appearance")] = appearance;
+    payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
+    return true;
+}
 }  // namespace
 
 ConfigManager *ConfigManager::instance() {
-    static ConfigManager *s = new ConfigManager();
-    return s;
+    if (!s_instance) {
+        s_instance = new ConfigManager(
+            resolveConfigFilePath(),
+            !qEnvironmentVariable(kConfigFilePathEnvironment).isEmpty());
+    }
+    return s_instance;
+}
+
+ConfigManager *ConfigManager::initialize(const QString &configFilePath,
+                                         bool persistAppearance) {
+    const QString requestedPath = QFileInfo(configFilePath).absoluteFilePath();
+    if (!s_instance) {
+        s_instance = new ConfigManager(requestedPath, persistAppearance);
+        return s_instance;
+    }
+    if (QFileInfo(s_instance->configFilePath()).absoluteFilePath() != requestedPath ||
+        s_instance->appearancePersistenceEnabled() != persistAppearance) {
+        qFatal("prism::ConfigManager initialized with conflicting application configuration");
+    }
+    s_instance->applyAppearanceToRuntime();
+    return s_instance;
 }
 
 ConfigManager::ConfigManager(QObject *parent)
-    : ConfigManager(resolveConfigFilePath(), parent) {}
+    : ConfigManager(resolveConfigFilePath(), false, parent) {}
 
-ConfigManager::ConfigManager(const QString &configFilePath, QObject *parent)
+ConfigManager::ConfigManager(const QString &configFilePath,
+                             bool persistAppearance, QObject *parent)
     : QObject(parent), m_configFilePath(configFilePath),
+      m_persistAppearance(persistAppearance),
       m_persistenceWriter(writeAtomically) {
     connect(&m_persistenceWatcher, &QFutureWatcher<bool>::finished,
             this, &ConfigManager::finishPersistence);
@@ -133,28 +184,31 @@ void ConfigManager::load() {
         candidate.window.micaEnabled,
         candidate.window.dpiScale,
         candidate.window.windowType,
-        candidate.appearance.theme,
-        candidate.appearance.skin,
-        candidate.appearance.language,
-        candidate.appearance.accentColor,
+        m_persistAppearance ? candidate.appearance.theme : m_state.theme,
+        m_persistAppearance ? candidate.appearance.skin : m_state.skin,
+        m_persistAppearance ? candidate.appearance.language : m_state.language,
+        m_persistAppearance ? candidate.appearance.accentColor : m_state.accentColor,
     };
 }
 
-QByteArray ConfigManager::serialize(const State &candidate) {
+QByteArray ConfigManager::serialize(const State &candidate,
+                                    bool persistAppearance) {
     QJsonObject win;
     win[QStringLiteral("LazyLoading")] = candidate.lazyLoading;
     win[QStringLiteral("DwmShadow")] = candidate.dwmShadow;
     win[QStringLiteral("MicaEnabled")] = candidate.micaEnabled;
     win[QStringLiteral("DpiScale")] = candidate.dpiScale;
     win[QStringLiteral("WindowType")] = candidate.windowType;
-    QJsonObject appearance;
-    appearance[QStringLiteral("Theme")] = candidate.theme;
-    appearance[QStringLiteral("Skin")] = candidate.skin;
-    appearance[QStringLiteral("Language")] = candidate.language;
-    appearance[QStringLiteral("AccentColor")] = candidate.accentColor;
     QJsonObject root;
     root[QStringLiteral("Window")] = win;
-    root[QStringLiteral("Appearance")] = appearance;
+    if (persistAppearance) {
+        QJsonObject appearance;
+        appearance[QStringLiteral("Theme")] = candidate.theme;
+        appearance[QStringLiteral("Skin")] = candidate.skin;
+        appearance[QStringLiteral("Language")] = candidate.language;
+        appearance[QStringLiteral("AccentColor")] = candidate.accentColor;
+        root[QStringLiteral("Appearance")] = appearance;
+    }
     return QJsonDocument(root).toJson(QJsonDocument::Indented);
 }
 
@@ -254,6 +308,46 @@ void ConfigManager::enqueueRuntimeUpdate(Field field, const QVariant &value) {
     enqueueUpdate(field, value, requestId);
 }
 
+QString *ConfigManager::ephemeralAppearanceValue(Field field) {
+    switch (field) {
+    case Field::Theme: return &m_state.theme;
+    case Field::Skin: return &m_state.skin;
+    case Field::Language: return &m_state.language;
+    case Field::AccentColor: return &m_state.accentColor;
+    default: return nullptr;
+    }
+}
+
+void ConfigManager::applyEphemeralRuntime(Field field, const QString &value) {
+    auto *manager = ThemeManager::instance();
+    switch (field) {
+    case Field::Theme: manager->applyTheme(themeFromString(value)); break;
+    case Field::Skin: manager->applySkin(skinFromString(value)); break;
+    case Field::AccentColor: manager->applyAccentColor(value); break;
+    default: break;
+    }
+}
+
+void ConfigManager::publishEphemeralField(Field field) {
+    switch (field) {
+    case Field::Theme: emit themeChanged(); break;
+    case Field::Skin: emit skinChanged(); break;
+    case Field::Language: emit languageChanged(); break;
+    case Field::AccentColor: emit accentColorChanged(); break;
+    default: break;
+    }
+}
+
+void ConfigManager::setEphemeralAppearance(Field field, const QVariant &value) {
+    const QString text = value.toString();
+    applyEphemeralRuntime(field, text);
+    QString *current = ephemeralAppearanceValue(field);
+    if (!current || *current == text) return;
+    *current = text;
+    publishEphemeralField(field);
+    emit configChanged();
+}
+
 void ConfigManager::startNextPersistence() {
     if (m_activeWrite.has_value()) return;
     while (!m_pendingUpdates.isEmpty()) {
@@ -265,12 +359,18 @@ void ConfigManager::startNextPersistence() {
         }
 
         const QString path = configFilePath();
-        const QByteArray payload = serialize(candidate);
+        QByteArray payload = serialize(candidate, m_persistAppearance);
         const PersistenceWriter writer = m_persistenceWriter;
+        const bool preserveAppearance = !m_persistAppearance;
         m_activeWrite = ActiveWrite{
             update.field, candidate, update.runtimeRequestId};
         m_persistenceWatcher.setFuture(QtConcurrent::run(
-            [writer, path, payload]() { return writer(path, payload); }));
+            [writer, path, payload, preserveAppearance]() mutable {
+                if (preserveAppearance &&
+                    !mergeLatestAppearance(path, payload))
+                    return false;
+                return writer(path, payload);
+            }));
         return;
     }
     emit persistencePendingChanged();
@@ -413,12 +513,20 @@ void ConfigManager::setTheme(const QString &value) {
         qWarning() << "prism::ConfigManager 无效 theme:" << value;
         return;
     }
+    if (!m_persistAppearance) {
+        setEphemeralAppearance(Field::Theme, value);
+        return;
+    }
     if (!persistencePending() && m_state.theme == value) return;
     enqueueRuntimeUpdate(Field::Theme, value);
 }
 void ConfigManager::setSkin(const QString &value) {
     if (!isValidSkin(value)) {
         qWarning() << "prism::ConfigManager 无效 skin:" << value;
+        return;
+    }
+    if (!m_persistAppearance) {
+        setEphemeralAppearance(Field::Skin, value);
         return;
     }
     if (!persistencePending() && m_state.skin == value) return;
@@ -429,12 +537,20 @@ void ConfigManager::setLanguage(const QString &value) {
         qWarning() << "prism::ConfigManager 无效 language:" << value;
         return;
     }
+    if (!m_persistAppearance) {
+        setEphemeralAppearance(Field::Language, value);
+        return;
+    }
     if (!persistencePending() && m_state.language == value) return;
     enqueueUpdate(Field::Language, value);
 }
 void ConfigManager::setAccentColor(const QString &value) {
     if (!isValidAccentColor(value)) {
         qWarning() << "prism::ConfigManager 无效 accentColor:" << value;
+        return;
+    }
+    if (!m_persistAppearance) {
+        setEphemeralAppearance(Field::AccentColor, value);
         return;
     }
     if (!persistencePending() && m_state.accentColor == value) return;

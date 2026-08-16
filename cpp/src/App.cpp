@@ -50,7 +50,9 @@ void configureQmlEnvironment(bool allowFileRead) {
     QQuickWindow::setDefaultAlphaBuffer(true);
 }
 
-App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRead) {
+App::App(int &argc, char **argv, const QString &importPath,
+         bool allowQmlFileRead, const QString &configFilePath,
+         std::optional<bool> persistAppearance) {
     if (s_instance != nullptr) {
         qFatal("prism::App already exists. Only one instance allowed.");
     }
@@ -63,8 +65,14 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
     QApplication::setHighDpiScaleFactorRoundingPolicy(
         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
+    const bool hasExplicitConfig = !configFilePath.isEmpty() ||
+        !qEnvironmentVariable(kConfigFilePathEnvironment).isEmpty();
+    const bool shouldPersistAppearance =
+        persistAppearance.value_or(hasExplicitConfig);
+    const QString resolvedConfigPath = resolveConfigFilePath(configFilePath);
+
     // 固定 DPI 缩放配置 (必须在 QApplication 创建前; 镜像 Python applyDpiScale)
-    applyDpiScaleBeforeApplication();
+    applyDpiScaleBeforeApplication(resolvedConfigPath);
 
 #if defined(Q_OS_WIN)
     // Use the only supported Windows graphics backend. 使用唯一受支持的 Windows 图形后端。
@@ -73,6 +81,7 @@ App::App(int &argc, char **argv, const QString &importPath, bool allowQmlFileRea
 #endif
 
     m_app = std::make_unique<QApplication>(argc, argv);
+    ConfigManager::initialize(resolvedConfigPath, shouldPersistAppearance);
     m_engine = std::make_unique<QQmlApplicationEngine>();
 
     m_importPath = resolveImportPath(importPath);

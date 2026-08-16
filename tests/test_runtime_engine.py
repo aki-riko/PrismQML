@@ -131,6 +131,39 @@ def test_configure_application_engine_preserves_registration_order(monkeypatch):
     assert calls == [("incubation", engine), ("register", engine)]
 
 
+def test_configure_application_engine_forwards_config_policy(monkeypatch):
+    engine = object()
+    calls = []
+    monkeypatch.setattr(
+        incubation,
+        "install_default_incubation_controller",
+        lambda value: calls.append(("incubation", value)),
+    )
+    monkeypatch.setattr(
+        runtime,
+        "register_types",
+        lambda value, **kwargs: calls.append(("register", value, kwargs)),
+    )
+
+    runtime_engine.configure_application_engine(
+        engine,
+        config_path="application-config.json",
+        persist_appearance=False,
+    )
+
+    assert calls == [
+        ("incubation", engine),
+        (
+            "register",
+            engine,
+            {
+                "config_path": "application-config.json",
+                "persist_appearance": False,
+            },
+        ),
+    ]
+
+
 @pytest.mark.parametrize("stage", ["incubation", "register"])
 @pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
 def test_configure_application_engine_propagates_failures(

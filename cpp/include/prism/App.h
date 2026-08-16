@@ -9,6 +9,7 @@
 #include "prism/Window.h"
 #include <QString>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <functional>
 
@@ -34,8 +35,11 @@ class App {
 public:
     // argv 透传给 QApplication。importPath 指向 PrismQML 模块的父目录;
     // 为空时用 resolveImportPath() 解析(环境变量 PRISMQML_QML_DIR)。
+    // configFilePath 非空时默认持久化应用外观；显式 false 由宿主自行管理外观。
     App(int &argc, char **argv, const QString &importPath = QString(),
-        bool allowQmlFileRead = true);
+        bool allowQmlFileRead = true,
+        const QString &configFilePath = QString(),
+        std::optional<bool> persistAppearance = std::nullopt);
     ~App();
 
     App(const App &) = delete;

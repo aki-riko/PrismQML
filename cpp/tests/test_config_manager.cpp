@@ -397,6 +397,70 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
           "非法值和相同值均不保存也不发信号");
 }
 
+static void testEphemeralAppearanceIgnoresSharedSkin(
+    const QTemporaryDir &directory) {
+    qInfo() << "=== 未授权外观持久化保持 Fluent 默认 ===";
+    const QString path =
+        directory.filePath(QStringLiteral("shared-appearance/app.json"));
+    const QJsonObject root{
+        {QStringLiteral("Window"), validWindow()},
+        {QStringLiteral("Appearance"), QJsonObject{
+            {QStringLiteral("Theme"), QStringLiteral("dark")},
+            {QStringLiteral("Skin"), QStringLiteral("vintage_ticket")},
+            {QStringLiteral("Language"), QStringLiteral("zh_CN")},
+            {QStringLiteral("AccentColor"), QStringLiteral("#123456")},
+        }},
+    };
+    CHECK(writeJson(path, root), "写入共享复古票据配置夹具");
+    QFile baselineFile(path);
+    CHECK(baselineFile.open(QIODevice::ReadOnly), "读取共享配置基线");
+    const QByteArray baseline = baselineFile.readAll();
+    baselineFile.close();
+
+    ConfigManager config(path, false);
+    CHECK(!config.lazyLoading() && !config.dwmShadow() &&
+              config.micaEnabled() && config.dpiScale() == 150 &&
+              config.windowType() == 2,
+          "禁用外观持久化仍恢复 Window 配置");
+    CHECK(config.theme() == QStringLiteral("auto") &&
+              config.skin() == QStringLiteral("fluent") &&
+              config.language() == QStringLiteral("auto") &&
+              config.accentColor() == QStringLiteral("#0e5a9c") &&
+              ThemeManager::instance()->skin() == QStringLiteral("fluent"),
+          "共享 vintage_ticket 不覆盖 Fluent 运行时默认值");
+
+    config.setTheme(QStringLiteral("light"));
+    config.setSkin(QStringLiteral("neobrutalism"));
+    config.setLanguage(QStringLiteral("en"));
+    config.setAccentColor(QStringLiteral("#abcdef"));
+    CHECK(!config.persistencePending() &&
+              config.theme() == QStringLiteral("light") &&
+              config.skin() == QStringLiteral("neobrutalism") &&
+              config.language() == QStringLiteral("en") &&
+              config.accentColor() == QStringLiteral("#abcdef") &&
+              ThemeManager::instance()->skin() ==
+                  QStringLiteral("neobrutalism"),
+          "禁用策略下外观仅在当前进程切换");
+    QFile unchanged(path);
+    CHECK(unchanged.open(QIODevice::ReadOnly) &&
+              unchanged.readAll() == baseline,
+          "进程内外观切换不改写共享配置");
+    unchanged.close();
+    QJsonObject latestAppearance = root.value(
+        QStringLiteral("Appearance")).toObject();
+    latestAppearance[QStringLiteral("Skin")] = QStringLiteral("neumorphism");
+    CHECK(writeJson(path, {
+              {QStringLiteral("Window"), validWindow()},
+              {QStringLiteral("Appearance"), latestAppearance},
+          }),
+          "模拟并发应用更新共享 Appearance");
+    config.setMicaEnabled(false);
+    CHECK(config.waitForPersistence(), "Window 修改完成后台持久化");
+    CHECK(!readWindow(path).value(QStringLiteral("MicaEnabled")).toBool() &&
+              readAppearance(path) == latestAppearance,
+          "Window 写入保留磁盘最新未托管 Appearance");
+}
+
 static void testBlockedParent(const QTemporaryDir &directory) {
     const QString blocker = directory.filePath(QStringLiteral("parent-blocker"));
     const QByteArray blockerContent = QByteArrayLiteral("unchanged");
@@ -464,6 +528,7 @@ int main(int argc, char *argv[]) {
     testLoads(directory);
     g_failed += prism::test::runConfigParserContractTests(directory.path());
     testSuccessfulCommit(directory);
+    testEphemeralAppearanceIgnoresSharedSkin(directory);
     g_failed += prism::test::runConfigQmlContractTests(directory.path());
     testFileSystemFailures(directory);
     CHECK(directory.remove(), "所有配置句柄关闭后临时目录可删除");

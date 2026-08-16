@@ -60,9 +60,18 @@ def _apply_config_appearance(field: str, value: str) -> None:
     applicators[field](value)
 
 
-def install_config_appearance_runtime(manager) -> None:
-    """Bind config values to the theme runtime. 绑定配置值与主题运行时。"""
-    manager._bind_appearance_runtime(_apply_config_appearance)
+def configure_appearance_persistence(manager) -> None:
+    """Apply the manager's explicit persistence policy. 应用显式持久化策略。"""
+    if not manager.appearancePersistenceEnabled:
+        runtime = getThemeManager()
+        manager._initialize_ephemeral_appearance(
+            runtime.theme, runtime.skin, runtime.accentColor
+        )
+    manager._bind_appearance_runtime(
+        _apply_config_appearance,
+        apply_persisted=manager.appearancePersistenceEnabled,
+    )
+    _bind_appearance_persistence(_persist_appearance_change)
 
 
 def _persist_appearance_change(field: str, value: str) -> None:
@@ -76,30 +85,16 @@ def _persist_appearance_change(field: str, value: str) -> None:
     setters[field](value)
 
 
-def install_appearance_persistence() -> None:
-    """Install the runtime-owned persistence adapter. 安装运行时持久化适配器。"""
-    _bind_appearance_persistence(_persist_appearance_change)
-
-
-def _ensure_appearance_persistence() -> None:
-    """Load the persistence adapter before public mutations. 公开修改前装配持久化端口。"""
-    install_appearance_persistence()
-    get_config_manager()
-
-
 def setTheme(theme: Theme) -> None:
-    """Set and persist the application theme. 设置并持久化应用主题。"""
-    _ensure_appearance_persistence()
+    """Set the application theme through the configured policy. 按配置策略设置主题。"""
     getThemeManager().setTheme(theme)
 
 
 def setSkin(skin: Skin) -> None:
-    """Set and persist the design skin. 设置并持久化设计皮肤。"""
-    _ensure_appearance_persistence()
+    """Set the design skin through the configured policy. 按配置策略设置皮肤。"""
     getThemeManager().setSkin(skin)
 
 
 def setAccentColor(color: str) -> None:
-    """Set and persist the accent color. 设置并持久化强调色。"""
-    _ensure_appearance_persistence()
+    """Set the accent color through the configured policy. 按配置策略设置强调色。"""
     getThemeManager().setAccentColor(color)

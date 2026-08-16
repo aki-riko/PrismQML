@@ -2,9 +2,30 @@
 
 配置系统采用五层架构：`Validator` → `SettingEntry` → `SettingsCore` → `AppConfig` → `ConfigManager`。
 
-- **JSON 持久化** — 默认存储于 `~/.prismqml/app.json`
+- **JSON 持久化** — Window 设置默认存储于 `~/.prismqml/app.json`
 - **原子写入** — 先写临时文件再替换，防止断电数据丢失
 - **QML 桥接** — 通过 `ConfigManager` 单例暴露为 QML Property
+
+Theme、Skin、Language 和 AccentColor 不再隐式跨应用共享。`App()` 默认从
+Fluent 外观启动；传入应用独立的 `config_path` 才会恢复并持久化该应用外观：
+
+```python
+from prismqml import App
+
+app = App(config_path="APP_CONFIG/app.json")
+```
+
+若宿主已有自己的外观配置（例如自行恢复 Theme/Accent），应保持单一真相源：
+
+```python
+app = App(
+    config_path="APP_CONFIG/prismqml.json",
+    persist_appearance=False,
+)
+```
+
+此模式仍恢复 PrismQML 的 Window 设置，但磁盘中的旧 `Appearance` 不会应用，
+其字段值也会在 Window 写入时保留。`PRISMQML_CONFIG_FILE` 也视为显式应用配置路径。
 
 ## 读写配置
 

@@ -2,9 +2,32 @@
 
 The config system uses a five-layer architecture: `Validator` → `SettingEntry` → `SettingsCore` → `AppConfig` → `ConfigManager`.
 
-- **JSON persistence** — stored at `~/.prismqml/app.json` by default
+- **JSON persistence** — Window settings are stored at `~/.prismqml/app.json` by default
 - **Atomic writes** — writes to a temp file then replaces, preventing data loss on power failure
 - **QML bridging** — exposed as QML Properties via the `ConfigManager` singleton
+
+Theme, Skin, Language, and AccentColor are no longer shared implicitly across
+applications. `App()` starts with the Fluent appearance; pass an application-
+specific `config_path` to restore and persist that application's appearance:
+
+```python
+from prismqml import App
+
+app = App(config_path="APP_CONFIG/app.json")
+```
+
+If the host already owns its appearance settings, keep one source of truth:
+
+```python
+app = App(
+    config_path="APP_CONFIG/prismqml.json",
+    persist_appearance=False,
+)
+```
+
+This mode still restores PrismQML Window settings. Existing on-disk
+`Appearance` values are not applied and remain preserved during Window writes.
+`PRISMQML_CONFIG_FILE` also counts as an explicit application config path.
 
 ## Read & write config
 

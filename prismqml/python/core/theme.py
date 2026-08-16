@@ -29,7 +29,9 @@ _HEX_COLOR_PATTERN = re.compile(
 _appearance_persistence: Optional[Callable[[str, str], None]] = None
 
 
-def _bind_appearance_persistence(callback: Callable[[str, str], None]) -> None:
+def _bind_appearance_persistence(
+    callback: Optional[Callable[[str, str], None]]
+) -> None:
     """Bind the outer persistence port. 绑定外层持久化端口。"""
     global _appearance_persistence
     _appearance_persistence = callback

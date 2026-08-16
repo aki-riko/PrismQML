@@ -16,9 +16,10 @@ from prismqml.python.runtime.configuration import get_config_manager
 class _ManagerProbe:
     def __init__(self):
         self.bindings = []
+        self.appearancePersistenceEnabled = True
 
-    def _bind_appearance_runtime(self, callback):
-        self.bindings.append(callback)
+    def _bind_appearance_runtime(self, callback, *, apply_persisted=True):
+        self.bindings.append((callback, apply_persisted))
 
 
 class _AppearanceProbe:
@@ -61,7 +62,8 @@ def test_get_config_manager_preserves_no_argument_call_shape(monkeypatch):
     assert get_config_manager() is manager
     assert calls == [()]
     assert len(manager.bindings) == 1
-    assert callable(manager.bindings[0])
+    assert callable(manager.bindings[0][0])
+    assert manager.bindings[0][1] is True
 
 
 def test_get_config_manager_forwards_explicit_path(monkeypatch):
@@ -77,7 +79,42 @@ def test_get_config_manager_forwards_explicit_path(monkeypatch):
     assert get_config_manager("custom-config.json") is manager
     assert calls == ["custom-config.json"]
     assert len(manager.bindings) == 1
-    assert callable(manager.bindings[0])
+    assert callable(manager.bindings[0][0])
+    assert manager.bindings[0][1] is True
+
+
+def test_config_manager_rejects_a_second_explicit_path(
+    tmp_path, isolated_config_manager
+):
+    first_path = tmp_path / "first.json"
+    second_path = tmp_path / "second.json"
+
+    manager = get_config_manager(str(first_path))
+
+    with pytest.raises(RuntimeError, match="different configuration path"):
+        get_config_manager(str(second_path))
+
+    assert manager.getConfigPath() == str(first_path.resolve())
+
+
+def test_config_manager_rejects_a_second_appearance_policy(
+    tmp_path, isolated_config_manager
+):
+    get_config_manager(str(tmp_path / "app.json"), persist_appearance=True)
+
+    with pytest.raises(RuntimeError, match="appearance persistence policy"):
+        get_config_manager(persist_appearance=False)
+
+
+def test_config_manager_rejects_non_boolean_appearance_policy(
+    tmp_path, isolated_config_manager
+):
+    with pytest.raises(TypeError, match="must be a bool or None"):
+        get_config_manager(
+            str(tmp_path / "app.json"), persist_appearance="false"
+        )
+
+    assert ConfigManager._instance is None
 
 
 def test_runtime_binding_applies_loaded_appearance_once(

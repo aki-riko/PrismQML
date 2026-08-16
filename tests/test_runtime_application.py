@@ -47,7 +47,11 @@ def _install_prepare_spies(monkeypatch, calls, failure_stage=None, failure=None)
             )
         ),
     )
-    monkeypatch.setattr(config, "applyDpiScale", lambda: invoke("dpi"))
+    monkeypatch.setattr(
+        config,
+        "applyDpiScale",
+        lambda *args: invoke("dpi", args[0]) if args else invoke("dpi"),
+    )
     monkeypatch.setattr(
         core, "install_qt_message_handler", lambda: invoke("messages")
     )
@@ -94,6 +98,17 @@ def test_prepare_application_environment_keeps_non_windows_graphics_default(
         "dpi",
         "messages",
     ]
+
+
+def test_prepare_application_environment_forwards_config_path(monkeypatch):
+    calls = []
+    _install_prepare_spies(monkeypatch, calls)
+
+    runtime_application.prepare_application_environment(
+        True, "application-config.json"
+    )
+
+    assert ("dpi", "application-config.json") in calls
 
 
 def test_windows_graphics_backend_is_direct3d11(monkeypatch):

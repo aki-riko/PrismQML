@@ -55,11 +55,14 @@ ACCENT_COLOR_VALIDATOR = Validator.hex_color(DEFAULT_ACCENT)
 def resolve_app_config_path(configured=None, *, default=None) -> Path:
     """Resolve explicit, environment, then default config path. 解析配置路径。"""
     if configured:
-        return Path(configured)
-    environment_path = os.environ.get(CONFIG_FILE_PATH_ENVIRONMENT)
-    if environment_path:
-        return Path(environment_path)
-    return Path(default) if default is not None else DEFAULT_APP_CONFIG
+        path = Path(configured)
+    else:
+        environment_path = os.environ.get(CONFIG_FILE_PATH_ENVIRONMENT)
+        if environment_path:
+            path = Path(environment_path)
+        else:
+            path = Path(default) if default is not None else DEFAULT_APP_CONFIG
+    return path.expanduser().resolve(strict=False)
 
 APP_WINDOW_VALIDATORS = {
     "LazyLoading": LAZY_LOADING_VALIDATOR,

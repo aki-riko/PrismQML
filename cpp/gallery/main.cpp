@@ -22,7 +22,7 @@
 int main(int argc, char *argv[]) {
     using namespace prism;
 
-    App app(argc, argv);
+    App app(argc, argv, QString(), true, resolveConfigFilePath(), true);
 #ifdef PRISM_QML_FROM_QRC
     app.engine()->addImportPath(QStringLiteral("qrc:/"));
     const QString pagesDir = QStringLiteral("qrc:/pages");

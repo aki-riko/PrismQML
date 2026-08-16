@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 // PrismQML C++ 宿主 - ConfigManager (镜像 Python config/config_manager.py + app_config.py)
-// 持久化 JSON 格式与 Python 兼容: Window 保存窗口偏好，Appearance 保存主题、
-// 皮肤、语言与主题色。单例默认落盘
-// ~/.prismqml/app.json，首次使用前可用 PRISMQML_CONFIG_FILE 覆盖。
+// 持久化 JSON 格式与 Python 兼容: Window 保存窗口偏好；Appearance 仅在应用
+// 显式授权后恢复和落盘，避免多个宿主共享 ~/.prismqml/app.json 的外观状态。
 #pragma once
 
 #include "prism/ConfigContracts.h"
@@ -41,6 +40,8 @@ class ConfigManager : public QObject {
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
     Q_PROPERTY(QVariantList languageOptions READ languageOptions CONSTANT)
     Q_PROPERTY(QString accentColor READ accentColor NOTIFY accentColorChanged)
+    Q_PROPERTY(bool appearancePersistenceEnabled
+               READ appearancePersistenceEnabled CONSTANT)
     Q_PROPERTY(bool persistencePending READ persistencePending
                NOTIFY persistencePendingChanged)
 
@@ -48,9 +49,13 @@ public:
     static constexpr int kDefaultPersistenceTimeoutMs = 5000;
 
     static ConfigManager *instance();
+    static ConfigManager *initialize(const QString &configFilePath,
+                                     bool persistAppearance);
     ~ConfigManager() override;
     // Explicit isolated path; an empty path fails closed. 显式隔离路径；空路径安全拒绝。
-    explicit ConfigManager(const QString &configFilePath, QObject *parent = nullptr);
+    explicit ConfigManager(const QString &configFilePath,
+                           bool persistAppearance = true,
+                           QObject *parent = nullptr);
 
     // ---- 属性读取 (默认值镜像 Python app_config.py) ----
     bool lazyLoading() const { return m_state.lazyLoading; }
@@ -67,6 +72,7 @@ public:
     QString language() const { return m_state.language; }
     QVariantList languageOptions() const;
     QString accentColor() const { return m_state.accentColor; }
+    bool appearancePersistenceEnabled() const { return m_persistAppearance; }
     bool persistencePending() const;
 
 public slots:
@@ -140,7 +146,8 @@ private:
     explicit ConfigManager(QObject *parent = nullptr);
     QString configFilePath() const;
     void load();
-    static QByteArray serialize(const State &candidate);
+    static QByteArray serialize(
+        const State &candidate, bool persistAppearance);
     static bool applyUpdate(State &candidate, const PendingUpdate &update);
     void enqueueUpdate(
         Field field, const QVariant &value, quint64 runtimeRequestId = 0);
@@ -151,9 +158,15 @@ private:
     void settleRuntimeOverride(Field field, quint64 requestId, bool failed);
     bool hasRuntimeOverride(Field field) const;
     void applyAppearanceToRuntime() const;
+    QString *ephemeralAppearanceValue(Field field);
+    void applyEphemeralRuntime(Field field, const QString &value);
+    void publishEphemeralField(Field field);
+    void setEphemeralAppearance(Field field, const QVariant &value);
 
     friend class ConfigManagerTestAccess;
+    static ConfigManager *s_instance;
     QString m_configFilePath;
+    bool m_persistAppearance = false;
     State m_state;
     QQueue<PendingUpdate> m_pendingUpdates;
     std::optional<ActiveWrite> m_activeWrite;
