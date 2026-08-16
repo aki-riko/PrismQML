@@ -2,12 +2,9 @@
 // SPDX-License-Identifier: MIT
 // This file is part of PrismQML, licensed under MIT.
 
-import QtQuick.Effects
 import "../../.."
-import "../../buttons"
-import "../../data/Label"
 import "../../utils/_internal"
-import "_internal"
+import "_internal" as TooltipInternal
 import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
@@ -178,7 +175,7 @@ Item {
     visible: false
 
     // ==================== Content 内容 ====================
-    TipPositionHelper {
+    TooltipInternal.TipPositionHelper {
         id: posHelper
         target: control.target
         tipType: control.tipType
@@ -195,103 +192,9 @@ Item {
         asynchronous: false
 
         sourceComponent: Component {
-            Window {
-                id: popupWindow
-                flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
-                color: Enums.transparent
-                width: posHelper.viewWidth
-                height: posHelper.viewHeight
-                x: control._animX
-                y: control._animY
-                opacity: 0
-
-                // Focus detection for click outside close 焦点检测实现点击外部关闭
-                onActiveFocusItemChanged: {
-                    if (!activeFocusItem && control._isOpen && control.modal) {
-                        Qt.callLater(function() {
-                            if (!popupWindow.activeFocusItem && control._isOpen) {
-                                control.close()
-                            }
-                        })
-                    }
-                }
-
-                Rectangle {
-                    id: contentRect
-                    objectName: "tipPopupSurface"
-                    anchors.fill: parent
-                    radius: control._tipRadius
-                    color: control._tipBackground
-                    border.width: control._tipBorderWidth
-                    border.color: control._tipBorderColor
-
-                    Column {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: actionRow.visible ? actionRow.top : parent.bottom
-                        anchors.topMargin: Enums.spacing.l
-                        anchors.leftMargin: Enums.spacing.l
-                        anchors.rightMargin: control.closable ? 32 : Enums.spacing.l
-                        anchors.bottomMargin: actionRow.visible ? Enums.spacing.s : Enums.spacing.l
-                        spacing: Enums.spacing.xs
-
-                        Label {
-                            type: Enums.label.type_body_strong
-                            text: control.title
-                            visible: text !== ""
-                        }
-
-                        Label {
-                            type: Enums.label.type_caption
-                            text: control.content
-                            color: Enums.textColor.secondary
-                            wrapMode: Text.Wrap
-                            width: parent.width
-                            visible: text !== ""
-                        }
-                    }
-
-                    // Create action controls only for tips that expose actions.
-                    // 仅为带操作的提示创建操作控件。
-                    Loader {
-                        id: actionRow
-
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.rightMargin: Enums.spacing.l
-                        anchors.bottomMargin: Enums.spacing.l
-                        active: control._hasActions
-                        visible: active
-                        sourceComponent: Row {
-                            spacing: Enums.spacing.m
-
-                            Button {
-                                objectName: "tipSecondaryActionButton"
-                                text: control.secondaryButtonText
-                                visible: text !== ""
-                                onClicked: control._triggerSecondaryAction()
-                            }
-
-                            Button {
-                                objectName: "tipPrimaryActionButton"
-                                style: Enums.button.style_primary
-                                text: control.primaryButtonText
-                                visible: text !== ""
-                                onClicked: control._triggerPrimaryAction()
-                            }
-                        }
-                    }
-
-                    CloseButton {
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.topMargin: Enums.spacing.xs
-                        anchors.rightMargin: Enums.spacing.xs
-                        visible: control.closable
-                        onClicked: control.close()
-                    }
-                }
+            TooltipInternal.TipPopupWindow {
+                popupControl: control
+                positionHelper: posHelper
             }
         }
     }

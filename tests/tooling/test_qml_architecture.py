@@ -787,6 +787,31 @@ def test_chat_message_list_keeps_viewport_content_modularized():
         assert marker not in source
 
 
+def test_tip_popup_keeps_main_window_surface_modularized():
+    entry = _source("prismqml/PrismQML/controls/feedback/Tooltip/TipPopup.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPopupWindow.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 370
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as TooltipInternal' in source
+    assert "TooltipInternal.TipPopupWindow {" in source
+    assert "required property var popupControl" in helper_source
+    assert "required property var positionHelper" in helper_source
+    assert 'objectName: "tipPopupSurface"' in helper_source
+    assert "\n                id: popupWindow\n" not in source
+    for marker in (
+        'objectName: "tipPopupSurface"',
+        'objectName: "tipPrimaryActionButton"',
+        'objectName: "tipSecondaryActionButton"',
+    ):
+        assert marker not in source
+
+
 def test_menu_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
     helper = _source("prismqml/PrismQML/controls/menus/_internal/MenuContent.qml")
