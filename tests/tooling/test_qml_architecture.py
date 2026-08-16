@@ -1383,6 +1383,35 @@ def test_chat_message_list_keeps_slot_delegate_modularized():
     assert "ChatMessageSlot {" in viewport.read_text(encoding="utf-8")
 
 
+def test_chat_message_slot_keeps_measurement_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/chat/_internal/ChatMessageSlot.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/chat/_internal/"
+        "ChatMessageSlotMeasurementTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 130
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 70
+    assert 'import "." as ChatInternal' in source
+    assert "ChatInternal.ChatMessageSlotMeasurementTimer {" in source
+    assert "id: slotMeasurementTimer" in source
+    assert "targetSlot: slot" in source
+    assert "host: slot.host" in source
+    assert "\n    Timer {" not in source
+    assert "required property var targetSlot" in helper_source
+    assert "required property var host" in helper_source
+    assert 'objectName: "chatMessageSlotMeasurementTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    assert "host._cacheSlotHeight(targetSlot, targetSlot.item.implicitHeight)" in helper_source
+    assert "host._cacheSlotHeight(slot, slot.item.implicitHeight)" not in source
+
+
 def test_chat_message_list_keeps_viewport_content_modularized():
     entry = _source("prismqml/PrismQML/controls/chat/ChatMessageList.qml")
     helper = _source(

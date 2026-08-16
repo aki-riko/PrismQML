@@ -273,6 +273,43 @@ def test_streaming_growth_follows_bottom_but_preserves_scrolled_position(qapp):
         _pump(1)
 
 
+def test_chat_message_slot_measurement_timer_preserves_lifecycle_contract(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = window = None
+    try:
+        component, window = _create(engine)
+        message_list = window.findChild(QQuickItem, "messages")
+        assert message_list is not None
+        assert _evaluate(
+            message_list,
+            'appendMessage("assistant", "Timer contract", "")',
+        ) is None
+        _wait_until(lambda: bool(_message_slots(message_list)))
+        slot = _message_slots(message_list)[0]
+        _wait_until(lambda: _is_slot_measured(slot))
+
+        timer = slot.findChild(QObject, "chatMessageSlotMeasurementTimer")
+        assert timer is not None
+        assert timer.parent() is slot
+        assert timer.property("targetSlot") is slot
+        assert timer.property("host") is message_list
+        assert timer.property("interval") == 0
+        assert timer.property("repeat") is False
+
+        timer.stop()
+        assert _evaluate(slot, "_scheduleMeasurement(); true") is True
+        assert timer.property("running") is True
+        _pump(20)
+        assert timer.property("running") is False
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)
+
+
 def test_clear_resets_virtual_content_extent(qapp):
     engine = QQmlApplicationEngine()
     register_types(engine)

@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import ".."
+import "." as ChatInternal
 
 // ChatMessageSlot - Virtualized chat message loader 虚拟化聊天消息加载器
 // Keeps message measurement and bubble construction outside the list coordinator 将测量与气泡装配移出列表编排器
@@ -64,16 +65,10 @@ Loader {
     onLoaded: if (host) host._scheduleSlotMeasurement(slot)
 
     // ==================== Content 内容 ====================
-    Timer {
+    ChatInternal.ChatMessageSlotMeasurementTimer {
         id: slotMeasurementTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: {
-            if (slot.item && host) {
-                host._cacheSlotHeight(slot, slot.item.implicitHeight)
-            }
-        }
+        targetSlot: slot
+        host: slot.host
     }
 
     sourceComponent: ChatBubble {
