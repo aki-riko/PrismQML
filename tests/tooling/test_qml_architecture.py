@@ -1215,6 +1215,34 @@ def test_menu_core_keeps_visual_content_modularized():
     assert "MenuContent {" in entry.read_text(encoding="utf-8")
 
 
+def test_menu_core_keeps_submenu_open_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/menus/MenuCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/menus/_internal/MenuSubmenuOpenTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert "required property var host" in helper_source
+    assert "interval: Enums.duration.fast" in helper_source
+    assert "repeat: false" in helper_source
+    assert (
+        "host._pendingSubmenuAction.hovered" in helper_source
+    )
+    assert "host._openSubmenuForAction(" in helper_source
+    assert "MenuSubmenuOpenTimer {" in source
+    assert "id: submenuOpenTimer" in source
+    assert "host: control" in source
+    assert "\n Timer {" not in source
+    assert "interval: Enums.duration.fast" not in source
+    assert "_pendingSubmenuAction && _pendingSubmenuAction.hovered" not in source
+
+
 def test_infobar_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/feedback/InfoBar/InfoBarCore.qml")
     helper = _source(

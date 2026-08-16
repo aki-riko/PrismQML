@@ -422,19 +422,9 @@ PopupWindowCore {
  }
  }
 
- Timer {
+ MenuSubmenuOpenTimer {
  id: submenuOpenTimer
- interval: Enums.duration.fast
- repeat: false
- onTriggered: {
- if (_pendingSubmenuAction && _pendingSubmenuAction.hovered) {
- _openSubmenuForAction(
- _pendingSubmenuAction,
- _pendingSubmenuComponent,
- _pendingSubmenuProperties
- )
- }
- }
+ host: control
  }
  
  MenuContent {

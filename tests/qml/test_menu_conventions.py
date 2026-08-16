@@ -81,6 +81,11 @@ Window {
         menu.open(200, 200)
         submenuAction.submenuRequested()
     }
+    function buildAndShowHoverSubmenu() {
+        submenuAction = menu.addSubmenu("Parent", "", submenuComponent)
+        menu.closeOnClickOutside = false
+        menu.open(200, 200)
+    }
     function closeSubmenuMenus() {
         if (menu._openSubmenu) menu._openSubmenu.forceReset()
         menu.forceReset()
@@ -547,6 +552,33 @@ def test_menu_submenu_first_row_aligns_with_parent_action(menu_scene):
         screen_bottom = edge_screen.y() + edge_screen.height()
         menu.open(edge_screen.x() + 100, screen_bottom)
         assert _wait_for(lambda: parent_window.y() + parent_window.height() <= screen_bottom)
+        assert len(_new_visible_windows(windows_before, window)) == 2
+        assert warnings == []
+    finally:
+        assert QMetaObject.invokeMethod(window, "closeSubmenuMenus")
+        assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+
+
+def test_menu_submenu_hover_delay_opens_while_action_remains_hovered(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    menu = items["menuCore"]
+
+    try:
+        assert QMetaObject.invokeMethod(window, "buildAndShowHoverSubmenu")
+        assert _wait_for(lambda: menu.property("isOpen"))
+        assert menu.property("_openSubmenu") is None
+
+        parent_action = window.property("submenuAction")
+        parent_window = parent_action.window()
+        hover_position = parent_action.mapToScene(
+            QPointF(parent_action.width() / 2, parent_action.height() / 2)
+        ).toPoint()
+        QTest.mouseMove(parent_window, hover_position)
+
+        assert _wait_for(lambda: parent_action.property("hovered"))
+        assert _wait_for(lambda: menu.property("_openSubmenu") is not None)
+        submenu = menu.property("_openSubmenu")
+        assert submenu.property("targetControl") is parent_action
         assert len(_new_visible_windows(windows_before, window)) == 2
         assert warnings == []
     finally:
