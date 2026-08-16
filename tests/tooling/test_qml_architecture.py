@@ -2660,6 +2660,39 @@ def test_segmented_control_keeps_slide_sync_timer_modularized():
     assert "host._updateSlidePosition(false)" in helper_source
 
 
+def test_confetti_keeps_lifecycle_timers_modularized():
+    entry = _source("prismqml/PrismQML/controls/feedback/Confetti.qml")
+    spawn_helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/ConfettiSpawnTimer.qml"
+    )
+    stop_helper = _source(
+        "prismqml/PrismQML/controls/feedback/_internal/ConfettiStopTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    spawn_source = spawn_helper.read_text(encoding="utf-8")
+    stop_source = stop_helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 225
+    assert spawn_helper.exists() and stop_helper.exists()
+    assert len(spawn_source.splitlines()) < 25
+    assert len(stop_source.splitlines()) < 25
+    assert 'import "_internal" as FeedbackInternal' in source
+    assert "FeedbackInternal.ConfettiSpawnTimer {" in source
+    assert "FeedbackInternal.ConfettiStopTimer {" in source
+    assert "id: spawnTimer" in source
+    assert "id: stopTimer" in source
+    assert source.count("host: control") == 2
+    assert "\n    Timer {" not in source
+    for helper_source in (spawn_source, stop_source):
+        assert "required property var host" in helper_source
+    assert 'objectName: "confettiSpawnTimer"' in spawn_source
+    assert "running: host.running && host._spawnIndex < host.particleCount" in spawn_source
+    assert "onTriggered: host._spawnBatch(8)" in spawn_source
+    assert 'objectName: "confettiStopTimer"' in stop_source
+    assert "interval: host.duration + Enums.duration.dialog" in stop_source
+    assert "onTriggered: host.running = false" in stop_source
+
+
 def test_pin_input_keeps_cell_delegate_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/PinInput.qml")
     helper = _source(

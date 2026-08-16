@@ -45,6 +45,7 @@ Window {
 
     property int sampleParticleCount: 1
     readonly property real expectedMicroRadius: Enums.radius.micro
+    readonly property int expectedDialogDuration: Enums.duration.dialog
 
     width: 420
     height: 320
@@ -285,6 +286,39 @@ def test_confetti_initial_batch_reduces_shape_objects(qapp):
         )
 
         assert object_count == 243
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_confetti_timers_preserve_spawn_and_auto_stop_lifecycle(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, confetti, warnings = _create_scene(30)
+    try:
+        assert confetti.setProperty("duration", 40)
+        spawn_timer = confetti.findChild(QObject, "confettiSpawnTimer")
+        stop_timer = confetti.findChild(QObject, "confettiStopTimer")
+        assert spawn_timer is not None and stop_timer is not None
+        for timer in (spawn_timer, stop_timer):
+            assert timer.parent() is confetti
+            assert timer.property("host") == confetti
+        assert spawn_timer.property("interval") == 5
+        assert spawn_timer.property("repeat") is True
+        assert stop_timer.property("interval") == (
+            confetti.property("duration")
+            + window.property("expectedDialogDuration")
+        )
+        assert stop_timer.property("repeat") is False
+
+        assert QMetaObject.invokeMethod(confetti, "start")
+        assert _wait_for(lambda: spawn_timer.property("running"))
+        assert stop_timer.property("running") is True
+        assert _wait_for(lambda: confetti.property("_spawnIndex") == 30)
+        assert spawn_timer.property("running") is False
+        assert _wait_for(lambda: confetti.property("running") is False)
+        assert stop_timer.property("running") is False
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

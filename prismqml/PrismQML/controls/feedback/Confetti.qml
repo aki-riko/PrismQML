@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "_internal" as FeedbackInternal
 
 // Confetti - Pure QtQuick implementation 彩纸动画
 // Celebration/success confetti falling effect 庆祝彩纸飘落效果
@@ -64,20 +65,17 @@ Item {
 
     // ==================== Content 内容 ====================
     // Particle spawn timer 粒子生成定时器
-    Timer {
+    FeedbackInternal.ConfettiSpawnTimer {
         id: spawnTimer
-        interval: 5
-        repeat: true
-        running: control.running && _spawnIndex < particleCount
-        onTriggered: _spawnBatch(8)
+
+        host: control
     }
     
     // Auto-stop timer 自动停止定时器
-    Timer {
+    FeedbackInternal.ConfettiStopTimer {
         id: stopTimer
-        interval: control.duration + Enums.duration.dialog
-        running: control.running
-        onTriggered: control.running = false
+
+        host: control
     }
     
     // Particle component 粒子组件
