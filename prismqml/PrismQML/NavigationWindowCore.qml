@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Window
 import "controls/feedback/SplashScreen"
+import "_internal"
 import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
 import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
 
@@ -415,19 +416,9 @@ WindowsCore {
         }
     }
 
-    Timer {
+    NavigationSplashTimer {
         id: _splashTimer
-
-        property bool _minimumVisiblePhase: false
-        property int _minimumVisibleInterval: Enums.duration.splashMinimumVisible
-        property var _onTimeout: null
-
-        interval: _minimumVisiblePhase
-                  ? _minimumVisibleInterval : Enums.duration.splashTimeout
-        onTriggered: {
-            if (_minimumVisiblePhase) window._scheduleSplashDismiss()
-            else if (_onTimeout) _onTimeout()
-        }
+        host: window
     }
 
     Timer {

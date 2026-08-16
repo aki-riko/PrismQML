@@ -144,6 +144,32 @@ def test_navigation_window_core_keeps_orchestration_modularized():
     assert "NavigationWindowRouting.handleBottomItemClicked(window," in source
 
 
+def test_navigation_window_core_keeps_splash_timer_modularized():
+    entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/NavigationSplashTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 480
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert 'import "_internal"' in source
+    assert "NavigationSplashTimer {" in source
+    assert "id: _splashTimer" in source
+    assert "host: window" in source
+    assert "Timer {" in helper_source
+    assert "required property var host" in helper_source
+    assert "property bool _minimumVisiblePhase: false" in helper_source
+    assert "property int _minimumVisibleInterval:" in helper_source
+    assert "property var _onTimeout: null" in helper_source
+    assert "host._scheduleSplashDismiss()" in helper_source
+    assert "Enums.duration.splashTimeout" in helper_source
+    assert "property bool _minimumVisiblePhase: false" not in source
+    assert "property var _onTimeout: null" not in source
+
+
 def test_navigation_panel_keeps_background_layer_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
     background = _source(

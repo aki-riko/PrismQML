@@ -30,6 +30,13 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml"
+SPLASH_TIMER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "_internal"
+    / "NavigationSplashTimer.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "navigation-window-core-timer-lifecycle.qml")
 )
@@ -139,7 +146,10 @@ def _direct_timers(window: QObject) -> list[QObject]:
     return [
         child
         for child in window.findChildren(QObject)
-        if child.metaObject().className().startswith("QQmlTimer")
+        if (
+            child.metaObject().className().startswith("QQmlTimer")
+            or child.metaObject().indexOfProperty("_minimumVisiblePhase") >= 0
+        )
         and child.parent() is not None
         and child.parent().objectName() == "contentContainer"
     ]
@@ -273,11 +283,20 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
 def test_navigation_window_core_source_reuses_one_splash_timer():
     """Exclusive splash roles reuse one timer. 互斥的欢迎页角色复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 4
+    helper_source = SPLASH_TIMER_PATH.read_text(encoding="utf-8")
+
+    assert source.count("\n    Timer {") == 3
+    assert "NavigationSplashTimer {" in source
     assert "id: _splashTimer" in source
+    assert "host: window" in source
     assert "id: _splashMinimumVisibleTimer" not in source
     assert "id: _splashTimeoutTimer" not in source
     assert "Qt.callLater(window._flushSplashDismissSchedule)" in source
     assert "id: _micaBackdropCommitTimer" in source
     assert "id: _micaReapplyTimer" in source
     assert "id: _micaLateReapplyTimer" in source
+    assert "Timer {" in helper_source
+    assert "required property var host" in helper_source
+    assert "property bool _minimumVisiblePhase: false" in helper_source
+    assert "Enums.duration.splashTimeout" in helper_source
+    assert "host._scheduleSplashDismiss()" in helper_source
