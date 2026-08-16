@@ -83,6 +83,20 @@ def _dispose_scene(qapp, engine, component, root, provider) -> None:
     assert not shiboken6.isValid(provider)
 
 
+def _wait_for(predicate, timeout_ms: int = 500) -> bool:
+    """Wait for a QML state transition. 等待 QML 状态转换。"""
+    if predicate():
+        return True
+    loop = QEventLoop()
+    poll = QTimer()
+    poll.setInterval(1)
+    poll.timeout.connect(lambda: loop.quit() if predicate() else None)
+    poll.start()
+    QTimer.singleShot(timeout_ms, loop.quit)
+    loop.exec()
+    return predicate()
+
+
 def _window_icon_request(qapp, source: str) -> tuple[str, str]:
     """Run WindowIcon with synchronous child Images. 执行真实 WindowIcon 传输。"""
     records: list[str] = []
@@ -140,3 +154,37 @@ def test_window_icon_provider_id_encodes_literal_pipe(qapp, tmp_path: Path) -> N
     assert svg_source == "image://svg/" + encoded_source
     assert provider_id == encoded_source
     assert resolve_provider_path(provider_id).replace("\\", "/") == source
+
+
+def test_window_icon_deferred_load_timer_preserves_state_contract(
+    qapp, tmp_path: Path
+) -> None:
+    """WindowIcon commits deferred source only after its timer. WindowIcon 延迟提交合同。"""
+    records: list[str] = []
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    capture_provider = _CapturingProvider(records)
+    engine.addImageProvider("svg", capture_provider)
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(WINDOW_ICON)))
+    _wait_component(component)
+    assert component.status() == QQmlComponent.Status.Ready, component.errorString()
+    root = component.create()
+    assert root is not None
+    try:
+        timer = root.findChild(QObject, "windowIconDeferredLoadTimer")
+        assert timer is not None
+        assert timer.parent() is root
+        assert timer.property("host") is root
+        assert root.property("_deferredLoadReady") is True
+        assert timer.property("running") is False
+
+        icon_path = tmp_path / "deferred.svg"
+        icon_path.write_text(SVG_CONTENT, encoding="utf-8")
+        root.setProperty("deferLoad", True)
+        root.setProperty("source", str(icon_path))
+        assert root.property("_deferredLoadReady") is False
+        assert timer.property("running") is True
+        assert _wait_for(lambda: root.property("_deferredLoadReady") is True)
+        assert timer.property("running") is False
+    finally:
+        _dispose_scene(qapp, engine, component, root, capture_provider)

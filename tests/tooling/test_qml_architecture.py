@@ -185,6 +185,31 @@ def test_native_window_startup_keeps_delay_timer_modularized():
     assert "onTriggered: root._attemptNativeHook()" not in source
 
 
+def test_window_icon_keeps_deferred_load_timer_modularized():
+    entry = _source("prismqml/PrismQML/_internal/WindowIcon.qml")
+    helper = _source(
+        "prismqml/PrismQML/_internal/WindowIconDeferredLoadTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 120
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert "WindowIconDeferredLoadTimer {" in source
+    assert "id: deferredLoadTimer" in source
+    assert "host: root" in source
+    assert "deferredLoadTimer.restart()" in source
+    assert "\n    Timer {" not in source
+    assert "onTriggered: {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "windowIconDeferredLoadTimer"' in helper_source
+    assert "interval: Enums.window.iconDeferredLoadDelayMs" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._deferredLoadReady = true" in helper_source
+    assert "root._deferredLoadReady = true" not in source
+
+
 def test_login_window_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/auth/LoginWindow.qml"

@@ -66,13 +66,9 @@ Item {
         _scheduleDeferredLoad()
     }
 
-    Timer {
+    WindowIconDeferredLoadTimer {
         id: deferredLoadTimer
-        interval: Enums.window.iconDeferredLoadDelayMs
-        repeat: false
-        onTriggered: {
-            root._deferredLoadReady = true
-        }
+        host: root
     }
 
     Image {

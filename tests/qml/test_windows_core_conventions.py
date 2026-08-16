@@ -41,6 +41,13 @@ RESIZE_HANDLES_TIMER_PATH = (
     / "_internal"
     / "WindowsResizeHandlesTimer.qml"
 )
+WINDOW_ICON_DEFERRED_TIMER_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "_internal"
+    / "WindowIconDeferredLoadTimer.qml"
+)
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
@@ -614,7 +621,25 @@ def test_window_leaf_source_conventions_and_icon_delay_token():
     window_icon = (
         ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowIcon.qml"
     ).read_text(encoding="utf-8")
-    assert "interval: Enums.window.iconDeferredLoadDelayMs" in window_icon
+    icon_timer = WINDOW_ICON_DEFERRED_TIMER_PATH.read_text(encoding="utf-8")
+    icon_timer_path = PurePosixPath(
+        WINDOW_ICON_DEFERRED_TIMER_PATH.relative_to(ROOT).as_posix()
+    )
+    icon_timer_violations = scan_source_text(icon_timer, icon_timer_path)
+    assert [
+        violation
+        for violation in icon_timer_violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "WindowIconDeferredLoadTimer {" in window_icon
+    assert "host: root" in window_icon
+    assert "\n    Timer {" not in window_icon
+    assert "onTriggered: {" not in window_icon
+    assert "required property var host" in icon_timer
+    assert 'objectName: "windowIconDeferredLoadTimer"' in icon_timer
+    assert "interval: Enums.window.iconDeferredLoadDelayMs" in icon_timer
+    assert "repeat: false" in icon_timer
+    assert "onTriggered: host._deferredLoadReady = true" in icon_timer
     assert "interval: 1" not in window_icon
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int iconDeferredLoadDelayMs: 1" in metrics
