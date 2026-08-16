@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Window
 import "../../.."
+import "_internal" as NotificationInternal
 
 // NotificationAnimator - Shared slide animation for notifications 通知滑动动画共享组件
 // Used by Toast, InfoBar and desktop windows 供Toast、InfoBar和桌面窗口使用
@@ -112,9 +113,8 @@ QtObject {
             easing.type: Enums.notification.animation.repositionEasing
         }
     }
-    property Timer _geometryUpdateTimer: Timer {
-        interval: 0
-        onTriggered: animator.updatePosition()
+    property Timer _geometryUpdateTimer: NotificationInternal.NotificationAnimatorGeometryUpdateTimer {
+        host: animator
     }
     property Connections _targetConnections: Connections {
         function onWidthChanged() { animator._schedulePositionUpdate() }

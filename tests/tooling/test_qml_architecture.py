@@ -1947,6 +1947,41 @@ def test_desktop_notification_keeps_auto_close_timer_modularized():
     assert "onTriggered: host.hide()" in helper_source
 
 
+def test_notification_animator_keeps_geometry_update_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/"
+        "NotificationAnimator.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "NotificationAnimatorGeometryUpdateTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 270
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert helper_source.count("Timer {") == 1
+    assert "\nTimer {" in helper_source
+    assert 'import "_internal" as NotificationInternal' in source
+    assert "property Timer _geometryUpdateTimer:" in source
+    assert "NotificationInternal.NotificationAnimatorGeometryUpdateTimer {" in source
+    assert "host: animator" in source
+    assert "required property var host" in helper_source
+    assert (
+        'objectName: "notificationAnimatorGeometryUpdateTimer"'
+        in helper_source
+    )
+    assert "interval: Enums.duration.none" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host.updatePosition()" in helper_source
+    assert "_geometryUpdateTimer.restart()" in source
+    assert "_geometryUpdateTimer.stop()" in source
+    assert "property Timer _geometryUpdateTimer: Timer {" not in source
+    assert "onTriggered: animator.updatePosition()" not in source
+
+
 def test_marquee_keeps_layout_start_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/data/Marquee.qml")
     helper = _source(
