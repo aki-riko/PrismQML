@@ -6,7 +6,15 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QMetaObject,
+    QObject,
+    QTimer,
+    QUrl,
+)
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickItem
 
@@ -22,6 +30,9 @@ import PrismQML
 
 Item {
     id: root
+
+    readonly property int restoreDelay:
+        Enums.duration.medium + Enums.spacing.xl
 
     function displaceAndReopenMaskedBody() {
         masked.body.anchors.centerIn = undefined
@@ -55,6 +66,12 @@ Item {
 """
 
 
+def _pump(milliseconds: int = 20) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
 def _create_scene():
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
@@ -64,9 +81,7 @@ def _create_scene():
     for _ in range(50):
         if component.status() != QQmlComponent.Status.Loading:
             break
-        loop = QEventLoop()
-        QTimer.singleShot(20, loop.quit)
-        loop.exec()
+        _pump()
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
@@ -99,6 +114,26 @@ def test_root_module_exports_bodyless_overlay_and_masked_open_hook(qapp):
 
         assert body.x() == (root.width() - body.width()) / 2
         assert body.y() == (root.height() - body.height()) / 2
+
+        restore_timer = overlay.findChild(
+            QObject, "overlayDialogRestoreParentTimer"
+        )
+        assert restore_timer is not None
+        assert restore_timer.parent() is overlay
+        assert restore_timer.property("host") == overlay
+        assert restore_timer.property("interval") == root.property(
+            "restoreDelay"
+        )
+        assert restore_timer.property("running") is False
+
+        assert QMetaObject.invokeMethod(overlay, "close")
+        assert overlay.property("_isOpen") is False
+        assert overlay.property("_isClosing") is True
+        assert restore_timer.property("running") is True
+        _pump(int(root.property("restoreDelay")) + 20)
+        assert overlay.property("_isClosing") is False
+        assert overlay.isVisible() is False
+        assert restore_timer.property("running") is False
     finally:
         _dispose_scene(engine, component, root)
 

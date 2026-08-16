@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
+import "_internal" as DialogInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
 
@@ -159,10 +160,9 @@ Item {
         }
     }
 
-    // Timer to restore parent after close animation 关闭动画后恢复父组件的定时器
-    Timer {
+    DialogInternal.OverlayDialogRestoreParentTimer {
         id: _restoreParentTimer
-        interval: Enums.duration.medium + Enums.spacing.xl
-        onTriggered: control._restoreParent()
+
+        host: control
     }
 }

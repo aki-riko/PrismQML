@@ -2434,6 +2434,31 @@ def test_progress_dialog_keeps_timeout_timer_modularized():
     assert "host.close()" in helper_source
 
 
+def test_overlay_dialog_keeps_restore_timer_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/dialogs/OverlayDialogCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/dialogs/_internal/"
+        "OverlayDialogRestoreParentTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 175
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 25
+    assert 'import "_internal" as DialogInternal' in source
+    assert "DialogInternal.OverlayDialogRestoreParentTimer {" in source
+    assert "id: _restoreParentTimer" in source
+    assert "host: control" in source
+    assert "\n    Timer {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "overlayDialogRestoreParentTimer"' in helper_source
+    assert "interval: Enums.duration.medium + Enums.spacing.xl" in helper_source
+    assert "onTriggered: host._restoreParent()" in helper_source
+
+
 def test_line_edit_core_keeps_variant_factories_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"
