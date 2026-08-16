@@ -36,6 +36,7 @@ SOURCE_PATH = (
     / "LineEdit"
     / "LineEditCore.qml"
 )
+VARIANTS_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "LineEditVariants.qml"
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-core-conventions.qml")
@@ -379,13 +380,24 @@ def test_line_edit_core_tag_select_all_visual_and_clear(qapp):
 
 def test_line_edit_core_source_conventions_and_width_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
+    helper_source = VARIANTS_SOURCE_PATH.read_text(encoding="utf-8")
+    violations = []
+    for path, candidate in (
+        (SOURCE_PATH, source),
+        (VARIANTS_SOURCE_PATH, helper_source),
+    ):
+        violations.extend(
+            scan_source_text(
+                candidate, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+        )
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+    assert "LineEditInternal.LineEditVariants {" in source
+    assert "required property var lineEditControl" in helper_source
     assert "expandedWidth: Enums.controlSize.inputDefaultWidth" in source
     assert "Enums.controlSize.lineEditLabelWidth" in source
     assert "Enums.controlSize.lineEditTagWidth" in source

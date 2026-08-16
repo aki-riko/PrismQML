@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import ".."
+import "_internal" as LineEditInternal
 
 // LineEdit - Unified single-line input component 统一单行输入组件
 // Control via inputType 通过inputType控制类型
@@ -132,6 +133,11 @@ InputCore {
     }
 
     // ==================== Content 内容 ====================
+    LineEditInternal.LineEditVariants {
+        id: lineEditVariants
+        lineEditControl: control
+    }
+
     // Dynamic loader 动态加载器
     Loader {
         id: loader
@@ -144,13 +150,13 @@ InputCore {
                 case Enums.input.type_normal:
                 case Enums.input.type_password:
                 case Enums.input.type_search:
-                    return normalComponent
+                    return lineEditVariants.normalComponent
                 case Enums.input.type_label:
-                    return labelComponent
+                    return lineEditVariants.labelComponent
                 case Enums.input.type_tag:
-                    return tagComponent
+                    return lineEditVariants.tagComponent
                 default:
-                    return normalComponent
+                    return lineEditVariants.normalComponent
             }
         }
         // Loader 加载完成时同步初始文本
@@ -174,88 +180,4 @@ InputCore {
         target: loader.item
     }
 
-    // Normal/password/search component 普通/密码/搜索组件
-    Component {
-        id: normalComponent
-        LineEditNormal {
-            inputType: control.inputType
-            placeholderText: control.placeholderText
-            readOnly: control.readOnly
-            maximumLength: control.maximumLength
-            clearButtonEnabled: control.clearButtonEnabled
-            validator: control.validator
-            inputMethodHints: control.inputMethodHints
-            showPassword: control.showPassword
-            collapsible: control.collapsible
-            collapsedWidth: control.collapsedWidth
-            expandedWidth: control.expandedWidth
-            controlEnabled: control.enabled
-            paddingLeft: control.paddingLeft
-            paddingRight: control.paddingRight
-            fontSize: control.fontSize
-            inputTextColor: control.inputTextColor
-            selectionColor: control.selectionColor
-            selectedTextColor: control.selectedTextColor
-
-            onTextEdited: (text) => control.textEdited(text)
-            onAccepted: control.accepted()
-            onEditingFinished: control.editingFinished()
-            onSearched: (text) => control.searched(text)
-            onCleared: control.cleared()
-            onSelectionChanged: control.selectionChanged()
-        }
-    }
-
-    // Label component 标签组件
-    Component {
-        id: labelComponent
-        LineEditLabel {
-            label: control.label
-            placeholderText: control.placeholderText
-            controlEnabled: control.enabled
-            paddingLeft: control.paddingLeft
-            paddingRight: control.paddingRight
-            fontSize: control.fontSize
-            selectionColor: control.selectionColor
-            selectedTextColor: control.selectedTextColor
-            
-            onTextModified: (text) => control.textModified(text)
-            onEditingFinished: control.editingFinished()
-        }
-    }
-
-    // Tag component 标签组件
-    Component {
-        id: tagComponent
-        // Tag uses existing TagLineEdit directly Tag使用现有组件
-        Item {
-            property string text: ""  // Tag模式不使用text
-            readonly property bool focused: tagEdit.focused
-            readonly property bool hovered: tagEdit.hovered
-            property var textInput: tagEdit.textInput
-            readonly property var editActionTarget: tagEdit
-            readonly property real contentHeight: tagEdit.implicitHeight
-
-            TagLineEdit {
-                id: tagEdit
-                anchors.fill: parent
-                tags: control.tags
-                separator: control.separator
-                placeholderText: control.placeholderText
-                maxTags: control.maxTags
-                suggestions: control.suggestions
-                allowCustomTags: control.allowCustomTags
-                extraSeparators: control.extraSeparators
-                validateTag: control.validateTag
-                tagColors: control.tagColors
-                enabled: control.enabled
-                transparentBackground: true  // 避免双重阴影叠加
-
-                onTagAdded: (tag) => control.tagAdded(tag)
-                onTagRemoved: (index, tag) => control.tagRemoved(index, tag)
-                onTagsModified: (newTags) => { control.tags = newTags; control.tagsModified(newTags) }
-                onSearched: (text) => control.searched(text)
-            }
-        }
-    }
 }

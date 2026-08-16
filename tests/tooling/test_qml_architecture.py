@@ -996,6 +996,33 @@ def test_pips_pager_keeps_navigation_button_visuals_modularized():
     assert "ButtonCore {" not in source
 
 
+def test_line_edit_core_keeps_variant_factories_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/LineEditCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/_internal/"
+        "LineEditVariants.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 190
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 180
+    assert 'import "_internal" as LineEditInternal' in source
+    assert "LineEditInternal.LineEditVariants {" in source
+    assert "required property var lineEditControl" in helper_source
+    for component_name in ("normalComponent", "labelComponent", "tagComponent"):
+        assert f"property alias {component_name}:" in helper_source
+    for marker in (
+        "\n    Component {\n        id: normalComponent",
+        "\n    Component {\n        id: labelComponent",
+        "\n    Component {\n        id: tagComponent",
+    ):
+        assert marker not in source
+
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(
