@@ -1235,6 +1235,29 @@ def test_flow_layout_keeps_append_timer_modularized():
     assert "\n    Timer {\n        id: appendLayoutTimer" not in source
 
 
+def test_flow_layout_keeps_layout_timer_modularized():
+    entry = _source("prismqml/PrismQML/controls/containers/Layout/FlowLayout.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/Layout/_internal/"
+        "FlowLayoutLayoutTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 400
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 40
+    assert "LayoutInternal.FlowLayoutLayoutTimer {" in source
+    assert "id: layoutTimer" in source
+    assert "host: control" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "flowLayoutLayoutTimer"' in helper_source
+    assert "interval: 0" in helper_source
+    assert "repeat: false" in helper_source
+    assert "onTriggered: host._performLayout()" in helper_source
+    assert "\n    Timer {\n        id: layoutTimer" not in source
+
+
 def test_constants_keeps_theme_colors_modularized():
     entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
     helper = _source(

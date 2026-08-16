@@ -346,11 +346,9 @@ Item {
 
     // ==================== Content 内容 ====================
     // Component-owned timers cancel queued work when Loader destroys the layout 组件自有定时器确保 Loader 销毁布局时取消排队任务
-    Timer {
+    LayoutInternal.FlowLayoutLayoutTimer {
         id: layoutTimer
-        interval: 0
-        repeat: false
-        onTriggered: control._performLayout()
+        host: control
     }
 
     LayoutInternal.FlowLayoutAppendTimer {

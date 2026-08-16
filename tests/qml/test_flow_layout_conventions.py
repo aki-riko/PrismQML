@@ -453,6 +453,26 @@ def test_flow_layout_append_timer_lifecycle(flow_scene):
     assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
+def test_flow_layout_layout_timer_lifecycle(flow_scene):
+    root, warnings, windows_before = flow_scene
+    timer = root.findChild(QObject, "flowLayoutLayoutTimer")
+    assert timer is not None
+    host = timer.property("host")
+    assert host is not None
+    assert timer.parent() is host
+    assert timer.property("interval") == 0
+    assert timer.property("repeat") is False
+
+    timer.stop()
+    assert QMetaObject.invokeMethod(host, "_scheduleLayout")
+    assert host.property("_layoutPending") is True
+    assert timer.property("running") is True
+    assert _wait_for(lambda: timer.property("running") is False)
+    assert host.property("_layoutPending") is False
+    assert warnings == []
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_flow_layout_position_search_matches_previous_algorithm(flow_scene):
     root, warnings, windows_before = flow_scene
     assert QMetaObject.invokeMethod(root, "verifyPositionEquivalence")
