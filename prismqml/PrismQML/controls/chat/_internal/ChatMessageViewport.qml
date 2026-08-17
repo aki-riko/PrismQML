@@ -68,7 +68,9 @@ Flickable {
 
             delegate: ChatMessageSlot {
                 host: messageViewport._hostControl
-                messageColumn: messageColumn
+                // Qualify the outer column to avoid the delegate's same-named property.
+                // 明确限定外层列，避免解析为委托自身的同名属性。
+                messageColumn: messageViewport.contentColumn
             }
         }
     }

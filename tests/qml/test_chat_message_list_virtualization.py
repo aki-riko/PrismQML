@@ -378,6 +378,43 @@ def test_chat_message_slot_measurement_timer_preserves_lifecycle_contract(qapp):
         _pump(1)
 
 
+def test_chat_message_slots_inherit_viewport_width_for_bubbles(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = window = None
+    try:
+        component, window = _create(engine)
+        message_list = window.findChild(QQuickItem, "messages")
+        assert message_list is not None
+        window.setWidth(900)
+        window.setHeight(640)
+        window.show()
+        _pump(20)
+        assert message_list.width() > 0
+
+        _evaluate(
+            message_list,
+            'appendMessage("assistant", "记账簿提供添加记录入口。", "")',
+        )
+        _wait_until(lambda: bool(_message_slots(message_list)))
+        slot = _message_slots(message_list)[0]
+        _wait_until(lambda: _is_slot_measured(slot))
+
+        assert slot.width() == pytest.approx(
+            message_list.width(), abs=1
+        )
+        bubble = slot.property("item")
+        assert bubble is not None
+        assert bubble.property("_availWidth") > 100
+        assert bubble.property("_bubbleWidth") > 100
+    finally:
+        if window is not None:
+            window.deleteLater()
+        engine.deleteLater()
+        del component
+        _pump(1)
+
+
 def test_chat_message_list_scroll_timer_preserves_lifecycle_contract(qapp):
     engine = QQmlApplicationEngine()
     register_types(engine)
