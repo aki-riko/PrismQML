@@ -22,6 +22,7 @@ def initialize_page_prewarm_state(owner: Any) -> None:
     owner._page_prewarm_queue = []
     owner._page_prewarm_scheduled = False
     owner._page_prewarm_in_flight = None
+    owner._page_loads_in_flight = set()
     owner._foreground_page_load_index = None
 
 
@@ -85,6 +86,8 @@ class PagePrewarmMixin:
             return
         if getattr(self, "_foreground_page_load_index", None) is not None:
             return
+        if getattr(self, "_page_loads_in_flight", set()):
+            return
         if getattr(self, "_page_prewarm_in_flight", None) is not None:
             return
         if not getattr(self, "_page_prewarm_queue", []):
@@ -97,6 +100,9 @@ class PagePrewarmMixin:
         if getattr(self, "_startup_page_guard_active", False):
             return
         if getattr(self, "_foreground_page_load_index", None) is not None:
+            self._schedule_page_prewarm()
+            return
+        if getattr(self, "_page_loads_in_flight", set()):
             self._schedule_page_prewarm()
             return
         while getattr(self, "_page_prewarm_queue", []):
@@ -127,6 +133,20 @@ class PagePrewarmMixin:
     def _mark_foreground_page_load_finished(self) -> None:
         self._foreground_page_load_index = None
         self._schedule_page_prewarm()
+
+    def _mark_page_load_started(self, index: int) -> None:
+        loads = getattr(self, "_page_loads_in_flight", set())
+        self._page_loads_in_flight = loads
+        loads.add(index)
+
+    def _mark_page_load_finished(self, index: int) -> None:
+        loads = getattr(self, "_page_loads_in_flight", set())
+        loads.discard(index)
+        if not loads:
+            self._schedule_page_prewarm()
+
+    def _is_page_load_in_flight(self, index: int) -> bool:
+        return index in getattr(self, "_page_loads_in_flight", set())
 
     def _discard_page_prewarm(self, index: int) -> None:
         queue = getattr(self, "_page_prewarm_queue", [])

@@ -373,6 +373,7 @@ def test_sync_deferred_prewarm_promotes_only_after_batch_complete(monkeypatch):
     item = _source_item("existing", page, events)
     manager = _new_manager(events, item, _Container(events))
     _page_prewarm.initialize_page_prewarm_state(manager)
+    manager._current_index = 0
     manager._page_prewarm_in_flight = 0
     manager._foreground_page_load_index = 0
     _install_runtime_fakes(monkeypatch, events)

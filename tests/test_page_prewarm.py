@@ -148,6 +148,25 @@ def test_prewarm_yields_while_foreground_page_is_loading(monkeypatch):
     assert manager.created == [1]
 
 
+def test_prewarm_waits_for_replaced_page_load_to_finish(monkeypatch):
+    manager = _Manager()
+    timers = _install_timer(monkeypatch)
+    manager._begin_startup_page_guard()
+    manager._complete_startup_page_guard(0)
+
+    assert manager.prewarmPage(1) is True
+    manager._mark_page_load_started(2)
+    timers.run_next()
+
+    assert manager.created == []
+    assert timers.calls == []
+
+    manager._mark_page_load_finished(2)
+    timers.run_next()
+
+    assert manager.created == [1]
+
+
 def test_prewarm_queue_keeps_only_one_managed_page_in_flight(monkeypatch):
     manager = _Manager()
     timers = _install_timer(monkeypatch)

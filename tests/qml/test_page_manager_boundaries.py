@@ -17,7 +17,14 @@ configure_qml_test_process()
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QObject,
+    QTimer,
+    Signal,
+)
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtWidgets import QApplication
 
@@ -36,6 +43,21 @@ class _SelfDeletingItem(QQuickItem):
         super().setHeight(height)
         self.deleteLater()
         QCoreApplication.sendPostedEvents(self, QEvent.DeferredDelete)
+
+
+class _ManagedPage(QObject):
+    page_ready = Signal()
+    page_failed = Signal(str)
+    _prismqml_async_page = True
+
+    def __init__(self):
+        super().__init__()
+        self._qml_item = QQuickItem()
+        self._deferred_queue = []
+        self.start_count = 0
+
+    def start_loading(self):
+        self.start_count += 1
 
 
 def pump(ms):
@@ -145,6 +167,49 @@ def _exercise_size_signal_failure(temp_dir):
         _dispose_window(window)
 
 
+def _exercise_latest_navigation_wins(temp_dir):
+    from prismqml import Window, WindowType
+
+    page_a = _ManagedPage()
+    page_b = _ManagedPage()
+    window_class = _isolated_window_class(Window, temp_dir, "latest-navigation")
+    window = _new_window(window_class, WindowType.BAR)
+    window.addPage(None, "Home", "Home")
+    window.addPage(lambda: page_a, "Page A", "PageA")
+    window.addPage(lambda: page_b, "Page B", "PageB")
+    try:
+        window.show()
+        pump(80)
+        window.setCurrentIndex(1)
+        window.setCurrentIndex(2)
+        assert wait_for(lambda: 1 in window._pages and 2 in window._pages)
+        assert page_a.start_count == page_b.start_count == 1
+        assert wait_for(lambda: window._window.property("_pythonLoading") is True)
+        assert window._window.property("_pythonPendingIndex") == 2
+
+        page_a.page_ready.emit()
+        pump(40)
+
+        assert window.currentIndex() == 2
+        assert window._foreground_page_load_index == 2
+        assert window._window.property("_pythonPendingIndex") == 2
+        assert window._window.property("_pythonLoading") is True
+
+        page_b.page_ready.emit()
+        assert wait_for(
+            lambda: (
+                window._foreground_page_load_index is None
+                and window._window.property("_pythonPendingIndex") == -1
+                and window._window.property("_pythonLoading") is False
+            )
+        )
+        stacked_widget = window._window.property("stackedWidget")
+        assert window.currentIndex() == 2
+        assert stacked_widget.property("_displayIndex") == 2
+    finally:
+        _dispose_window(window)
+
+
 def _exercise_deleted_window_invocations(temp_dir):
     from prismqml import Window, WindowType
 
@@ -188,6 +253,7 @@ def main():
         with tempfile.TemporaryDirectory() as temp_dir:
             _exercise_page_factory_failure(temp_dir)
             _exercise_size_signal_failure(temp_dir)
+            _exercise_latest_navigation_wins(temp_dir)
             _exercise_deleted_window_invocations(temp_dir)
     finally:
         logger.removeHandler(capture)

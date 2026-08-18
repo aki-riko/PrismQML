@@ -407,23 +407,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         """
         total_count = len(self._nav_items) + len(self._bottom_nav_items)
         if 0 <= index < total_count:
-            self._current_index = index
-            self._discard_page_prewarm(index)
-            if self._is_page_prewarming(index):
-                self._mark_foreground_page_load_started(index)
-                self._start_loading_overlay(index)
-            else:
-                # 1) QML 侧立即切换: 让侧边栏 selected 状态 + stackedWidget index
-                #    立刻响应, 即使 Python 内容容器还没填好,导航栏视觉先到位
-                self._switch_to_index(index)
-            # 2) Python 侧页面: 已创建直接结束;未创建走异步加载有 loading
-            if (
-                self._lazy_loading
-                and index not in self._pages
-                and not self._is_page_prewarming(index)
-            ):
-                self._start_async_page_load(index)
-            self.currentIndexChanged.emit(index)
+            self._request_page_navigation(index, switch_immediately=True)
 
     def currentIndex(self) -> int:
         return self._current_index

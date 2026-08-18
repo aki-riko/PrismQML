@@ -216,6 +216,7 @@ class PageManagerMixin(PagePrewarmMixin):
             return
         if _has_deferred_queue(page_instance):
             profile("发现 deferred queue")
+            self._mark_page_load_started(index)
             on_complete = partial(
                 self._on_sync_batch_complete, index, page_instance
             )
@@ -233,6 +234,7 @@ class PageManagerMixin(PagePrewarmMixin):
         """Mark the page renderable and release guards. 标记页面可渲染并解除门禁。"""
         if _resolve_page_layout_item(page_instance) is not None:
             self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         if self._is_page_prewarming(index):
             promoted = self._foreground_page_load_index == index
             self._finish_page_prewarm(index)
@@ -275,16 +277,30 @@ class PageManagerMixin(PagePrewarmMixin):
 
     def _on_nav_changed(self, index: int):
         """导航项切换回调（QML触发）"""
+        self._request_page_navigation(index)
+
+    def _request_page_navigation(
+        self, index: int, *, switch_immediately: bool = False
+    ) -> None:
+        """Apply latest-target navigation semantics. 应用最新目标导航语义。"""
         self._current_index = index
         self._discard_page_prewarm(index)
 
-        # Python侧懒加载：页面未创建时异步加载并显示loading
-        if self._is_page_prewarming(index):
-            self._mark_foreground_page_load_started(index)
-            self._start_loading_overlay(index)
+        prewarming = self._is_page_prewarming(index)
+        loading = self._is_page_load_in_flight(index)
+        if prewarming or loading:
+            if switch_immediately and not prewarming:
+                self._switch_to_index(index)
+            if self._foreground_page_load_index != index:
+                self._mark_foreground_page_load_started(index)
+                self._start_loading_overlay(index)
         elif self._lazy_loading and index not in self._pages:
+            if switch_immediately:
+                self._switch_to_index(index)
             self._start_async_page_load(index)
         else:
+            if self._foreground_page_load_index is not None:
+                self._finish_loading()
             self._switch_to_index(index)
 
         self.currentIndexChanged.emit(index)
@@ -309,11 +325,15 @@ class PageManagerMixin(PagePrewarmMixin):
         4. 如果页面有_deferred_queue，启动分批创建
         5. 完成后隐藏loading覆盖层
         """
+        self._current_index = index
+        self._mark_page_load_started(index)
         self._mark_foreground_page_load_started(index)
         self._start_loading_overlay(index)
         item, page_container = self._resolve_async_page_target(index)
         if item is _NO_PAGE_TARGET:
-            self._finish_loading()
+            self._mark_page_load_finished(index)
+            if self._is_active_foreground_target(index):
+                self._finish_loading()
             return
         on_page_ready = partial(
             self._on_async_page_ready, index, item, page_container
@@ -339,7 +359,9 @@ class PageManagerMixin(PagePrewarmMixin):
         self, index, item, page_container, page_instance
     ):
         if page_instance is None:
-            self._finish_loading()
+            self._mark_page_load_finished(index)
+            if self._is_active_foreground_target(index):
+                self._finish_loading()
             return
         item._page_instance = page_instance
         self._attach_async_page_content(page_instance, page_container)
@@ -372,11 +394,13 @@ class PageManagerMixin(PagePrewarmMixin):
             page_instance.startBatchCreation(on_complete=on_complete)
             return
         self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         self._finish_loading_and_switch(index)
 
     def _start_managed_async_page(
         self, index, item, page_instance, *, finish_loading=True
     ):
+        self._mark_page_load_started(index)
         on_ready, on_failed = self._managed_page_callbacks(
             index, item, page_instance, finish_loading
         )
@@ -393,21 +417,35 @@ class PageManagerMixin(PagePrewarmMixin):
                 self._on_prewarm_managed_page_failed(
                     index, item, page_instance, str(exc)
                 )
+            elif not finish_loading:
+                self._on_initial_managed_page_failed(
+                    index, item, page_instance, str(exc)
+                )
             else:
                 self._on_managed_page_failed(index, item, page_instance, str(exc))
 
-    def _on_managed_async_page_ready(self, index):
+    def _on_managed_async_page_ready(self, index, page_instance):
+        if self._pages.get(index) is not page_instance:
+            return
         self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         self._finish_loading_and_switch(index)
 
-    def _on_initial_managed_async_page_ready(self, index):
+    def _on_initial_managed_async_page_ready(self, index, page_instance):
+        if self._pages.get(index) is not page_instance:
+            return
         self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         self._complete_startup_page_guard(index)
 
     def _managed_page_callbacks(self, index, item, page_instance, finish_loading):
         if self._is_page_prewarming(index):
             return (
-                partial(self._on_prewarm_managed_page_ready, index),
+                partial(
+                    self._on_prewarm_managed_page_ready,
+                    index,
+                    page_instance,
+                ),
                 partial(
                     self._on_prewarm_managed_page_failed,
                     index,
@@ -417,17 +455,41 @@ class PageManagerMixin(PagePrewarmMixin):
             )
         if finish_loading:
             return (
-                partial(self._on_managed_async_page_ready, index),
+                partial(
+                    self._on_managed_async_page_ready,
+                    index,
+                    page_instance,
+                ),
                 partial(self._on_managed_page_failed, index, item, page_instance),
             )
         return (
-            partial(self._on_initial_managed_async_page_ready, index),
-            partial(self._on_managed_page_failed, index, item, page_instance),
+            partial(
+                self._on_initial_managed_async_page_ready,
+                index,
+                page_instance,
+            ),
+            partial(
+                self._on_initial_managed_page_failed,
+                index,
+                item,
+                page_instance,
+            ),
         )
 
     def _on_managed_page_failed(self, index, item, page_instance, message):
         warning(f"异步 QML 页面加载失败: {message}")
         self._clear_managed_page(index, item, page_instance)
+        self._mark_page_load_finished(index)
+        self._complete_startup_page_guard(index)
+        if self._is_active_foreground_target(index):
+            self._finish_loading()
+
+    def _on_initial_managed_page_failed(
+        self, index, item, page_instance, message
+    ):
+        warning(f"异步 QML 页面加载失败: {message}")
+        self._clear_managed_page(index, item, page_instance)
+        self._mark_page_load_finished(index)
         self._complete_startup_page_guard(index)
         self._finish_loading()
 
@@ -437,8 +499,11 @@ class PageManagerMixin(PagePrewarmMixin):
         if item._page_instance is page_instance:
             item._page_instance = None
 
-    def _on_prewarm_managed_page_ready(self, index):
+    def _on_prewarm_managed_page_ready(self, index, page_instance):
+        if self._pages.get(index) is not page_instance:
+            return
         self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         promoted = self._foreground_page_load_index == index
         self._finish_page_prewarm(index)
         if promoted:
@@ -447,15 +512,19 @@ class PageManagerMixin(PagePrewarmMixin):
     def _on_prewarm_managed_page_failed(self, index, item, page_instance, message):
         warning(f"异步 QML 页面预热失败: {message}")
         self._clear_managed_page(index, item, page_instance)
+        self._mark_page_load_finished(index)
         promoted = self._foreground_page_load_index == index
         self._finish_page_prewarm(index)
-        if promoted:
+        if promoted and self._is_active_foreground_target(index):
             self._finish_loading()
 
     def _on_async_batch_complete(self, index, page_instance):
+        if self._pages.get(index) is not page_instance:
+            return
         if page_instance._qml_item:
             page_instance._qml_item.setOpacity(1)
         self._mark_python_page_ready(index)
+        self._mark_page_load_finished(index)
         self._finish_loading_and_switch(index)
 
     def _schedule_async_page_creation(self, item, on_page_ready):
@@ -477,8 +546,16 @@ class PageManagerMixin(PagePrewarmMixin):
 
     def _finish_loading_and_switch(self, index: int):
         """完成加载并切换到目标页面"""
+        if not self._is_active_foreground_target(index):
+            return
         self._finish_loading()
         self._switch_to_index(index)
+
+    def _is_active_foreground_target(self, index: int) -> bool:
+        return (
+            self._foreground_page_load_index == index
+            and self._current_index == index
+        )
 
     def _finish_loading(self):
         """完成加载，隐藏loading动画"""
