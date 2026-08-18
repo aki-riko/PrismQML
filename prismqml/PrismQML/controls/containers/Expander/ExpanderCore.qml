@@ -17,7 +17,6 @@ Widget {
     // ==================== Public Props 公开属性 ====================
     property alias title: headerView.title
     property alias content: headerView.content  // Description text 描述文本
-    property int titleType: Enums.label.type_body
     property string icon: ""
     property bool expanded: false
     property bool disabled: false

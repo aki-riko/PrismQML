@@ -230,7 +230,7 @@ def test_expander_methods_animation_and_header_click(expander_scene):
         item for item in _visual_items(expander) if item.property("text") == "Details"
     ]
     assert len(title_items) == 1
-    assert title_items[0].property("font").weight() == QFont.Weight.Normal
+    assert title_items[0].property("font").weight() == QFont.Weight.DemiBold
     assert not window.property("expanderState")
 
     assert QMetaObject.invokeMethod(expander, "toggle")
