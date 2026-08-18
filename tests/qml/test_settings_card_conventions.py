@@ -62,7 +62,6 @@ Window {
     property var addedGroupCard: null
 
     function selectOption() { card.setValue(1) }
-    function useColorCard() { card.type = Enums.settingCard.type_color }
     function toggleCard() { card.toggle() }
     function ensureCardExpanded() { card.setExpanded(true) }
     function runFolderFlow() {
@@ -127,6 +126,16 @@ Window {
         title: "Mode"
         options: ["One", "Two", "Three"]
         selectedIndex: 0
+    }
+
+    SettingsCard {
+        id: colorCard
+        objectName: "colorSettingsCard"
+        x: 20
+        y: 160
+        width: 320
+        type: Enums.settingCard.type_color
+        title: "Mode"
     }
 
     SettingsCardCore {
@@ -244,6 +253,7 @@ def _create_scene():
         name: window.findChild(QQuickItem, name)
         for name in (
             "settingsCard",
+            "colorSettingsCard",
             "settingsCardCore",
             "settingsCardGroup",
             "settingsCardContent",
@@ -409,11 +419,8 @@ def test_settings_card_normal_and_expandable_titles_share_strong_weight(
     settings_scene,
 ):
     window, items, warnings, windows_before = settings_scene
-    expandable_card = items["settingsCard"]
+    expandable_card = items["colorSettingsCard"]
     normal_card = items["normalSettingsCard"]
-
-    assert QMetaObject.invokeMethod(window, "useColorCard")
-    _pump()
 
     expandable_title = _find_text_item(expandable_card, "Mode")
     normal_title = _find_text_item(normal_card, "Language")
