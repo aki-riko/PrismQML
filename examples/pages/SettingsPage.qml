@@ -64,6 +64,32 @@ Item {
                         }
                     }
                 }
+
+                // DPI scaling DPI 缩放
+                SettingsCard {
+                    id: dpiCard
+
+                    readonly property var dpiValues:
+                        ConfigManager ? ConfigManager.dpiScaleOptions : []
+
+                    objectName: "dpiScaleSettingsCard"
+                    width: parent ? parent.width : 0
+                    title: Fluent.Translator.tr("gallery_2d406700ef62534f", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_c58314ff3c291c53", Fluent.Translator._v)
+                    icon: iconPath("ResizeImage")
+                    type: Fluent.Enums.settingCard.type_combobox
+                    model: dpiValues.map(function(value) {
+                        return value === 0 ? Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v) : value + "%"
+                    })
+                    currentIndex: ConfigManager
+                        ? dpiValues.indexOf(ConfigManager.dpiScale)
+                        : -1
+                    onIndexSelected: function(idx) {
+                        if (ConfigManager && idx >= 0 && idx < dpiValues.length) {
+                            ConfigManager.setDpiScale(dpiValues[idx])
+                        }
+                    }
+                }
                 
                 // 云母效果
                 SettingsCard {
@@ -128,6 +154,29 @@ Item {
                     }
                 }
 
+                // Accent color 主题色
+                SettingsCard {
+                    objectName: "accentColorSettingsCard"
+                    width: parent ? parent.width : 0
+                    title: Fluent.Translator.tr("gallery_0f132a452ea8ac60", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_ac73d3f02e42efa3", Fluent.Translator._v)
+                    icon: iconPath("Color")
+                    type: Fluent.Enums.settingCard.type_color
+                    defaultColor: Fluent.Enums.accentDefaults.accent
+                    customColor: ConfigManager
+                        ? ConfigManager.accentColor : Fluent.Enums.accentColor
+                    useCustomColor: customColor.toString().toLowerCase()
+                        !== defaultColor.toString().toLowerCase()
+                    defaultColorText: Fluent.Translator.tr("gallery_af76608af89e9682", Fluent.Translator._v)
+                    customColorText: Fluent.Translator.tr("gallery_781b07fdcb56b56a", Fluent.Translator._v)
+                    chooseColorText: Fluent.Translator.tr("gallery_369b82fa0700db02", Fluent.Translator._v)
+                    onCustomColorPicked: function(c) {
+                        if (ConfigManager) {
+                            ConfigManager.setAccentColor(c.toString())
+                        }
+                    }
+                }
+
                 // Design skin 设计皮肤
                 SettingsCard {
                     id: skinCard
@@ -169,48 +218,7 @@ Item {
                     }
                 }
                 
-                // 懒加载
-                SettingsCard {
-                    width: parent ? parent.width : 0
-                    title: Fluent.Translator.tr("gallery_d05c55bc5b9d134b", Fluent.Translator._v)
-                    content: Fluent.Translator.tr("gallery_e2748c46180717bc", Fluent.Translator._v)
-                    icon: iconPath("Timer")
-                    type: Fluent.Enums.settingCard.type_switch
-                    checked: ConfigManager ? ConfigManager.lazyLoading : true
-                    onSwitchToggled: function(isChecked) {
-                        if (ConfigManager) {
-                            ConfigManager.setLazyLoading(isChecked)
-                        }
-                    }
-                }
-                
-                // DPI缩放
-                SettingsCard {
-                    id: dpiCard
-
-                    readonly property var dpiValues:
-                        ConfigManager ? ConfigManager.dpiScaleOptions : []
-
-                    objectName: "dpiScaleSettingsCard"
-                    width: parent ? parent.width : 0
-                    title: Fluent.Translator.tr("gallery_2d406700ef62534f", Fluent.Translator._v)
-                    content: Fluent.Translator.tr("gallery_c58314ff3c291c53", Fluent.Translator._v)
-                    icon: iconPath("ResizeImage")
-                    type: Fluent.Enums.settingCard.type_combobox
-                    model: dpiValues.map(function(value) {
-                        return value === 0 ? Fluent.Translator.tr("gallery_217cfe7db1e3d10a", Fluent.Translator._v) : value + "%"
-                    })
-                    currentIndex: ConfigManager
-                        ? dpiValues.indexOf(ConfigManager.dpiScale)
-                        : -1
-                    onIndexSelected: function(idx) {
-                        if (ConfigManager && idx >= 0 && idx < dpiValues.length) {
-                            ConfigManager.setDpiScale(dpiValues[idx])
-                        }
-                    }
-                }
-                
-                // 界面语言
+                // Interface language 界面语言
                 SettingsCard {
                     id: languageCard
 
@@ -238,26 +246,18 @@ Item {
                         }
                     }
                 }
-                
-                // 主题色
+
+                // Lazy loading 懒加载
                 SettingsCard {
-                    objectName: "accentColorSettingsCard"
                     width: parent ? parent.width : 0
-                    title: Fluent.Translator.tr("gallery_0f132a452ea8ac60", Fluent.Translator._v)
-                    content: Fluent.Translator.tr("gallery_ac73d3f02e42efa3", Fluent.Translator._v)
-                    icon: iconPath("Color")
-                    type: Fluent.Enums.settingCard.type_color
-                    defaultColor: Fluent.Enums.accentDefaults.accent
-                    customColor: ConfigManager
-                        ? ConfigManager.accentColor : Fluent.Enums.accentColor
-                    useCustomColor: customColor.toString().toLowerCase()
-                        !== defaultColor.toString().toLowerCase()
-                    defaultColorText: Fluent.Translator.tr("gallery_af76608af89e9682", Fluent.Translator._v)
-                    customColorText: Fluent.Translator.tr("gallery_781b07fdcb56b56a", Fluent.Translator._v)
-                    chooseColorText: Fluent.Translator.tr("gallery_369b82fa0700db02", Fluent.Translator._v)
-                    onCustomColorPicked: function(c) {
+                    title: Fluent.Translator.tr("gallery_d05c55bc5b9d134b", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_e2748c46180717bc", Fluent.Translator._v)
+                    icon: iconPath("Timer")
+                    type: Fluent.Enums.settingCard.type_switch
+                    checked: ConfigManager ? ConfigManager.lazyLoading : true
+                    onSwitchToggled: function(isChecked) {
                         if (ConfigManager) {
-                            ConfigManager.setAccentColor(c.toString())
+                            ConfigManager.setLazyLoading(isChecked)
                         }
                     }
                 }

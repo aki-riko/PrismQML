@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 
@@ -38,6 +39,16 @@ PUBLIC_CONTEXT_NAMES = {
 
 def _gallery_tree() -> ast.Module:
     return ast.parse(GALLERY_MAIN.read_text(encoding="utf-8"), GALLERY_MAIN.name)
+
+
+def _qml_property_array(source: str, property_name: str) -> str:
+    match = re.search(
+        rf"property var {property_name}:\s*\[(.*?)\n\s*\]",
+        source,
+        re.DOTALL,
+    )
+    assert match is not None
+    return match.group(1)
 
 
 def test_gallery_uses_complete_public_runtime_registration():
@@ -111,6 +122,56 @@ def test_gallery_does_not_override_persisted_language():
 
     assert "Fluent.Translator.setLanguage(" not in source
     assert "ConfigManager.setLanguage(" not in source
+
+
+def test_gallery_navigation_order_matches_page_sources():
+    source = GALLERY_QML.read_text(encoding="utf-8")
+    expected_navigation = [
+        ("gallery_ad1c50c9367c756d", "ButtonPage.qml"),
+        ("gallery_2087c777c06fefe5", "InputPage.qml"),
+        ("gallery_1d0fd5f9336d9103", "LabelPage.qml"),
+        ("gallery_6d23f04b26967d64", "ContainerPage.qml"),
+        ("gallery_fb5640f8e12e3337", "CardPage.qml"),
+        ("gallery_85f05ecc2a4f3f5d", "CarouselPage.qml"),
+        ("gallery_8cb443ab83797881", "ChartPage.qml"),
+        ("gallery_4ce4cafdd0561280", "MenuPage.qml"),
+        ("gallery_e72622fe470d04bc", "NavigationPage.qml"),
+        ("gallery_8b2106ca13719cb2", "FeedbackPage.qml"),
+        ("gallery_0d720eeea26466dd", "IconPage.qml"),
+        ("gallery_8829dbcbcfce6e54", "EffectsPage.qml"),
+        ("gallery_736cff237d7d9255", "AutoUpdatePage.qml"),
+    ]
+
+    navigation_source = _qml_property_array(source, "navItems")
+    page_source = _qml_property_array(source, "pagePaths")
+    translation_keys = re.findall(
+        r'Fluent\.Translator\.tr\("([^"]+)"', navigation_source
+    )
+    page_names = re.findall(r'pages/([^"]+\.qml)', page_source)
+
+    expected_page_names = [page_name for _, page_name in expected_navigation]
+    assert translation_keys == [key for key, _ in expected_navigation]
+    assert page_names == expected_page_names + ["SettingsPage.qml"]
+
+
+def test_gallery_settings_keep_window_and_application_order():
+    source = GALLERY_SETTINGS_PAGE.read_text(encoding="utf-8")
+    ordered_tokens = [
+        'Fluent.Translator.tr("gallery_248c888b290d234f"',
+        'objectName: "windowTypeSettingsCard"',
+        'objectName: "dpiScaleSettingsCard"',
+        'Fluent.Translator.tr("gallery_491d8a1d801bb51f"',
+        'Fluent.Translator.tr("gallery_1001f6a8b689600b"',
+        'Fluent.Translator.tr("gallery_a1a42cd9b16e2162"',
+        'objectName: "themeSettingsCard"',
+        'objectName: "accentColorSettingsCard"',
+        'objectName: "skinSettingsCard"',
+        'objectName: "languageSettingsCard"',
+        'Fluent.Translator.tr("gallery_d05c55bc5b9d134b"',
+    ]
+
+    positions = [source.index(token) for token in ordered_tokens]
+    assert positions == sorted(positions)
 
 
 def test_gallery_applies_lazy_loading_changes_after_restart():
