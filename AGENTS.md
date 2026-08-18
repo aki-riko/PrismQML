@@ -30,8 +30,7 @@
   `QQuickWindow` 前显式设置 `Direct3D11`；不得提供环境变量、命令行参数或
   公开 API 来切换后端。其他平台保留 Qt 的平台默认选择。
 - **严禁 OpenGL 回退或对照**：不得在启动、探针、基准或测试路径请求
-  OpenGL。实测该后端曾使真实可见 Gallery 的 QML 加载中位数从约
-  `350 ms` 恶化到约 `692 ms`，是已确认的重大冷启动回归。
+  OpenGL。该路径已有确认的重大冷启动回归，历史测量数据不作为当前门禁。
 - **D3D11 变更必须真实验收**：使用完全重启、交错样本和真实可见窗口
   对比 QML 加载、进入事件循环与首帧；同时验证动画、Mica、DWM 阴影、
   首次弹层交互、像素差异及 `device lost` 日志。仅 offscreen、单次计时或
@@ -125,20 +124,20 @@ import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需�
 ### 2.1 全局枚举入口
 - **唯一入口**: `Enums.qml`（`prismqml/PrismQML/Enums.qml`）
 - **命名风格**: `snake_case`（如 `type_bar`, `style_primary`）
-- **访问方式**: `Enums.{Category}.{enum_value}`
+- **访问方式**: `Enums.{category}.{enum_value}`
 
 ### 2.2 枚举分类
 
 | 子类 | 用途 | 示例 |
 |------|------|------|
-| `StatusLevel` | 状态级别 | `Enums.StatusLevel.SUCCESS` |
-| `Button` | 按钮类型/样式/形状/功能 | `Enums.Button.STYLE_PRIMARY` |
-| `Chart` | 图表类型 | `Enums.Chart.TYPE_BAR` |
-| `Position` | 位置 | `Enums.Position.TOP_RIGHT` |
-| `Notification` | 通知模式/指示器 | `Enums.Notification.MODE_IN_APP` |
-| `Slider` | 滑块类型 | `Enums.Slider.TYPE_RANGE` |
-| `Orientation` | 方向 | `Enums.Orientation.HORIZONTAL` |
-| `Animation` | 动画类型 | `Enums.Animation.OPACITY` |
+| `statusLevel` | 状态级别 | `Enums.statusLevel.success` |
+| `button` | 按钮类型/样式/形状/功能 | `Enums.button.style_primary` |
+| `chart` | 图表类型 | `Enums.chart.type_bar` |
+| `position` | 位置 | `Enums.position.top_right` |
+| `notification` | 通知模式/指示器 | `Enums.notification.mode_in_app` |
+| `slider` | 滑块类型 | `Enums.slider.type_range` |
+| `orient` | 方向 | `Enums.orient.horizontal` |
+| `animation` | 动画类型 | `Enums.animation.opacity` |
 
 ### 2.3 禁止事项
 - ❌ 在组件内部定义枚举
@@ -147,14 +146,14 @@ import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需�
 - ❌ 使用旧枚举引用（如 `ButtonEnums.xxx`）
 
 ### 2.4 新增枚举流程
-1. 打开 `Enums.qml`
-2. 找到对应 Category（如 `button`）
-3. 添加新枚举值（`snake_case`）
-4. 更新使用该枚举的组件
+1. 打开对应分类文件，如 `prismqml/PrismQML/PrismEnums/Button.qml`
+2. 在分类对象中添加 `snake_case` 枚举值
+3. 若是新分类，在 `Enums.qml` 实例化并用小写 alias 暴露；不得把分类值直接堆入入口
+4. 更新消费者与相关合同测试
 
 ```qml
-readonly property QtObject button: QtObject {
-    readonly property int new_type: 99  // 新增
+QtObject {
+    readonly property int new_type: 99
 }
 ```
 
@@ -253,7 +252,7 @@ import Qt5Compat.GraphicalEffects // ❌ 已弃用
 import QtQuick.Controls           // ❌ 见下方说明
 ```
 
-**禁止 `QtQuick.Controls`**：其控件样式由 Style 子系统决定，Enums 主题色/圆角/阴影无法可靠覆盖，会导致样式割裂。一律使用 PrismQML 自有控件（FluentButton / LineEdit / SpinBox / ComboBoxEntry / FluentScrollBar / Flyout / OverlayDialogCore / ContextMenu 等，qmldir 已注册）。例外：仅 Window/基础设施级 Popup（如 `popupType: Popup.Window`）经评审后可用，且必须封装在 PrismQML 内部。
+**禁止 `QtQuick.Controls`**：其控件样式由 Style 子系统决定，Enums 主题色/圆角/阴影无法可靠覆盖，会导致样式割裂。一律使用 PrismQML 自有控件（Button / LineEdit / SpinBox / ComboBoxEntry / ScrollBar / Flyout / OverlayDialogCore / ContextMenu 等，qmldir 已注册）。例外：仅 Window/基础设施级 Popup（如 `popupType: Popup.Window`）经评审后可用，且必须封装在 PrismQML 内部。
 
 ### 4.2 QML 成员声明顺序（强制）
 
@@ -314,7 +313,7 @@ Item {
 
 | 类型 | 风格 | 示例 |
 |------|------|------|
-| QML 组件 | PascalCase | `FluentButton.qml` |
+| QML 组件 | PascalCase | `Button.qml` |
 | QML 属性 | camelCase | `buttonText` |
 | QML 枚举 | snake_case | `type_bar` |
 | Python 类 | PascalCase | `ThemeManager` |
@@ -383,7 +382,7 @@ error(f"错误: {e}")
 - **500 行**：软警告（新代码尽量遵守）
 - **700 行**：硬限制（必须模块化拆分）
 
-**数据资源文件例外**（纯静态数据，无逻辑）：`PrismEnums/Icons.qml`(~5000) / `PrismEnums/Metrics.qml`(~700) / `Translator.qml`(~1200)。`_internal/` 下逻辑内聚的文件可放宽至 600 行。
+**数据资源文件例外**：纯静态数据资源可超过硬限制，但不得包含业务、渲染、文件 I/O 或主题判断逻辑，并必须由专项门禁约束。当前例外为 `PrismEnums/Icons.qml`、`PrismEnums/Metrics.qml` 与 `Translator.qml`。`_internal/` 下逻辑内聚的文件可放宽至 600 行。
 
 **生成型 Python 枚举数据例外（严格受限）**：只有能由仓内生成器在 `--check` 模式下确定性地复现相同文本内容、文件头明确标注生成来源、且内容仅含枚举/常量数据与必要的无副作用查询方法时，才可超过 700 行。渲染、文件 I/O、主题判断或业务逻辑必须移入普通模块；生成文件不得手改。
 
@@ -422,7 +421,7 @@ _internal/
   锁定入口/helper 行数、helper 类型、`required property`、关键 alias 与入口中
   不应再出现的实现标记。
 - 每阶段完成后必须执行相关的最小定向源码测试和真实 QML 运行时测试；涉及共享
-  视觉层时还必须覆盖受影响皮肤。测试统一经 `scripts/test_process.py` 启动，并在
+  视觉层时还必须覆盖受影响皮肤。测试遵循 1.3 节的统一 runner 规则，并在
   Review 阶段执行 `git diff --check`、`git status --short --ignored`，确认无散落产物。
 - 独立阶段 Review 与定向测试全部通过后，立即提交并显式执行
   `git push prism main`；不得积攒多个未审阶段后一次性提交，也不得用全仓测试替代
@@ -493,91 +492,15 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 
 > **铁律**：v1.0.0 之前禁止保留向后兼容代码。所有废弃的 API、枚举、属性、组件直接删除或重命名，**不保留 deprecated 别名**。发现旧代码直接重构。
 
-### 发布流程（main → tag → GitHub Release）
+发布操作必须遵循根目录 `RELEASING.md`。`AGENTS.md` 仅保留以下不可绕过的边界：
 
-远程：`prism` = `git@github.com:aki-riko/PrismQML.git`（SSH 公钥用于 push）。
-
-> 🔴 **双 remote 必须分清**：本仓有两个远程——
-> - `prism` → `git@github.com:aki-riko/PrismQML.git`（**真 GitHub，CI/PyPI 发布在这里跑**）
-> - `origin` → `git@git.9li.life:Aquila/PrismQML.git`（自建 gitea，**无 CI**）
->
-> 默认 `git push`（无 remote 名）走 `origin`（gitea），**不会触发 GitHub Actions**。
-> 发版相关的 commit 和 tag **必须显式 `git push prism ...`** 才能触发 CI。
-> 两边都要推时：`git push prism main && git push origin main`，tag 同理。
-
-1. **改版本号（两处必须同步）**：
-   - 🔴 **AI 自动升级发版铁律**：AI 自动决定版本升级时，仅允许递增第四位构建号（`x.y.z.n` 中的 `n`）；第一、第二、第三位的任何变更必须由用户或维护者明确决定，AI 不得自行升级。
-   - **默认升构建号**：每次发版除非用户/维护者明确指定完整版本号或前三位升级策略，否则只递增最后一位构建号（`x.y.z.n` 中的 `n`）。例如 `0.2.24.1` 下一版默认 `0.2.24.2`，而不是 `0.2.25.0`。
-   - `pyproject.toml` 的 `version = "x.y.z.n"`
-   - `prismqml/__init__.py` 的 `__version__ = "x.y.z.n"`（回退值）
-2. **验证**：发布前必须通过统一零交互门禁；自动测试禁止直接启动
-   `prism_test_*.exe`、`prism_native_failure_helper.exe` 或
-   `prism_native_failure_loader.exe`，也禁止依赖调用者恰好设置了 Qt PATH /
-   `QT_QPA_PLATFORM`。原生失败夹具只能由 `ctest -L native` 间接启动。
-   ```powershell
-   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
-   .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
-   ctest --test-dir .artifacts\cpp\desktop -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
-   ```
-   - `scripts/test_process.py` 在 Qt 导入前固定 headless、UTF-8、faulthandler 与原生无 UI 策略；Windows launcher 先用可继承的错误模式保护 bootstrap，实际测试再启用 WER `NO_UI + QUEUE`。新增自动化子进程必须复用 runner，或在导入 Qt 前调用同一 bootstrap，不得无保护地直接启动。
-   - QML probe 遍历 qmldir 全组件 `createComponent`，自身也会强制 `offscreen`；调用者显式传入 `windows/minimal` 不再覆盖自动门禁。
-   - 🔴 **当前优化基线：probe 应退出码 0，且约 `181 OK / 0 错误 / 7 跳过 = 188`**。6 个 singleton（Enums / Translator / DpiManager / NotificationManager / PopupUtils / IconRendererResources）必须通过 QtObject wrapper 触发 QML 引擎真实创建并读取，且 singleton 创建期 Qt warning / critical / fatal 为 0；仅允许跳过 7 个 required-property 内部子模块（ButtonContent / ButtonDropdown / ButtonProgress / ListWidgetItem / SettingsCardContent / HorizontalScrollMixin / ViewportMixin，由父组件注入 required property，单独 createComponent 不成立）。
-   - 🔴 **判是否新增回归的权威法**：`git worktree add /tmp/baseline <改动前 commit>`，从主 venv 把编译好的 `prismqml_rs*.pyd` cp 进去 + `PYTHONPATH=/tmp/baseline` 跑同一 probe，对比 OK/错误/跳过三个数字是否一致；一致即零新增。看到非 0 退出码必须先分析具体错误，不可把它当成既有 required-property 基线。
-   - Windows 原生 Mica 不是默认 headless 集合：仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行 `ctest --test-dir .artifacts\cpp\desktop -L native --interactive-debug-mode 0 --output-on-failure --no-tests=error`。
-   - `tests/test_window_buttons.py`、`tests/qml/bench_gallery_startup.py`、`tests/qml/bench_skin_frames.py`、`scripts/fps_probe.py`、`scripts/run_with_fps.py` 等可视/性能入口属于人工测试，不得混入自动门禁；需要运行时必须明确说明会打开窗口。
-   - 🔴 **Windows 可视性能验收只接受 D3D11**：被测入口与探针都必须固定 `QSGRendererInterface.GraphicsApi.Direct3D11`，并在结果中核验实际 API 确为 `Direct3D11`。严禁使用 OpenGL、software、offscreen 或其他后端的耗时、帧率、截图作为性能收益或视觉验收结论；`offscreen` 仅用于零交互正确性回归。
-3. **提交**：`git add -A && git commit`（commit message 写清修复内容 + 版本号）。
-4. **打 tag + 推送**：
-   ```bash
-   git tag vx.y.z.n
-   git push prism main
-   git push prism vx.y.z.n
-   ```
-5. **建 GitHub Release**：`gh release create vx.y.z.n --repo aki-riko/PrismQML --title "vx.y.z.n" --notes "..."`
-6. **下游消费者生效（🔴 发版 ≠ 下游自动更新）**：下游应用（Gitora / quicksketch / Kaleidos 等）各自带**独立 `.venv`**，且 `.venv` 被 gitignore——它们装的是 PyPI 包 `prismqml`，**不随引擎源码推送而更新**。引擎发版后，每个下游需：
-   - `pip install -U prismqml==x.y.z.n`（升级各自 venv 里的包），
-   - 然后**重新打包**（Nuitka）。打包态把 prismqml 整包嵌进 exe，**旧 exe 不重打包则修复不生效**（如 AUMID 这类在导入/启动时生效的逻辑，必须重打包才落到二进制）。
-   - 修源码时若直接改了某个下游 venv 内的 prismqml 副本（如热修验证），记得全盘 `find -path "*prismqml*<改的文件>"` 扫所有副本（源库 + 各 venv）按 md5 对齐，避免只改一份。
-
-### 认证注意（🔴 安全）
-
-- `git push` 走 **SSH 公钥**；`gh release` / GitHub API 走 **token**（两套独立，SSH 密钥不能用于 API）。
-- 建 Release 前需 `gh auth login`（浏览器授权，推荐），或设 `GH_TOKEN` 环境变量。
-- **绝不把 PAT / token 明文贴进对话或提交进代码**。token 一旦明文出现即视为泄露，必须立即去 `github.com/settings/tokens` 吊销。临时用 token 只通过环境变量传入：`GH_TOKEN=xxx gh release create ...`。
-
-### CI 自动发布（🔴 发版靠推 tag，不靠本地打包）
-
-`.github/workflows/release.yml` 是发版的真正执行者，**别在本地手动打包上传**：
-
-- **触发**：推送 `v*` 格式的 tag（如 `v0.2.24.1`）→ 自动触发。普通 push commit 不触发，`workflow_dispatch` 手动触发只构建不发布。
-- **构建**：三平台（ubuntu / windows / macos-14）用 `cibuildwheel` 构建 abi3 wheel（`CIBW_BUILD=cp39-*` + `CIBW_CONFIG_SETTINGS=--build-option=--py-limited-api=cp39`）+ sdist。
-- **发布**：`publish` job 经 **PyPI Trusted Publishing**（`id-token: write` + `environment: pypi`）自动上传 PyPI，条件 `if: startsWith(github.ref, 'refs/tags/v')`（仅 tag 触发时发布）。
-- **看状态**：`gh run list` / `gh run watch`（需先 `gh auth login`）；或浏览器开 `github.com/aki-riko/PrismQML/actions`。三平台构建 + publish 全绿才算发布成功，几分钟后 `pip install prismqml==x.y.z.n` 能装到即坐实。
-- 本地 `python -m build` 仅用于调试 wheel 标签，**产物不上传**（CI 出的全平台包才是正式产物）。
-
-### abi3 构建配置（🔴 wheel 必须是 cp39-abi3，不能退化）
-
-含 Rust 扩展（`prismqml_rs`），wheel 必须打成 **`cp39-abi3`**（一个 wheel 兼容 py3.9+），不能退化成 `cp3XX-cp3XX`（绑死单个 Python 版本）。
-
-- **三处配置缺一不可**：
-  1. `rust/Cargo.toml`：`pyo3 = { features = ["abi3-py39"] }`（必要但不充分）
-  2. `pyproject.toml` 的 `[[tool.setuptools-rust.ext-modules]]`：`py-limited-api = "auto"`
-  3. `pyproject.toml` 的 `[tool.distutils.bdist_wheel]`：`py-limited-api = "cp39"` ← **本地 `python -m build` 靠这条才不退化**
-- **机制**：setuptools-rust 的 `"auto"` 会去读 `bdist_wheel.py_limited_api` 选项，缺失则不加 abi3 feature，退化成 cp3XX。CI 通过 `CIBW_CONFIG_SETTINGS` 在命令行传，本地构建则靠 `[tool.distutils.bdist_wheel]` 配置。
-- **判定 wheel 是否真 abi3 的铁证 = 看 wheel 内 `.pyd` 文件名**：
-  - `prismqml_rs.pyd`（无版本后缀）= abi3 通用 ✅
-  - `prismqml_rs.cp312-win_amd64.pyd`（带版本后缀）= 绑死单版本 ❌
-  - 别只信 "Successfully built"，它对错误标签照样报成功。
-
-### 包命名（分发名 = 导入名 = prismqml）
-
-PyPI **分发名**、Python **导入名**、QML 模块名统一为 `prismqml` / `PrismQML`：
-
-- 安装：`pip install prismqml`，PyPI 元数据 `pyproject.toml` 的 `[project] name = "prismqml"`
-- import：`from prismqml import ...` / `import prismqml`
-- 包目录 `prismqml/python/...`、QML 模块 `import PrismQML`、配置目录 `~/.prismqml/`
-- Rust crate 名 `prismqml_rs`（`rust/Cargo.toml`）
-- 旧名 `fqml` / `fluentqml` / `FluentQML` 已全部废弃（前身 FluentQML 已存档）；如在代码中发现残留，属改名遗漏，应改为 prismqml/PrismQML（`controls/icons/fluent` 图标集名、`as Fluent` 别名、致谢微软 Fluent Design 的文本除外）。
+- `pyproject.toml` 与 `prismqml/__init__.py` 的版本必须同步；默认只递增第四位构建号，前三位变更必须由维护者明确决定。
+- `prism` 是 GitHub/CI/PyPI 远程，`origin` 是无发布 CI 的自建 Gitea；发布提交和 tag 必须显式推送 `prism`。
+- 发布前必须通过 `RELEASING.md` 中的零交互测试、QML probe 与 headless CTest 门禁；不得把人工可视测试混入自动门禁。
+- 正式包只能由 `.github/workflows/release.yml` 的 tag 流程发布；本地产物不得手工上传为正式版本。
+- `git push` 使用 SSH，GitHub API 使用 token；任何 PAT/token 都不得写入对话、命令记录或仓库。
+- abi3 必须保持 `cp39-abi3`，不得退化为绑定单一 Python 小版本的 wheel。
+- 引擎发布不会自动更新下游虚拟环境或既有打包产物；下游必须显式升级并重新打包。
 
 ---
 
