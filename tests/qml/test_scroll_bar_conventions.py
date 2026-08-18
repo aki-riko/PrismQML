@@ -390,6 +390,7 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     assert window.property("verticalTarget") == pytest.approx(480)
     assert window.property("verticalOvershot")
     assert _wait_for(lambda: window.property("verticalY") == pytest.approx(480))
+    assert _wait_for(lambda: not window.property("verticalOvershot"))
 
     assert QMetaObject.invokeMethod(window, "syncVertical")
     assert window.property("verticalTarget") == pytest.approx(75)

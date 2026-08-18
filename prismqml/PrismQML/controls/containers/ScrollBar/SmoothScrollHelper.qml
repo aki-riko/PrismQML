@@ -136,7 +136,10 @@ Item {
         if (verticalAxis) _smoothY = value
         else _smoothX = value
     }
-
+    function _onFrameDriverSettled(verticalAxis) {
+        if (verticalAxis && !_isOutwardBounceV && _isOvershotV && _smoothY === _targetY) _isOvershotV = false
+        else if (!verticalAxis && !_isOutwardBounceH && _isOvershotH && _smoothX === _targetX) _isOvershotH = false
+    }
     function _refreshDevicePixelRatio() {
         if (typeof WindowHelper === "undefined" || !WindowHelper
                 || typeof WindowHelper.devicePixelRatioAt !== "function") {

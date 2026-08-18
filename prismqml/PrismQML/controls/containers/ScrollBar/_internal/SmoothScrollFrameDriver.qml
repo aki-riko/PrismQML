@@ -57,6 +57,7 @@ Connections {
     function setImmediate(value) {
         running = false
         scrollHelper._setSmoothPosition(verticalAxis, value)
+        scrollHelper._onFrameDriverSettled(verticalAxis)
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -89,7 +90,10 @@ Connections {
             verticalAxis,
             _fromValue + (_toValue - _fromValue) * easedProgress
         )
-        if (progress >= 1) running = false
+        if (progress >= 1) {
+            running = false
+            scrollHelper._onFrameDriverSettled(verticalAxis)
+        }
     }
 
     function _requestNextFrame() {
