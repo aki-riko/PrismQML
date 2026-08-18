@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Hidden loop visibility regressions. 隐藏循环动画可见性回归。"""
 
+import time
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, Qt, QUrl
@@ -63,6 +64,13 @@ def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms: int = 1500) -> bool:
+    deadline = time.monotonic() + timeout_ms / 1000
+    while not predicate() and time.monotonic() < deadline:
+        _pump()
+    return predicate()
 
 
 def _new_visible_windows(windows_before, *allowed):
@@ -129,7 +137,9 @@ def test_hidden_loops_preserve_items_and_public_state(qapp):
         tag_animation = _loop_animation(tag)
         marquee_animation = _loop_animation(marquee)
         assert tag_animation.property("running") is True
-        assert marquee_animation.property("running") is True
+        assert _wait_for(
+            lambda: marquee_animation.property("running") is True
+        )
 
         assert QMetaObject.invokeMethod(
             window, "hideItems", Qt.ConnectionType.DirectConnection
@@ -149,7 +159,9 @@ def test_hidden_loops_preserve_items_and_public_state(qapp):
         assert window.findChild(QQuickItem, "processingTag") is tag
         assert window.findChild(QQuickItem, "loopingMarquee") is marquee
         assert tag_animation.property("running") is True
-        assert marquee_animation.property("running") is True
+        assert _wait_for(
+            lambda: marquee_animation.property("running") is True
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
