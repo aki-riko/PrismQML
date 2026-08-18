@@ -105,6 +105,7 @@ Item {
             title: rootControl.title
             content: rootControl.content
             icon: rootControl.icon
+            titleType: Enums.label.type_body_strong
             expanded: rootControl.expanded
             disabled: rootControl.disabled
             borderWidth: rootControl._surfaceBorderWidth

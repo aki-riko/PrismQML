@@ -17,7 +17,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
 )
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -170,6 +170,14 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _visual_items(item):
+    result = []
+    for child in item.childItems():
+        result.append(child)
+        result.extend(_visual_items(child))
+    return result
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -218,6 +226,11 @@ def test_expander_methods_animation_and_header_click(expander_scene):
     toggled = []
     expander.toggled.connect(toggled.append)
     collapsed_height = expander.height()
+    title_items = [
+        item for item in _visual_items(expander) if item.property("text") == "Details"
+    ]
+    assert len(title_items) == 1
+    assert title_items[0].property("font").weight() == QFont.Weight.Normal
     assert not window.property("expanderState")
 
     assert QMetaObject.invokeMethod(expander, "toggle")

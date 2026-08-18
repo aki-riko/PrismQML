@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QTimer, QUrl
-from PySide6.QtGui import QColor, QGuiApplication
+from PySide6.QtGui import QColor, QFont, QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
@@ -62,6 +62,7 @@ Window {
     property var addedGroupCard: null
 
     function selectOption() { card.setValue(1) }
+    function useColorCard() { card.type = Enums.settingCard.type_color }
     function toggleCard() { card.toggle() }
     function ensureCardExpanded() { card.setExpanded(true) }
     function runFolderFlow() {
@@ -213,6 +214,14 @@ def _visual_items(item):
         result.append(child)
         result.extend(_visual_items(child))
     return result
+
+
+def _find_text_item(item, text):
+    matches = [
+        child for child in _visual_items(item) if child.property("text") == text
+    ]
+    assert len(matches) == 1
+    return matches[0]
 
 
 def _create_scene():
@@ -394,6 +403,24 @@ def test_settings_card_normal_and_expandable_surfaces_share_border_contract(
         assert _new_visible_windows(windows_before, window) == []
     finally:
         setSkin(previous_skin)
+
+
+def test_settings_card_normal_and_expandable_titles_share_strong_weight(
+    settings_scene,
+):
+    window, items, warnings, windows_before = settings_scene
+    expandable_card = items["settingsCard"]
+    normal_card = items["normalSettingsCard"]
+
+    assert QMetaObject.invokeMethod(window, "useColorCard")
+    _pump()
+
+    expandable_title = _find_text_item(expandable_card, "Mode")
+    normal_title = _find_text_item(normal_card, "Language")
+    assert expandable_title.property("font").weight() == QFont.Weight.DemiBold
+    assert normal_title.property("font").weight() == QFont.Weight.DemiBold
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
 
 
 def test_settings_card_default_placeholder_follows_runtime_language(settings_scene):

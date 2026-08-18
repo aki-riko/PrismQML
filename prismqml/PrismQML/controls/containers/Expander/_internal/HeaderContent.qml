@@ -72,7 +72,7 @@ Item {
             Label {
                 id: titleLabel
 
-                type: Enums.label.type_body
+                type: expanderControl.titleType
             }
 
             Label {
