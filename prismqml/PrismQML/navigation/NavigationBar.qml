@@ -25,13 +25,10 @@ NavigationPanelCore {
 
     // ==================== Readonly State 只读状态 ====================
     // 选中项的渐隐值; 只在选中项属于可滚动区(顶部 repeater)时参与, 底部固定项不渐隐。
-    readonly property real _selectedItemFade: {
-        var count = (control._safeModel || []).length
-        if (control.currentIndex < 0 || control.currentIndex >= count) {
-            return Enums.navigationFade.maxOpacity
-        }
-        return scrollFade.opacityForItem(control._getItemAt(control.currentIndex))
-    }
+    readonly property real _selectedItemFade: scrollFade.selectionOpacity(
+        control._getItemAt(control.currentIndex),
+        control.currentIndex >= 0
+            && control.currentIndex < (control._safeModel || []).length)
 
     // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
@@ -68,6 +65,7 @@ NavigationPanelCore {
         flickable: topFlickable
         active: control.scrollFadeEnabled
         itemHeight: Enums.controlSize.navBarItemHeight
+        itemCount: topRep.count
     }
 
     // Top navigation items (scrollable) 顶部导航项（可滚动）

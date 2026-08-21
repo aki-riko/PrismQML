@@ -4,9 +4,6 @@
 
 import QtQuick
 import ".."
-import "../controls/buttons/Button"
-import "../controls/icons"
-import "../controls/data/Label"
 import "../controls/navigation/_internal"
 import "_internal"
 
@@ -24,6 +21,8 @@ Item {
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.navigationScroll
     property real scrollStep: Enums.spacing.navigationScrollStep
+    // Fade items near an overflowing edge to hint the list scrolls 溢出端渐隐以提示可滚动
+    property bool scrollFadeEnabled: true
     // ==================== Internal Props 内部属性 ====================
     readonly property var _safeModel:
         model === null || model === undefined ? []
@@ -42,6 +41,14 @@ Item {
     
     // Scroll offset for real-time indicator tracking 指示器实时跟踪的滚动偏移
     property real _scrollOffset: topFlickable.contentY
+
+    // ==================== Readonly State 只读状态 ====================
+    // 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
+    readonly property real _selectedItemFade: scrollFade.selectionOpacity(
+        control._getItemAt(control.currentIndex),
+        !control._bottomItemActive
+            && control.currentIndex >= 0
+            && control.currentIndex < control._safeModel.length)
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
@@ -147,6 +154,18 @@ Item {
         z: Enums.zIndex.content  // Below bottom cover 低于底部遮盖层
         radius: Enums.radius.small
         visible: (control._safeModel.length + control._safeBottomItems.length) > 0
+        // Keep the capsule in lockstep with the item it marks 胶囊与所标记的项锁步渐隐
+        opacity: control._selectedItemFade
+    }
+
+    // Edge fade state shared by the items and the indicator 导航项与指示器共用的渐隐状态
+    NavigationScrollFade {
+        id: scrollFade
+        objectName: "toggleNavigationBarScrollFade"
+        flickable: topFlickable
+        active: control.scrollFadeEnabled
+        itemHeight: Enums.controlSize.buttonHeight + Enums.spacing.xs
+        itemCount: topRep.count
     }
     
     // Top navigation items 顶部导航项
@@ -178,62 +197,26 @@ Item {
                 
                 onItemAdded: Qt.callLater(function() { control._updateIndicator(false) })
                 
-                delegate: Item {
+                delegate: ToggleNavigationBarItem {
                     id: topNavItem
 
                     required property int index
                     required property var modelData
 
-                    readonly property string itemText: modelData ? (modelData.text || "") : ""
-                    readonly property string itemIcon: modelData ? (modelData.icon || "") : ""
-                    readonly property bool selected: index === control.currentIndex
-                    readonly property bool hovered: topHoverHandler.hovered
-                    readonly property bool pressed: topTapHandler.pressed
+                    // 供 objectName 定位与外部读取 For lookup and external reads
+                    readonly property string itemText: text
 
-                    width: control.fillWidth ? topLayout.width : topNavContent.implicitWidth
-                    height: Enums.controlSize.buttonHeight
+                    text: modelData ? (modelData.text || "") : ""
+                    icon: modelData ? (modelData.icon || "") : ""
+                    selected: index === control.currentIndex
 
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: Enums.radius.small
-                        visible: !topNavItem.selected && (topNavItem.hovered || topNavItem.pressed)
-                        color: topNavItem.pressed ? Enums.stateColor.transparentPressed : 
-                               topNavItem.hovered ? Enums.stateColor.transparentHover : 
-                               Enums.transparent
-                    }
-                    
-                    Row {
-                        id: topNavContent
-                        anchors.left: parent.left
-                        anchors.leftMargin: Enums.spacing.m
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: topNavItem.itemIcon !== "" && topNavItem.itemText !== "" ? Enums.spacing.s : 0
-                        
-                        Icon {
-                            icon: topNavItem.itemIcon
-                            iconSize: Enums.iconSize.m
-                            color: topNavItem.selected ? Enums.accentForeground : Enums.textColor.primary
-                            visible: topNavItem.itemIcon !== ""
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        
-                        Label {
-                            type: Enums.label.type_body
-                            text: topNavItem.itemText
-                            color: topNavItem.selected ? Enums.accentForeground : Enums.textColor.primary
-                            visible: topNavItem.itemText !== ""
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                    
-                    HoverHandler { id: topHoverHandler; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { 
-                        id: topTapHandler
-                        onTapped: { 
-                            control._bottomItemActive = false  // Clear bottom item state 清除底部项状态
-                            control.currentIndex = topNavItem.index
-                            control.itemClicked(topNavItem.index) 
-                        } 
+                    width: control.fillWidth ? topLayout.width : contentWidth
+                    opacity: scrollFade.opacityAt(y, height)
+
+                    onClicked: {
+                        control._bottomItemActive = false  // Clear bottom item state 清除底部项状态
+                        control.currentIndex = topNavItem.index
+                        control.itemClicked(topNavItem.index)
                     }
                 }
             }
@@ -278,18 +261,23 @@ Item {
             
             onItemAdded: Qt.callLater(control._updateIndicator)
             
-            delegate: Item {
+            delegate: ToggleNavigationBarItem {
                 id: bottomNavItem
 
                 required property int index
                 required property var modelData
 
                 readonly property int globalIndex: control._safeModel.length + index
-                readonly property string itemText: modelData ? (modelData.text || "") : ""
-                readonly property string itemIcon: modelData ? (modelData.icon || "") : ""
+                // 供 objectName 定位与外部读取 For lookup and external reads
+                readonly property string itemText: text
                 readonly property bool itemSelectable: !modelData || modelData.selectable !== false
+
+                text: modelData ? (modelData.text || "") : ""
+                icon: modelData ? (modelData.icon || "") : ""
+                width: control.fillWidth ? bottomLayout.width : contentWidth
+
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
-                readonly property bool selected: {
+                selected: {
                     var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false
@@ -299,69 +287,9 @@ Item {
                     }
                     return false  // Function items are never selected 功能项永不选中
                 }
-                readonly property bool hovered: bottomHoverHandler.hovered
-                readonly property bool pressed: bottomTapHandler.pressed
 
-                width: control.fillWidth ? bottomLayout.width : bottomNavContent.implicitWidth
-                height: Enums.controlSize.buttonHeight
-
-                // Opaque background to cover sliding indicator 不透明背景覆盖滑动指示器
-                Rectangle {
-                    anchors.fill: parent
-                    color: control.backgroundColor.a > 0 ? control.backgroundColor : Enums.backgroundColor
-                    visible: false
-                }
-                
-                // Selected background 选中背景
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Enums.radius.small
-                    color: Enums.accentColor
-                    visible: false
-                }
-                
-                // Hover/Pressed background 悬停/按下背景
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Enums.radius.small
-                    visible: !bottomNavItem.selected && (bottomNavItem.hovered || bottomNavItem.pressed)
-                    color: bottomNavItem.pressed ? Enums.stateColor.transparentPressed : 
-                           bottomNavItem.hovered ? Enums.stateColor.transparentHover : 
-                           Enums.transparent
-                }
-                
-                Row {
-                    id: bottomNavContent
-                    anchors.left: parent.left
-                    anchors.leftMargin: Enums.spacing.m
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: bottomNavItem.itemIcon !== "" && bottomNavItem.itemText !== "" ? Enums.spacing.s : 0
-                    
-                    Icon {
-                        icon: bottomNavItem.itemIcon
-                        iconSize: Enums.iconSize.m
-                        color: bottomNavItem.selected ? Enums.accentForeground : Enums.textColor.primary
-                        visible: bottomNavItem.itemIcon !== ""
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    
-                    Label {
-                        type: Enums.label.type_body
-                        text: bottomNavItem.itemText
-                        color: bottomNavItem.selected ? Enums.accentForeground : Enums.textColor.primary
-                        visible: bottomNavItem.itemText !== ""
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-                
-                HoverHandler { id: bottomHoverHandler; cursorShape: Qt.PointingHandCursor }
-                TapHandler { 
-                    id: bottomTapHandler
-                    onTapped: {
-                        // Always emit signal, let window handle page switch 始终发送信号，让窗口组件处理页面切换
-                        control.bottomItemClicked(bottomNavItem.index)
-                    }
-                }
+                // Always emit signal, let window handle page switch 始终发送信号，让窗口组件处理页面切换
+                onClicked: control.bottomItemClicked(bottomNavItem.index)
             }
         }
     }

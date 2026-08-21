@@ -7,4 +7,5 @@ NavigationViewItem NavigationViewItem.qml
 PipsPager PipsPager.qml
 StatusBar StatusBar.qml
 ToggleNavigationBar ToggleNavigationBar.qml
+ToggleNavigationBarItem ToggleNavigationBarItem.qml
 ToolBar ToolBar.qml

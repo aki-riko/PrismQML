@@ -20,6 +20,11 @@ QtObject {
     // Item height the band is measured in; hosts pass their delegate height.
     // 渐隐带以此项高为单位度量；宿主传入自身委托高度。
     property real itemHeight: Enums.controlSize.navItemHeight
+    // Scrollable-item count; hosts bind their top Repeater's count so
+    // selectionOpacity() re-evaluates once the Repeater is populated.
+    // 可滚动项数量; 宿主绑定顶部 Repeater 的 count, 使 selectionOpacity() 在
+    // Repeater 填充后重新求值。
+    property int itemCount: 0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool scrollable:
@@ -64,5 +69,18 @@ QtObject {
     function opacityForItem(item) {
         if (!item) return Enums.navigationFade.maxOpacity
         return fade.opacityAt(item.y, item.height)
+    }
+
+    // Opacity for the selected item, used to keep an indicator that lives outside
+    // the viewport in lockstep with the item it marks.
+    // 选中项的透明度; 用于让视口之外的指示器与其所标记的项锁步渐隐。
+    function selectionOpacity(item, eligible) {
+        // 无条件先读填充与布局信号: itemAt() 是命令式取值, 不登记依赖。若宿主在
+        // Repeater 尚空时求值一次, 其绑定会永久锁死在满值。
+        // Read population/layout signals unconditionally; itemAt() registers no
+        // dependency, so an early empty-Repeater pass would latch the binding.
+        var ready = fade.itemCount > 0 && fade.flickable.contentHeight > 0
+        if (!ready || !eligible) return Enums.navigationFade.maxOpacity
+        return fade.opacityForItem(item)
     }
 }
