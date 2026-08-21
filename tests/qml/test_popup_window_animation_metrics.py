@@ -38,7 +38,9 @@ import QtQuick
 import PrismQML
 
 Item {
+    readonly property int showOpacityDuration: Enums.popupMetrics.showOpacityDuration
     readonly property int showRevealDuration: Enums.popupMetrics.showRevealDuration
+    readonly property int hideOpacityDuration: Enums.popupMetrics.hideOpacityDuration
     readonly property int hideRevealDuration: Enums.popupMetrics.hideRevealDuration
 
     width: 320
@@ -137,19 +139,25 @@ def test_popup_window_animation_metrics_preserve_runtime_values(qapp):
         assert popup is not None
         surface = popup.findChild(QQuickItem, "_popupSurface")
         assert surface is not None
-        assert surface.property("opacity") == pytest.approx(1.0)
+        assert surface.property("opacity") == pytest.approx(0.0)
         expected = {
+            "show_opacity": root.property("showOpacityDuration"),
             "show_reveal": root.property("showRevealDuration"),
+            "hide_opacity": root.property("hideOpacityDuration"),
             "hide_reveal": root.property("hideRevealDuration"),
         }
         assert expected == {
+            "show_opacity": 120,
             "show_reveal": 240,
+            "hide_opacity": 100,
             "hide_reveal": 110,
         }
 
         animations = _number_animations(popup)
         targets = {
+            "show_opacity": _find_animation(animations, "opacity", 0, 1),
             "show_reveal": _find_animation(animations, "_clipHeight", 0, 180),
+            "hide_opacity": _find_animation(animations, "opacity", 1, 0),
             "hide_reveal": _find_animation(animations, "_clipHeight", 180, 0),
         }
         assert {
@@ -242,16 +250,19 @@ def test_popup_window_animation_source_uses_role_tokens():
     animation_block = animation_source
 
     for declaration in (
+        "readonly property int showOpacityDuration: 120",
         "readonly property int showRevealDuration: 240",
+        "readonly property int hideOpacityDuration: 100",
         "readonly property int hideRevealDuration: 110",
     ):
         assert declaration in metrics_block
     for binding in (
+        "duration: Enums.popupMetrics.showOpacityDuration",
         "duration: Enums.popupMetrics.showRevealDuration",
+        "duration: Enums.popupMetrics.hideOpacityDuration",
         "duration: Enums.popupMetrics.hideRevealDuration",
     ):
         assert binding in animation_block
-    assert 'property: "opacity"' not in animation_block
     for legacy_name in ("fadeInDuration", "settleDuration", "hideDuration"):
         assert legacy_name not in metrics_block
     assert (

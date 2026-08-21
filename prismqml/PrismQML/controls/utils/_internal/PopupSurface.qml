@@ -34,11 +34,11 @@ Item {
     objectName: "_popupSurface"
     width: outerWidth
     height: outerHeight
-    opacity: Enums.opacityLevel.visible
+    opacity: Enums.opacityLevel.invisible
 
     // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
-    // Keep the surface opaque; the panel reveal is driven by the visual mask.
-    // 保持表面不透明；弹层显现由视觉遮罩驱动。
+    // Surface opacity and cover height animate independently.
+    // 表面透明度与遮挡层高度独立动画。
     // Fluent uses one elevation shadow; neumorphism uses a paired shadow below.
     // Fluent 使用单层高度阴影；新拟态使用下方的双向阴影。
     RectangularShadow {
@@ -105,15 +105,6 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
-            // Reveal the complete hit-test surface through a visual mask.
-            // 用视觉遮罩显现完整命中面板，避免动态clip裁掉动画期间的首击。
-            layer.enabled: true
-            layer.effect: OpacityMask {
-                mask: Rectangle {
-                    width: popupPanel.width
-                    height: surface.clipHeight
-                }
-            }
             Loader {
                 objectName: "ticketPaperLoader"
                 anchors.fill: parent
@@ -133,6 +124,19 @@ Item {
                 // Keep delegates and animated loaders inside the popup padding.
                 // 将代理项和动画 Loader 限制在弹层内边距以内。
                 clip: true
+            }
+
+            // Cover the unrevealed plane while keeping the full panel interactive.
+            // 遮挡尚未显现的平面，同时保持完整面板可交互。
+            Rectangle {
+                objectName: "_popupRevealCover"
+                z: Enums.zIndex.overlay
+                x: 0
+                y: surface.clipHeight
+                width: popupPanel.width
+                height: Math.max(0, popupPanel.height - surface.clipHeight)
+                color: surface.popupBackground
+                visible: height > 0
             }
         }
     }
