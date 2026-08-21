@@ -879,41 +879,17 @@ QtObject {
  readonly property real normalRatio: 0.3
  }
 
- // ==================== Navigation Scroll Fade 导航滚动渐隐 ====================
- readonly property QtObject navigationFade: QtObject {
- // 侧边栏可滚动时的边缘渐隐提示参数
-
- // Fade band expressed in item heights; must span several items or the
- // per-item ramp collapses into a single visible step.
- // 渐隐带按项高倍数表达；必须跨多项，否则逐项斜坡会退化成单一档位。
- readonly property real bandItems: 2.0
- // Opacity an item reaches once fully inside the band 项完全进入渐隐带后的透明度
- readonly property real minOpacity: root.opacity.invisible
- // Opacity of an item clear of the band 项处于渐隐带之外时的透明度
- readonly property real maxOpacity: root.opacity.visible
+ // ==================== Navigation 导航 ====================
+ // 侧边栏溢出提示度量拆到 _internal, 保持本文件在体积门禁之内。
+ // Sidebar overflow hint metrics live in _internal to stay under the size gate.
+ readonly property QtObject navigation: MetricsInternal.MetricsNavigation {
+  opacityScale: root.opacity
+  durationScale: root.duration
+  railInset: root.spacing.xxs
+  railBarWidth: root.controlSize.scrollBarWidth
  }
-
- // ==================== Navigation Scroll Rail 导航滚动轨 ====================
- readonly property QtObject navigationRail: QtObject {
- // 悬停显形的细滚动轨参数; 轨道是浮层, 不占宽度, 不挤压导航项。
- // The hover-revealed rail is an overlay: it claims no width and never
- // squeezes the nav items.
-
- // Overlay inset from the viewport's right edge 浮层距视口右边缘的内缩
- readonly property int inset: root.spacing.xxs
- // Rail thickness; thinner than the standard bar because it floats
- // 轨道粗细; 因为是浮层, 比标准滚动条更细
- readonly property int thickness: root.controlSize.scrollBarWidth - root.spacing.xxs
- // Opacity while idle 静止时的透明度
- readonly property real idleOpacity: root.opacity.invisible
- // Opacity while scrolling or hovering 滚动或悬停时的透明度
- readonly property real activeOpacity: root.opacity.visible
- // Reveal fast so the rail is present the moment the wheel turns
- // 快速淡入, 让轨道在滚轮转动的瞬间就在
- readonly property int revealDuration: root.duration.fast
- // Retreat gently so it does not snap away 平缓淡出, 不要突然消失
- readonly property int hideDuration: root.duration.slow
- // Idle delay before the rail retreats 轨道退隐前的静止延时
- readonly property int idleDelay: root.duration.verySlow
- }
+ // alias 只能穿透一层 id, 两层属性路径会被拒绝, 因此这里用绑定而非 alias。
+ // An alias cannot walk a two-level property path, so bind instead of aliasing.
+ readonly property QtObject navigationFade: root.navigation.fade
+ readonly property QtObject navigationRail: root.navigation.rail
 }

@@ -21,6 +21,8 @@ NavigationPanelCore {
     property real scrollStep: Enums.spacing.navigationScrollStep
     // Fade items near an overflowing edge to hint the list scrolls 溢出端渐隐以提示可滚动
     property bool scrollFadeEnabled: true
+    // Reveal a thin overlay rail on hover 悬停时显形细浮层滚动轨
+    property bool scrollRailEnabled: true
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items
@@ -160,6 +162,9 @@ NavigationPanelCore {
         itemCount: topRep.count
     }
 
+    // 被动悬停探测, 不抢委托的 MouseArea 事件 Passive hover, steals no delegate events
+    HoverHandler { id: hostHover }
+
     // Top navigation items (scrollable) 顶部导航项（可滚动）
     // 上界接菜单按钮, 下界停在底部固定项之前; 没有这层 Flickable 时超出面板高度的
     // 项会被裁掉且无法触达。
@@ -212,6 +217,15 @@ NavigationPanelCore {
             duration: control.scrollDuration
             step: control.scrollStep
         }
+    }
+
+    // 浮层滚动轨: 与 topFlickable 同级, 不在其内部 —— 放进去会随内容一起滚动。
+    // Overlay rail as a sibling of topFlickable; inside, it would scroll away.
+    NavigationScrollRail {
+        objectName: "navigationViewScrollRail"
+        flickable: topFlickable
+        active: control.scrollRailEnabled
+        hostHovered: hostHover.hovered
     }
     
     // Bottom fixed items 底部固定项

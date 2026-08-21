@@ -20,6 +20,18 @@ def _source(relative_path: str) -> Path:
     return ROOT / relative_path
 
 
+def _declaration_indent(source: str, declaration: str) -> int:
+    """返回声明所在行的缩进宽度, 用于判断两个对象是否同级。
+
+    Indentation width of the line declaring ``declaration``, so callers can tell
+    a sibling from a nested child.
+    """
+    for line in source.splitlines():
+        if line.strip() == declaration:
+            return len(line) - len(line.lstrip())
+    raise AssertionError(f"declaration not found: {declaration}")
+
+
 def _assert_modularized(entry_path: str, helper_path: str, helper_type: str) -> None:
     entry = _source(entry_path)
     helper = _source(helper_path)
@@ -521,6 +533,56 @@ def test_sidebars_share_one_scroll_fade_implementation():
         assert "boundsBehavior: Flickable.StopAtBounds" in source, relative
         assert "clip: true" in source, relative
         assert "NavigationSmoothScroll {" in source, relative
+
+
+def test_sidebars_share_one_scroll_rail_implementation():
+    """三种侧边栏共用同一份浮层滚动轨, 且轨道绝不进入布局。
+
+    The rail must stay an overlay: if it ever takes layout width it would
+    squeeze the nav items, which is exactly what the user ruled out.
+    """
+    rail = _source("prismqml/PrismQML/navigation/_internal/NavigationScrollRail.qml")
+    assert rail.exists()
+    rail_source = rail.read_text(encoding="utf-8")
+
+    # 轨道参数必须走 Enums, 不得硬编码。 Tokens only, no hardcoded numbers.
+    assert "Enums.navigationRail.inset" in rail_source
+    assert "Enums.navigationRail.thickness" in rail_source
+    assert "Enums.navigationRail.idleOpacity" in rail_source
+    assert "Enums.navigationRail.activeOpacity" in rail_source
+    assert "Enums.navigationRail.revealDuration" in rail_source
+    assert "Enums.navigationRail.hideDuration" in rail_source
+    assert "Enums.navigationRail.idleDelay" in rail_source
+    # 轨道复用既有 ScrollBar, 不另造一套滚动条。 Reuse ScrollBar, do not fork it.
+    assert "ScrollBar {" in rail_source
+    # 浮层锚在视口之上, 且不得声明 implicit 尺寸 —— 那会被父布局读取。
+    # Anchored over the viewport, and no implicit size a parent layout could read.
+    assert "anchors.right: rail.flickable.right" in rail_source
+    assert "implicitWidth" not in rail_source
+    assert "Layout." not in rail_source
+
+    for relative in (
+        "prismqml/PrismQML/navigation/NavigationBar.qml",
+        "prismqml/PrismQML/navigation/ToggleNavigationBar.qml",
+        "prismqml/PrismQML/navigation/NavigationView.qml",
+    ):
+        source = _source(relative).read_text(encoding="utf-8")
+        assert "NavigationScrollRail {" in source, relative
+        assert "property bool scrollRailEnabled: true" in source, relative
+        assert "active: control.scrollRailEnabled" in source, relative
+        assert "flickable: topFlickable" in source, relative
+        # 悬停整个侧边栏才显形, 而非只悬停那条看不见的细线。
+        # Reveal on hovering the sidebar, not the invisible hairline itself.
+        assert "hostHovered: hostHover.hovered" in source, relative
+        assert "HoverHandler {" in source, relative
+        # 轨道必须与 Flickable 同级: 放进 Flickable 里会随内容滚走。同级即同缩进,
+        # 嵌套会更深, 所以比对缩进能真正区分二者(仅比对文本先后则区分不了)。
+        # Sibling of the Flickable; nested, the rail would scroll away with the
+        # content. Siblings share indentation while a nested item is deeper, so
+        # comparing indentation actually tells them apart — text order does not.
+        rail_indent = _declaration_indent(source, "NavigationScrollRail {")
+        flickable_indent = _declaration_indent(source, "Flickable {")
+        assert rail_indent == flickable_indent, relative
 
 
 def test_toggle_navigation_bar_keeps_indicator_timers_modularized():

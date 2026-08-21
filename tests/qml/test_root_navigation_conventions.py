@@ -473,6 +473,44 @@ def _viewport_opacities(host: QQuickItem, delegate_name: str):
     ]
 
 
+def _scroll_rail(host: QQuickItem):
+    """The overlay rail of a sidebar. 侧边栏的浮层滚动轨。"""
+    return next(
+        item
+        for item in _descendants(host)
+        if "NavigationScrollRail" in item.metaObject().className()
+    )
+
+
+def _assert_rail_reveals_on_hover(window, host: QQuickItem, rail, label: str) -> None:
+    """空闲退隐, 悬停显形, 滚动后短暂显形。 Idle hides, hover and scroll reveal."""
+    assert rail.property("opacity") == pytest.approx(0.0), (
+        label,
+        rail.property("opacity"),
+    )
+    assert not rail.property("shown"), label
+
+    centre = QPoint(
+        int(host.x() + host.width() / 2),
+        int(host.y() + host.height() / 2),
+    )
+    QTest.mouseMove(window, centre)
+    assert _wait_for(lambda: rail.property("shown")), label
+    assert _wait_for(lambda: rail.property("opacity") > 0.9), label
+
+    QTest.mouseMove(window, QPoint(1150, 250))
+    assert _wait_for(lambda: not rail.property("shown")), label
+
+    # 纯滚轮操作也要有位置反馈: 内容一动就短暂显形。
+    # Wheel-only use still gets feedback: any content move reveals it.
+    _top_flickable(host).setProperty("contentY", 90.0)
+    assert _wait_for(lambda: rail.property("shown")), label
+
+
+def _viewport_widths(host: QQuickItem, delegate_name: str):
+    return [item.width() for item in _viewport_items(host, delegate_name)]
+
+
 def _create_long_title_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -834,6 +872,86 @@ def test_sidebars_hint_overflow_with_a_graded_edge_fade(qapp):
             _pump(60)
             disabled = _viewport_opacities(overflow, delegate)
             assert all(value == full for value in disabled), (overflow_name, disabled)
+            overflow.setProperty("scrollFadeEnabled", True)
+
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+# 轨道引入前(73e1a017d)在同一场景实测的基准宽度, 连测两次逐字节一致。
+# 只比对"轨道开 vs 关"抓不到常驻沟槽 —— 那会让两个测量值等量缩小而依然相等,
+# 所以这里钉住引入前的绝对值。
+# Widths measured in this same scene before the rail existed (73e1a017d), stable
+# across two runs. Comparing rail-on against rail-off cannot catch a permanently
+# reserved gutter, because both measurements would shrink equally and still
+# match, so pin the pre-rail absolute values instead.
+PRE_RAIL_WIDTHS = {
+    "overflowView": {"host": 300.0, "viewport": 292.0, "delegate": 292.0},
+    "overflowBar": {"host": 68.0, "viewport": 68.0, "delegate": 64.0},
+    "overflowToggle": {"host": 240.0, "viewport": 232.0, "delegate": 232.0},
+}
+
+def test_scroll_rail_overlays_without_changing_nav_item_widths(qapp):
+    """浮层滚动轨不得改变导航项宽度, 且只在悬停或滚动后显形。
+
+    The rail is an overlay: enabling it must not cost the nav items a single
+    pixel. It reveals on hover and retreats once idle.
+    """
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, items, warnings = _create_scroll_fade_scene()
+    try:
+        # offscreen 平台有个幽灵光标停在 (10,10), 贴着原点的宿主会被真实悬停。
+        # 先用真实 mouseMove 把光标停到远处, 否则空闲态断言会因场景而假失败。
+        # The offscreen platform parks a phantom cursor at (10,10), so a host at
+        # the origin genuinely is hovered. Park it away with a real mouseMove
+        # first, or the idle assertions fail for a scene reason, not a code one.
+        QTest.mouseMove(window, QPoint(1150, 250))
+        _pump(120)
+
+        for overflow_name, fitting_name, delegate in SCROLL_FADE_HOSTS:
+            overflow = items[overflow_name]
+            rail = _scroll_rail(overflow)
+            flickable = _top_flickable(overflow)
+            expected = PRE_RAIL_WIDTHS[overflow_name]
+
+            # 用户的硬约束: 开轨道不许挤掉导航项一个像素。
+            # The user's hard constraint: the rail must not cost one pixel.
+            assert overflow.width() == expected["host"], overflow_name
+            assert flickable.width() == expected["viewport"], (
+                overflow_name,
+                flickable.width(),
+            )
+            widths = set(_viewport_widths(overflow, delegate))
+            assert widths == {expected["delegate"]}, (overflow_name, widths)
+            assert flickable.property("contentWidth") <= flickable.width(), overflow_name
+
+            # 轨道必须压在视口之上, 而不是占用视口右侧的沟槽。
+            # The rail must sit over the viewport, not in a gutter beside it.
+            rail_left = rail.mapToItem(flickable, QPointF(0, 0)).x()
+            assert 0 <= rail_left < flickable.width(), (overflow_name, rail_left)
+            assert rail_left + rail.width() <= flickable.width(), overflow_name
+
+            _pump(60)
+            _assert_rail_reveals_on_hover(window, overflow, rail, overflow_name)
+
+            # 不溢出的宿主根本不该出现轨道。 No rail at all when content fits.
+            fitting_rail = _scroll_rail(items[fitting_name])
+            assert not fitting_rail.property("scrollable"), fitting_name
+            assert not fitting_rail.isVisible(), fitting_name
+
+            # 关闭后必须彻底隐形, 而非留一条零宽占位。
+            # Disabled means gone, not a zero-width placeholder.
+            overflow.setProperty("scrollRailEnabled", False)
+            _pump(60)
+            assert not rail.isVisible(), overflow_name
+            assert set(_viewport_widths(overflow, delegate)) == {expected["delegate"]}, (
+                overflow_name
+            )
 
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
