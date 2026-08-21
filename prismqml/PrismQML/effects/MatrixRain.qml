@@ -211,6 +211,7 @@ Rectangle {
     onMainColorChanged: canvas.clearCanvas()
     onHeadColorChanged: canvas.clearCanvas()
     onBackgroundColorChanged: canvas.clearCanvas()
+    onCellSizeChanged: canvas.initDrops()
     onDensityChanged: canvas.initDrops()
     
     MatrixRainInternal.MatrixRainCanvas {

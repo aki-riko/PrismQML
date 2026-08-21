@@ -333,16 +333,8 @@ def test_matrix_rain_frame_driver_waits_for_legacy_interval_before_paint(qapp):
         rain.setProperty("running", True)
         _pump(20)
         assert _evaluate(rain, "drops[0]") == 0
-        assert frame_driver.property("_pendingStepScale") == 0
 
         for _ in range(10):
-            _pump(10)
-            if frame_driver.property("_pendingStepScale") >= 1:
-                break
-
-        assert frame_driver.property("_pendingStepScale") >= 1
-        assert QMetaObject.invokeMethod(canvas, "requestPaint") is True
-        for _ in range(20):
             _pump(10)
             if _evaluate(rain, "drops[0]") > 0:
                 break

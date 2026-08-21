@@ -198,6 +198,21 @@ def test_lower_density_value_produces_fewer_columns(effects_page_scene):
     assert warnings == []
 
 
+def test_font_size_change_rebuilds_column_geometry(effects_page_scene):
+    _, page, warnings = effects_page_scene
+    font_size_slider = _matrix_sliders(page)[(8.0, 28.0)]
+    rain = _matrix_rain(page)
+
+    font_size_slider.setProperty("value", 28)
+    assert _wait_for(lambda: rain.property("cellSize") == 30)
+    expected_columns = math.ceil(
+        rain.width() / rain.property("cellSize") * rain.property("_safeDensity")
+    )
+
+    assert _wait_for(lambda: rain.property("cols") == expected_columns)
+    assert warnings == []
+
+
 def test_fade_slider_drag_keeps_a_fractional_value(effects_page_scene):
     window, page, warnings = effects_page_scene
     fade_slider = _matrix_sliders(page)[(0.02, 0.15)]
