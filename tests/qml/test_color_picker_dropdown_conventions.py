@@ -204,7 +204,6 @@ def _open_dropdown(picker, root_window, windows_before):
         lambda: popup_core.property("_clipHeight")
         == pytest.approx(popup_core.property("popupHeight"))
     )
-    assert _wait_for(lambda: popup_core.property("_offsetY") == pytest.approx(0.0))
     return popup_core, popup_window, dropdown
 
 

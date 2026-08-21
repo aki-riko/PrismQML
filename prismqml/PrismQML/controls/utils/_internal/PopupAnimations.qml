@@ -34,11 +34,10 @@ Item {
         }
         NumberAnimation {
             target: animations.control
-            property: "_offsetY"
-            from: Enums.popupMetrics.openYOffset
-                * animations.control._slideDirection
-            to: 0
-            duration: Enums.popupMetrics.showSlideDuration
+            property: "_clipHeight"
+            from: 0
+            to: animations.control.popupHeight
+            duration: Enums.popupMetrics.showRevealDuration
             easing.type: Easing.OutCubic
         }
     }
@@ -56,10 +55,10 @@ Item {
             }
             NumberAnimation {
                 target: animations.control
-                property: "_offsetY"
-                to: Enums.popupMetrics.hideSlideOffset
-                    * animations.control._slideDirection
-                duration: Enums.popupMetrics.hideSlideDuration
+                property: "_clipHeight"
+                from: animations.control.popupHeight
+                to: 0
+                duration: Enums.popupMetrics.hideRevealDuration
                 easing.type: Easing.InCubic
             }
         }
@@ -69,7 +68,7 @@ Item {
                 if (animations.usesControlsPopup) animations.inlinePopup.close()
                 else if (animations.popupWindow) animations.popupWindow.hide()
                 animations.control.isClosing = false
-                animations.control._offsetY = 0
+                animations.control._clipHeight = 0
             }
         }
     }

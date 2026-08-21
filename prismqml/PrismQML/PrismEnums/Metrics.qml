@@ -537,7 +537,6 @@ QtObject {
  readonly property int panelOffset: 8
  readonly property int minWidth: 64
  readonly property int minHeight: 32
- readonly property int openYOffset: 20 // Initial slide distance 初始滑动距离
  readonly property int controlGap: 2
  readonly property int positionEpsilon: 1
  readonly property int showAnimDelayMs: 16
@@ -546,16 +545,15 @@ QtObject {
  readonly property int pickerRowCount: 4
  // Animation params - Show 显示动画参数
  readonly property int showOpacityDuration: 120 // Anim C show opacity duration Anim C 显示透明度时长
- readonly property int showSlideDuration: 240 // Popup slide-in duration 弹层滑入时长
+ readonly property int showRevealDuration: 240 // Popup plane reveal duration 弹层平面显现时长
  // Blur params 模糊参数
  readonly property real blurFrom: 0.3 // Initial blur 初始模糊
  readonly property real blurMid: 0.1 // Mid blur 中间模糊
  readonly property int blurMax: 16 // Max blur radius 最大模糊半径
  readonly property real blurMultiplier: 1.0 // Blur multiplier 模糊倍数
  // Animation params - Hide 隐藏动画参数
- readonly property int hideSlideOffset: 12 // Hide slide distance 隐藏滑动距离
  readonly property int hideOpacityDuration: 100 // Anim C hide opacity duration Anim C 隐藏透明度时长
- readonly property int hideSlideDuration: 110 // Popup slide-out duration 弹层滑出时长
+ readonly property int hideRevealDuration: 110 // Popup plane hide duration 弹层平面收回时长
  }
 
  // ==================== InfoBar 信息条度量 ====================

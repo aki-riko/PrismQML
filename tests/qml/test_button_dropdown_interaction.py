@@ -173,7 +173,9 @@ def test_qt_popup_window_long_menu_uses_stable_scrollbar_input_layer(
     _click(window, button)
     popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
-    assert _wait_for(lambda: abs(float(popup.property("_offsetY"))) < 1e-3)
+    assert _wait_for(
+        lambda: popup.property("_clipHeight") == popup.property("popupHeight")
+    )
     popup_window = _active_qt_popup_window(windows_before, window)
     descendants = _visual_descendants(_popup_content(popup))
     scrollbar = next(

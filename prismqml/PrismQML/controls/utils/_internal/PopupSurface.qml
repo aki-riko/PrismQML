@@ -27,7 +27,6 @@ Item {
     required property real popupNeumorphicShadowOffset
     required property real popupNeumorphicShadowSpread
     required property real clipHeight
-    required property real panelOffsetY
     property Item _interactionHost: null
 
     default property alias popupContent: contentContainer.data
@@ -90,9 +89,9 @@ Item {
         id: clipContainer
 
         x: surface.panelOffset
-        y: surface.panelOffset + surface.panelOffsetY
+        y: surface.panelOffset
         width: surface.popupWidth
-        height: surface.clipHeight
+        height: surface.popupHeight
         clip: true
 
         // Popup panel 弹出面板
@@ -105,6 +104,15 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
+            // Reveal the complete hit-test surface through a visual mask.
+            // 用视觉遮罩显现完整命中面板，避免动态clip裁掉动画期间的首击。
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                mask: Rectangle {
+                    width: popupPanel.width
+                    height: surface.clipHeight
+                }
+            }
             Loader {
                 objectName: "ticketPaperLoader"
                 anchors.fill: parent

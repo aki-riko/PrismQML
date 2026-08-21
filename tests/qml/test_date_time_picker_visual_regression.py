@@ -236,11 +236,11 @@ def _assert_vertically_centered(item, expected_center):
     assert center == pytest.approx(expected_center)
 
 
-def _assert_slide_geometry(root, popup, panel_scale, shadow):
-    offset = popup.property("_offsetY")
+def _assert_reveal_geometry(root, popup, panel_scale, shadow):
     popup_height = popup.property("popupHeight")
-    expected_y = root.property("expectedPopupPanelOffset") + offset
-    assert offset > 0
+    expected_y = root.property("expectedPopupPanelOffset")
+    clip_height = popup.property("_clipHeight")
+    assert 0 < clip_height < popup_height
     assert panel_scale is None
     assert shadow.property("width") == pytest.approx(popup.property("popupWidth"))
     assert shadow.property("height") == pytest.approx(popup_height)
@@ -396,7 +396,7 @@ def test_display_order_and_units_follow_i18n_locale(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_popup_slides_without_scaling(qapp):
+def test_popup_reveals_from_plane_without_scaling_or_movement(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
@@ -412,8 +412,11 @@ def test_popup_slides_without_scaling(qapp):
 
         assert _wait_for(lambda: popup.property("isOpen"))
         _pump()
-        _assert_slide_geometry(root, popup, panel_scale, shadow)
-        assert _wait_for(lambda: popup.property("_offsetY") == pytest.approx(0))
+        _assert_reveal_geometry(root, popup, panel_scale, shadow)
+        assert _wait_for(
+            lambda: popup.property("_clipHeight")
+            == pytest.approx(popup.property("popupHeight"))
+        )
         assert warnings == []
     finally:
         picker.closePopup()

@@ -39,9 +39,9 @@ import PrismQML
 
 Item {
     readonly property int showOpacityDuration: Enums.popupMetrics.showOpacityDuration
-    readonly property int showSlideDuration: Enums.popupMetrics.showSlideDuration
+    readonly property int showRevealDuration: Enums.popupMetrics.showRevealDuration
     readonly property int hideOpacityDuration: Enums.popupMetrics.hideOpacityDuration
-    readonly property int hideSlideDuration: Enums.popupMetrics.hideSlideDuration
+    readonly property int hideRevealDuration: Enums.popupMetrics.hideRevealDuration
 
     width: 320
     height: 240
@@ -139,23 +139,23 @@ def test_popup_window_animation_metrics_preserve_runtime_values(qapp):
         assert popup is not None
         expected = {
             "show_opacity": root.property("showOpacityDuration"),
-            "show_slide": root.property("showSlideDuration"),
+            "show_reveal": root.property("showRevealDuration"),
             "hide_opacity": root.property("hideOpacityDuration"),
-            "hide_slide": root.property("hideSlideDuration"),
+            "hide_reveal": root.property("hideRevealDuration"),
         }
         assert expected == {
             "show_opacity": 120,
-            "show_slide": 240,
+            "show_reveal": 240,
             "hide_opacity": 100,
-            "hide_slide": 110,
+            "hide_reveal": 110,
         }
 
         animations = _number_animations(popup)
         targets = {
             "show_opacity": _find_animation(animations, "opacity", 0, 1),
-            "show_slide": _find_animation(animations, "_offsetY", -20, 0),
+            "show_reveal": _find_animation(animations, "_clipHeight", 0, 180),
             "hide_opacity": _find_animation(animations, "opacity", 0, 0),
-            "hide_slide": _find_animation(animations, "_offsetY", 0, -12),
+            "hide_reveal": _find_animation(animations, "_clipHeight", 180, 0),
         }
         assert {
             name: animation.property("duration")
@@ -248,16 +248,16 @@ def test_popup_window_animation_source_uses_role_tokens():
 
     for declaration in (
         "readonly property int showOpacityDuration: 120",
-        "readonly property int showSlideDuration: 240",
+        "readonly property int showRevealDuration: 240",
         "readonly property int hideOpacityDuration: 100",
-        "readonly property int hideSlideDuration: 110",
+        "readonly property int hideRevealDuration: 110",
     ):
         assert declaration in metrics_block
     for binding in (
         "duration: Enums.popupMetrics.showOpacityDuration",
-        "duration: Enums.popupMetrics.showSlideDuration",
+        "duration: Enums.popupMetrics.showRevealDuration",
         "duration: Enums.popupMetrics.hideOpacityDuration",
-        "duration: Enums.popupMetrics.hideSlideDuration",
+        "duration: Enums.popupMetrics.hideRevealDuration",
     ):
         assert binding in animation_block
     for legacy_name in ("fadeInDuration", "settleDuration", "hideDuration"):
