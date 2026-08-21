@@ -5,6 +5,7 @@
 import QtQuick
 import ".."
 import "../controls/icons"
+import "_internal"
 
 // NavigationView - Fluent Design expandable sidebar navigation (Window style)
 // Horizontal layout (icon+text), supports expand/collapse
@@ -15,6 +16,11 @@ NavigationPanelCore {
     // ==================== Public Props 公开属性 ====================
     property bool showReturnButton: true
     property bool isExpanded: false
+    property bool smoothScroll: true
+    property int scrollDuration: Enums.duration.navigationScroll
+    property real scrollStep: Enums.spacing.navigationScrollStep
+    // Fade items near an overflowing edge to hint the list scrolls 溢出端渐隐以提示可滚动
+    property bool scrollFadeEnabled: true
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items
@@ -23,6 +29,11 @@ NavigationPanelCore {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isCompact: !isExpanded
     readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
+    // 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
+    readonly property real _selectedItemFade: scrollFade.selectionOpacity(
+        control._getItemAt(control.currentIndex),
+        control.currentIndex >= 0
+            && control.currentIndex < (control._safeModel || []).length)
 
     // ==================== Signals 信号 ====================
     signal returnButtonClicked()
@@ -43,6 +54,8 @@ NavigationPanelCore {
         }
         isExpanded = !isExpanded
     }
+    function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
+    function smoothScrollBy(delta) { topScrollBehavior.scrollBy(delta) }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navPanelExpandWidth
@@ -57,6 +70,13 @@ NavigationPanelCore {
     // Connect repeaters 连接 Repeater
     topRepeater: topRep
     bottomRepeater: bottomRep
+
+    // Bind scroll offset for real-time indicator tracking 绑定滚动偏移以实时跟踪指示器
+    scrollOffset: topFlickable.contentY
+    // 指示器裁剪下界 = 可滚动区底边, 滚动时指示器溢出此处被裁, 不露进底部固定项区。
+    indicatorClipBottom: topFlickable.y + topFlickable.height
+    // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐
+    indicatorOpacity: control._selectedItemFade
 
     // Forward signal 转发信号
     onCurrentItemChanged: (key) => currentItemUpdated(key)
@@ -130,29 +150,67 @@ NavigationPanelCore {
         }
     }
     
-    // Top navigation items 顶部导航项
-    Column {
-        id: topLayout
+    // Edge fade state shared by the items and the indicator 导航项与指示器共用的渐隐状态
+    NavigationScrollFade {
+        id: scrollFade
+        objectName: "navigationViewScrollFade"
+        flickable: topFlickable
+        active: control.scrollFadeEnabled
+        itemHeight: Enums.controlSize.navItemHeight + Enums.controlSize.navItemSpacing
+        itemCount: topRep.count
+    }
+
+    // Top navigation items (scrollable) 顶部导航项（可滚动）
+    // 上界接菜单按钮, 下界停在底部固定项之前; 没有这层 Flickable 时超出面板高度的
+    // 项会被裁掉且无法触达。
+    // Bounded between the menu button and the fixed bottom items; without this
+    // Flickable, items past the panel height were clipped and unreachable.
+    Flickable {
+        id: topFlickable
         anchors.top: menuBtn.bottom
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.topMargin: Enums.controlSize.navItemSpacing
         anchors.leftMargin: Enums.controlSize.navPanelPaddingH
-        width: control.isCompact ? control.compactButtonWidth : (parent.width - Enums.controlSize.navPanelPaddingH * 2)
-        spacing: Enums.controlSize.navItemSpacing
-        
-        Repeater {
-            id: topRep
-            model: control._safeModel
-            
-            delegate: NavigationViewItem {
-                width: parent.width
-                text: modelData ? (modelData.text || "") : ""
-                icon: modelData ? (modelData.icon || "") : ""
-                selected: index === control.currentIndex
-                compact: control.isCompact
-                
-                onClicked: control._onItemClicked(index, false)
+        anchors.rightMargin: Enums.controlSize.navPanelPaddingH
+        height: Math.max(0, bottomLayout.y - topFlickable.y
+                            - Enums.controlSize.navItemSpacing)
+
+        contentWidth: width
+        contentHeight: topLayout.height
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: false
+
+        Column {
+            id: topLayout
+            width: control.isCompact ? control.compactButtonWidth : topFlickable.width
+            spacing: Enums.controlSize.navItemSpacing
+
+            Repeater {
+                id: topRep
+                model: control._safeModel
+
+                delegate: NavigationViewItem {
+                    width: parent.width
+                    text: modelData ? (modelData.text || "") : ""
+                    icon: modelData ? (modelData.icon || "") : ""
+                    selected: index === control.currentIndex
+                    compact: control.isCompact
+                    opacity: scrollFade.opacityAt(y, height)
+
+                    onClicked: control._onItemClicked(index, false)
+                }
             }
+        }
+
+        NavigationSmoothScroll {
+            id: topScrollBehavior
+            helperName: "navigationViewSmoothScrollHelper"
+            flickable: topFlickable
+            smoothScroll: control.smoothScroll
+            duration: control.scrollDuration
+            step: control.scrollStep
         }
     }
     
