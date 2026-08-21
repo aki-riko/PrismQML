@@ -23,6 +23,8 @@ NavigationPanelCore {
     property bool scrollFadeEnabled: true
     // Reveal a thin overlay rail on hover 悬停时显形细浮层滚动轨
     property bool scrollRailEnabled: true
+    // Let touch and mouse drag scroll the list 允许触摸与鼠标拖拽滚动列表
+    property bool dragScrollEnabled: true
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items
@@ -185,7 +187,9 @@ NavigationPanelCore {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        interactive: false
+        // 见 NavigationBar 同处注释: 无需 pressDelay。
+        // See the note in NavigationBar: no pressDelay needed.
+        interactive: control.dragScrollEnabled
 
         Column {
             id: topLayout

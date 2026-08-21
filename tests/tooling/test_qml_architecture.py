@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """QML architecture boundaries and size gates. QML 架构边界与大小门禁。"""
 
+import re
 from pathlib import Path, PurePosixPath
 
 from scripts.qml_conventions import scan_source_text
@@ -529,7 +530,17 @@ def test_sidebars_share_one_scroll_fade_implementation():
         # 每个宿主都要有真实视口, 否则溢出项被裁且无法触达。
         # A real viewport per host, or overflow items are clipped and unreachable.
         assert "Flickable {" in source, relative
-        assert "interactive: false" in source, relative
+        # 视口可交互以支持触摸/拖拽, 但必须留一个可关的开关。
+        # Interactive for touch and drag, but the switch must stay public.
+        assert "interactive: control.dragScrollEnabled" in source, relative
+        assert "property bool dragScrollEnabled: true" in source, relative
+        # 实测委托的 MouseArea 不抢拖拽, 因此不得引入 pressDelay 白添点击延迟。
+        # Measured: the delegates do not steal the drag, so no pressDelay may be
+        # introduced — it would only cost every click a delay.
+        # 只查真正的属性赋值 —— 整词匹配会连解释这条约定的注释一起命中。
+        # Match the assignment only; a bare substring also hits the comment that
+        # explains this very rule.
+        assert not re.search(r"^\s*pressDelay\s*:", source, re.MULTILINE), relative
         assert "boundsBehavior: Flickable.StopAtBounds" in source, relative
         assert "clip: true" in source, relative
         assert "NavigationSmoothScroll {" in source, relative

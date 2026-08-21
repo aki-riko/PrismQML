@@ -507,6 +507,63 @@ def _assert_rail_reveals_on_hover(window, host: QQuickItem, rail, label: str) ->
     assert _wait_for(lambda: rail.property("shown")), label
 
 
+def _drag_viewport(window, host: QQuickItem, steps: int = 12, dy: int = 12) -> float:
+    """拖拽视口并返回落点。 Drag the viewport upward and report where it settled.
+
+    小步移动是必需的: 单次跳跃不会被识别为拖拽手势。
+    Small steps are required; one jump is not read as a drag gesture.
+    """
+    flickable = _top_flickable(host)
+    flickable.setProperty("contentY", 0.0)
+    _pump(60)
+    pos = QPoint(
+        int(host.x() + host.width() / 2),
+        int(host.y() + host.height() * 0.7),
+    )
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    for _ in range(steps):
+        pos = QPoint(pos.x(), pos.y() - dy)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    _pump(220)
+    return round(flickable.property("contentY"), 1)
+
+
+def _tap_second_item(window, host: QQuickItem, delegate_name: str) -> list:
+    """点击第二项并返回 itemClicked 收到的下标。 Tap and report itemClicked.
+
+    currentIndex 由上层 window 接收 itemClicked 后回绑, 场景里没有那层接线,
+    所以点击契约要测信号而不是 currentIndex。
+    _onItemClicked deliberately does not set currentIndex; an upper-layer window
+    binds it back from itemClicked. So the tap contract is the signal.
+    """
+    fired = []
+    host.itemClicked.connect(fired.append)
+    try:
+        flickable = _top_flickable(host)
+        flickable.setProperty("contentY", 0.0)
+        _pump(80)
+        target = sorted(
+            _component_items(flickable, delegate_name), key=lambda item: item.y()
+        )[1]
+        centre = target.mapToItem(None, target.width() / 2, target.height() / 2)
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            QPoint(int(centre.x()), int(centre.y())),
+        )
+        _pump(220)
+    finally:
+        host.itemClicked.disconnect(fired.append)
+    return fired
+
+
 def _viewport_widths(host: QQuickItem, delegate_name: str):
     return [item.width() for item in _viewport_items(host, delegate_name)]
 
@@ -678,8 +735,13 @@ def test_navigation_bars_use_smooth_scroll_helper(navigation_scene):
     toggle_helper = toggle.findChild(QQuickItem, "toggleNavigationBarSmoothScrollHelper")
     assert bar_helper is not None
     assert toggle_helper is not None
-    assert not bar_flickable.property("interactive")
-    assert not toggle_flickable.property("interactive")
+    # 视口现在可交互以支持触摸/拖拽滚动; 滚轮仍必须走平滑滚动助手,
+    # 下面的 targetPos 与 contentY 断言就是在锁这一点。
+    # The viewports are interactive now so touch and drag can scroll. The wheel
+    # must still go through the smooth-scroll helper, which the targetPos and
+    # contentY assertions below pin down.
+    assert bar_flickable.property("interactive")
+    assert toggle_flickable.property("interactive")
     assert window.property("barSmoothScroll") is True
     assert window.property("toggleSmoothScroll") is True
     assert window.property("barScrollDuration") == window.property(
@@ -952,6 +1014,49 @@ def test_scroll_rail_overlays_without_changing_nav_item_widths(qapp):
             assert set(_viewport_widths(overflow, delegate)) == {expected["delegate"]}, (
                 overflow_name
             )
+
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+def test_sidebars_scroll_by_touch_and_drag_without_losing_taps(qapp):
+    """拖拽能滚动列表, 且点击仍然照常选中。
+
+    Enabling drag must not cost the delegates their taps, and the switch must
+    still turn dragging off.
+    """
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, items, warnings = _create_scroll_fade_scene()
+    try:
+        for overflow_name, _fitting_name, delegate in SCROLL_FADE_HOSTS:
+            overflow = items[overflow_name]
+            flickable = _top_flickable(overflow)
+            assert flickable.property("interactive"), overflow_name
+
+            # 拖拽必须真的滚起来, 否则触摸设备上这个列表根本没法用。
+            # The drag must genuinely scroll, or the list is unusable by touch.
+            dragged = _drag_viewport(window, overflow)
+            assert dragged > 0, (overflow_name, dragged)
+
+            # 开了拖拽以后点击不能丢: 委托仍须发出 itemClicked。
+            # Enabling drag must not swallow taps; itemClicked must still fire.
+            assert _tap_second_item(window, overflow, delegate) == [1], overflow_name
+
+            # 开关必须真的能关掉拖拽。 The switch must really disable dragging.
+            overflow.setProperty("dragScrollEnabled", False)
+            _pump(60)
+            assert not flickable.property("interactive"), overflow_name
+            assert _drag_viewport(window, overflow) == 0.0, overflow_name
+            # 关掉拖拽后点击依然要能用。 Taps keep working with drag off.
+            assert _tap_second_item(window, overflow, delegate) == [1], overflow_name
+
+            overflow.setProperty("dragScrollEnabled", True)
+            _pump(60)
 
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

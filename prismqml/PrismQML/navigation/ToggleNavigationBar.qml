@@ -25,6 +25,8 @@ Item {
     property bool scrollFadeEnabled: true
     // Reveal a thin overlay rail on hover 悬停时显形细浮层滚动轨
     property bool scrollRailEnabled: true
+    // Let touch and mouse drag scroll the list 允许触摸与鼠标拖拽滚动列表
+    property bool dragScrollEnabled: true
 
     // ==================== Internal Props 内部属性 ====================
     readonly property var _safeModel:
@@ -190,7 +192,9 @@ Item {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        interactive: false
+        // 委托用 TapHandler, 与 Flickable 手势天然协作。
+        // The delegates use TapHandler, which cooperates with Flickable natively.
+        interactive: control.dragScrollEnabled
         
         Column {
             id: topLayout
