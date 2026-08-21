@@ -476,6 +476,53 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "\n    Timer {" not in source
 
 
+def test_sidebars_share_one_scroll_fade_implementation():
+    """三种侧边栏共用同一份渐隐实现, 且渐隐参数只来自 Enums。
+
+    The fade must stay in NavigationScrollFade with tokens from Enums, so the
+    hint cannot drift apart between the three sidebars.
+    """
+    fade = _source("prismqml/PrismQML/navigation/_internal/NavigationScrollFade.qml")
+    assert fade.exists()
+    fade_source = fade.read_text(encoding="utf-8")
+
+    # 渐隐参数必须走 Enums, 不得硬编码。 Tokens only, no hardcoded numbers.
+    assert "Enums.navigationFade.bandItems" in fade_source
+    assert "Enums.navigationFade.minOpacity" in fade_source
+    assert "Enums.navigationFade.maxOpacity" in fade_source
+    # 用真实 opacity 而非遮罩着色器, 才能在 Mica/透明背景下可见。
+    # Real opacity, not a mask shader, so the hint survives Mica backgrounds.
+    assert "MultiEffect" not in fade_source
+    assert "ShaderEffect" not in fade_source
+    assert "layer.effect" not in fade_source
+    # 依赖登记守卫必须留在共用实现里 The dependency guard stays shared here
+    assert "fade.itemCount > 0 && fade.flickable.contentHeight > 0" in fade_source
+
+    for relative in (
+        "prismqml/PrismQML/navigation/NavigationBar.qml",
+        "prismqml/PrismQML/navigation/ToggleNavigationBar.qml",
+        "prismqml/PrismQML/navigation/NavigationView.qml",
+    ):
+        source = _source(relative).read_text(encoding="utf-8")
+        assert "NavigationScrollFade {" in source, relative
+        assert "property bool scrollFadeEnabled: true" in source, relative
+        assert "active: control.scrollFadeEnabled" in source, relative
+        # itemCount 必须绑定 Repeater, 否则绑定会锁死在 Repeater 尚空的首次求值。
+        # Bind the Repeater or the binding latches on its empty first pass.
+        assert "itemCount: topRep.count" in source, relative
+        assert "opacity: scrollFade.opacityAt(y, height)" in source, relative
+        # 指示器位于视口之外, 必须由选中项的渐隐驱动才能锁步。
+        # The indicator is outside the viewport; drive it from the item's fade.
+        assert "scrollFade.selectionOpacity(" in source, relative
+        # 每个宿主都要有真实视口, 否则溢出项被裁且无法触达。
+        # A real viewport per host, or overflow items are clipped and unreachable.
+        assert "Flickable {" in source, relative
+        assert "interactive: false" in source, relative
+        assert "boundsBehavior: Flickable.StopAtBounds" in source, relative
+        assert "clip: true" in source, relative
+        assert "NavigationSmoothScroll {" in source, relative
+
+
 def test_toggle_navigation_bar_keeps_indicator_timers_modularized():
     entry = _source("prismqml/PrismQML/navigation/ToggleNavigationBar.qml")
     tracker = _source(

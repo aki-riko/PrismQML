@@ -140,6 +140,125 @@ Window {
     }
 }
 """
+SCROLL_FADE_SOURCE = """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+// 三种侧边栏各给一个溢出模型与一个不溢出模型, 用于验证边缘渐隐提示。
+// An overflowing and a fitting model for each sidebar, to check the edge fade.
+Window {
+    readonly property real fullOpacity: Enums.navigationFade.maxOpacity
+    readonly property real fadeBandItems: Enums.navigationFade.bandItems
+
+    width: 1200
+    height: 260
+    visible: true
+
+    NavigationView {
+        id: overflowView
+        objectName: "overflowView"
+        width: 300
+        height: parent.height
+        isExpanded: true
+        showReturnButton: false
+        smoothScroll: false
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "v1", "text": "V One" },
+            { "key": "v2", "text": "V Two" },
+            { "key": "v3", "text": "V Three" },
+            { "key": "v4", "text": "V Four" },
+            { "key": "v5", "text": "V Five" },
+            { "key": "v6", "text": "V Six" },
+            { "key": "v7", "text": "V Seven" },
+            { "key": "v8", "text": "V Eight" }
+        ]
+        bottomItems: [{ "key": "v-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "v-settings": 8 })
+    }
+
+    NavigationBar {
+        id: overflowBar
+        objectName: "overflowBar"
+        x: 320
+        width: implicitWidth
+        height: parent.height
+        smoothScroll: false
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "b1", "text": "B One" },
+            { "key": "b2", "text": "B Two" },
+            { "key": "b3", "text": "B Three" },
+            { "key": "b4", "text": "B Four" },
+            { "key": "b5", "text": "B Five" },
+            { "key": "b6", "text": "B Six" },
+            { "key": "b7", "text": "B Seven" },
+            { "key": "b8", "text": "B Eight" }
+        ]
+        bottomItems: [{ "key": "b-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "b-settings": 8 })
+    }
+
+    ToggleNavigationBar {
+        id: overflowToggle
+        objectName: "overflowToggle"
+        x: 420
+        width: 240
+        height: parent.height
+        smoothScroll: false
+        model: [
+            { "key": "t1", "text": "T One" },
+            { "key": "t2", "text": "T Two" },
+            { "key": "t3", "text": "T Three" },
+            { "key": "t4", "text": "T Four" },
+            { "key": "t5", "text": "T Five" },
+            { "key": "t6", "text": "T Six" },
+            { "key": "t7", "text": "T Seven" },
+            { "key": "t8", "text": "T Eight" }
+        ]
+        bottomItems: [{ "key": "t-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "t-settings": 8 })
+    }
+
+    NavigationView {
+        id: fittingView
+        objectName: "fittingView"
+        x: 680
+        width: 300
+        height: parent.height
+        isExpanded: true
+        showReturnButton: false
+        indicatorAnimationEnabled: false
+        model: [{ "key": "f1", "text": "F One" }]
+        bottomItems: [{ "key": "f-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "f-settings": 1 })
+    }
+
+    NavigationBar {
+        id: fittingBar
+        objectName: "fittingBar"
+        x: 1000
+        width: implicitWidth
+        height: parent.height
+        indicatorAnimationEnabled: false
+        model: [{ "key": "g1", "text": "G One" }]
+        bottomItems: [{ "key": "g-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "g-settings": 1 })
+    }
+
+    ToggleNavigationBar {
+        id: fittingToggle
+        objectName: "fittingToggle"
+        x: 1090
+        width: 100
+        height: parent.height
+        model: [{ "key": "h1", "text": "H One" }]
+        bottomItems: [{ "key": "h-settings", "text": "Settings", "selectable": true }]
+        _bottomPageIndexMap: ({ "h-settings": 1 })
+    }
+}
+""".encode("utf-8")
 LONG_TITLE_SOURCE = """
 import QtQuick
 import QtQuick.Window
@@ -298,6 +417,60 @@ def _create_scene():
     assert all(items.values())
     _pump(100)
     return engine, component, window, items, warnings
+
+
+def _create_scroll_fade_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(SCROLL_FADE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    names = (
+        "overflowView",
+        "overflowBar",
+        "overflowToggle",
+        "fittingView",
+        "fittingBar",
+        "fittingToggle",
+    )
+    items = {name: window.findChild(QQuickItem, name) for name in names}
+    for name, item in items.items():
+        assert item is not None, name
+    _pump(150)
+    return engine, component, window, items, warnings
+
+
+def _top_flickable(host: QQuickItem):
+    """The scrollable viewport of a sidebar. 侧边栏的可滚动视口。"""
+    return next(
+        item
+        for item in _descendants(host)
+        if "QQuickFlickable" in item.metaObject().className()
+    )
+
+
+def _viewport_items(host: QQuickItem, delegate_name: str):
+    """Delegates inside the viewport, top to bottom. 视口内的委托, 自上而下。
+
+    Matching on the delegate type avoids catching the nested Labels, which also
+    carry a text property. 按委托类型匹配, 避免误取同样带 text 的内层 Label。
+    """
+    items = _component_items(_top_flickable(host), delegate_name)
+    return sorted(items, key=lambda item: item.y())
+
+
+def _viewport_opacities(host: QQuickItem, delegate_name: str):
+    return [
+        round(item.property("opacity"), 3)
+        for item in _viewport_items(host, delegate_name)
+    ]
 
 
 def _create_long_title_scene():
@@ -592,6 +765,76 @@ def test_navigation_bar_item_creates_badge_only_for_positive_count(qapp):
                 item.objectName() == badge_name for item in _descendants(nav_item)
             )
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
+SCROLL_FADE_HOSTS = (
+    ("overflowView", "fittingView", "NavigationViewItem"),
+    ("overflowBar", "fittingBar", "NavigationBarItem"),
+    ("overflowToggle", "fittingToggle", "ToggleNavigationBarItem"),
+)
+
+
+def test_sidebars_hint_overflow_with_a_graded_edge_fade(qapp):
+    """溢出端渐隐提示可滚动; 不溢出时不得渐隐。
+
+    Every sidebar fades items near an overflowing edge and stays fully opaque
+    when its content fits.
+    """
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, items, warnings = _create_scroll_fade_scene()
+    try:
+        full = window.property("fullOpacity")
+        # 渐隐带必须跨多项, 否则逐项斜坡退化为硬切。
+        # The band must span several items or the per-item ramp is a hard cut.
+        assert window.property("fadeBandItems") >= 2.0
+
+        for overflow_name, fitting_name, delegate in SCROLL_FADE_HOSTS:
+            overflow = items[overflow_name]
+            fitting = items[fitting_name]
+            flickable = _top_flickable(overflow)
+
+            # 视口必须有高度且内容确实溢出, 否则本用例什么也没验证。
+            # A sized viewport with real overflow, or this case proves nothing.
+            assert flickable.property("height") > 0, overflow_name
+            assert flickable.property("contentHeight") > flickable.property("height"), (
+                overflow_name
+            )
+            assert len(_viewport_items(overflow, delegate)) == 8, overflow_name
+
+            parked = _viewport_opacities(overflow, delegate)
+            assert parked[0] == full, (overflow_name, parked)
+            graded = {value for value in parked if 0.0 < value < full}
+            assert len(graded) >= 2, (overflow_name, parked)
+
+            fits = _viewport_opacities(fitting, delegate)
+            assert fits and all(value == full for value in fits), (fitting_name, fits)
+
+            # 滚离顶部后顶端项必须开始淡出, 提示上方还有内容。
+            # Once scrolled off the top, leading items fade to hint at more above.
+            overflow.setProperty("currentIndex", 0)
+            flickable.setProperty("contentY", 120.0)
+            assert _wait_for(lambda: flickable.property("contentY") > 0), overflow_name
+            assert _viewport_opacities(overflow, delegate)[0] < full, overflow_name
+
+            # 指示器在视口之外, 必须与选中项锁步, 否则会在渐隐项旁保持清晰。
+            # The indicator sits outside the viewport and must track its item.
+            selected = _viewport_opacities(overflow, delegate)[0]
+            assert overflow.property("_selectedItemFade") == pytest.approx(selected), (
+                overflow_name
+            )
+
+            overflow.setProperty("scrollFadeEnabled", False)
+            _pump(60)
+            disabled = _viewport_opacities(overflow, delegate)
+            assert all(value == full for value in disabled), (overflow_name, disabled)
+
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
