@@ -544,7 +544,6 @@ QtObject {
  readonly property int closingDelayMs: 150
  readonly property int pickerRowCount: 4
  // Animation params - Show 显示动画参数
- readonly property int showOpacityDuration: 120 // Anim C show opacity duration Anim C 显示透明度时长
  readonly property int showRevealDuration: 240 // Popup plane reveal duration 弹层平面显现时长
  // Blur params 模糊参数
  readonly property real blurFrom: 0.3 // Initial blur 初始模糊
@@ -552,7 +551,6 @@ QtObject {
  readonly property int blurMax: 16 // Max blur radius 最大模糊半径
  readonly property real blurMultiplier: 1.0 // Blur multiplier 模糊倍数
  // Animation params - Hide 隐藏动画参数
- readonly property int hideOpacityDuration: 100 // Anim C hide opacity duration Anim C 隐藏透明度时长
  readonly property int hideRevealDuration: 110 // Popup plane hide duration 弹层平面收回时长
  }
 

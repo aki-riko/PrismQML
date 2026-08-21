@@ -183,7 +183,7 @@ Item {
         popupAnimations.showAnimation.stop()
         popupAnimations.hideAnimation.stop()
         _clipHeight = 0
-        popupSurface.opacity = 0
+        popupSurface.opacity = Enums.opacityLevel.visible
     }
     function _handleSurfaceClosed() {
         PopupLifecycle.handleSurfaceClosed(control)

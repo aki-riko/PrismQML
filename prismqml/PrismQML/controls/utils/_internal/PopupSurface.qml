@@ -34,10 +34,11 @@ Item {
     objectName: "_popupSurface"
     width: outerWidth
     height: outerHeight
-    opacity: Enums.opacityLevel.invisible
+    opacity: Enums.opacityLevel.visible
 
     // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
-    // Sync opacity with popupPanel for smooth fade animation 与面板同步透明度实现平滑淡入
+    // Keep the surface opaque; the panel reveal is driven by the visual mask.
+    // 保持表面不透明；弹层显现由视觉遮罩驱动。
     // Fluent uses one elevation shadow; neumorphism uses a paired shadow below.
     // Fluent 使用单层高度阴影；新拟态使用下方的双向阴影。
     RectangularShadow {

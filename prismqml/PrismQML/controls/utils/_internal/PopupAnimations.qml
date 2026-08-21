@@ -26,13 +26,6 @@ Item {
         id: showAnim
 
         NumberAnimation {
-            target: animations.surface
-            property: "opacity"
-            from: 0; to: 1
-            duration: Enums.popupMetrics.showOpacityDuration
-            easing.type: Easing.OutQuad
-        }
-        NumberAnimation {
             target: animations.control
             property: "_clipHeight"
             from: 0
@@ -45,22 +38,13 @@ Item {
     SequentialAnimation {
         id: hideAnim
 
-        ParallelAnimation {
-            NumberAnimation {
-                target: animations.surface
-                property: "opacity"
-                to: 0
-                duration: Enums.popupMetrics.hideOpacityDuration
-                easing.type: Easing.InQuad
-            }
-            NumberAnimation {
-                target: animations.control
-                property: "_clipHeight"
-                from: animations.control.popupHeight
-                to: 0
-                duration: Enums.popupMetrics.hideRevealDuration
-                easing.type: Easing.InCubic
-            }
+        NumberAnimation {
+            target: animations.control
+            property: "_clipHeight"
+            from: animations.control.popupHeight
+            to: 0
+            duration: Enums.popupMetrics.hideRevealDuration
+            easing.type: Easing.InCubic
         }
 
         ScriptAction {
