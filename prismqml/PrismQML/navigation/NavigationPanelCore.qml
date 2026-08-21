@@ -50,7 +50,11 @@ Item {
     // 超过此 y 的部分被裁掉, 避免溢出到底部固定项区域露白(Mica 模式下遮盖层透明
     // 无法遮挡)。默认=全高(不裁); 子类(如 NavigationBar)按布局设为可滚动区底边。
     property real indicatorClipBottom: height
-    
+
+    // 指示器透明度。子类接入滚动渐隐时把选中项的渐隐值写进来, 让指示器与导航项
+    // 锁步淡出; 默认全不透明, 未启用渐隐的宿主行为不变。
+    property real indicatorOpacity: Enums.navigationFade.maxOpacity
+
     // Current selected page key (for bottom page items) 当前选中的页面键（用于底部页面项）
     property string _currentKey: ""
     
@@ -442,6 +446,10 @@ Item {
             // Outlined skins use the selected paper block instead of a second accent strip.
             // 描边皮肤使用选中纸面块，不再叠加第二条强调指示线。
             visible: !Enums.hasOutlinedSurfaces
+            // Track the selected item's scroll fade; the indicator sits outside
+            // the viewport, so without this it stays crisp against faded items.
+            // 跟随选中项的滚动渐隐；指示器在视口之外，否则会在渐隐项旁保持清晰。
+            opacity: control.indicatorOpacity
         }
     }
     

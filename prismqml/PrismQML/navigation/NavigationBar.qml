@@ -16,10 +16,22 @@ NavigationPanelCore {
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.navigationScroll
     property real scrollStep: Enums.spacing.navigationScrollStep
+    // Fade items near an overflowing edge to hint the list scrolls 溢出端渐隐以提示可滚动
+    property bool scrollFadeEnabled: true
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items 将 key 映射到页面索引，用于底部页面项
     property var _bottomPageIndexMap: ({})
+
+    // ==================== Readonly State 只读状态 ====================
+    // 选中项的渐隐值; 只在选中项属于可滚动区(顶部 repeater)时参与, 底部固定项不渐隐。
+    readonly property real _selectedItemFade: {
+        var count = (control._safeModel || []).length
+        if (control.currentIndex < 0 || control.currentIndex >= count) {
+            return Enums.navigationFade.maxOpacity
+        }
+        return scrollFade.opacityForItem(control._getItemAt(control.currentIndex))
+    }
 
     // ==================== Public Methods 公开方法 ====================
     function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
@@ -45,8 +57,19 @@ NavigationPanelCore {
     // 指示器裁剪下界 = 可滚动区(topFlickable)底边, 滚动时指示器溢出此处被裁,
     // 不再露进底部固定项区(替代 Mica 下失效的 bottomCover 遮盖)。
     indicatorClipBottom: topFlickable.y + topFlickable.height
-    
+    // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐
+    indicatorOpacity: control._selectedItemFade
+
     // ==================== Content 内容 ====================
+    // Edge fade state shared by the items and the indicator 导航项与指示器共用的渐隐状态
+    NavigationScrollFade {
+        id: scrollFade
+        objectName: "navigationBarScrollFade"
+        flickable: topFlickable
+        active: control.scrollFadeEnabled
+        itemHeight: Enums.controlSize.navBarItemHeight
+    }
+
     // Top navigation items (scrollable) 顶部导航项（可滚动）
     Flickable {
         id: topFlickable
@@ -76,7 +99,8 @@ NavigationPanelCore {
                     icon: modelData ? (modelData.icon || "") : ""
                     selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
                     selected: index === control.currentIndex
-                    
+                    opacity: scrollFade.opacityAt(y, height)
+
                     onClicked: control._onItemClicked(index, false)
                 }
             }
