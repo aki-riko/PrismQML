@@ -878,4 +878,18 @@ QtObject {
  // Height ratio when normal 正常时高度比例
  readonly property real normalRatio: 0.3
  }
+
+ // ==================== Navigation Scroll Fade 导航滚动渐隐 ====================
+ readonly property QtObject navigationFade: QtObject {
+ // 侧边栏可滚动时的边缘渐隐提示参数
+
+ // Fade band expressed in item heights; must span several items or the
+ // per-item ramp collapses into a single visible step.
+ // 渐隐带按项高倍数表达；必须跨多项，否则逐项斜坡会退化成单一档位。
+ readonly property real bandItems: 2.0
+ // Opacity an item reaches once fully inside the band 项完全进入渐隐带后的透明度
+ readonly property real minOpacity: root.opacity.invisible
+ // Opacity of an item clear of the band 项处于渐隐带之外时的透明度
+ readonly property real maxOpacity: root.opacity.visible
+ }
 }

@@ -320,7 +320,8 @@ Item {
     readonly property alias typography: _metrics.typography
     readonly property alias shadow: _metrics.shadow
     readonly property alias listIndicator: _metrics.listIndicator
-    
+    readonly property alias navigationFade: _metrics.navigationFade
+
     // Global icon path (resolved once, used everywhere) 全局图标路径
     readonly property string iconPath: Qt.resolvedUrl("controls/icons/fluent/")
     
