@@ -892,4 +892,28 @@ QtObject {
  // Opacity of an item clear of the band 项处于渐隐带之外时的透明度
  readonly property real maxOpacity: root.opacity.visible
  }
+
+ // ==================== Navigation Scroll Rail 导航滚动轨 ====================
+ readonly property QtObject navigationRail: QtObject {
+ // 悬停显形的细滚动轨参数; 轨道是浮层, 不占宽度, 不挤压导航项。
+ // The hover-revealed rail is an overlay: it claims no width and never
+ // squeezes the nav items.
+
+ // Overlay inset from the viewport's right edge 浮层距视口右边缘的内缩
+ readonly property int inset: root.spacing.xxs
+ // Rail thickness; thinner than the standard bar because it floats
+ // 轨道粗细; 因为是浮层, 比标准滚动条更细
+ readonly property int thickness: root.controlSize.scrollBarWidth - root.spacing.xxs
+ // Opacity while idle 静止时的透明度
+ readonly property real idleOpacity: root.opacity.invisible
+ // Opacity while scrolling or hovering 滚动或悬停时的透明度
+ readonly property real activeOpacity: root.opacity.visible
+ // Reveal fast so the rail is present the moment the wheel turns
+ // 快速淡入, 让轨道在滚轮转动的瞬间就在
+ readonly property int revealDuration: root.duration.fast
+ // Retreat gently so it does not snap away 平缓淡出, 不要突然消失
+ readonly property int hideDuration: root.duration.slow
+ // Idle delay before the rail retreats 轨道退隐前的静止延时
+ readonly property int idleDelay: root.duration.verySlow
+ }
 }
