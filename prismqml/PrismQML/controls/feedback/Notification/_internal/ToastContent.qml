@@ -326,6 +326,15 @@ Item {
                     )
                 }
 
+                Icon {
+                    objectName: "toastProgressStateIcon"
+                    anchors.centerIn: parent
+                    iconSize: Enums.iconSize.micro
+                    icon: toast.progressIcon
+                    color: Enums.accentColor
+                    visible: !toast._progressComplete && icon !== ""
+                }
+
                 // Complete icon 完成图标
                 Icon {
                     objectName: "toastProgressCompleteIcon"

@@ -53,6 +53,7 @@ Widget {
     // Progress properties 进度属性
     property int feature: Enums.notification.feature_normal  // 功能模式
     property real progress: 0  // 0-1 进度值
+    property string progressIcon: ""  // Progress ring center icon 进度环中心图标
     property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
     
     // Progress mode helpers 进度模式辅助属性

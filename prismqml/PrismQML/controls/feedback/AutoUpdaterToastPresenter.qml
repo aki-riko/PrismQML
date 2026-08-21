@@ -66,6 +66,7 @@ Item {
         item.feature = model.feature;
         item.duration = model.duration;
         item.progress = model.progress;
+        item.progressIcon = model.icon;
     }
 
     function _hideToast() {
@@ -102,6 +103,7 @@ Item {
         }
         function onTitleChanged() { root._scheduleSync(); }
         function onMessageChanged() { root._scheduleSync(); }
+        function onIconChanged() { root._scheduleSync(); }
         function onSeverityChanged() { root._scheduleSync(); }
         function onFeatureChanged() { root._scheduleSync(); }
         function onDurationChanged() { root._scheduleSync(); }

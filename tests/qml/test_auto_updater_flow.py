@@ -54,6 +54,7 @@ Window {
     readonly property bool facadeFeedbackActive: facade.feedbackModel.active
     readonly property string facadeFeedbackTitle: facade.feedbackModel.title
     readonly property string facadeFeedbackMessage: facade.feedbackModel.message
+    readonly property string facadeFeedbackIcon: facade.feedbackModel.icon
     readonly property int indeterminateRingFeature: Enums.notification.feature_indeterminate_ring
     readonly property int progressRingFeature: Enums.notification.feature_progress_ring
     readonly property int toastWidth: Enums.controlSize.toastWidth
@@ -287,12 +288,18 @@ def test_check_uses_managed_toast_and_builtin_progress(auto_updater_scene, qapp)
     assert toast.property("width") == root.property("toastWidth")
     assert toast.property("height") == root.property("toastHeight")
     assert set(QGuiApplication.topLevelWindows()) == windows_before
+    state_icon = toast.findChild(QObject, "toastProgressStateIcon")
+    assert state_icon is not None
+    assert state_icon.property("icon") == "ArrowSync"
+    assert state_icon.property("visible") is True
 
     assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
     qapp.processEvents()
     assert toast.property("feature") == root.property("progressRingFeature")
     assert toast.property("progress") == pytest.approx(0.25)
     assert toast.property("message") == "25%  (25.0 MB / 100.0 MB)"
+    assert state_icon.property("icon") == "ArrowDownload"
+    assert state_icon.property("visible") is True
 
     assert QMetaObject.invokeMethod(root, "emitSecondDownloadProgress")
     assert sync_timer.property("running") is True
@@ -377,10 +384,16 @@ def test_progress_dialog_presenter_can_replace_default(auto_updater_scene, qapp)
     assert dialog.property("title") == "正在检查更新"
     assert dialog.property("progress") == pytest.approx(-1)
     assert root.findChild(QObject, "autoUpdaterToast") is None
+    state_icon = root.findChild(QObject, "progressDialogCompletionIcon")
+    assert state_icon is not None
+    assert state_icon.property("icon") == "ArrowSync"
+    assert state_icon.property("visible") is True
 
     assert QMetaObject.invokeMethod(root, "emitDownloadProgress")
     qapp.processEvents()
     assert dialog.property("progress") == pytest.approx(25)
+    assert state_icon.property("icon") == "ArrowDownload"
+    assert state_icon.property("visible") is True
 
 
 def test_progress_dialog_timeout_timer_lifecycle(auto_updater_scene, qapp):
@@ -408,13 +421,13 @@ def test_progress_dialog_timeout_timer_lifecycle(auto_updater_scene, qapp):
     assert timeout_timer.property("running") is False
 
 
-def test_progress_dialog_shows_ready_icon(auto_updater_scene, qapp):
+def test_progress_dialog_replaces_state_icon_with_ready_icon(auto_updater_scene, qapp):
     root = auto_updater_scene
     assert QMetaObject.invokeMethod(root, "useProgressDialogAndCheck")
     completion_icon = root.findChild(QObject, "progressDialogCompletionIcon")
     assert completion_icon is not None
-    assert completion_icon.property("icon") == ""
-    assert completion_icon.property("visible") is False
+    assert completion_icon.property("icon") == "ArrowSync"
+    assert completion_icon.property("visible") is True
     assert QMetaObject.invokeMethod(root, "triggerDualSlotPreparation")
     assert QMetaObject.invokeMethod(root, "finishDualSlotPreparation")
     qapp.processEvents()

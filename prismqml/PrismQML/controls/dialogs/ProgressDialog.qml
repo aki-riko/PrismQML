@@ -22,6 +22,7 @@ OverlayDialogCore {
     // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string content: ""
+    property string progressIcon: ""
     property int ringSize: 64
     property int ringStrokeWidth: Enums.controlSize.progressStrokeWidth
     property int maxWaitingTime: -1  // -1 = infinite wait 无限等待
@@ -137,9 +138,10 @@ OverlayDialogCore {
                     objectName: "progressDialogCompletionIcon"
                     anchors.centerIn: parent
                     iconSize: Enums.iconSize.xxl
-                    icon: control._progressComplete ? Enums.icon.checkmark : ""
+                    icon: control._progressComplete
+                        ? Enums.icon.checkmark : control.progressIcon
                     color: progressRing.progressColor
-                    visible: control._progressComplete
+                    visible: icon !== ""
                 }
             }
             

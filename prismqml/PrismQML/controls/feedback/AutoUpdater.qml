@@ -59,6 +59,9 @@ Item {
         readonly property bool preparing: root._installPreparing
         readonly property string title: root._feedbackTitle
         readonly property string message: root._feedbackMessage
+        readonly property string icon: root._checking || root._installPreparing
+            ? Enums.icon.arrow_sync
+            : (root._downloading ? Enums.icon.arrow_download : "")
         readonly property string severity: root._feedbackSeverity
         readonly property int feature: root._feedbackFeature
         readonly property int duration: root._feedbackDuration

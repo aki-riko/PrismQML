@@ -48,6 +48,7 @@ Item {
         objectName: "autoUpdaterProgressDialog"
         title: root.feedbackModel ? root.feedbackModel.title : ""
         content: root.feedbackModel ? root.feedbackModel.message : ""
+        progressIcon: root.feedbackModel ? root.feedbackModel.icon : ""
         progress: root._dialogProgress()
     }
 
