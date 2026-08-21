@@ -82,25 +82,60 @@ Item {
                         // 速度 Speed
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_2c46293d126101da", Fluent.Translator._v) + speedSlider.value.toFixed(1)
-                            Slider { id: speedSlider; width: 150; from: 0.2; to: 4.0; value: 1.0 }
+                            Slider {
+                                id: speedSlider
+
+                                width: 150
+                                from: 0.2
+                                to: 4.0
+                                value: 1.0
+                                stepSize: 0.1
+                                decimals: 1
+                            }
                         }
                         
                         // 字体大小 Font size
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_800b0e9e70229d11", Fluent.Translator._v) + Math.round(fontSizeSlider.value) + "px"
-                            Slider { id: fontSizeSlider; width: 150; from: 8; to: 28; value: 14 }
+                            Slider {
+                                id: fontSizeSlider
+
+                                width: 150
+                                from: 8
+                                to: 28
+                                value: 14
+                                stepSize: 1
+                            }
                         }
                         
                         // 密度 Density
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_76d9b92538f405c9", Fluent.Translator._v) + densitySlider.value.toFixed(1)
-                            Slider { id: densitySlider; width: 150; from: 0.5; to: 2.0; value: 1.0 }
+                            Slider {
+                                id: densitySlider
+
+                                width: 150
+                                from: 0.5
+                                to: 2.0
+                                value: 0.7
+                                stepSize: 0.1
+                                decimals: 1
+                            }
                         }
                         
                         // 拖尾 Fade
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_728f1239d38766e4", Fluent.Translator._v) + fadeSlider.value.toFixed(2)
-                            Slider { id: fadeSlider; width: 150; from: 0.02; to: 0.15; value: 0.05 }
+                            Slider {
+                                id: fadeSlider
+
+                                width: 150
+                                from: 0.02
+                                to: 0.15
+                                value: 0.05
+                                stepSize: 0.01
+                                decimals: 2
+                            }
                         }
                     }
                     

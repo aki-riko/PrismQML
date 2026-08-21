@@ -30,14 +30,15 @@ Canvas {
 
         var arr = []
         var seeds = []
+        // Density is the visible row/column count multiplier 密度表示可见行列数量倍率
         if (host.isHorizontal) {
-            host.rows = Math.ceil(height / host.cellSize / host._safeDensity)
+            host.rows = Math.ceil(height / host.cellSize * host._safeDensity)
             for (var i = 0; i < host.rows; i++) {
                 arr.push(Math.random() * -50)
                 seeds.push(Math.random())
             }
         } else {
-            host.cols = Math.ceil(width / host.cellSize / host._safeDensity)
+            host.cols = Math.ceil(width / host.cellSize * host._safeDensity)
             for (var j = 0; j < host.cols; j++) {
                 arr.push(Math.random() * -50)
                 seeds.push(Math.random())
@@ -79,7 +80,8 @@ Canvas {
 
         var w = width, h = height
         var cellSize = host.cellSize
-        var cs = cellSize * host._safeDensity
+        // Keep spacing reciprocal to the count multiplier 间距与数量倍率保持倒数关系
+        var cs = cellSize / host._safeDensity
         var charLen = activeCharset.length
         var isHoriz = host.isHorizontal
         var dir = host.direction
