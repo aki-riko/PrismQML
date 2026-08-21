@@ -273,6 +273,19 @@ def test_matrix_rain_frame_updates_reuse_drop_array_without_property_change(qapp
         _pump()
 
 
+def test_matrix_rain_frame_driver_batches_legacy_draw_intervals():
+    timer_source = (
+        MATRIX_RAIN_SOURCE.parent / "_internal" / "MatrixRainAnimationTimer.qml"
+    ).read_text(encoding="utf-8")
+
+    assert "property real _elapsedMilliseconds: 0" in timer_source
+    assert "Math.floor(" in timer_source
+    assert "_elapsedMilliseconds / legacyIntervalMilliseconds" in timer_source
+    assert "if (elapsedIntervals < 1) return" in timer_source
+    assert "_pendingStepScale += elapsedIntervals" in timer_source
+    assert "_pendingStepScale += Math.min" not in timer_source
+
+
 def test_matrix_rain_offscreen_frame_advances_drop_without_property_change(qapp):
     engine = QQmlApplicationEngine()
     component = window = None
@@ -294,6 +307,47 @@ def test_matrix_rain_offscreen_frame_advances_drop_without_property_change(qapp)
         drop = _evaluate(rain, "drops[0]")
         assert 0.125 <= drop < 0.25
         assert emitted == []
+    finally:
+        if window is not None:
+            window.close()
+            window.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump()
+
+
+def test_matrix_rain_frame_driver_waits_for_legacy_interval_before_paint(qapp):
+    engine = QQmlApplicationEngine()
+    component = window = None
+    try:
+        component, window, rain, canvas = _create_matrix_rain_window(engine)
+        _evaluate(rain, "direction = 'down'; cols = 1; drops = [0]")
+        frame_driver = rain.findChild(QObject, "matrixRainAnimationTimer")
+        assert frame_driver is not None
+        _evaluate(
+            frame_driver,
+            "_elapsedMilliseconds = 0; _pendingStepScale = 0",
+        )
+        _pump(20)
+
+        rain.setProperty("running", True)
+        _pump(20)
+        assert _evaluate(rain, "drops[0]") == 0
+        assert frame_driver.property("_pendingStepScale") == 0
+
+        for _ in range(10):
+            _pump(10)
+            if frame_driver.property("_pendingStepScale") >= 1:
+                break
+
+        assert frame_driver.property("_pendingStepScale") >= 1
+        assert QMetaObject.invokeMethod(canvas, "requestPaint") is True
+        for _ in range(20):
+            _pump(10)
+            if _evaluate(rain, "drops[0]") > 0:
+                break
+
+        assert _evaluate(rain, "drops[0]") >= 0.5
     finally:
         if window is not None:
             window.close()

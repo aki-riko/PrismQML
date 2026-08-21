@@ -173,6 +173,15 @@ def test_matrix_control_steps_match_fractional_ranges(effects_page_scene):
     assert warnings == []
 
 
+def test_effects_page_does_not_expose_matrix_rain_api(effects_page_scene):
+    _, _, warnings = effects_page_scene
+    source = PAGE_PATH.read_text(encoding="utf-8")
+
+    assert "MatrixRain API" not in source
+    assert "API说明 API documentation" not in source
+    assert warnings == []
+
+
 def test_lower_density_value_produces_fewer_columns(effects_page_scene):
     _, page, warnings = effects_page_scene
     density_slider = _matrix_sliders(page)[(0.5, 2.0)]

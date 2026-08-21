@@ -224,52 +224,6 @@ Item {
                 }
             }
             
-            // API说明 API documentation
-            ExampleCard {
-                title: "MatrixRain API"
-                description: Fluent.Translator.tr("gallery_b27231378b8b3464", Fluent.Translator._v)
-                
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Enums.spacing.m
-                    
-                    Text {
-                        width: parent.width
-                        text: Fluent.Translator.tr("gallery_739f3990c6763895", Fluent.Translator._v)
-                        color: Enums.textColor.secondary
-                        font.family: Enums.fontFamily
-                        font.pixelSize: Enums.typography.body
-                        wrapMode: Text.Wrap
-                    }
-                    
-                    Text {
-                        width: parent.width
-                        text: Fluent.Translator.tr("gallery_5c9b1d8fa61c7e35", Fluent.Translator._v)
-                        color: Enums.textColor.secondary
-                        font.family: Enums.fontFamily
-                        font.pixelSize: Enums.typography.body
-                        wrapMode: Text.Wrap
-                    }
-                    
-                    Text {
-                        width: parent.width
-                        text: Fluent.Translator.tr("gallery_01dd841942c87e0e", Fluent.Translator._v)
-                        color: Enums.textColor.secondary
-                        font.family: Enums.fontFamily
-                        font.pixelSize: Enums.typography.body
-                        wrapMode: Text.Wrap
-                    }
-                    
-                    Text {
-                        width: parent.width
-                        text: Fluent.Translator.tr("gallery_51f8c4f9e6a3e1c7", Fluent.Translator._v)
-                        color: Enums.textColor.secondary
-                        font.family: Enums.fontFamily
-                        font.pixelSize: Enums.typography.body
-                        wrapMode: Text.Wrap
-                    }
-                }
-            }
         }
     }
 }

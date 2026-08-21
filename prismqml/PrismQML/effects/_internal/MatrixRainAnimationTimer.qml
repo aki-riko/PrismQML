@@ -20,6 +20,9 @@ FrameAnimation {
         Math.max(16, 50 / host._safeSpeed)
 
     // ==================== Internal Props 内部属性 ====================
+    // Accumulate presented-frame time until one legacy draw interval elapses.
+    // 累计实际呈现帧时间，直到达到旧版的一次绘制间隔。
+    property real _elapsedMilliseconds: 0
     property real _pendingStepScale: 0
 
     // ==================== Public Methods 公开方法 ====================
@@ -31,12 +34,21 @@ FrameAnimation {
 
     objectName: "matrixRainAnimationTimer"
     running: host.running && !host.paused && host.visible
-    onRunningChanged: if (!running) _pendingStepScale = 0
+    onRunningChanged: if (!running) {
+        _elapsedMilliseconds = 0
+        _pendingStepScale = 0
+    }
     onTriggered: {
         var deltaMilliseconds = frameTime * 1000
         if (deltaMilliseconds <= 0) return
-        _pendingStepScale += Math.min(
-            1, deltaMilliseconds / legacyIntervalMilliseconds)
+
+        _elapsedMilliseconds += deltaMilliseconds
+        var elapsedIntervals = Math.floor(
+            _elapsedMilliseconds / legacyIntervalMilliseconds)
+        if (elapsedIntervals < 1) return
+
+        _elapsedMilliseconds -= elapsedIntervals * legacyIntervalMilliseconds
+        _pendingStepScale += elapsedIntervals
         targetCanvas.requestPaint()
     }
 }
