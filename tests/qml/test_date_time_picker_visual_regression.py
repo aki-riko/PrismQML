@@ -236,17 +236,15 @@ def _assert_vertically_centered(item, expected_center):
     assert center == pytest.approx(expected_center)
 
 
-def _assert_center_expand_geometry(root, popup, panel_scale, shadow):
-    scale = popup.property("_scale")
+def _assert_slide_geometry(root, popup, panel_scale, shadow):
+    offset = popup.property("_offsetY")
     popup_height = popup.property("popupHeight")
-    expected_center = root.property("expectedPopupPanelOffset") + popup_height / 2
-    assert 0 < scale < 1
-    assert panel_scale.property("xScale") == pytest.approx(1)
-    assert panel_scale.property("yScale") == pytest.approx(scale)
-    assert panel_scale.property("origin").y() == pytest.approx(popup_height / 2)
+    expected_y = root.property("expectedPopupPanelOffset") + offset
+    assert offset > 0
+    assert panel_scale is None
     assert shadow.property("width") == pytest.approx(popup.property("popupWidth"))
-    assert shadow.property("height") == pytest.approx(popup_height * scale)
-    _assert_vertically_centered(shadow, expected_center)
+    assert shadow.property("height") == pytest.approx(popup_height)
+    assert shadow.property("y") == pytest.approx(expected_y)
 
 
 def _destroy_scene(engine, component, root):
@@ -398,7 +396,7 @@ def test_display_order_and_units_follow_i18n_locale(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_popup_expands_smoothly_from_vertical_center(qapp):
+def test_popup_slides_without_scaling(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, root, picker, warnings = _create_scene()
     try:
@@ -409,13 +407,13 @@ def test_popup_expands_smoothly_from_vertical_center(qapp):
         panel_scale = popup.findChild(QObject, "_popupPanelScale")
         shadow = popup.findChild(QObject, "_popupShadow")
         assert popup.property("verticalCenterExpand")
-        assert panel_scale is not None
+        assert panel_scale is None
         assert shadow is not None
 
         assert _wait_for(lambda: popup.property("isOpen"))
         _pump()
-        _assert_center_expand_geometry(root, popup, panel_scale, shadow)
-        assert _wait_for(lambda: popup.property("_scale") == pytest.approx(1))
+        _assert_slide_geometry(root, popup, panel_scale, shadow)
+        assert _wait_for(lambda: popup.property("_offsetY") == pytest.approx(0))
         assert warnings == []
     finally:
         picker.closePopup()

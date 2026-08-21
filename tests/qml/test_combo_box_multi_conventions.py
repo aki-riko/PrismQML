@@ -213,7 +213,7 @@ def test_combo_box_multi_popup_selection_and_token_removal(qapp):
         assert isinstance(popup_window, QQuickWindow)
         popup_window.requestActivate()
         assert _wait_for(popup_window.isActive)
-        assert _wait_for(lambda: abs(popup.property("_scale") - 1.0) < 0.001)
+        assert _wait_for(lambda: abs(popup.property("_offsetY")) < 0.001)
         assert _wait_for(
             lambda: popup.property("_clipHeight") == popup.property("popupHeight")
         )

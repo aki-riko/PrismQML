@@ -220,7 +220,7 @@ def test_menu_item_click_survives_natural_opening_animation(
     popup = _dropdown_popup(dropdown)
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
-    assert popup.property("_scale") < 1.0
+    assert abs(popup.property("_offsetY")) > 0
 
     item = next(
         child
@@ -239,7 +239,7 @@ def test_menu_item_click_survives_natural_opening_animation(
         Qt.KeyboardModifier.NoModifier,
         click_position,
     )
-    pressed_scale = popup.property("_scale")
+    pressed_offset = popup.property("_offsetY")
     _pump(100)
     QTest.mouseRelease(
         popup_window,
@@ -249,7 +249,7 @@ def test_menu_item_click_survives_natural_opening_animation(
     )
     _pump(20)
 
-    assert pressed_scale < 1.0
+    assert abs(pressed_offset) > 0
     assert received == [(0, "Alpha")]
     assert warnings == []
 
@@ -269,7 +269,7 @@ def test_action_click_survives_opening_animation(
     _invoke(root, "openMenu")
     assert _wait_for(lambda: menu.property("isOpen"))
     _pump(20)
-    assert menu.property("_scale") < 1.0
+    assert abs(menu.property("_offsetY")) > 0
     popup_window = action.window()
     assert popup_window is not None
     click_position = action.mapToScene(
@@ -282,7 +282,7 @@ def test_action_click_survives_opening_animation(
         Qt.KeyboardModifier.NoModifier,
         click_position,
     )
-    stabilized_scale = menu.property("_scale")
+    stabilized_offset = menu.property("_offsetY")
     _pump(100)
     QTest.mouseRelease(
         popup_window,
@@ -292,7 +292,7 @@ def test_action_click_survives_opening_animation(
     )
     _pump(20)
 
-    assert stabilized_scale == pytest.approx(1.0)
+    assert stabilized_offset == pytest.approx(0.0)
     assert root.property("triggerCount") == 1
     assert warnings == []
 
@@ -307,7 +307,7 @@ def test_menu_delegate_click_preserves_opening_animation(delegate_menu_scene):
     _invoke(root, "openMenu")
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
-    assert popup.property("_scale") < 1.0
+    assert abs(popup.property("_offsetY")) > 0
 
     popup_window = item.window()
     assert popup_window is not None
@@ -320,7 +320,7 @@ def test_menu_delegate_click_preserves_opening_animation(delegate_menu_scene):
         Qt.KeyboardModifier.NoModifier,
         click_position,
     )
-    assert popup.property("_scale") < 1.0
+    assert abs(popup.property("_offsetY")) > 0
     QTest.mouseRelease(
         popup_window,
         Qt.MouseButton.LeftButton,

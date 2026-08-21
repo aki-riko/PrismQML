@@ -34,20 +34,12 @@ Item {
         }
         NumberAnimation {
             target: animations.control
-            property: "_scale"
-            from: animations.control.verticalCenterExpand ? 0 : 0.7; to: 1.0
-            duration: Enums.popupMetrics.showScaleDuration
-            easing.type: animations.control.verticalCenterExpand
-                ? Easing.OutCubic : Easing.OutBack
-            easing.overshoot: 1.4
-        }
-        NumberAnimation {
-            target: animations.control
-            property: "_clipHeight"
-            from: 0
-            to: animations.control.popupHeight
-            duration: Enums.popupMetrics.clipRevealDuration
-            easing.type: Easing.Linear
+            property: "_offsetY"
+            from: Enums.popupMetrics.openYOffset
+                * animations.control._slideDirection
+            to: 0
+            duration: Enums.popupMetrics.showSlideDuration
+            easing.type: Easing.OutCubic
         }
     }
 
@@ -64,12 +56,11 @@ Item {
             }
             NumberAnimation {
                 target: animations.control
-                property: "_scale"
-                to: animations.control.verticalCenterExpand ? 0 : 0.85
-                duration: Enums.popupMetrics.hideScaleDuration
-                easing.type: animations.control.verticalCenterExpand
-                    ? Easing.InCubic : Easing.InBack
-                easing.overshoot: 1.2
+                property: "_offsetY"
+                to: Enums.popupMetrics.hideSlideOffset
+                    * animations.control._slideDirection
+                duration: Enums.popupMetrics.hideSlideDuration
+                easing.type: Easing.InCubic
             }
         }
 
@@ -78,7 +69,7 @@ Item {
                 if (animations.usesControlsPopup) animations.inlinePopup.close()
                 else if (animations.popupWindow) animations.popupWindow.hide()
                 animations.control.isClosing = false
-                animations.control._clipHeight = 0  // [Anim C] reset for next show
+                animations.control._offsetY = 0
             }
         }
     }

@@ -55,8 +55,8 @@ Item {
     property bool useQtPopupWindow: false  // Render with Qt Quick Controls Popup.Window 使用Qt管理的原生弹出窗口
     property bool constrainToAvailableScreen: true  // Keep clear of taskbars and reserved system UI 避让任务栏与系统保留区
     property Item targetControl: null  // Trigger control 触发弹出的控件
-    property int animationType: 0  // 0=expand, 1=slideDown (Fluent Design style) 动画类型
-    property bool verticalCenterExpand: false  // Expand vertically from the center 从中心向上下两侧垂直展开
+    property int animationType: 0  // 0=placement slide, 1=slideDown (Fluent Design style) 动画类型
+    property bool verticalCenterExpand: false  // Retained picker placement contract; popup enters by sliding 保留Picker定位契约；弹层统一使用位移进入
     property bool _isPickerMode: false  // Internal: picker mode for center alignment 内部：Picker模式居中对齐
     property bool _submenuPlacement: false  // Internal: right/left placement for anchored submenus 子菜单锚点定位
     property int _pickerRowHeight: 37  // Internal: row height for picker mode 内部：Picker模式行高
@@ -74,10 +74,11 @@ Item {
     readonly property int _maxSurfaceRecoveryAttempts: 1
     readonly property alias _lifecycleTimer: lifecycleTimer
     readonly property bool _isPopupWindowCore: true
-    // Internal: animated clip height for drop-down effect 内部：下拉展开动画的裁剪高度
+    // Internal: full panel clip height; movement is handled by _offsetY 内部：完整面板裁剪高度；位移由_offsetY处理
     property real _clipHeight: 0
-    // [Anim C] Spring scale for iOS-style bounce 弹簧缩放
-    property real _scale: 0.7
+    // Vertical entrance/exit offset; negative enters from above, positive from below 纵向进出场偏移；负值从上方进入，正值从下方进入
+    property real _offsetY: 0
+    property int _slideDirection: -1
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
     readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
     readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
@@ -181,11 +182,18 @@ Item {
     function _startOpenAnimation() {
         popupAnimations.showAnimation.start()
     }
+    function _resolveSlideDirection(globalY) {
+        if (!targetControl || !targetControl.mapToGlobal) return -1
+        var targetTop = targetControl.mapToGlobal(0, 0).y
+        var targetBottom = targetTop + targetControl.height
+        // Compare the rendered panel edge after inset adjustment 按扣除内边距后的实际面板边缘判断方向
+        return globalY + _panelOffset >= targetBottom ? -1 : 1
+    }
     function _resetOpenAppearance() {
         popupAnimations.showAnimation.stop()
         popupAnimations.hideAnimation.stop()
-        _clipHeight = 0
-        _scale = verticalCenterExpand ? 0 : 0.7
+        _clipHeight = popupHeight
+        _offsetY = Enums.popupMetrics.openYOffset * _slideDirection
         popupSurface.opacity = 0
     }
     function _handleSurfaceClosed() {
@@ -210,7 +218,6 @@ Item {
     }
     function _openAtPosition(x, y, preservePlacement) {
         if (preservePlacement !== true) _submenuPlacement = false
-
         // Create the native content host before aboutToShow so content-sized
         // popups can measure their items while the host is still hidden.
         // 在 aboutToShow 前创建原生内容宿主，确保隐藏状态下仍能正确测量内容尺寸。
@@ -233,6 +240,9 @@ Item {
             _prewarmingQtPopup = false
             _prewarmFocusItem = null
             var localPos = _calcControlsPopupPosition(posX, posY)
+            _slideDirection = _resolveSlideDirection(posY)
+            _offsetY = Enums.popupMetrics.openYOffset * _slideDirection
+            _clipHeight = popupHeight
             inlinePopup.x = localPos.x
             inlinePopup.y = localPos.y
             _showCurrentSurface()
@@ -252,6 +262,9 @@ Item {
             posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - nativeWindow.height))
         }
 
+        _slideDirection = _resolveSlideDirection(posY)
+        _offsetY = Enums.popupMetrics.openYOffset * _slideDirection
+        _clipHeight = popupHeight
         nativeWindow.x = posX
         nativeWindow.y = posY
 
@@ -339,7 +352,7 @@ Item {
         if (!popupAnimations.showAnimation.running) return
         popupAnimations.showAnimation.stop()
         popupSurface.opacity = 1
-        _scale = 1
+        _offsetY = 0
         _clipHeight = popupHeight
     }
     // Force reset all state - for system tray menu reopen 强制重置所有状态（系统托盘菜单重新打开使用）
@@ -481,7 +494,6 @@ Item {
         popupNeumorphicShadowOffset: control._popupNeumorphicShadowOffset
         popupNeumorphicShadowSpread: control._popupNeumorphicShadowSpread
         clipHeight: control._clipHeight
-        panelScale: control._scale
-        verticalCenterExpand: control.verticalCenterExpand
+        panelOffsetY: control._offsetY
     }
 }

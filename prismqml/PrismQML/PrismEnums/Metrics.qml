@@ -545,24 +545,17 @@ QtObject {
  readonly property int closingDelayMs: 150
  readonly property int pickerRowCount: 4
  // Animation params - Show 显示动画参数
- readonly property real showScaleFrom: 0.88 // Initial scale 初始缩放
- readonly property real showScaleMid: 0.96 // Mid-phase scale 中间阶段缩放
- readonly property real showOvershoot: 0.6 // Subtle bounce 轻微回弹
- readonly property int elasticOvershoot: 4 // Slide overshoot pixels 滑动过冲像素
  readonly property int showOpacityDuration: 120 // Anim C show opacity duration Anim C 显示透明度时长
- readonly property int showScaleDuration: 240 // Anim C spring scale duration Anim C 弹性缩放时长
- readonly property int clipRevealDuration: 1 // Anim C clip reveal duration Anim C 裁剪展开时长
+ readonly property int showSlideDuration: 240 // Popup slide-in duration 弹层滑入时长
  // Blur params 模糊参数
  readonly property real blurFrom: 0.3 // Initial blur 初始模糊
  readonly property real blurMid: 0.1 // Mid blur 中间模糊
  readonly property int blurMax: 16 // Max blur radius 最大模糊半径
  readonly property real blurMultiplier: 1.0 // Blur multiplier 模糊倍数
  // Animation params - Hide 隐藏动画参数
- readonly property real hideScaleTo: 0.94 // Final scale on hide 隐藏时最终缩放
  readonly property int hideSlideOffset: 12 // Hide slide distance 隐藏滑动距离
  readonly property int hideOpacityDuration: 100 // Anim C hide opacity duration Anim C 隐藏透明度时长
- readonly property int hideScaleDuration: 110 // Anim C hide scale duration Anim C 隐藏缩放时长
- readonly property real hideOvershoot: 1.2 // Hide bounce overshoot 隐藏回弹过冲
+ readonly property int hideSlideDuration: 110 // Popup slide-out duration 弹层滑出时长
  }
 
  // ==================== InfoBar 信息条度量 ====================

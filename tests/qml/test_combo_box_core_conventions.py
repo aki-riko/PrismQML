@@ -267,7 +267,7 @@ def _open_popup(window, combo, windows_before):
     QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=click_point)
     assert _wait_for(lambda: combo.property("isOpen"))
     assert _wait_for(lambda: popup.property("isOpen"))
-    assert _wait_for(lambda: abs(popup.property("_scale") - 1.0) < 0.001)
+    assert _wait_for(lambda: abs(popup.property("_offsetY")) < 0.001)
     assert _wait_for(
         lambda: popup.property("_clipHeight") == popup.property("popupHeight")
     )

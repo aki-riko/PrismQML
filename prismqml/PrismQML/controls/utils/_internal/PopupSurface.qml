@@ -27,8 +27,7 @@ Item {
     required property real popupNeumorphicShadowOffset
     required property real popupNeumorphicShadowSpread
     required property real clipHeight
-    required property real panelScale
-    required property bool verticalCenterExpand
+    required property real panelOffsetY
     property Item _interactionHost: null
 
     default property alias popupContent: contentContainer.data
@@ -48,7 +47,7 @@ Item {
         x: clipContainer.x
         y: clipContainer.y + (surface.popupHeight - height) / 2
         width: popupPanel.width
-        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
+        height: popupPanel.height
         radius: surface.popupRadius
         color: surface.popupShadowColor
         blur: surface.popupShadowBlur
@@ -68,7 +67,7 @@ Item {
         x: clipContainer.x
         y: clipContainer.y + (surface.popupHeight - height) / 2
         width: popupPanel.width
-        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
+        height: popupPanel.height
         visible: Enums.isNeumorphism
     }
 
@@ -81,7 +80,7 @@ Item {
         x: clipContainer.x + Enums.neo.shadowOffset
         y: clipContainer.y + (surface.popupHeight - height) / 2 + Enums.neo.shadowOffset
         width: popupPanel.width
-        height: surface.verticalCenterExpand ? popupPanel.height * surface.panelScale : popupPanel.height
+        height: popupPanel.height
         radius: surface.popupRadius
         color: Enums.neo.shadowColor
     }
@@ -91,7 +90,7 @@ Item {
         id: clipContainer
 
         x: surface.panelOffset
-        y: surface.panelOffset
+        y: surface.panelOffset + surface.panelOffsetY
         width: surface.popupWidth
         height: surface.clipHeight
         clip: true
@@ -106,15 +105,6 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
-            // [Anim C] Uniform scale from top center or vertical scale from center 顶部中心统一缩放或中心垂直缩放
-            transform: Scale {
-                objectName: "_popupPanelScale"
-                origin.x: popupPanel.width / 2
-                origin.y: surface.verticalCenterExpand ? popupPanel.height / 2 : 0
-                xScale: surface.verticalCenterExpand ? 1 : surface.panelScale
-                yScale: surface.panelScale
-            }
-
             Loader {
                 objectName: "ticketPaperLoader"
                 anchors.fill: parent
