@@ -112,17 +112,20 @@ Item {
                 maskEnabled: true
                 maskThresholdMin: 0.5
                 maskSpreadAtMin: 1.0
-                maskSource: Rectangle {
+                maskSource: ShaderEffectSource {
                     objectName: "_popupRevealMask"
-                    width: popupPanel.width
-                    height: popupPanel.height
-                    color: Enums.transparent
-                    clip: true
+                    live: true
+                    smooth: true
+                    sourceItem: Item {
+                        width: popupPanel.width
+                        height: popupPanel.height
+                        clip: true
 
-                    Rectangle {
-                        width: parent.width
-                        height: surface.clipHeight
-                        color: Enums.textColor.primary
+                        Rectangle {
+                            width: parent.width
+                            height: surface.clipHeight
+                            color: Enums.textColor.primary
+                        }
                     }
                 }
             }
