@@ -282,10 +282,11 @@ def test_popup_window_animation_source_uses_role_tokens():
 
 def test_popup_reveal_mask_uses_the_full_popup_container():
     surface_source = SURFACE_SOURCE.read_text(encoding="utf-8")
-    assert 'sourceItem: Item {' in surface_source
+    assert 'layer.effect: MultiEffect {' in surface_source
+    assert 'maskSource: Rectangle {' in surface_source
     assert "width: popupPanel.width" in surface_source
-    assert "height: popupPanel.height" in surface_source
     assert 'objectName: "_popupRevealMask"' in surface_source
-    assert "width: parent.width" in surface_source
+    assert "height: popupPanel.height" in surface_source
+    assert "clip: true" in surface_source
     assert "height: surface.clipHeight" in surface_source
     assert 'objectName: "_popupRevealCover"' not in surface_source

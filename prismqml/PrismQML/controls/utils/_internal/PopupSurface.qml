@@ -108,21 +108,21 @@ Item {
             // Reveal the panel through a full-size mask whose visible height follows the container.
             // 使用与面板同尺寸的遮罩，仅让其可见高度跟随容器展开。
             layer.enabled: true
-            layer.effect: OpacityMask {
-                mask: ShaderEffectSource {
-                    hideSource: true
-                    live: true
-                    smooth: true
-                    sourceItem: Item {
-                        width: popupPanel.width
-                        height: popupPanel.height
+            layer.effect: MultiEffect {
+                maskEnabled: true
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
+                maskSource: Rectangle {
+                    objectName: "_popupRevealMask"
+                    width: popupPanel.width
+                    height: popupPanel.height
+                    color: Enums.transparent
+                    clip: true
 
-                        Rectangle {
-                            objectName: "_popupRevealMask"
-                            width: parent.width
-                            height: surface.clipHeight
-                            color: Enums.textColor.primary
-                        }
+                    Rectangle {
+                        width: parent.width
+                        height: surface.clipHeight
+                        color: Enums.textColor.primary
                     }
                 }
             }
