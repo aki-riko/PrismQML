@@ -105,6 +105,27 @@ Item {
             color: surface.popupBackground
             border.width: surface.popupBorderWidth
             border.color: surface.popupBorderColor
+            // Reveal the panel through a full-size mask whose visible height follows the container.
+            // 使用与面板同尺寸的遮罩，仅让其可见高度跟随容器展开。
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                mask: ShaderEffectSource {
+                    hideSource: true
+                    live: true
+                    smooth: true
+                    sourceItem: Item {
+                        width: popupPanel.width
+                        height: popupPanel.height
+
+                        Rectangle {
+                            objectName: "_popupRevealMask"
+                            width: parent.width
+                            height: surface.clipHeight
+                            color: Enums.textColor.primary
+                        }
+                    }
+                }
+            }
             Loader {
                 objectName: "ticketPaperLoader"
                 anchors.fill: parent
@@ -126,18 +147,6 @@ Item {
                 clip: true
             }
 
-            // Cover the unrevealed plane while keeping the full panel interactive.
-            // 遮挡尚未显现的平面，同时保持完整面板可交互。
-            Rectangle {
-                objectName: "_popupRevealCover"
-                z: Enums.zIndex.overlay
-                x: 0
-                y: surface.clipHeight
-                width: popupPanel.width
-                height: Math.max(0, popupPanel.height - surface.clipHeight)
-                color: surface.popupBackground
-                visible: height > 0
-            }
         }
     }
 }

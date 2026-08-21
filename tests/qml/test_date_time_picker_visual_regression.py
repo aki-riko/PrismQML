@@ -236,7 +236,7 @@ def _assert_vertically_centered(item, expected_center):
     assert center == pytest.approx(expected_center)
 
 
-def _assert_reveal_geometry(root, popup, panel_scale, shadow, reveal_cover):
+def _assert_reveal_geometry(root, popup, panel_scale, shadow):
     popup_height = popup.property("popupHeight")
     expected_y = root.property("expectedPopupPanelOffset")
     clip_height = popup.property("_clipHeight")
@@ -244,11 +244,6 @@ def _assert_reveal_geometry(root, popup, panel_scale, shadow, reveal_cover):
     assert panel_scale is None
     assert shadow.property("width") == pytest.approx(popup.property("popupWidth"))
     assert shadow.property("height") == pytest.approx(popup_height)
-    assert reveal_cover.property("y") == pytest.approx(clip_height)
-    assert reveal_cover.property("height") == pytest.approx(
-        popup_height - clip_height
-    )
-    assert reveal_cover.property("visible") is True
     assert shadow.property("y") == pytest.approx(expected_y)
 
 
@@ -411,15 +406,13 @@ def test_popup_reveals_from_plane_without_scaling_or_movement(qapp):
         popup = _popup_core(picker)
         panel_scale = popup.findChild(QObject, "_popupPanelScale")
         shadow = popup.findChild(QObject, "_popupShadow")
-        reveal_cover = popup.findChild(QObject, "_popupRevealCover")
         assert popup.property("verticalCenterExpand")
         assert panel_scale is None
         assert shadow is not None
-        assert reveal_cover is not None
 
         assert _wait_for(lambda: popup.property("isOpen"))
         _pump()
-        _assert_reveal_geometry(root, popup, panel_scale, shadow, reveal_cover)
+        _assert_reveal_geometry(root, popup, panel_scale, shadow)
         assert _wait_for(
             lambda: popup.property("_clipHeight")
             == pytest.approx(popup.property("popupHeight"))

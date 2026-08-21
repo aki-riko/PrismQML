@@ -30,6 +30,15 @@ ANIMATIONS_SOURCE = (
     / "_internal"
     / "PopupAnimations.qml"
 )
+SURFACE_SOURCE = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "utils"
+    / "_internal"
+    / "PopupSurface.qml"
+)
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "popup-window-animation-metrics.qml")
 )
@@ -269,3 +278,14 @@ def test_popup_window_animation_source_uses_role_tokens():
         re.search(r"duration\s*:\s*(?:120|240|1|100|110)\b", animation_block)
         is None
     )
+
+
+def test_popup_reveal_mask_uses_the_full_popup_container():
+    surface_source = SURFACE_SOURCE.read_text(encoding="utf-8")
+    assert 'sourceItem: Item {' in surface_source
+    assert "width: popupPanel.width" in surface_source
+    assert "height: popupPanel.height" in surface_source
+    assert 'objectName: "_popupRevealMask"' in surface_source
+    assert "width: parent.width" in surface_source
+    assert "height: surface.clipHeight" in surface_source
+    assert 'objectName: "_popupRevealCover"' not in surface_source
