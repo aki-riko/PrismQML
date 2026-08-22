@@ -35,6 +35,7 @@ SOURCE_PATH = (
     / "ViewportMixin.qml"
 )
 TIMER_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "ViewportInitTimer.qml"
+WATCHER_SOURCE_PATH = TIMER_SOURCE_PATH.with_name("ViewportTargetWatcher.qml")
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -167,3 +168,165 @@ def test_viewport_mixin_source_keeps_init_timer_external():
     assert "property Timer initTimer: Timer {" not in source
     assert "interval: 50" in timer_source
     assert "onTriggered: host._init()" in timer_source
+
+
+def test_viewport_mixin_keeps_single_ancestor_and_visibility_contract():
+    """契约锁定: instanceof 查找 + 不可见即不动画 + 外置 target 监听。
+
+    Locks the unified contract the three consumers migrate onto: ancestor lookup
+    by ``instanceof Flickable`` (not duck typing), an invisible target never
+    reporting in-viewport, and target observation living in an external helper
+    because the mixin is a QtObject.
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    watcher_source = WATCHER_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "if (p instanceof Flickable) return p" in source
+    assert "p.contentY !== undefined" not in source
+    assert "isInViewport = target.visible" in source
+
+    assert "UtilsInternal.ViewportTargetWatcher {" in source
+    assert "required property var host" in watcher_source
+    assert "function onVisibleChanged() { host._updateViewport() }" in watcher_source
+    assert "target: host.target" in watcher_source
+
+
+NO_FLICKABLE_SCENE = """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    function hideTarget() { trackedItem.visible = false }
+    function showTarget() { trackedItem.visible = true }
+    function dropTarget() { decoyMixin.target = null }
+
+    width: 240
+    height: 120
+    visible: true
+
+    // No Flickable anywhere in this subtree. 整棵子树没有 Flickable。
+    Item {
+        id: plainParent
+        anchors.fill: parent
+
+        Item {
+            id: trackedItem
+            objectName: "trackedItem"
+            y: 20
+            width: 40
+            height: 20
+        }
+    }
+
+    // A decoy that quacks like a Flickable but is not one.
+    // 一个"看起来像" Flickable 但并不是的诱饵容器。
+    Item {
+        id: decoy
+        objectName: "decoy"
+        property real contentY: 0
+        property real contentHeight: 320
+        property Item contentItem: decoyInner
+        anchors.fill: parent
+
+        Item { id: decoyInner }
+
+        Item {
+            id: decoyChild
+            objectName: "decoyChild"
+            y: 20
+            width: 40
+            height: 20
+        }
+    }
+
+    ViewportMixin {
+        id: plainMixin
+        objectName: "plainMixin"
+        target: trackedItem
+    }
+
+    ViewportMixin {
+        id: decoyMixin
+        objectName: "decoyMixin"
+        target: decoyChild
+    }
+}
+""".encode("utf-8")
+
+
+def _build_scene(engine, source, url):
+    component = QQmlComponent(engine)
+    component.setData(source, QUrl(url))
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    return component, window
+
+
+def test_viewport_mixin_without_flickable_follows_target_visibility(qapp):
+    """无 Flickable 祖先时必须回退到目标可见性, 不可见就不动画。
+
+    Without a Flickable ancestor the mixin must fall back to plain visibility.
+    Returning true for an invisible target would keep shimmer and spinner
+    animations running off-screen, which is the regression this gate blocks.
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    engine.addImportPath(str(ROOT / "prismqml"))
+    component, window = _build_scene(
+        engine, NO_FLICKABLE_SCENE, "inline:viewport-mixin-no-flickable.qml"
+    )
+    try:
+        plain = window.findChild(QObject, "plainMixin")
+        decoy_mixin = window.findChild(QObject, "decoyMixin")
+        assert plain is not None
+        assert decoy_mixin is not None
+        assert _wait_for(lambda: plain.property("ready") is True)
+        assert _wait_for(lambda: decoy_mixin.property("ready") is True)
+
+        # No Flickable ancestor was found at all. 完全没找到 Flickable 祖先。
+        assert plain.property("_flickableAncestor") is None
+        assert plain.property("isInViewport") is True
+
+        assert QMetaObject.invokeMethod(window, "hideTarget")
+        assert _wait_for(lambda: plain.property("isInViewport") is False)
+        assert QMetaObject.invokeMethod(window, "showTarget")
+        assert _wait_for(lambda: plain.property("isInViewport") is True)
+
+        # instanceof, not duck typing: the decoy must not count as a Flickable.
+        # 用 instanceof 而非鸭子类型: 诱饵容器不得被当成 Flickable。
+        assert decoy_mixin.property("_flickableAncestor") is None
+        assert decoy_mixin.property("isInViewport") is True
+
+        # A null target animates nothing. target 为空时不动画。
+        assert QMetaObject.invokeMethod(window, "dropTarget")
+        decoy_mixin.metaObject().invokeMethod(decoy_mixin, "_updateViewport")
+        assert _wait_for(lambda: decoy_mixin.property("isInViewport") is False)
+
+        assert warnings == []
+    finally:
+        window.close()
+        for obj in (window, component, engine):
+            if shiboken6.isValid(obj):
+                obj.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        qapp.processEvents()
+        assert [
+            candidate
+            for candidate in QGuiApplication.topLevelWindows()
+            if candidate.isVisible()
+            and not any(candidate is existing for existing in windows_before)
+        ] == []

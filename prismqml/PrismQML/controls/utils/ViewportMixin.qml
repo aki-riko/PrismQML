@@ -27,31 +27,34 @@ QtObject {
         host: mixin
     }
 
+    property QtObject targetWatcher: UtilsInternal.ViewportTargetWatcher {
+        host: mixin
+    }
+
     // ==================== Internal Methods 内部方法 ====================
-    // Find Flickable ancestor by checking contentY property 向上查找 Flickable 祖先
+    // Find Flickable ancestor upwards 向上查找 Flickable 祖先
     function _findFlickable() {
         if (!target) return null
         var p = target.parent
         while (p) {
-            // Check for Flickable characteristic properties 检查是否有 Flickable 特征属性
-            if (p.contentY !== undefined && p.contentHeight !== undefined && p.contentItem !== undefined) {
-                return p
-            }
+            if (p instanceof Flickable) return p
             p = p.parent
         }
         return null
     }
-    
+
     // Calculate if target is in visible viewport 计算是否在可视区域
     function _updateViewport() {
         try {
-            // No Flickable found, keep default true (always animate) 找不到 Flickable，保持默认 true
-            if (!_flickableAncestor) {
-                isInViewport = true
+            // An invisible target never animates, with or without a Flickable.
+            // 不可见目标一律不动画，无论有没有 Flickable。
+            if (!target) {
+                isInViewport = false
                 return
             }
-            if (!target || !target.visible) {
-                isInViewport = false
+            // No Flickable found, fall back to plain visibility 找不到 Flickable 时退回可见性
+            if (!_flickableAncestor || !target.visible) {
+                isInViewport = target.visible
                 return
             }
             // Check if contentItem exists 检查contentItem是否存在
