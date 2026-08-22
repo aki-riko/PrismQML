@@ -4,6 +4,8 @@
 > 创建日期：2026-08-22
 > 适用范围：`D:\PrismQML\PrismQML`
 > 审计方式：静态源码、生产引用、`qmldir` 注册、Git 历史与现有源码门禁核对
+> 复核记录：2026-08-22 逐条复核 D1–D11 与非目标项，修正 D10 调用点计数（2→4）
+> 与 `NavigationSmoothScroll.qml` 的路径及落盘状态
 
 本文把本轮“项目里面有没有重复造轮子”的静态审计结果整理为可逐阶段执行的整改方案。当前只记录方案，不删除文件、不改业务代码、不改变既有行为或视觉。
 
@@ -30,7 +32,7 @@
 | D7 | 图表数学复制 | `BarChartGeometry.js`、`LineChartPainter.js`、`LineChartMarkers.qml` | 平均值和 min/max 索引算法同构 | P2 | 提取 `ChartMath.js`，只迁移纯函数 |
 | D8 | 重复公开名称 | 多个 `qmldir` 和根 `qmldir` | 同一文件以 `Button/ButtonCore`、`Slider/SliderCore`、`CheckIndicator/ToggleCheckIndicator` 等多个名字公开 | P2 | 先盘点外部消费者，确认后再决定保留、重命名或删除别名 |
 | D9 | 完全相同小 helper | `WindowsFilledStartupTimer.qml`、`WindowsSplitStartupTimer.qml` | 实现完全相同，仅 `objectName` 和注释不同 | P3 | 可合并为通用启动 timer；需保留测试可观察的 objectName 契约 |
-| D10 | 小型平台绑定复制 | `shadow.py`、`_window_follower.py` | `SetWindowPos` ctypes 签名重复 | P3 | 可提取 Windows API 声明 helper，收益低，最后处理 |
+| D10 | 小型平台绑定复制 | `core/shadow.py`、`core/_window_follower.py`、`window/native_window.py`、`core/_popup_owner.py` | 四处各自声明同一套 `SetWindowPos` argtypes/restype；其中 `_popup_owner.py` 已有 `bind()` 工厂，可作为收敛目标 | P3 | 可提取 Windows API 声明 helper，收益低，最后处理 |
 | D11 | HSV 状态转换复制 | `ColorPickerDialog.qml`、`ColorPickerDropdown.qml` | `updateColor`、`updateHsvFromColor` 同构，信号和 alpha 语义略有差异 | P3 | 只提取纯 HSV 转换，不合并对话框/下拉生命周期 |
 
 ## 三、明确不作为整改目标的内容
@@ -104,6 +106,8 @@
 - 三种窗口的页面迁移、splash dismiss、Python lazy collapse/expand/finish 事件顺序不变。
 - 首次加载、切页、loading 结束和窗口完全重启均通过定向 QML 测试。
 - 核对 `LoadingOverlay.qml` 是否仍有真实消费者；若没有，单独提交删除，不和窗口重构混合。
+  已核实：无任何 QML 引用它，但 `tests/qml/test_progress_ring_reuse.py` 把它列入
+  `RING_CONSUMERS` 并断言 `indeterminateStyle` 与 `spinDuration`，删除必须同批更新该门禁。
 
 风险：高。涉及窗口创建时序、Loader 生命周期和视觉层级，必须单独阶段、单独提交。
 
@@ -116,7 +120,9 @@
 - PopUp/PopDown 只共享实现机制，方向和 easing 作为显式 required 参数；不得把两种视觉模式合并成同一 easing。
 - `ChartMath.js` 只放无副作用的 `average` 和 `findMinMaxIndices`，不放 Canvas、QML 状态或主题逻辑。
 - 启动 timer 合并前必须保留可观测 `objectName` 或迁移现有测试到显式 role/name 属性。
-- Win32 声明 helper 必须只在 Windows 路径加载，保持非 Windows 行为不变。
+- Win32 声明 helper 必须只在 Windows 路径加载，保持非 Windows 行为不变；四个调用点
+  （`shadow.py`、`_window_follower.py`、`native_window.py`、`_popup_owner.py`）必须逐个迁移，
+  且不得让 `core/` 反向依赖 `window/`（见 AGENTS.md 1.2 依赖方向铁律）。
 - HSV helper 不得吞掉 alpha、信号名或对话框/下拉初始化差异。
 
 验收：
@@ -158,7 +164,9 @@
 - 本方案不删除 `FlowLayoutGeometry.js`。
 - 本方案不删除 `StackedAnimations.qml`。
 - 本方案不改变 `qmldir` 公开名称。
-- 本方案不修改现有用户工作树中的 `NavigationSmoothScroll.qml` 和 `test_smooth_scroll_physical_pixels.py`。
+- 本方案不修改 `navigation/_internal/NavigationSmoothScroll.qml` 与
+  `tests/qml/test_smooth_scroll_physical_pixels.py`；两者的物理像素改动已由
+  `e9ea90284` 落盘，工作树无残留改动。
 - 本方案不运行 Nuitka、不打包、不发布、不推送生产环境。
 
 ## 七、推荐实施顺序
