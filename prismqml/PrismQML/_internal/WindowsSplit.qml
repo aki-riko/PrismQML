@@ -84,7 +84,8 @@ NavigationWindowCore {
  Item {
  id: componentRoot
  property alias navAlias: navInterface
- property alias stackAlias: stack
+ // alias 指向 helper 自己的 alias，一级目标合法 alias→alias is legal
+ property alias stackAlias: pageStack.stackAlias
 
  anchors.fill: parent
 
@@ -102,80 +103,14 @@ NavigationWindowCore {
  paperOriginX: window.navCompactWidth
  paperOriginY: window.titleBarHeight
  
- StackedWidget {
- id: stack
- property alias contentContainerAlias: stack.content
+ // Page stack and lazy-loading overlay 页面栈与懒加载覆盖层
+ WindowsPageStack {
+ id: pageStack
 
- anchors.fill: parent
- animationType: Enums.animation.popup
- lazyActivationDelay: navInterface.indicatorAnimationEnabled
-     ? Enums.duration.dialog : Enums.duration.none
-
- // Bind externally stored page data. 绑定外部保存的页面数据。
- pageSources: window.pageSources
- lazyLoading: window.lazyLoading
- _pythonPageMode: window._pythonPageMode
- // Bind window.currentIndex to stack.currentIndex in one direction.
- // 单向绑定 window.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。
- currentIndex: window.currentIndex
-
- onCurrentChanged: (index) => {
- // Synchronize back after animation when needed. 动画结束后按需反向同步。
- if (window.currentIndex !== index) window.currentIndex = index
- }
- onPythonLazyCollapseFinished: (index) => {
- window._handlePythonLazyCollapseFinished(index)
- }
- onPythonLazyExpansionStarted: (index) => {
- window._beginPythonLoadingVisualExit(index)
- }
- onPythonLazyTransitionFinished: (index) => {
- window._completePythonLoadingVisual(index)
- }
- }
- 
- Loader {
- id: loadingOverlayLoader
-
- property bool transitionActive: false
-
- objectName: "loadingOverlayLoader"
- anchors.fill: parent
- active: window._pythonLoading || transitionActive
- asynchronous: false
- onLoaded: {
- transitionActive = false
- window._pythonLoadingOverlay = item
- window._handlePythonLoadingOverlayReady()
- }
- onItemChanged: {
- if (!item) {
- transitionActive = false
- window._pythonLoadingOverlay = null
- }
- }
- sourceComponent: QMLPage {
- property bool loading: window._pythonLoading
-
- objectName: "loadingOverlay"
- backgroundColor: Enums.transparent
- running: visible && !finishing
- text: window.loadingText
- Component.onCompleted: if (loading) start()
- onLoadingChanged: {
- if (loading) start()
- else finish()
- }
- }
-
- Connections {
- function onFinishingChanged() {
- loadingOverlayLoader.transitionActive = target.finishing
- }
-
- target: loadingOverlayLoader.item
- ignoreUnknownSignals: true
- }
+ host: window
+ navAnimationEnabled: navInterface.indicatorAnimationEnabled
+ overlayActive: window._pythonLoading
+ overlayText: window.loadingText
  }
  }
  
