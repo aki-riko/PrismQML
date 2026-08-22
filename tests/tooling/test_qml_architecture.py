@@ -3805,3 +3805,52 @@ def test_tree_traversal_has_exactly_one_owner():
             reimplementers.append(path.relative_to(ROOT).as_posix())
 
     assert reimplementers == []
+
+
+def test_window_page_stack_has_exactly_one_owner():
+    """页面栈与懒加载 overlay 只允许 WindowsPageStack.qml 一处实现。
+
+    WindowsFilled, WindowsSplit and WindowsBarContent each carried the same
+    StackedWidget bindings and overlay Loader lifecycle, differing only in the
+    navigation id they read, whether the host may be null, and where the loading
+    caption comes from. Those three are now parameters on one helper.
+    """
+    owner = QML_ROOT / "_internal" / "WindowsPageStack.qml"
+    assert owner.exists()
+    owner_source = owner.read_text(encoding="utf-8")
+
+    for prop in (
+        "required property var host",
+        "required property bool navAnimationEnabled",
+        "required property bool overlayActive",
+        "required property string overlayText",
+    ):
+        assert prop in owner_source, prop
+    assert "readonly property alias stackAlias: stack" in owner_source
+    assert 'objectName: "loadingOverlayLoader"' in owner_source
+    # The loading state machine stays in NavigationWindowLoading.js.
+    # loading 状态机仍归 NavigationWindowLoading.js。
+    assert "function start(" not in owner_source
+    assert "function finish(" not in owner_source
+
+    consumers = (
+        "prismqml/PrismQML/_internal/WindowsFilled.qml",
+        "prismqml/PrismQML/_internal/WindowsSplit.qml",
+        "prismqml/PrismQML/_internal/WindowsBarContent.qml",
+    )
+    for relative in consumers:
+        source = _source(relative).read_text(encoding="utf-8")
+        assert "WindowsPageStack {" in source, relative
+        assert "property alias stackAlias: pageStack.stackAlias" in source, relative
+        # No third copy of the extracted view layer. 不得留下第三份视图层副本。
+        assert 'objectName: "loadingOverlayLoader"' not in source, relative
+        assert "StackedWidget {" not in source, relative
+
+    # Nothing else in the tree may declare the overlay loader either.
+    # 整棵树内不得有其他文件声明该 overlay loader。
+    declarers = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in QML_ROOT.rglob("*.qml")
+        if 'objectName: "loadingOverlayLoader"' in path.read_text(encoding="utf-8")
+    )
+    assert declarers == ["prismqml/PrismQML/_internal/WindowsPageStack.qml"]

@@ -16,7 +16,8 @@ Item {
     property var hostWindow: null
     property int contentTopMargin: 0
     property alias navAlias: navigationBar
-    property alias stackAlias: stack
+    // alias 指向 helper 自己的 alias，一级目标合法 alias→alias is legal
+    property alias stackAlias: pageStack.stackAlias
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _compactNav:
@@ -130,87 +131,19 @@ Item {
         paperOriginX: root._compactNav ? 0 : navigationBar.width
         paperOriginY: root._windowPaperOriginY
 
-        StackedWidget {
-            id: stack
-            property alias contentContainerAlias: stack.content
+        // Page stack and lazy-loading overlay 页面栈与懒加载覆盖层
+        WindowsPageStack {
+            id: pageStack
 
-            anchors.fill: parent
-            animationType: Enums.animation.popup
-            lazyActivationDelay: navigationBar.indicatorAnimationEnabled
-                ? Enums.duration.dialog : Enums.duration.none
-            pageSources: root.hostWindow ? root.hostWindow.pageSources : []
-            lazyLoading: root.hostWindow ? root.hostWindow.lazyLoading : false
-            _pythonPageMode: root.hostWindow ? root.hostWindow._pythonPageMode : false
-            currentIndex: root.hostWindow ? root.hostWindow.currentIndex : 0
-
-            onCurrentChanged: (index) => {
-                if (root.hostWindow && root.hostWindow.currentIndex !== index) {
-                    root.hostWindow.currentIndex = index
-                }
-            }
-            onPythonLazyCollapseFinished: (index) => {
-                if (root.hostWindow) {
-                    root.hostWindow._handlePythonLazyCollapseFinished(index)
-                }
-            }
-            onPythonLazyExpansionStarted: (index) => {
-                if (root.hostWindow) {
-                    root.hostWindow._beginPythonLoadingVisualExit(index)
-                }
-            }
-            onPythonLazyTransitionFinished: (index) => {
-                if (root.hostWindow) {
-                    root.hostWindow._completePythonLoadingVisual(index)
-                }
-            }
-        }
-
-        Loader {
-            id: loadingOverlayLoader
-
-            property bool transitionActive: false
-
-            objectName: "loadingOverlayLoader"
-            anchors.fill: parent
-            active: root._loadingOverlayActive || transitionActive
-            asynchronous: false
-            onLoaded: {
-                transitionActive = false
-                if (root.hostWindow) {
-                    root.hostWindow._pythonLoadingOverlay = item
-                    root.hostWindow._handlePythonLoadingOverlayReady()
-                }
-            }
-            onItemChanged: {
-                if (!item) {
-                    transitionActive = false
-                    if (root.hostWindow) root.hostWindow._pythonLoadingOverlay = null
-                }
-            }
-            sourceComponent: QMLPage {
-                property bool loading: root._loadingOverlayActive
-
-                objectName: "loadingOverlay"
-                backgroundColor: Enums.transparent
-                running: visible && !finishing
-                text: {
-                    Translator._v
-                    return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
-                }
-                Component.onCompleted: if (loading) start()
-                onLoadingChanged: {
-                    if (loading) start()
-                    else finish()
-                }
-            }
-
-            Connections {
-                function onFinishingChanged() {
-                    loadingOverlayLoader.transitionActive = target.finishing
-                }
-
-                target: loadingOverlayLoader.item
-                ignoreUnknownSignals: true
+            // hostWindow may be null in this shell; the helper guards every access.
+            // 本外壳的 hostWindow 可为 null，helper 内部对每次访问都做保护。
+            host: root.hostWindow
+            navAnimationEnabled: navigationBar.indicatorAnimationEnabled
+            overlayActive: root._loadingOverlayActive
+            // Translation dependency stays here. 翻译依赖留在本控件。
+            overlayText: {
+                Translator._v
+                return root.hostWindow ? root.hostWindow.loadingText : Translator.tr("loading")
             }
         }
     }
