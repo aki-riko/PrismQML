@@ -72,8 +72,6 @@ Item {
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
     readonly property int closeRippleDuration: Enums.windowCloseMetrics.rippleDuration
     readonly property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
-    readonly property int splashLinearRevealEasing: Easing.Linear
-    readonly property int pageOutQuintRevealEasing: Easing.OutQuint
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -455,9 +453,6 @@ def test_splash_finish_uses_shared_lazy_switch_transition(qapp):
         assert transition.property("revealDuration") == root.property(
             "splashRevealDuration"
         )
-        assert transition.property("revealEasing") == root.property(
-            "splashLinearRevealEasing"
-        )
         assert transition.property("revealTarget") is True
         assert QQmlProperty(splash, "layer.enabled").read() is True
         assert QQmlProperty(splash, "layer.effect").read() is not None
@@ -517,8 +512,6 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "sourceComponent: NavigationInternal.LazyPageCircleTransition" in splash_source
     assert 'objectName: "splashLazyPageCircleTransition"' in splash_source
     assert "lazyExitLoader.item.expand(control)" in splash_source
-    assert "property int revealEasing: Easing.Linear" in splash_source
-    assert "revealEasing: control.revealEasing" in splash_source
     assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
     assert "revealTarget: true" in splash_source
     assert lazy_transition_source.count(

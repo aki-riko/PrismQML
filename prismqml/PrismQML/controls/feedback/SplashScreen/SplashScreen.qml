@@ -39,9 +39,6 @@ Rectangle {
     property bool showProgress: true                 // Show progress ring 显示进度环
     // Reveal animation length on finish(). 调用 finish() 后的揭幕动画时长。
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
-    // Linear keeps a full-window reveal visually active for the full duration.
-    // 线性缓动让全窗口揭幕在整个时长内持续产生可见变化。
-    property int revealEasing: Easing.Linear
 
     // ==================== Internal Props 内部属性 ====================
     readonly property color _splashBackground: Enums.backgroundColor
@@ -274,7 +271,6 @@ Rectangle {
         sourceComponent: NavigationInternal.LazyPageCircleTransition {
             objectName: "splashLazyPageCircleTransition"
             revealDuration: control.revealDuration
-            revealEasing: control.revealEasing
             revealTarget: true
 
             onExpandFinished: {

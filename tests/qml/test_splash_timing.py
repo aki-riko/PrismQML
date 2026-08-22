@@ -332,13 +332,10 @@ NavigationWindowCore {
     id: win
     splashEnabled: true
     splashRevealDuration: 137
-    splashRevealEasing: Easing.InQuad
     readonly property var splashProbe: win._splashInstance
     readonly property int defaultReveal:
         Enums.lazyLoadingTransitionMetrics.splashRevealDuration
-    readonly property int expectedTransitionEasing: Easing.InQuad
     property int transitionReveal: -1
-    property int transitionEasing: -1
     property string transitionError: ""
 
     function probeTransition() {
@@ -355,7 +352,6 @@ NavigationWindowCore {
         if (!loader) { win.transitionError = "transition loader not found"; return }
         if (!loader.item) { win.transitionError = "loader inactive after finish()"; return }
         win.transitionReveal = loader.item.revealDuration
-        win.transitionEasing = loader.item.revealEasing
     }
 }
 """
@@ -402,13 +398,6 @@ NavigationWindowCore {
                 reveal_failures.append(
                     "揭幕时长未到达过渡动画: "
                     f"期望 137, 实得 {transition_reveal}"
-                )
-            if reveal_win.property("transitionEasing") != reveal_win.property(
-                "expectedTransitionEasing"
-            ):
-                reveal_failures.append(
-                    "splashRevealEasing 未到达过渡动画: 期望 Easing.InQuad, "
-                    f"实得 {reveal_win.property('transitionEasing')}"
                 )
         # An unset window property must still fall back to the shared metric.
         # 未设置时必须回落到共享度量值。
