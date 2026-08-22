@@ -3670,3 +3670,39 @@ def test_toggle_keeps_visual_assembly_modularized():
         "\n    Component {\n        id: subtitleContent",
     ):
         assert marker not in source
+
+
+def test_stacked_animations_monolith_stays_deleted():
+    """堆叠动画只允许经 StackedModeAnimations 按模式加载。
+
+    StackedWidget switched to per-mode backends; the old StackedAnimations.qml
+    monolith kept a second full copy of every transition with no consumer. This
+    gate keeps it deleted and keeps the mode dispatcher as the only entry.
+    """
+    internal = _source("prismqml/PrismQML/controls/navigation/_internal")
+    monolith = internal / "StackedAnimations.qml"
+    dispatcher = internal / "StackedModeAnimations.qml"
+
+    assert not monolith.exists()
+    assert dispatcher.exists()
+
+    entry_source = _source(
+        "prismqml/PrismQML/controls/navigation/StackedWidget.qml"
+    ).read_text(encoding="utf-8")
+    assert "StackedModeAnimations {" in entry_source
+    assert "StackedAnimations {" not in entry_source
+
+    dispatcher_source = dispatcher.read_text(encoding="utf-8")
+    for backend in (
+        "StackedFadeAnimations.qml",
+        "StackedPopUpAnimations.qml",
+        "StackedPopDownAnimations.qml",
+        "StackedSlideAnimations.qml",
+        "StackedCardAnimations.qml",
+        "StackedZoomAnimations.qml",
+    ):
+        assert backend in dispatcher_source
+        assert (internal / backend).exists()
+
+    for path in QML_ROOT.rglob("*.qml"):
+        assert path.name != "StackedAnimations.qml"

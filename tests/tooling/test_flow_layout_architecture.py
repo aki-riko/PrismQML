@@ -18,6 +18,7 @@ FLOW_LAYOUT = (
     / "FlowLayout.qml"
 )
 FLOW_ENGINE = FLOW_LAYOUT.with_name("FlowLayoutEngine.js")
+FLOW_GEOMETRY = FLOW_LAYOUT.with_name("FlowLayoutGeometry.js")
 
 
 def test_flow_layout_keeps_entry_and_engine_below_size_limit():
@@ -47,3 +48,20 @@ def test_flow_layout_preserves_qml_proxy_contract():
     assert "function getState(layout, name)" in engine_source
     assert "function setState(layout, name, value)" in engine_source
     assert "FlowLayoutGeometry.js" not in source
+
+
+def test_flow_layout_geometry_stays_deleted():
+    """滑窗几何只允许留在 FlowLayoutEngine.js 里。
+
+    The sliding-window geometry has exactly one home: FlowLayoutEngine.js. The
+    removed FlowLayoutGeometry.js duplicated it with no consumer, so this gate
+    keeps the dead copy from coming back.
+    """
+    assert not FLOW_GEOMETRY.exists()
+
+    engine_source = FLOW_ENGINE.read_text(encoding="utf-8")
+    assert "function findBestSlidingPosition(" in engine_source
+
+    for path in FLOW_LAYOUT.parent.rglob("*"):
+        if path.is_file():
+            assert path.name != "FlowLayoutGeometry.js"
