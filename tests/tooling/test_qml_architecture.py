@@ -3758,3 +3758,50 @@ def test_viewport_detection_has_exactly_one_owner():
             source
         ), relative
         assert "function _findFlickable()" not in source, relative
+
+
+def test_tree_traversal_has_exactly_one_owner():
+    """树遍历算法只允许 ComboBoxTreeNodes.js 一处实现。
+
+    ComboBoxTree and ComboBoxMultiTree each carried an identical node-id scheme,
+    search-match rule and walk order, differing only in how a visible row is
+    emitted. The walk now lives in one pure library that takes an emit callback.
+    """
+    owner_path = (
+        QML_ROOT / "controls" / "inputs" / "ComboBox" / "_internal"
+        / "ComboBoxTreeNodes.js"
+    )
+    assert owner_path.exists()
+    owner_source = owner_path.read_text(encoding="utf-8")
+
+    # Pure shared library, so it must not reach for QML objects.
+    # 纯共享库，因此不得触碰 QML 对象。
+    assert ".pragma library" in owner_source
+    assert "function flatten(" in owner_source
+    assert "function hasMatchingDescendants(" in owner_source
+    assert "function collectExpandable(" in owner_source
+    assert "function toggleExpanded(" in owner_source
+    assert "control." not in owner_source
+    assert "Qt." not in owner_source
+
+    consumers = (
+        "prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxTree.qml",
+        "prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxMultiTree.qml",
+    )
+    for relative in consumers:
+        source = _source(relative).read_text(encoding="utf-8")
+        assert 'import "_internal/ComboBoxTreeNodes.js" as TreeNodes' in source, (
+            relative
+        )
+        assert "TreeNodes.flatten(" in source, relative
+        assert "function _flattenTree(" not in source, relative
+        assert "function _hasMatchingDescendants(" not in source, relative
+
+    # No third copy anywhere in the tree. 整棵树不得出现第三份副本。
+    reimplementers = []
+    for path in sorted(QML_ROOT.rglob("*.qml")):
+        source = path.read_text(encoding="utf-8")
+        if "function _hasMatchingDescendants(" in source:
+            reimplementers.append(path.relative_to(ROOT).as_posix())
+
+    assert reimplementers == []

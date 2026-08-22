@@ -5,6 +5,7 @@
 import "../../.."
 import ".."
 import "_internal"
+import "_internal/ComboBoxTreeNodes.js" as TreeNodes
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxMultiTree - Tree multi-select dropdown with search 带搜索的树形多选下拉框
@@ -73,29 +74,31 @@ ComboBoxCore {
         }
     }
 
+    // Traversal is owned by TreeNodes 遍历由 TreeNodes 持有
     function _expandAllNodes() {
-        var expanded = {}
-        _collectExpandableNodes(_safeModel, "root", expanded)
-        _expandedNodes = expanded
-    }
-
-    function _collectExpandableNodes(nodes, parentId, result) {
-        if (!nodes) return
-        for (var i = 0; i < nodes.length; i++) {
-            var node = nodes[i]
-            if (!node) continue
-            var nodeId = parentId + "_" + i
-            if (node.children && node.children.length > 0) {
-                result[nodeId] = true
-                _collectExpandableNodes(node.children, nodeId, result)
-            }
-        }
+        _expandedNodes = TreeNodes.expandAll(_safeModel)
     }
 
     function _rebuildFlatModel() {
         _flatListModel.clear()
         var searchText = _searchText.toLowerCase()
-        _flattenTree(_safeModel, [], 0, "root", searchText)
+        TreeNodes.flatten(
+            _safeModel,
+            { expandedNodes: _expandedNodes, searchText: searchText },
+            function (row) {
+                // Selection state is this control's own concern 选中状态是本控件自有语义
+                var selectionState = control._getSelectionState(row.node, row.path)
+                _flatListModel.append({
+                    text: row.text,
+                    depth: row.depth,
+                    nodeId: row.nodeId,
+                    path: JSON.stringify(row.path),  // ListModel needs primitive types ListModel需要基本类型
+                    hasChildren: row.hasChildren,
+                    expanded: row.expanded,
+                    selected: selectionState === 2,
+                    isPartialSelected: selectionState === 1
+                })
+            })
     }
 
     // Get selection state for a node 获取节点的选中状态
@@ -117,64 +120,8 @@ ComboBoxCore {
         return 1
     }
 
-    function _flattenTree(nodes, parentPath, depth, parentId, searchText) {
-        if (!nodes) return
-        for (var i = 0; i < nodes.length; i++) {
-            var node = nodes[i]
-            if (!node) continue
-            var nodeText = typeof node === "string" ? node : (node.text || "")
-            var nodeId = parentId + "_" + i
-            var path = parentPath.concat([nodeText])
-            var hasChildren = !!(node.children && node.children.length > 0)
-            var expanded = !!_expandedNodes[nodeId]
-            var matchesSearch = !searchText || nodeText.toLowerCase().indexOf(searchText) >= 0
-
-            // Check if any children match search 检查子节点是否匹配搜索
-            var hasMatchingChildren = false
-            if (!matchesSearch && hasChildren) {
-                hasMatchingChildren = _hasMatchingDescendants(node.children, searchText)
-            }
-
-            // Calculate selection state 计算选中状态
-            var selectionState = _getSelectionState(node, path)
-
-            if (matchesSearch || hasMatchingChildren || !_searchText) {
-                _flatListModel.append({
-                    text: nodeText,
-                    depth: depth,
-                    nodeId: nodeId,
-                    path: JSON.stringify(path),  // ListModel needs primitive types ListModel需要基本类型
-                    hasChildren: hasChildren,
-                    expanded: expanded,
-                    selected: selectionState === 2,
-                    isPartialSelected: selectionState === 1
-                })
-            }
-
-            // Add children if expanded 如果展开则添加子节点
-            if (hasChildren && expanded) {
-                _flattenTree(node.children, path, depth + 1, nodeId, searchText)
-            }
-        }
-    }
-
-    function _hasMatchingDescendants(children, searchText) {
-        if (!children) return false
-        for (var i = 0; i < children.length; i++) {
-            var child = children[i]
-            if (!child) continue
-            var text = typeof child === "string" ? child : (child.text || "")
-            if (text.toLowerCase().indexOf(searchText) >= 0) return true
-            if (child.children
-                    && _hasMatchingDescendants(child.children, searchText)) return true
-        }
-        return false
-    }
-
     function _toggleExpand(nodeId) {
-        var newExpanded = Object.assign({}, _expandedNodes)
-        newExpanded[nodeId] = !newExpanded[nodeId]
-        _expandedNodes = newExpanded
+        _expandedNodes = TreeNodes.toggleExpanded(_expandedNodes, nodeId)
     }
 
     function _pathToString(path) {

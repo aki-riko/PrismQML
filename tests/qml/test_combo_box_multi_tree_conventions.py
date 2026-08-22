@@ -310,7 +310,16 @@ def test_combo_box_multi_tree_source_conventions():
     )
     assert 'var searchText = _searchText.toLowerCase()' in source
     assert source.count("_searchText.toLowerCase()") == 1
-    assert "_hasMatchingDescendants(node.children, searchText)" in source
+    # Traversal moved to ComboBoxTreeNodes.js; selection state stays here.
+    # 遍历已移入 ComboBoxTreeNodes.js；选中语义仍留在本控件。
+    assert 'import "_internal/ComboBoxTreeNodes.js" as TreeNodes' in source
+    assert "TreeNodes.flatten(" in source
+    assert "TreeNodes.expandAll(" in source
+    assert "TreeNodes.toggleExpanded(" in source
+    assert "function _hasMatchingDescendants(" not in source
+    assert "function _collectExpandableNodes(" not in source
+    assert "function _flattenTree(" not in source
+    assert "control._getSelectionState(row.node, row.path)" in source
     assert "if (_safeSelectedPaths.length === 0) return 0" in source
     assert [
         violation

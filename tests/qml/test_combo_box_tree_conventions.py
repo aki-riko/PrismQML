@@ -340,7 +340,15 @@ def test_combo_box_tree_source_conventions():
     assert "sourceModel.length <= 0" in source
     assert 'var searchText = _searchText.toLowerCase()' in source
     assert source.count("_searchText.toLowerCase()") == 1
-    assert "_hasMatchingDescendants(node.children, searchText)" in source
+    # Traversal moved to ComboBoxTreeNodes.js; only delegation may remain here.
+    # 遍历已移入 ComboBoxTreeNodes.js，此处只允许保留委托。
+    assert 'import "_internal/ComboBoxTreeNodes.js" as TreeNodes' in source
+    assert "TreeNodes.flatten(" in source
+    assert "TreeNodes.expandAll(" in source
+    assert "TreeNodes.toggleExpanded(" in source
+    assert "function _hasMatchingDescendants(" not in source
+    assert "function _collectExpandableNodes(" not in source
+    assert "function _flattenTree(" not in source
     assert 'property: "_animatedPopupContentHeight"' in source
     assert "duration: Enums.duration.fast" in source
     assert "easing.type: Easing.OutCubic" in source
