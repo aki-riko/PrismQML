@@ -321,13 +321,21 @@ def test_queued_geometry_updates_are_safe_when_delegate_is_destroyed(skeleton_sc
     assert warnings == []
 
 
-def test_skeleton_viewport_source_keeps_executable_lines_uncommented():
-    lines = SKELETON_PATH.read_text(encoding="utf-8").splitlines()
-    update_declarations = [
-        line for line in lines if "function _updateViewport()" in line
-    ]
-    viewport_writes = [line for line in lines if "_isInViewport =" in line]
+def test_skeleton_delegates_viewport_detection_to_mixin():
+    """Skeleton 只允许委托 ViewportMixin, 不得自持视口算法副本。
 
-    assert update_declarations == ["    function _updateViewport() {"]
-    assert len(viewport_writes) >= 3
-    assert all(not line.lstrip().startswith("//") for line in viewport_writes)
+    The viewport algorithm moved to ViewportMixin, so Skeleton must keep only the
+    observable ``_isInViewport`` binding. The comment-swallow protection this gate
+    used to provide now comes from the repo-wide QML014 rule, which CI runs over
+    changed files as a blocking check.
+    """
+    source = SKELETON_PATH.read_text(encoding="utf-8")
+
+    assert "ViewportMixin {" in source
+    assert "target: control" in source
+    assert "readonly property bool _isInViewport: viewport.isInViewport" in source
+
+    # No second copy of the algorithm may reappear here. 不得在此处再现算法副本。
+    assert "function _updateViewport()" not in source
+    assert "function _findFlickable()" not in source
+    assert "instanceof Flickable" not in source

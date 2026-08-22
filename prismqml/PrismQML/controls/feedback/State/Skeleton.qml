@@ -15,8 +15,8 @@ Item {
     property int shape: Enums.skeleton.shape_rounded  // shape_rect / shape_circle / shape_rounded
     
     // ==================== Internal Props 内部属性 ====================
-    property Item _flickableAncestor: null
-    property bool _isInViewport: true  // 默认可见，找不到 Flickable 时保持动画
+    // Viewport detection lives in ViewportMixin 视口检测由 ViewportMixin 持有
+    readonly property bool _isInViewport: viewport.isInViewport
 
     // ==================== Readonly State 只读状态 ====================
     readonly property color baseColor: Enums.stateColor.skeletonBase
@@ -30,37 +30,6 @@ Item {
         }
     }
     
-    // Find Flickable ancestor upwards 向上查找 Flickable 祖先
-    function _findFlickable() {
-        var p = control.parent
-        while (p) {
-            if (p instanceof Flickable) return p
-            p = p.parent
-        }
-        return null
-    }
-    
-    // Calculate if in viewport 计算是否在可视区域
-    function _updateViewport() {
-        var ancestor = control._flickableAncestor
-        if (!ancestor || !control.visible) {
-            control._isInViewport = control.visible
-            return
-        }
-        var contentItem = ancestor.contentItem
-        if (!contentItem || ancestor.height <= 0) {
-            control._isInViewport = true
-            return
-        }
-        var pos = control.mapToItem(contentItem, 0, 0)
-        var viewTop = ancestor.contentY
-        var viewBottom = viewTop + ancestor.height
-        // Add buffer to avoid edge flicker 加一点缓冲区避免边缘闪烁
-        var buffer = control.height
-        control._isInViewport = (pos.y + control.height + buffer > viewTop)
-                                && (pos.y - buffer < viewBottom)
-    }
-
     // ==================== Public Methods 公开方法 ====================
     // Start loading 开始加载
     function start() {
@@ -75,26 +44,15 @@ Item {
     // Set animated (always true in this impl) 设置动画启用
     function setAnimated(a) { /* Always animated */ }
     
-    Component.onCompleted: {
-        control._flickableAncestor = control._findFlickable()
-        control._updateViewport()
-    }
-    
-    onVisibleChanged: control._updateViewport()
-    onYChanged: if (_flickableAncestor) control._updateViewport()
-    onHeightChanged: if (_flickableAncestor) control._updateViewport()
-    
     // ==================== Size 尺寸 ====================
     implicitWidth: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectWidth
     implicitHeight: shape === Enums.skeleton.shape_circle ? Enums.skeletonMetrics.circleSize : Enums.skeletonMetrics.rectHeight
     visible: loading
 
     // ==================== Content 内容 ====================
-    Connections {
-        function onContentYChanged() { control._updateViewport() }
-        function onHeightChanged() { control._updateViewport() }
-
-        target: control._flickableAncestor
+    ViewportMixin {
+        id: viewport
+        target: control
     }
 
     // Content container 内容容器

@@ -31,6 +31,14 @@ QtObject {
         host: mixin
     }
 
+    property QtObject ancestorWatcher: UtilsInternal.ViewportAncestorWatcher {
+        host: mixin
+    }
+
+    property QtObject contentWatcher: UtilsInternal.ViewportContentWatcher {
+        host: mixin
+    }
+
     // ==================== Internal Methods 内部方法 ====================
     // Find Flickable ancestor upwards 向上查找 Flickable 祖先
     function _findFlickable() {
@@ -79,18 +87,23 @@ QtObject {
         }
     }
     
-    // Connect initialization signals 初始化连接
+    // Resolve the ancestor and recompute 解析祖先并重算
+    // Idempotent: runs once synchronously and again after the layout settles.
+    // Signal wiring is declarative (see the watchers below), so re-running never
+    // stacks duplicate connections and destruction leaves no stale callback.
+    // 幂等：同步跑一次、布局稳定后再跑一次。信号连接由下方声明式 watcher 负责，
+    // 因此重跑不会叠加连接，销毁后也不残留回调。
     function _init() {
         _flickableAncestor = _findFlickable()
-        if (_flickableAncestor) {
-            _flickableAncestor.contentYChanged.connect(_updateViewport)
-            _flickableAncestor.heightChanged.connect(_updateViewport)
-            // Listen to contentItem size changes (triggered when layout completes) 监听 contentItem 尺寸变化（布局完成时触发）
-            _flickableAncestor.contentItem.heightChanged.connect(_updateViewport)
-        }
         _updateViewport()
         ready = true  // 标记初始化完成
     }
-    // Delayed initialization to ensure component tree is built 延迟初始化，确保组件树构建完成 // Timer delay is more reliable than Qt.callLater, ensures layout completion 使用 Timer 延迟比 Qt.callLater 更可靠
-    Component.onCompleted: initTimer.start()
+
+    // Initialize synchronously so consumers never observe a stale default, then
+    // re-run once the layout has settled to pick up final geometry.
+    // 先同步初始化，避免消费者读到过期默认值；再在布局稳定后重跑一次取最终几何。
+    Component.onCompleted: {
+        _init()
+        initTimer.start()
+    }
 }
