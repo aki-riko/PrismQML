@@ -12,6 +12,13 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+    // Expansion easing. OutQuint suits small page-switch radii but on a
+    // full-window reveal the circle clears the edge in ~40% of the duration,
+    // leaving the rest visually static; callers doing full-window reveals can
+    // override this. 展开缓动。OutQuint 适合页面切换的小半径, 但全窗口揭幕时
+    // 圆在约 40% 时长内就冲出边缘, 其余时间画面无变化; 做全窗口揭幕的调用方
+    // 可覆盖此值。
+    property int revealEasing: Easing.OutQuint
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running
@@ -63,7 +70,9 @@ Item {
         duration: transition._collapsing
             ? transition.coverDuration
             : transition.revealDuration
-        easing.type: transition._collapsing ? Easing.InCubic : Easing.OutQuint
+        easing.type: transition._collapsing
+            ? Easing.InCubic
+            : transition.revealEasing
         onFinished: transition.finished()
     }
 }

@@ -52,6 +52,7 @@ Window {
 
     property bool targetLoaded: false
     property bool targetFailed: false
+    readonly property int pageOutQuintRevealEasing: Easing.OutQuint
     property int activatedCount: 0
     property int completedTarget: -1
     property int completedPrevious: -1
@@ -279,10 +280,16 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert page_transition is not None
         assert circle_transition is not None
         assert overlay_window is not None
+        assert circle_transition.property("revealEasing") == window.property(
+            "pageOutQuintRevealEasing"
+        )
 
         assert QMetaObject.invokeMethod(window, "beginSwitch")
         assert overlay.property("visible") is False
         assert page_transition.property("active") is True
+        assert page_transition.property("revealEasing") == window.property(
+            "pageOutQuintRevealEasing"
+        )
         assert _running_timers(helper) == []
         assert _wait_for(
             lambda: circle_transition.property("collapsing") is True

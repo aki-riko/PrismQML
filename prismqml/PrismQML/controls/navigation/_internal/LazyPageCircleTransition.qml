@@ -29,6 +29,9 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+    // Forwarded to the radius animation; see QMLPageCircleTransition.
+    // 转发给半径动画; 见 QMLPageCircleTransition。
+    property int revealEasing: Easing.OutQuint
     property bool revealTarget: false
 
     // ==================== Internal Props 内部属性 ====================
@@ -333,6 +336,7 @@ Item {
 
         objectName: "qmlPageCircleTransition"
         revealDuration: transition.revealDuration
+        revealEasing: transition.revealEasing
         onFinished: transition._handleRadiusFinished()
     }
 
