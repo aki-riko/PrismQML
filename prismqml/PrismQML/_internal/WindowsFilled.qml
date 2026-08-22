@@ -93,7 +93,8 @@ NavigationWindowCore {
         Component {
             id: contentComponent
             Item {
-                property alias stackAlias: stack
+                // alias 指向 helper 自己的 alias，一级目标合法 alias→alias is legal
+                property alias stackAlias: pageStack.stackAlias
 
                 anchors.fill: parent
 
@@ -104,78 +105,19 @@ NavigationWindowCore {
             onClicked: parent.forceActiveFocus()
         }
         
-        StackedWidget {
-            id: stack
-            property alias contentContainerAlias: stack.content
+        // Page stack and lazy-loading overlay 页面栈与懒加载覆盖层
+        WindowsPageStack {
+            id: pageStack
 
-            anchors.fill: parent
-            animationType: Enums.animation.popup
-            lazyActivationDelay: navigationBar.indicatorAnimationEnabled
-                ? Enums.duration.dialog : Enums.duration.none
-            pageSources: window.pageSources
-            lazyLoading: window.lazyLoading
-            _pythonPageMode: window._pythonPageMode
-            // Bind window.currentIndex to stack.currentIndex in one direction.
-            // 单向绑定 window.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。
-            currentIndex: window.currentIndex
-            onCurrentChanged: (index) => {
-                // Synchronize back after animation when needed. 动画结束后按需反向同步。
-                if (window.currentIndex !== index) window.currentIndex = index
-            }
-            onPythonLazyCollapseFinished: (index) => {
-                window._handlePythonLazyCollapseFinished(index)
-            }
-            onPythonLazyExpansionStarted: (index) => {
-                window._beginPythonLoadingVisualExit(index)
-            }
-            onPythonLazyTransitionFinished: (index) => {
-                window._completePythonLoadingVisual(index)
-            }
-        }
-        
-        // Python lazy-loading overlay. Python 懒加载覆盖层。
-        Loader {
-            id: loadingOverlayLoader
-
-            property bool transitionActive: false
-
-            objectName: "loadingOverlayLoader"
-            anchors.fill: parent
-            active: window._pythonLoading || transitionActive
-            asynchronous: false
-            onLoaded: {
-                transitionActive = false
-                window._pythonLoadingOverlay = item
-                window._handlePythonLoadingOverlayReady()
-            }
-            onItemChanged: {
-                if (!item) {
-                    transitionActive = false
-                    window._pythonLoadingOverlay = null
-                }
-            }
-            sourceComponent: QMLPage {
-                property bool loading: window._pythonLoading
-
-                objectName: "loadingOverlay"
-                backgroundColor: Enums.transparent
-                running: visible && !finishing
-                text: window.loadingText
-                Component.onCompleted: if (loading) start()
-                onLoadingChanged: {
-                    if (loading) start()
-                    else finish()
-                }
-            }
-
-            Connections {
-                function onFinishingChanged() {
-                    loadingOverlayLoader.transitionActive = target.finishing
-                }
-
-                target: loadingOverlayLoader.item
-                ignoreUnknownSignals: true
-            }
+            host: window
+            // ToggleNavigationBar 是 Item，没有 indicatorAnimationEnabled，此处恒为
+            // false。原代码用三元表达式把 undefined 吞成 falsy，行为相同；这里显式
+            // 布尔化以满足 required bool。修不修是单独议题，不并入本次去重。
+            // ToggleNavigationBar lacks the property, so this is always false, matching
+            // the ternary's undefined-to-falsy coercion before the extraction.
+            navAnimationEnabled: !!navigationBar.indicatorAnimationEnabled
+            overlayActive: window._pythonLoading
+            overlayText: window.loadingText
         }
         }
     }
