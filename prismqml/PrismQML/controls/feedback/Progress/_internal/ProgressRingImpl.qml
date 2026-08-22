@@ -24,62 +24,18 @@ Item {
     readonly property color trackColor: progressRing.trackColor
     
     // ==================== Internal Props 内部属性 ====================
-    // Viewport detection 可视区域检测
-    property Item _flickableAncestor: null
-    property bool _isInViewport: true
-    
-    // ==================== Internal Methods 内部方法 ====================
-    function _findFlickable() {
-        var p = control.parent
-        while (p) {
-            if (p instanceof Flickable) return p
-            p = p.parent
-        }
-        return null
-    }
-    
-    function _updateViewport() {
-        try {
-            if (!_flickableAncestor || !control.visible) {
-                _isInViewport = control.visible
-                return
-            }
-            // Check if contentItem exists 检查contentItem是否存在
-            if (!_flickableAncestor.contentItem) {
-                _isInViewport = true
-                return
-            }
-            // Check if height is valid 检查高度是否有效
-            if (_flickableAncestor.height <= 0) {
-                _isInViewport = true
-                return
-            }
-            var pos = control.mapToItem(_flickableAncestor.contentItem, 0, 0)
-            var viewTop = _flickableAncestor.contentY
-            var viewBottom = viewTop + _flickableAncestor.height
-            var buffer = control.height
-            _isInViewport = (pos.y + control.height + buffer > viewTop) && (pos.y - buffer < viewBottom)
-        } catch (e) {
-            // Fallback to visible if any error occurs 发生任何错误时回退到可见
-            _isInViewport = true
-        }
-    }
+    // Viewport detection lives in ViewportMixin 视口检测由 ViewportMixin 持有
+    readonly property bool _isInViewport: viewport.isInViewport
 
     implicitWidth: Enums.controlSize.progressRingSize
     implicitHeight: Enums.controlSize.progressRingSize
-    
-    Component.onCompleted: {
-        _flickableAncestor = _findFlickable()
-        if (_flickableAncestor) {
-            _flickableAncestor.contentYChanged.connect(_updateViewport)
-            _flickableAncestor.heightChanged.connect(_updateViewport)
-        }
-        _updateViewport()
+
+    // ==================== Content 内容 ====================
+    ViewportMixin {
+        id: viewport
+        target: control
     }
-    
-    onVisibleChanged: _updateViewport()
-    onYChanged: if (_flickableAncestor) Qt.callLater(_updateViewport)
-    
+
     // Standard progress ring 标准进度环
     ProgressRing {
         id: progressRing

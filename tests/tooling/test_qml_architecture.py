@@ -2519,9 +2519,22 @@ def test_viewport_mixin_keeps_init_timer_modularized():
     assert "interval: 50" in helper_source
     assert "repeat: false" in helper_source
     assert "onTriggered: host._init()" in helper_source
-    assert "Component.onCompleted: initTimer.start()" in source
     assert "property Timer initTimer: Timer {" not in source
     assert "onTriggered: _init()" not in source
+
+    # onCompleted must initialize synchronously AND arm the settle re-check.
+    # Deferring to the timer alone let consumers read a stale default first.
+    # onCompleted 必须同步初始化并同时挂上稳定后复算；只靠定时器会让消费者先读到过期默认值。
+    assert "Component.onCompleted: {" in source
+    assert "_init()" in source
+    assert "initTimer.start()" in source
+
+    # Ancestor and contentItem wiring must stay declarative so a destroyed
+    # consumer leaves no stale callback. 祖先与 contentItem 连接必须保持声明式。
+    assert "UtilsInternal.ViewportAncestorWatcher {" in source
+    assert "UtilsInternal.ViewportContentWatcher {" in source
+    assert ".contentYChanged.connect(" not in source
+    assert ".heightChanged.connect(" not in source
 
 
 def test_widget_keeps_center_children_timer_modularized():
