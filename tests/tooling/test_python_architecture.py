@@ -1012,3 +1012,23 @@ def test_notification_qml_helper_has_one_runtime_composition_owner():
     )
     assert "prismqml.python.runtime.engine.get_published_qml_engine" in runtime_imports
     assert "prismqml.python.core.logger.getLogger" in runtime_imports
+
+
+def test_set_window_pos_signature_has_one_shared_owner():
+    """SetWindowPos ctypes signature stays in one core declaration helper."""
+    helper = CORE_PACKAGE / "_win32_api.py"
+    helper_source = helper.read_text(encoding="utf-8")
+    callsites = (
+        CORE_PACKAGE / "shadow.py",
+        CORE_PACKAGE / "_window_follower.py",
+        CORE_PACKAGE / "_popup_owner.py",
+        PYTHON_PACKAGE / "window" / "native_window.py",
+    )
+
+    assert helper.exists()
+    assert helper_source.count("function.argtypes = [") == 1
+    assert "def bind_set_window_pos(user32):" in helper_source
+    for path in callsites:
+        source = path.read_text(encoding="utf-8")
+        assert "bind_set_window_pos" in source, path
+        assert "SetWindowPos.argtypes" not in source, path

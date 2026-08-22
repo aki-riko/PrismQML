@@ -12,6 +12,7 @@ from typing import Any, Callable, Optional
 from PySide6.QtCore import QAbstractNativeEventFilter, QByteArray, QRect
 
 from .logger import debug, error, exception
+from ._win32_api import bind_set_window_pos
 
 
 # Window edge values mirror Enums.position. 窗口边缘值与 Enums.position 保持一致。
@@ -266,17 +267,7 @@ def _load_user32_window_functions():
         get_window_rect = user32.GetWindowRect
         get_window_rect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
         get_window_rect.restype = wintypes.BOOL
-        set_window_pos = user32.SetWindowPos
-        set_window_pos.argtypes = [
-            wintypes.HWND,
-            wintypes.HWND,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_int,
-            wintypes.UINT,
-        ]
-        set_window_pos.restype = wintypes.BOOL
+        set_window_pos = bind_set_window_pos(user32)
         set_foreground_window = user32.SetForegroundWindow
         set_foreground_window.argtypes = [wintypes.HWND]
         set_foreground_window.restype = wintypes.BOOL

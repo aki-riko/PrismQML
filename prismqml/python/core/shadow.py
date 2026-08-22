@@ -28,6 +28,7 @@ from PySide6.QtGui import QWindow
 from PySide6.QtWidgets import QApplication
 
 from .logger import debug, info, warning, error, exception
+from ._win32_api import bind_set_window_pos
 
 
 # Windows MARGINS 结构体（DWM阴影 API 需要）
@@ -59,20 +60,7 @@ def _get_dwm_set_window_attribute(dwmapi):
 
 def _get_set_window_pos(user32):
     """Configure the pointer-width frame redraw call. 配置指针宽度边框重绘调用。"""
-    from ctypes import wintypes
-
-    set_window_pos = user32.SetWindowPos
-    set_window_pos.argtypes = [
-        wintypes.HWND,
-        wintypes.HWND,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        wintypes.UINT,
-    ]
-    set_window_pos.restype = wintypes.BOOL
-    return set_window_pos
+    return bind_set_window_pos(user32)
 
 
 def _apply_dwm_shadow_state(hwnd, policy_value, margin_value, redraw):

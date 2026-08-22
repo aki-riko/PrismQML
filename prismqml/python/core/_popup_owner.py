@@ -11,6 +11,7 @@ import sys
 from typing import Optional
 
 from .logger import debug
+from ._win32_api import bind_set_window_pos
 
 
 _GW_OWNER = 4
@@ -59,11 +60,7 @@ class _WindowsPopupOwnerApi:
             user32, "SetWindowLongPtrW",
             [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t], ctypes.c_ssize_t,
         )
-        self._set_window_pos = bind(
-            user32, "SetWindowPos",
-            [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
-             ctypes.c_int, ctypes.c_int, wintypes.UINT], wintypes.BOOL,
-        )
+        self._set_window_pos = bind_set_window_pos(user32)
 
     def process_id(self, hwnd: int) -> int:
         """Return the process owning one HWND. 返回 HWND 所属进程。"""

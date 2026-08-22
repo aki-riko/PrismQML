@@ -18,6 +18,7 @@ from PySide6.QtCore import QObject, Slot, QAbstractNativeEventFilter, QCoreAppli
 from PySide6.QtGui import QWindow
 
 from ..core.logger import exception, info
+from ..core._win32_api import bind_set_window_pos
 
 
 # ============================================================================
@@ -75,12 +76,7 @@ if sys.platform == "win32":
     user32.GetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int]
     user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
 
-    user32.SetWindowPos.argtypes = [
-        wintypes.HWND, wintypes.HWND,
-        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
-        wintypes.UINT,
-    ]
-    user32.SetWindowPos.restype = wintypes.BOOL
+    bind_set_window_pos(user32)
 
     user32.IsZoomed.argtypes = [wintypes.HWND]
     user32.IsZoomed.restype = wintypes.BOOL
