@@ -33,12 +33,14 @@ WindowsCore {
     property string splashTitle: ""  // Empty inherits windowTitle 空值继承窗口标题
     property string splashSubtitle: ""  // Startup status text 启动状态文本
     property int splashMinimumVisibleDuration: Enums.duration.splashMinimumVisible  // Stable display after window exposure 窗口可见后的最短稳定展示时长
+    property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration  // Reveal animation length; splash stays visible throughout 揭幕动画时长, 期间启动画面持续可见
     // Replaceable startup visual; the root must provide finish(). 可替换启动视觉，根对象须提供 finish()。
     property Component splashComponent: Component {
         SplashScreen {
             iconSource: window.splashIcon !== "" ? window.splashIcon : window.windowIcon
             title: window.splashTitle !== "" ? window.splashTitle : window.windowTitle
             subtitle: window.splashSubtitle
+            revealDuration: window.splashRevealDuration
         }
     }
 

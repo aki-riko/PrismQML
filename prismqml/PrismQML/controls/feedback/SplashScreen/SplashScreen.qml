@@ -37,6 +37,8 @@ Rectangle {
     property string title: ""                        // App title 应用标题
     property string subtitle: ""                     // Subtitle or loading text 副标题或加载文字
     property bool showProgress: true                 // Show progress ring 显示进度环
+    // Reveal animation length on finish(). 调用 finish() 后的揭幕动画时长。
+    property int revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
 
     // ==================== Internal Props 内部属性 ====================
     readonly property color _splashBackground: Enums.backgroundColor
@@ -268,7 +270,7 @@ Rectangle {
 
         sourceComponent: NavigationInternal.LazyPageCircleTransition {
             objectName: "splashLazyPageCircleTransition"
-            revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+            revealDuration: control.revealDuration
             revealTarget: true
 
             onExpandFinished: {

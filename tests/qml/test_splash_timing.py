@@ -314,6 +314,104 @@ NavigationWindowCore {
     else:
         print("Splash 最短可见时间回归: PASS")
 
+    # splashRevealDuration must reach the real SplashScreen instance. Downstream
+    # tunes startup feel through it, so a re-hardcoded Enums reference in
+    # SplashScreen.qml has to fail here.
+    # splashRevealDuration 必须传到真实 SplashScreen 实例。下游靠它调启动观感,
+    # 若 SplashScreen.qml 里改回硬编码 Enums 必须在此失败。
+    # The transition Loader stays inactive until finish(), so the scenario must
+    # call it and then read the live transition — asserting only on the
+    # SplashScreen property would pass even with a re-hardcoded reference.
+    # 过渡 Loader 在 finish() 前不激活, 故必须调用它再读活的过渡对象; 只断言
+    # SplashScreen 属性时, 即使改回硬编码也会通过。
+    reveal_qml = """
+import QtQuick
+import PrismQML
+
+NavigationWindowCore {
+    id: win
+    splashEnabled: true
+    splashRevealDuration: 137
+    readonly property var splashProbe: win._splashInstance
+    readonly property int defaultReveal:
+        Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+    property int transitionReveal: -1
+    property string transitionError: ""
+
+    function probeTransition() {
+        if (!win._splashInstance) { win.transitionError = "no splash instance"; return }
+        win._splashInstance.finish()
+        var loader = null
+        for (var i = 0; i < win._splashInstance.children.length; i++) {
+            var child = win._splashInstance.children[i]
+            if (child && child.objectName === "splashLazyTransitionLoader") {
+                loader = child
+                break
+            }
+        }
+        if (!loader) { win.transitionError = "transition loader not found"; return }
+        if (!loader.item) { win.transitionError = "loader inactive after finish()"; return }
+        win.transitionReveal = loader.item.revealDuration
+    }
+}
+"""
+    reveal_component = QQmlComponent(engine)
+    reveal_component.setData(reveal_qml.encode("utf-8"), QUrl("reveal-inline"))
+    for _ in range(60):
+        if reveal_component.status() != QQmlComponent.Status.Loading:
+            break
+        pump(20)
+    reveal_win = reveal_component.create()
+    reveal_failures = []
+    if reveal_win is None:
+        reveal_failures.append(
+            "揭幕时长场景创建失败: "
+            + "; ".join(error.toString() for error in reveal_component.errors())
+        )
+    else:
+        for _ in range(40):
+            pump(20)
+            if reveal_win.property("splashProbe") is not None:
+                break
+        splash = reveal_win.property("splashProbe")
+        if splash is None:
+            reveal_failures.append("Splash 实例未挂载, 无法验证揭幕时长传递")
+        else:
+            forwarded = splash.property("revealDuration")
+            if forwarded != 137:
+                reveal_failures.append(
+                    "splashRevealDuration 未传到 SplashScreen: "
+                    f"期望 137, 实得 {forwarded}"
+                )
+            # Reaching the live transition is the assertion that actually binds.
+            # 读到活的过渡对象才是真正生效的断言。
+            reveal_win.probeTransition()
+            for _ in range(20):
+                pump(20)
+                if reveal_win.property("transitionReveal") != -1:
+                    break
+            probe_error = reveal_win.property("transitionError")
+            transition_reveal = reveal_win.property("transitionReveal")
+            if probe_error:
+                reveal_failures.append(f"过渡对象探测失败: {probe_error}")
+            elif transition_reveal != 137:
+                reveal_failures.append(
+                    "揭幕时长未到达过渡动画: "
+                    f"期望 137, 实得 {transition_reveal}"
+                )
+        # An unset window property must still fall back to the shared metric.
+        # 未设置时必须回落到共享度量值。
+        if reveal_win.property("defaultReveal") <= 0:
+            reveal_failures.append("共享揭幕时长度量值非正, 回落默认值不可用")
+    failures.extend(reveal_failures)
+    if reveal_failures:
+        result = 1
+        print("Splash 揭幕时长可配置回归: FAIL")
+        for failure in reveal_failures:
+            print("  [FAIL]", failure)
+    else:
+        print("Splash 揭幕时长可配置回归: PASS")
+
     QTimer.singleShot(0, app.quit)
     app.exec()
     sys.exit(result)
