@@ -81,19 +81,31 @@ Item {
     }
     function popUpTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
-        if (backend) backend.transition(oldIndex, newIndex)
+        if (backend) {
+            backend.configure(false)
+            backend.transition(oldIndex, newIndex)
+        }
     }
     function enterPopUpOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
-        if (backend) backend.enterOnly(newIndex)
+        if (backend) {
+            backend.configure(false)
+            backend.enterOnly(newIndex)
+        }
     }
     function popDownTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
-        if (backend) backend.transition(oldIndex, newIndex)
+        if (backend) {
+            backend.configure(true)
+            backend.transition(oldIndex, newIndex)
+        }
     }
     function enterPopDownOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
-        if (backend) backend.enterOnly(newIndex)
+        if (backend) {
+            backend.configure(true)
+            backend.enterOnly(newIndex)
+        }
     }
     function zoomTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.zoom))
@@ -114,9 +126,9 @@ Item {
             case Enums.animation.opacity:
                 return Qt.resolvedUrl("StackedFadeAnimations.qml")
             case Enums.animation.popup:
-                return Qt.resolvedUrl("StackedPopUpAnimations.qml")
+                return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.popdown:
-                return Qt.resolvedUrl("StackedPopDownAnimations.qml")
+                return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.slide:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
             case Enums.animation.card:

@@ -4,11 +4,12 @@
 
 import QtQuick
 
-// StackedPopUpAnimations - Upward popup backend 上浮切页后端
+// StackedPopAnimations - Parameterized popup backend 参数化切页后端
 QtObject {
     id: backend
 
     required property Item host
+    property bool isPopDown: false
     property Item _oldWidget: null
     property Item _newWidget: null
     readonly property bool running: animationGroup.running
@@ -16,12 +17,27 @@ QtObject {
         onStarted: { if (backend._oldWidget) backend._oldWidget.visible = false }
         onFinished: backend.finished()
 
-        NumberAnimation { id: yAnimation; target: backend._newWidget; property: "y"; to: 0; duration: backend.host.animationDuration; easing.type: Easing.OutQuad }
-        NumberAnimation { target: backend._newWidget; property: "opacity"; from: 0.0; to: 1.0; duration: backend.host.animationDuration; easing.type: Easing.OutQuad }
+        NumberAnimation {
+            id: yAnimation
+            target: backend._newWidget
+            property: "y"
+            to: 0
+            duration: backend.host.animationDuration
+            easing.type: backend.isPopDown ? Easing.OutBounce : Easing.OutQuad
+        }
+        NumberAnimation {
+            target: backend._newWidget
+            property: "opacity"
+            from: 0.0
+            to: 1.0
+            duration: backend.host.animationDuration
+            easing.type: Easing.OutQuad
+        }
     }
 
     signal finished()
 
+    function configure(popDown) { isPopDown = popDown }
     function widget(index) { return host.widget(index) }
     function stopAllAnimations() {
         animationGroup.stop()
@@ -40,7 +56,7 @@ QtObject {
         _oldWidget.visible = true
         _oldWidget.opacity = 1
         _oldWidget.y = 0
-        var offset = host.control.popUpOffset
+        var offset = isPopDown ? -host.control.popUpOffset : host.control.popUpOffset
         _newWidget.y = offset
         _newWidget.opacity = 0
         _newWidget.visible = true

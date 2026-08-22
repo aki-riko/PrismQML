@@ -3708,8 +3708,7 @@ def test_stacked_animations_monolith_stays_deleted():
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     for backend in (
         "StackedFadeAnimations.qml",
-        "StackedPopUpAnimations.qml",
-        "StackedPopDownAnimations.qml",
+        "StackedPopAnimations.qml",
         "StackedSlideAnimations.qml",
         "StackedCardAnimations.qml",
         "StackedZoomAnimations.qml",
@@ -3717,8 +3716,21 @@ def test_stacked_animations_monolith_stays_deleted():
         assert backend in dispatcher_source
         assert (internal / backend).exists()
 
+    assert dispatcher_source.count('"StackedPopAnimations.qml"') == 2
+    pop_source = (internal / "StackedPopAnimations.qml").read_text(encoding="utf-8")
+    assert "property bool isPopDown: false" in pop_source
+    assert "function configure(popDown)" in pop_source
+    assert "Easing.OutBounce" in pop_source
+    assert "Easing.OutQuad" in pop_source
+    assert "StackedPopUpAnimations.qml" not in dispatcher_source
+    assert "StackedPopDownAnimations.qml" not in dispatcher_source
+
     for path in QML_ROOT.rglob("*.qml"):
         assert path.name != "StackedAnimations.qml"
+        assert path.name not in {
+            "StackedPopUpAnimations.qml",
+            "StackedPopDownAnimations.qml",
+        }
 
 
 def test_viewport_detection_has_exactly_one_owner():
