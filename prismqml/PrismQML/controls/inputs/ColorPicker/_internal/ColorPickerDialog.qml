@@ -6,6 +6,7 @@ import QtQuick
 import "../../../.."
 import "../../../dialogs"
 import "../../../data"
+import "ColorPickerHsv.js" as Hsv
 
 // ColorPickerDialog - Modal color dialog based on MessageBox 基于MessageBox的模态颜色对话框
 MessageBox {
@@ -62,15 +63,18 @@ MessageBox {
 
     // ==================== Internal Methods 内部方法 ====================
     function updateColor() {
-        selectedColor = Qt.hsva(_hue, _saturation, _brightness, _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
+        selectedColor = Hsv.compose(_hue, _saturation, _brightness,
+                                    _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
         colorUpdated(selectedColor)
     }
 
     function updateHsvFromColor() {
-        _hue = selectedColor.hsvHue >= Enums.opacityLevel.invisible ? selectedColor.hsvHue : Enums.opacityLevel.invisible
-        _saturation = selectedColor.hsvSaturation
-        _brightness = selectedColor.hsvValue
-        _alpha = Math.round(selectedColor.a * Enums.colorPickerMetrics.dialogAlphaMaxValue)
+        var hsv = Hsv.decompose(selectedColor, Enums.opacityLevel.invisible)
+        _hue = hsv.hue
+        _saturation = hsv.saturation
+        _brightness = hsv.brightness
+        // Dialog keeps alpha in its own integer range. 对话框按自己的整数区间保存 alpha。
+        _alpha = Math.round(hsv.alpha * Enums.colorPickerMetrics.dialogAlphaMaxValue)
     }
 
     // Base dialog overrides 基础对话框重写

@@ -7,6 +7,7 @@ import "../../../.."
 import "../../../icons"
 import "../../../buttons/Button"
 import "../../../data"
+import "ColorPickerHsv.js" as Hsv
 
 // ColorPickerDropdown - Full dropdown picker content 完整下拉选择器内容
 // Layout: HSV panel, brightness, mode, Hex, RGBA, and actions 布局：HSV 面板、亮度、模式、Hex、RGBA 与操作按钮
@@ -31,14 +32,18 @@ Item {
 
     // ==================== Internal Methods 内部方法 ====================
     function updateColor() {
-        selectedColor = Qt.hsva(_hue, _saturation, _brightness, _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
+        selectedColor = Hsv.compose(_hue, _saturation, _brightness,
+                                    _alpha / Enums.colorPickerMetrics.dialogAlphaMaxValue)
         colorChanged(selectedColor)
     }
 
     function updateHsvFromColor() {
-        _hue = selectedColor.hsvHue >= Enums.opacityLevel.invisible ? selectedColor.hsvHue : Enums.opacityLevel.invisible
-        _saturation = selectedColor.hsvSaturation
-        _brightness = selectedColor.hsvValue
+        var hsv = Hsv.decompose(selectedColor, Enums.opacityLevel.invisible)
+        _hue = hsv.hue
+        _saturation = hsv.saturation
+        _brightness = hsv.brightness
+        // Intentionally no alpha read-back here; the dropdown keeps _alpha as set
+        // by the user. 有意不回读 alpha；下拉保持用户设定的 _alpha。
     }
 
     function _formatHex() {

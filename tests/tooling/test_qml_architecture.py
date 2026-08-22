@@ -3854,3 +3854,92 @@ def test_window_page_stack_has_exactly_one_owner():
         if 'objectName: "loadingOverlayLoader"' in path.read_text(encoding="utf-8")
     )
     assert declarers == ["prismqml/PrismQML/_internal/WindowsPageStack.qml"]
+
+
+# ==================== ChartMath single ownership 图表统计单一归属 ====================
+
+_CHART_INTERNAL = QML_ROOT / "controls" / "data" / "Chart" / "_internal"
+_CHART_MATH = _CHART_INTERNAL / "ChartMath.js"
+
+
+def test_chart_math_owns_series_statistics():
+    """average/findMinMaxIndices 只允许在 ChartMath.js 内实现一次。"""
+    source = _CHART_MATH.read_text(encoding="utf-8")
+    assert "function average(" in source
+    assert "function findMinMaxIndices(" in source
+    # Contract: pure maths only, no Canvas/QML/theme coupling. 契约: 只放纯算式。
+    # Checked as code, not as prose — the comments above legitimately name these.
+    # 按代码而非文字检查, 因为文件注释本身会提到这些词。
+    for banned in ("ctx.", "import QtQuick", "Enums.colorPicker", "Enums.chart"):
+        assert banned not in source, banned
+
+
+def test_chart_series_statistics_have_no_second_implementation():
+    """除 ChartMath.js 外, 任何 Chart 文件都不得自带这两个算法的循环实现。"""
+    for path in sorted(_CHART_INTERNAL.rglob("*")):
+        if not path.is_file() or path.suffix not in {".js", ".qml"}:
+            continue
+        if path == _CHART_MATH:
+            continue
+        source = path.read_text(encoding="utf-8")
+        # The min/max scan and the series-sum loop are the two duplicated shapes.
+        # Matched narrowly: XYMultiTooltip.qml legitimately sums one hovered point
+        # across series, which is a different computation.
+        # 精确匹配: XYMultiTooltip.qml 是对多系列同一悬停点求和, 属不同计算。
+        assert "if (values[i] < values[minIdx])" not in source, path.name
+        assert "if (values[index] < values[minIdx])" not in source, path.name
+        assert "i < values.length; i++) sum += values[i]" not in source, path.name
+        assert (
+            "index < values.length; index++) sum += values[index]" not in source
+        ), path.name
+
+
+# ==================== ColorPickerHsv single ownership HSV 转换单一归属 ====================
+
+_PICKER_INTERNAL = QML_ROOT / "controls" / "inputs" / "ColorPicker" / "_internal"
+_PICKER_HSV = _PICKER_INTERNAL / "ColorPickerHsv.js"
+_PICKER_DIALOG = _PICKER_INTERNAL / "ColorPickerDialog.qml"
+_PICKER_DROPDOWN = _PICKER_INTERNAL / "ColorPickerDropdown.qml"
+
+
+def test_color_picker_hsv_owns_conversion():
+    """decompose/compose 只允许在 ColorPickerHsv.js 内实现一次, 且保持纯函数。"""
+    source = _PICKER_HSV.read_text(encoding="utf-8")
+    assert "function decompose(" in source
+    assert "function compose(" in source
+    # The hue floor must stay a caller-supplied parameter, never an Enums read
+    # or a magic number here. 色相下限必须由调用方传入, 本文件不得读 Enums 或写魔数。
+    assert "achromaticHue" in source
+    assert "Enums." not in source
+    for banned in ("import QtQuick", "signal ", "Component.onCompleted"):
+        assert banned not in source, banned
+
+
+def test_color_picker_consumers_delegate_hsv_conversion():
+    """两处消费者都必须转发给 helper, 不得自带 HSV 读写。"""
+    for path in (_PICKER_DIALOG, _PICKER_DROPDOWN):
+        source = path.read_text(encoding="utf-8")
+        assert 'import "ColorPickerHsv.js" as Hsv' in source, path.name
+        assert "Hsv.decompose(" in source, path.name
+        assert "Hsv.compose(" in source, path.name
+        # No second copy of the state conversion. Presentation-only Qt.hsva calls
+        # (spectrum GradientStop) are untouched on purpose.
+        # 不得有第二份状态换算。呈现用的 Qt.hsva（色谱渐变）有意不动。
+        assert "selectedColor = Qt.hsva(" not in source, path.name
+        assert "selectedColor.hsvHue" not in source, path.name
+        assert "selectedColor.hsvSaturation" not in source, path.name
+        # The floor stays an Enums token at the call site, not a literal.
+        assert "Enums.opacityLevel.invisible" in source, path.name
+
+
+def test_color_picker_notification_and_alpha_asymmetry_preserved():
+    """两处的通知契约与 alpha 回读差异是有意的, 门禁锁住不许被 helper 吞掉。"""
+    dialog = _PICKER_DIALOG.read_text(encoding="utf-8")
+    dropdown = _PICKER_DROPDOWN.read_text(encoding="utf-8")
+    # Distinct signals. 各自的信号名。
+    assert "colorUpdated(selectedColor)" in dialog
+    assert "colorChanged(selectedColor)" in dropdown
+    # Dialog reads alpha back into its own integer range; dropdown must not.
+    # 对话框把 alpha 回读到自己的整数区间; 下拉不回读。
+    assert "hsv.alpha" in dialog
+    assert "hsv.alpha" not in dropdown
