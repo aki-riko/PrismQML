@@ -272,7 +272,9 @@ def test_navigation_window_core_source_conventions_and_mica_tokens():
     assert "property bool navigationSmoothScroll: true" in source
     assert "property int navigationScrollDuration: Enums.duration.navigationScroll" in source
     assert "property real navigationScrollStep: Enums.spacing.navigationScrollStep" in source
-    assert "readonly property int navigationScroll: 250" in metrics
+    # 导航滚轮时长跟随 scroll, 不再自带字面量: 250ms 尾段会退化成逐物理像素蠕动。
+    assert "readonly property int navigationScroll: scroll" in metrics
+    assert "readonly property int scroll: 750" in metrics
     assert "readonly property int navigationScrollStep: 72" in metrics
     assert "interval: 16" not in source
     assert "interval: 180" not in source
