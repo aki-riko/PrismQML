@@ -139,7 +139,7 @@
 - Windows/非 Windows 平台的导入和启动路径均无回归。
 
 本阶段实际验证：D6 源码门禁 `1 passed`，六种 `StackedWidget` 动画运行时回归
-`13 passed`；D10 Win32 声明合同与窗口相关定向测试 `100 passed`，Python 架构防回流
+`14 passed`（含 PopUp→PopDown 同源 Loader 复用）；D10 Win32 声明合同与窗口相关定向测试 `100 passed`，Python 架构防回流
 门禁 `1 passed`。所有 runner 均报告 `visible_windows=0 / job_active_processes=0`。
 
 ### 阶段 P4：公开别名清理决策

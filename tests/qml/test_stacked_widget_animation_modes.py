@@ -48,6 +48,7 @@ Item {{
     width: 320
     height: 200
     readonly property int popupMode: Enums.animation.popup
+    readonly property int popdownMode: Enums.animation.popdown
 
     StackedWidget {{
         id: stack
@@ -217,5 +218,26 @@ def test_switching_mode_interrupts_old_backend_without_extra_completion(qapp):
         _assert_transition_start("popup", stack, page1, page0, True)
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_current_resting_state(page0, page1)
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_switching_between_pop_modes_reconfigures_shared_backend(qapp):
+    """同一 Loader source 在 PopUp/PopDown 间切换时仍更新方向与 easing。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(engine, "popup")
+    try:
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        _assert_transition_start("popup", stack, page0, page1, False)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+
+        assert stack.setProperty("animationType", root.property("popdownMode"))
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 0)
+        _assert_transition_start("popdown", stack, page1, page0, True)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        _assert_resting_state(page0, page1)
     finally:
         _dispose(engine, component, root)
