@@ -45,12 +45,44 @@ Item {
         property real _targetY: 0
         property real _smoothY: 0
         property bool _syncing: false
+        property real _devicePixelRatio: 1.0
 
         function _clamp(value, minimum, maximum) {
             return Math.max(minimum, Math.min(maximum, value))
         }
 
+        // 非整数缩放下每帧必须落在物理像素上, 否则次像素错位会让滚动发抖。
+        // Fractional scaling needs per-frame physical-pixel snapping or it judders.
+        function _refreshDevicePixelRatio() {
+            if (typeof WindowHelper === "undefined" || !WindowHelper
+                    || typeof WindowHelper.devicePixelRatioAt !== "function") {
+                _devicePixelRatio = 1.0
+                return
+            }
+            var flick = behavior.flickable
+            var globalCenter = flick.mapToGlobal(flick.width / 2, flick.height / 2)
+            var ratio = WindowHelper.devicePixelRatioAt(
+                Math.round(globalCenter.x), Math.round(globalCenter.y)
+            )
+            _devicePixelRatio = ratio > 0 ? ratio : 1.0
+        }
+
+        function _alignToPhysicalPixel(value) {
+            return Math.round(value * _devicePixelRatio) / _devicePixelRatio
+        }
+
+        // 精确边界不能被对齐挪动, 否则会破坏 Flickable 的起止状态语义。
+        // Exact bounds must survive snapping or Flickable end-states break.
+        function _publishedPosition(value) {
+            if (Math.abs(value - _minY) < Enums.scroll.boundary_epsilon) return _minY
+            if (Math.abs(value - _maxY) < Enums.scroll.boundary_epsilon) return _maxY
+            return _alignToPhysicalPixel(value)
+        }
+
         function scrollTo(targetY) {
+            // 窗口可能被拖到不同缩放的屏幕, 每次滚动前重取比率。
+            // The window can move between screens, so re-read the ratio here.
+            _refreshDevicePixelRatio()
             _targetY = _clamp(targetY, _minY, _maxY)
             _smoothY = _targetY
         }
@@ -84,11 +116,12 @@ Item {
         objectName: behavior.helperName
         enabled: behavior.enabled && behavior.smoothScroll && behavior._scrollable
 
-        on_SmoothYChanged: behavior.flickable.contentY = _smoothY
+        on_SmoothYChanged: behavior.flickable.contentY = _publishedPosition(_smoothY)
         on_MinYChanged: reconcileTimer.restart()
         on_MaxYChanged: reconcileTimer.restart()
 
         Component.onCompleted: {
+            _refreshDevicePixelRatio()
             _targetY = behavior.flickable.contentY
             _smoothY = behavior.flickable.contentY
         }
