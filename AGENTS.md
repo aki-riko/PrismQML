@@ -494,6 +494,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 
 发布操作必须遵循根目录 `RELEASING.md`。`AGENTS.md` 仅保留以下不可绕过的边界：
 
+- 所有 Git 提交信息（含标题和正文）必须使用中文。
 - `pyproject.toml` 与 `prismqml/__init__.py` 的版本必须同步；默认只递增第四位构建号，前三位变更必须由维护者明确决定。
 - `prism` 是 GitHub/CI/PyPI 远程，`origin` 是无发布 CI 的自建 Gitea；发布提交和 tag 必须显式推送 `prism`。
 - 发布前必须通过 `RELEASING.md` 中的零交互测试、QML probe 与 headless CTest 门禁；不得把人工可视测试混入自动门禁。
