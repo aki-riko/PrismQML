@@ -5,6 +5,7 @@
 import QtQuick
 import "../../../.."
 import "../../../data"
+import "ChartMath.js" as ChartMath
 
 // LineChartMarkers - Min/Max markers and average labels 最大最小值标记和平均值标签
 // Extracted from LineChartContent.qml for modularity 从 LineChartContent.qml 提取以实现模块化
@@ -22,22 +23,13 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property var getSeriesColor: function(index) { return Enums.accentColor }
     property var valueToY: function(value) { return 0 }
+    // Overridable; LineChartContent injects the Painter variants.
+    // 可被覆盖；LineChartContent 会注入 Painter 版本。
     property var findMinMaxIndices: function(values) {
-        if (!values || values.length === 0) {
-            return { minIdx: -1, maxIdx: -1, minVal: 0, maxVal: 0 }
-        }
-        var minIdx = 0, maxIdx = 0
-        for (var i = 1; i < values.length; i++) {
-            if (values[i] < values[minIdx]) minIdx = i
-            if (values[i] > values[maxIdx]) maxIdx = i
-        }
-        return { minIdx: minIdx, maxIdx: maxIdx, minVal: values[minIdx], maxVal: values[maxIdx] }
+        return ChartMath.findMinMaxIndices(values)
     }
     property var calculateAverage: function(values) {
-        if (!values || values.length === 0) return 0
-        var sum = 0
-        for (var i = 0; i < values.length; i++) sum += values[i]
-        return sum / values.length
+        return ChartMath.average(values)
     }
     
     // ==================== Content 内容 ====================

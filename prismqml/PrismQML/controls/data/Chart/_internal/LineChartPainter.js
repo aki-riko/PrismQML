@@ -2,6 +2,7 @@
 // Extracted from LineChartContent.qml for modularity 从 LineChartContent.qml 提取以实现模块化
 
 .pragma library
+.import "ChartMath.js" as ChartMath
 
 // ==================== Line Drawing 线条绘制 ====================
 
@@ -283,10 +284,7 @@ function drawAverageLine(ctx, y, width, colorStr, alpha) {
  * @returns {number} Average value
  */
 function calculateAverage(values) {
-    if (!values || values.length === 0) return 0
-    var sum = 0
-    for (var i = 0; i < values.length; i++) sum += values[i]
-    return sum / values.length
+    return ChartMath.average(values)
 }
 
 /**
@@ -295,18 +293,5 @@ function calculateAverage(values) {
  * @returns {Object} {minIdx, maxIdx, minVal, maxVal}
  */
 function findMinMaxIndices(values) {
-    if (!values || values.length === 0) {
-        return { minIdx: -1, maxIdx: -1, minVal: 0, maxVal: 0 }
-    }
-    var minIdx = 0, maxIdx = 0
-    for (var i = 1; i < values.length; i++) {
-        if (values[i] < values[minIdx]) minIdx = i
-        if (values[i] > values[maxIdx]) maxIdx = i
-    }
-    return { 
-        minIdx: minIdx, 
-        maxIdx: maxIdx, 
-        minVal: values[minIdx], 
-        maxVal: values[maxIdx] 
-    }
+    return ChartMath.findMinMaxIndices(values)
 }

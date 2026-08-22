@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 .pragma library
+.import "ChartMath.js" as ChartMath
 
 function _valueToY(value, height, rangeMin, rangeMax) {
     var range = rangeMax - rangeMin
@@ -10,27 +11,13 @@ function _valueToY(value, height, rangeMin, rangeMax) {
     return height - ((value - rangeMin) / range) * height
 }
 
+// Series statistics live in ChartMath.js. 序列统计归 ChartMath.js。
 function average(values) {
-    if (!values || values.length === 0) return 0
-    var sum = 0
-    for (var index = 0; index < values.length; index++) sum += values[index]
-    return sum / values.length
+    return ChartMath.average(values)
 }
 
 function findMinMaxIndices(values) {
-    if (!values || values.length === 0) {
-        return { minIdx: -1, maxIdx: -1, minVal: 0, maxVal: 0 }
-    }
-    var minIdx = 0
-    var maxIdx = 0
-    for (var index = 1; index < values.length; index++) {
-        if (values[index] < values[minIdx]) minIdx = index
-        if (values[index] > values[maxIdx]) maxIdx = index
-    }
-    return {
-        minIdx: minIdx, maxIdx: maxIdx,
-        minVal: values[minIdx], maxVal: values[maxIdx]
-    }
+    return ChartMath.findMinMaxIndices(values)
 }
 
 function _lowerBoundBarX(positions, targetX) {
