@@ -3719,3 +3719,42 @@ def test_stacked_animations_monolith_stays_deleted():
 
     for path in QML_ROOT.rglob("*.qml"):
         assert path.name != "StackedAnimations.qml"
+
+
+def test_viewport_detection_has_exactly_one_owner():
+    """视口检测算法只允许 ViewportMixin 一处实现, 消费者只能委托。
+
+    Skeleton, ProgressBarImpl and ProgressRingImpl each carried a line-for-line
+    copy of the ancestor walk and the in-viewport arithmetic. They now delegate to
+    ViewportMixin. This gate blocks a fourth copy from reappearing anywhere in the
+    QML tree.
+    """
+    owner = "prismqml/PrismQML/controls/utils/ViewportMixin.qml"
+    consumers = (
+        "prismqml/PrismQML/controls/feedback/State/Skeleton.qml",
+        "prismqml/PrismQML/controls/feedback/Progress/_internal/"
+        "ProgressBarImpl.qml",
+        "prismqml/PrismQML/controls/feedback/Progress/_internal/"
+        "ProgressRingImpl.qml",
+    )
+
+    reimplementers = []
+    for path in sorted(QML_ROOT.rglob("*.qml")):
+        relative = path.relative_to(ROOT).as_posix()
+        source = path.read_text(encoding="utf-8")
+        if "function _updateViewport()" in source and relative != owner:
+            reimplementers.append(relative)
+
+    assert reimplementers == []
+
+    owner_source = _source(owner).read_text(encoding="utf-8")
+    assert "function _updateViewport()" in owner_source
+    assert "function _findFlickable()" in owner_source
+
+    for relative in consumers:
+        source = _source(relative).read_text(encoding="utf-8")
+        assert "ViewportMixin {" in source, relative
+        assert "readonly property bool _isInViewport: viewport.isInViewport" in (
+            source
+        ), relative
+        assert "function _findFlickable()" not in source, relative
