@@ -110,6 +110,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     cpp_source = (ROOT / "cpp/src/Window.cpp").read_text(encoding="utf-8")
     gallery_source = (ROOT / "examples/main.qml").read_text(encoding="utf-8")
     gallery_entry_source = (ROOT / "examples/main.py").read_text(encoding="utf-8")
+    fast_splash_source = (
+        ROOT / "prismqml/python/window/fast_splash.py"
+    ).read_text(encoding="utf-8")
 
     assert "property bool splashEnabled: true" in qml_source
     assert "property int splashMinimumVisibleDuration:" in qml_source
@@ -120,6 +123,10 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "function _enableDeferredSplash()" in qml_source
     assert "if uses_default_splash is True:" in gallery_entry_source
     assert "if uses_default_splash is not False:" not in gallery_entry_source
+    assert "transition.setParentItem(root_item)" in fast_splash_source
+    assert "transition.setParent(root_item)" in fast_splash_source
+    assert "QQmlEngine.setObjectOwnership(" in fast_splash_source
+    assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source
     assert "create_splash" not in python_source

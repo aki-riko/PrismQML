@@ -443,6 +443,17 @@ class FastSplashController(QObject):
             self._transition = transition
             root_item = self._splash.property("revealRoot")
             transition.setParentItem(root_item)
+            # Keep the dynamically-created transition alive until the splash
+            # window is torn down. Visual parenting alone does not guarantee
+            # QObject ownership for a component-created QML object, so the
+            # engine may collect it immediately after the completion signal.
+            # 将动态创建的揭幕组件保持到 Splash 窗口销毁。仅设置 visual parent
+            # 不保证 component-created QML 对象的 QObject 所有权，可能在完成
+            # 信号发出后被引擎回收，导致 Splash 提前隐藏。
+            transition.setParent(root_item)
+            QQmlEngine.setObjectOwnership(
+                transition, QQmlEngine.ObjectOwnership.CppOwnership
+            )
             transition.setProperty("revealTargetItem", root_item)
             self._splash.setProperty("revealTransition", transition)
             transition.revealDone.connect(self._finish_reveal)
