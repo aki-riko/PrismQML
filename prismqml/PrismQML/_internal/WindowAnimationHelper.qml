@@ -13,7 +13,8 @@ import QtQuick.Window  // Keep native Window after the library import. 库导入
 // Leave taskbar, Win+D, and Alt+Space transitions to Qt and DWM.
 // 任务栏、Win+D 与 Alt+Space 过渡交给 Qt 和 DWM，避免冲突闪烁。
 //
-// - showAnim / closeAnim: retain startup and close transitions. 保留启动和关闭过渡。
+// - startup: present immediately; close effect retains the explicit transition.
+//   启动阶段直接呈现；关闭效果仍保留显式过渡。
 // - minimize: delegate directly to Qt and DWM. 最小化直接交给 Qt 与 DWM。
 // - maximize / restore: request WM_SYSCOMMAND so DWM keeps native transitions.
 //   最大化与还原请求 WM_SYSCOMMAND，以保留 DWM 原生过渡。
@@ -56,11 +57,12 @@ Item {
     function startShow() {
         _stopCloseEffect()
         showAnim.stop()
-        if (!targetWindow || targetWindow.opacity < 0.99) {
-            animScale = 0.95
-            animOpacity = 0
-        }
-        showAnim.start()
+        // Present the window as a complete surface so Splash handoff has no blank gap.
+        // 直接呈现完整窗口表面，避免与 Splash 交接时出现短暂空白。
+        if (!targetWindow) return
+        targetWindow.opacity = 1
+        animScale = 1
+        animOpacity = 1
     }
 
     function restoreVisibleState() {

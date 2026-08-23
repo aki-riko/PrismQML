@@ -401,6 +401,9 @@ def test_prepare_before_show_waits_for_first_presented_frame(monkeypatch, qapp):
 
         assert presented_frames
         assert instance.property("_showAnimationStartCount") == 1
+        assert float(instance.property("opacity")) == pytest.approx(1)
+        assert float(instance.property("_animOpacity")) == pytest.approx(1)
+        assert float(instance.property("_animScale")) == pytest.approx(1)
     finally:
         _delete_deferred(instance)
         component = None
