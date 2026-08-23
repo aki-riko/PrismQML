@@ -51,6 +51,7 @@ from prismqml.python.runtime import (
     get_svg_provider,
     install_application_dwm_filter,
 )
+from prismqml.python.window.fast_splash import FastSplashController
 from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 GALLERY_CONFIG_PATH = resolve_app_config_path(default=DEFAULT_APP_CONFIG)
@@ -84,6 +85,14 @@ def main():
     
     app = QApplication(sys.argv)
     log_time("QApplication创建完成")
+
+    # Show the lightweight independent splash before the main QML engine is
+    # created. The main window is revealed through its outward ring once the
+    # first page has swapped frames.
+    # 在创建主 QML 引擎前显示轻量独立启动页；首页完成首帧后通过向外圆环揭幕。
+    fast_splash = FastSplashController(app)
+    fast_splash_enabled = fast_splash.show()
+    log_time("快速独立 Splash 创建完成")
     
     # 安装DWM同步过滤器（解决resize撕裂问题）
     # Install DWM sync filter (fix resize tearing)
@@ -107,6 +116,10 @@ def main():
     engine.rootContext().setContextProperty(
         "PrismQmlAsynchronousPageLoaderEnabled",
         asynchronous_page_loader_enabled(),
+    )
+    engine.rootContext().setContextProperty(
+        "PrismQmlFastStartupSplashEnabled",
+        fast_splash_enabled,
     )
     install_default_incubation_controller(engine)
     
@@ -160,7 +173,22 @@ def main():
     
     if not engine.rootObjects():
         print("[ERROR] 加载QML失败，请检查组件路径或QML语法")
+        fast_splash.close()
         return -1
+
+    root = engine.rootObjects()[0]
+    main_window = root.property("windowInstance")
+    if fast_splash_enabled and main_window is not None:
+        attached = fast_splash.attach_and_reveal(engine, main_window)
+        if not attached:
+            # Keep the existing in-window fallback if the native owner cannot
+            # be established on a particular Qt/Windows build.
+            # 若特定 Qt/Windows 构建无法建立原生 owner，则恢复原内嵌兜底。
+            main_window.setProperty("splashEnabled", True)
+            fast_splash.close()
+    else:
+        fast_splash.close()
+    app.aboutToQuit.connect(fast_splash.close)
     
     log_time("窗口准备就绪，进入事件循环")
     return app.exec()
