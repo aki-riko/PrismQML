@@ -20,12 +20,6 @@ QtObject {
     property int windowType: ConfigManager ? ConfigManager.windowType : Fluent.Enums.windowType.type_ms
     // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
     property bool _startupLazyLoading: true
-    // The Python entry owns the independent fast splash when enabled.
-    // 启用时由 Python 入口持有独立快速启动页。
-    readonly property bool fastStartupSplashEnabled:
-        typeof PrismQmlFastStartupSplashEnabled !== "undefined" &&
-        PrismQmlFastStartupSplashEnabled
-    
     // ==================== Common Config 公共配置 ====================
     readonly property int windowWidth: 1200
     readonly property int windowHeight: 800
@@ -120,7 +114,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            splashEnabled: !root.fastStartupSplashEnabled
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -144,7 +137,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            splashEnabled: !root.fastStartupSplashEnabled
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -165,7 +157,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            splashEnabled: !root.fastStartupSplashEnabled
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems

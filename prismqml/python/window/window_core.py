@@ -319,7 +319,18 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         Args:
             enabled: False 则不显示启动画面
         """
-        self._splash_enabled = enabled
+        self._splash_enabled = bool(enabled)
+        if self._splash_enabled:
+            return
+        from .app import App
+
+        try:
+            app = App.instance()
+        except RuntimeError:
+            return
+        controller = getattr(app, "_fast_splash", None)
+        if controller is not None:
+            controller.close()
 
     def showSplash(self, icon: str = "", title: str = "", subtitle: str = ""):
         """自定义启动画面的图标/标题/副标题并确保开启。
@@ -413,6 +424,24 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         return self._current_index
 
     # ==================== 窗口生命周期 ====================
+
+    def _attach_fast_splash(self) -> None:
+        """Attach the App-owned startup surface before the first frame."""
+        from .app import App
+
+        try:
+            app = App.instance()
+        except RuntimeError:
+            return
+        controller = getattr(app, "_fast_splash", None)
+        if controller is None or self._window is None or self._engine is None:
+            return
+        if getattr(controller, "_main_window", None) is not None:
+            return
+        if not self._splash_enabled:
+            controller.close()
+            return
+        controller.attach_to_window(self._engine, self._window)
 
     def show(self):
         """显示窗口"""

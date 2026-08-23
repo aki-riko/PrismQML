@@ -62,6 +62,10 @@ Window {{
     color: "transparent"
     visible: true
 
+    property string splashIcon: ""
+    property string splashTitle: "PrismQML"
+    property string splashSubtitle: "正在加载组件..."
+
     property Item revealRoot: revealSurface
     readonly property string layerState:
         "enabled=" + revealSurface.layer.enabled
@@ -101,13 +105,14 @@ Window {{
                 Image {{
                     anchors.centerIn: parent
                     width: 102; height: 102
-                    source: "qrc:/app_icon.svg"
+                    source: win.splashIcon
                     sourceSize.width: 102
                     sourceSize.height: 102
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     mipmap: true
                     asynchronous: false
+                    visible: source !== ""
                 }}
 
                 SequentialAnimation {{
@@ -128,7 +133,7 @@ Window {{
 
             Text {{
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "PrismQML Gallery"
+                text: win.splashTitle
                 color: "{title_color}"
                 font.family: "Microsoft YaHei UI"
                 font.pixelSize: 20
@@ -178,7 +183,7 @@ Window {{
 
                 Text {{
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "正在加载组件..."
+                    text: win.splashSubtitle
                     color: "{body_color}"
                     font.family: "Microsoft YaHei UI"
                     font.pixelSize: 14
@@ -328,6 +333,42 @@ class FastSplashController(QObject):
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
             exception(f"FastSplash 绑定主窗口失败: {type(exc).__name__}: {exc}")
             return False
+
+    def attach_to_window(
+        self, main_engine: QQmlEngine, main_window: QQuickWindow
+    ) -> bool:
+        """Route one window through the fast or embedded splash lifecycle."""
+        try:
+            self._sync_window_metadata(main_window)
+            uses_default = main_window.property("_usesDefaultSplashComponent")
+            if uses_default is True:
+                # The root is still hidden here, so disabling the loader does not
+                # create a visible gap before the independent surface is bound.
+                main_window.setProperty("splashEnabled", False)
+                if self.attach_and_reveal(main_engine, main_window):
+                    return True
+                return self.restore_embedded_splash(main_window)
+            if uses_default is False:
+                return self.handoff_to_embedded(main_engine, main_window)
+            warning("FastSplash 无法识别 Splash 组件，回退内嵌生命周期")
+            return self.restore_embedded_splash(main_window)
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            exception(f"FastSplash 启动分流失败: {type(exc).__name__}: {exc}")
+            return self.restore_embedded_splash(main_window)
+
+    def _sync_window_metadata(self, main_window: QQuickWindow) -> None:
+        """Copy existing window splash metadata into the early surface."""
+        if self._splash is None:
+            return
+        title = main_window.property("splashTitle") or main_window.property("windowTitle")
+        subtitle = main_window.property("splashSubtitle")
+        icon = main_window.property("splashIcon") or main_window.property("windowIcon")
+        if title:
+            self._splash.setProperty("splashTitle", str(title))
+        if subtitle is not None:
+            self._splash.setProperty("splashSubtitle", str(subtitle))
+        if icon:
+            self._splash.setProperty("splashIcon", str(icon))
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
         """Restore the normal QML splash after a fast-path failure or bypass."""

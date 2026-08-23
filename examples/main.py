@@ -23,35 +23,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import prismqml
 
-from prismqml import Updater, configure_qml_environment
+from prismqml import App, Updater
 from prismqml.python.core import Logger, getLogger, log_time
 
 # Keep normal Gallery runs at INFO; diagnostics can still be enabled explicitly.
 # Gallery默认只输出INFO及以上；需要诊断时仍可显式开启DEBUG。
 getLogger().set_level(Logger.INFO)
 
-# Enable local QML XHR before creating the engine. 在创建引擎前启用本地 QML XHR。
-configure_qml_environment()
 log_time("Python启动与核心库导入完成")
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+from PySide6.QtCore import QUrl
 
-from prismqml import register_types
-from prismqml.python.core import install_qt_message_handler
-from prismqml.python.config import DEFAULT_APP_CONFIG, applyDpiScale
+from prismqml.python.config import DEFAULT_APP_CONFIG
 from prismqml.python.config._app_config_schema import resolve_app_config_path
-from prismqml.python.runtime import (
-    get_svg_provider,
-    install_application_dwm_filter,
-)
-from prismqml.python.window.fast_splash import FastSplashController
+from prismqml.python.runtime import get_svg_provider
 from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 GALLERY_CONFIG_PATH = resolve_app_config_path(default=DEFAULT_APP_CONFIG)
@@ -65,73 +53,31 @@ log_time("全部模块导入完成")
 
 def main():
     log_time("main()开始")
-    # 必须在创建QApplication之前应用DPI缩放和高DPI策略
-    # Must apply DPI scale and high DPI policy before creating QApplication
-    
-    # 设置高DPI缩放策略（PassThrough = 精确缩放，避免模糊）
-    # Set high DPI scale factor rounding policy (PassThrough = exact scaling, avoid blur)
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    # App owns QApplication, the QML engine, and the early fast splash.
+    # App 统一持有 QApplication、QML 引擎和早期快速启动页。
+    app = App(
+        argv=sys.argv,
+        config_path=GALLERY_CONFIG_PATH,
+        persist_appearance=True,
     )
-
-    if sys.platform == "win32":
-        # Use the only supported Windows graphics backend. 使用唯一受支持的 Windows 图形后端。
-        QQuickWindow.setGraphicsApi(
-            QSGRendererInterface.GraphicsApi.Direct3D11
-        )
-
-    applyDpiScale(GALLERY_CONFIG_PATH)
-    log_time("DPI缩放应用完成")
-    
-    app = QApplication(sys.argv)
     log_time("QApplication创建完成")
-
-    # Show the lightweight independent splash before the main QML engine is
-    # created. The main window is revealed through its outward ring once the
-    # first page has swapped frames.
-    # 在创建主 QML 引擎前显示轻量独立启动页；首页完成首帧后通过向外圆环揭幕。
-    fast_splash = FastSplashController(app)
-    fast_splash_enabled = fast_splash.show()
     log_time("快速独立 Splash 创建完成")
-    
-    # 安装DWM同步过滤器（解决resize撕裂问题）
-    # Install DWM sync filter (fix resize tearing)
-    install_application_dwm_filter()
-    log_time("DWM同步过滤器安装完成")
-    
-    # 将QML/Qt日志重定向到项目logger
-    install_qt_message_handler()
-    log_time("Qt消息处理器安装完成")
-    
-    engine = QQmlApplicationEngine()
+    engine = app.engine
     log_time("QML引擎创建完成")
 
     # Install safe sliced incubation for lazy pages. 为懒加载页面安装安全的分片孵化。
     # Known-unsafe Qt builds fall back automatically. 已知不安全的 Qt 构建会自动回退。
     from prismqml.python.core.incubation import (
         asynchronous_page_loader_enabled,
-        install_default_incubation_controller,
     )
 
     engine.rootContext().setContextProperty(
         "PrismQmlAsynchronousPageLoaderEnabled",
         asynchronous_page_loader_enabled(),
     )
-    engine.rootContext().setContextProperty(
-        "PrismQmlFastStartupSplashEnabled",
-        fast_splash_enabled,
-    )
-    install_default_incubation_controller(engine)
     
     # 资源已通过 QResource.registerResource(gallery.rcc) 在模块加载时注册
     
-    # Register the complete public QML runtime, including NativeWindow.
-    # 注册完整公共 QML 运行时，包括 NativeWindow。
-    register_types(
-        engine,
-        config_path=GALLERY_CONFIG_PATH,
-        persist_appearance=True,
-    )
     # 注册SVG图片提供器（高质量SVG渲染）
     engine.addImageProvider("svg", get_svg_provider())
 
@@ -173,29 +119,13 @@ def main():
     
     if not engine.rootObjects():
         print("[ERROR] 加载QML失败，请检查组件路径或QML语法")
-        fast_splash.close()
+        app.shutdown()
         return -1
 
     root = engine.rootObjects()[0]
     main_window = root.property("windowInstance")
-    if fast_splash_enabled and main_window is not None:
-        uses_default_splash = main_window.property("_usesDefaultSplashComponent")
-        if uses_default_splash is True:
-            attached = fast_splash.attach_and_reveal(engine, main_window)
-            if not attached:
-                # Keep the existing in-window fallback if the native owner cannot
-                # be established on a particular Qt/Windows build.
-                # 若特定 Qt/Windows 构建无法建立原生 owner，则恢复原内嵌兜底。
-                fast_splash.restore_embedded_splash(main_window)
-        else:
-            # A custom QML splash belongs to the main engine; restore its normal
-            # lifecycle instead of silently replacing it with the fast surface.
-            # 自定义 QML 启动画面属于主引擎；恢复原有生命周期，不能静默替换。
-            if not fast_splash.handoff_to_embedded(engine, main_window):
-                log_time("自定义 Splash 延迟启用失败，恢复内嵌启动页")
-    else:
-        fast_splash.close()
-    app.aboutToQuit.connect(fast_splash.close)
+    if main_window is not None:
+        app._attach_fast_splash(main_window)
     
     log_time("窗口准备就绪，进入事件循环")
     return app.exec()

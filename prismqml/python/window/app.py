@@ -58,6 +58,7 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._task_shutdown_timeout_ms = task_shutdown_timeout_ms
     owner._windows = []
     owner._updater = None
+    owner._fast_splash = None
     initialize_application_icon_state(owner)
 
 
@@ -81,6 +82,10 @@ def _create_qt_application(owner, argv: List[str]) -> None:
     install_application_input_filter(owner._app)
     owner._dwm_filter_started = True
     install_application_dwm_filter()
+    from .fast_splash import FastSplashController
+
+    owner._fast_splash = FastSplashController(owner._app)
+    owner._fast_splash.show()
 
 
 def _create_qml_engine(owner, config_path, persist_appearance) -> None:
@@ -172,6 +177,9 @@ def _rollback_app_initialization(owner, previous_qml_environment) -> None:
         reset_qml_engine,
     )
 
+    if owner._fast_splash is not None:
+        _run_app_cleanup("fast splash", owner._fast_splash.close)
+        owner._fast_splash = None
     if owner._input_filter_started:
         _run_app_cleanup("input filter", reset_application_input_filter)
     if owner._engine_publish_started and is_published_qml_engine(owner._engine):
@@ -198,6 +206,9 @@ def _shutdown_app_runtime(owner) -> None:
         reset_qml_engine,
     )
 
+    if owner._fast_splash is not None:
+        _run_app_cleanup("fast splash", owner._fast_splash.close)
+        owner._fast_splash = None
     config_manager = get_config_manager()
     if not config_manager.waitForPersistence(owner._task_shutdown_timeout_ms):
         raise RuntimeError("配置持久化在应用关闭前未完成")
@@ -314,6 +325,9 @@ class App(ApplicationIconMixin):
             reset_qml_engine,
         )
 
+        if cls._instance is not None and cls._instance._fast_splash is not None:
+            cls._instance._fast_splash.close()
+            cls._instance._fast_splash = None
         reset_application_input_filter()
         reset_application_dwm_filter()
         reset_qml_engine()
@@ -503,6 +517,13 @@ class App(ApplicationIconMixin):
     def windows(self) -> List["WindowCore"]:
         """获取所有窗口 Get all windows"""
         return self._windows
+
+    def _attach_fast_splash(self, main_window) -> bool:
+        """Attach the engine-owned splash to a QML-created window."""
+        controller = self._fast_splash
+        if controller is None or self._engine is None or main_window is None:
+            return False
+        return controller.attach_to_window(self._engine, main_window)
 
     @property
     def qapp(self) -> QApplication:

@@ -42,6 +42,7 @@ def show_window_root(owner: Any, profile: ProfileCallback) -> bool:
     created_window = owner._window is None
     if created_window:
         owner._create_window()
+        invoke_optional_startup_hook(owner, "_attach_fast_splash")
         profile("_create_window")
     else:
         profile("复用已有窗口")
