@@ -454,6 +454,10 @@ class FastSplashController(QObject):
             "FastSplash 主窗口就绪: "
             f"frames={self._main_frame_count}, splash_frames={self._splash_frame_count}"
         )
+        # Re-raise inside the normal owner group after the main window's first
+        # frames have entered the Windows Z-order. 揭幕前在普通 owner 窗口组内
+        # 重新提升一次, 避免主窗口首帧提交后把 Splash 排到后面。
+        self._raise_owned_splash(self._splash, self._main_window)
         self._start_reveal()
 
     def _start_reveal(self) -> None:
@@ -608,7 +612,10 @@ class FastSplashController(QObject):
         ]
         set_window_pos.restype = wintypes.BOOL
         flags = 0x0001 | 0x0002 | 0x0010  # SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
-        set_window_pos(int(splash.winId()), wintypes.HWND(int(main.winId())), 0, 0, 0, 0, flags)
+        # HWND_TOP is normal Z-order, not a system topmost window. The native
+        # owner set by _bind_owner keeps this window attached to the main window.
+        # HWND_TOP 是普通 Z 序, 不是系统置顶窗口; owner 关系负责绑定生命周期。
+        set_window_pos(int(splash.winId()), wintypes.HWND(0), 0, 0, 0, 0, flags)
 
     def close(self) -> None:
         """Hide the retained QQuickWindow during application teardown."""
