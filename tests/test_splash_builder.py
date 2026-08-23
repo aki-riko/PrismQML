@@ -109,6 +109,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     )
     cpp_source = (ROOT / "cpp/src/Window.cpp").read_text(encoding="utf-8")
     gallery_source = (ROOT / "examples/main.qml").read_text(encoding="utf-8")
+    gallery_entry_source = (ROOT / "examples/main.py").read_text(encoding="utf-8")
 
     assert "property bool splashEnabled: true" in qml_source
     assert "property int splashMinimumVisibleDuration:" in qml_source
@@ -117,6 +118,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "property Component splashComponent:" in qml_source
     assert "readonly property bool _usesDefaultSplashComponent:" in qml_source
     assert "function _enableDeferredSplash()" in qml_source
+    assert "if uses_default_splash is True:" in gallery_entry_source
+    assert "if uses_default_splash is not False:" not in gallery_entry_source
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source
     assert "create_splash" not in python_source

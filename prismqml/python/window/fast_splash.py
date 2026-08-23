@@ -18,6 +18,7 @@ from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickWindow
 
 from ..core.logger import exception, info, warning
+from ..runtime.fast_splash_context import register_fast_splash_context
 
 
 # These values are the resolved Gallery splash metrics. They deliberately stay
@@ -259,6 +260,7 @@ class FastSplashController(QObject):
         self._splash_frame_count = 0
         self._main_frame_count = 0
         self._handoff_done = False
+        self._embedded_handoff = False
 
     @property
     def splash(self) -> Optional[QQuickWindow]:
@@ -316,7 +318,7 @@ class FastSplashController(QObject):
             if not self._bind_owner(self._splash, main_window):
                 warning("FastSplash 原生 owner 绑定校验失败")
                 return False
-            self._raise_owned_splash(self._splash)
+            self._raise_owned_splash(self._splash, main_window)
             main_window.frameSwapped.connect(self._on_main_frame)
             self._ready_timer = QTimer(self)
             self._ready_timer.setInterval(8)
@@ -326,6 +328,49 @@ class FastSplashController(QObject):
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
             exception(f"FastSplash 绑定主窗口失败: {type(exc).__name__}: {exc}")
             return False
+
+    def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
+        """Restore the normal QML splash after a fast-path failure or bypass."""
+        target = main_window or self._main_window
+        restored = False
+        if target is not None:
+            try:
+                restored = bool(QMetaObject.invokeMethod(target, "_enableDeferredSplash"))
+                if not restored:
+                    warning("FastSplash 内嵌回退函数不可用，直接恢复 Splash Loader")
+                    target.setProperty("splashEnabled", True)
+                    restored = True
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+                exception(f"FastSplash 内嵌回退失败: {type(exc).__name__}: {exc}")
+        self.close()
+        return restored
+
+    def handoff_to_embedded(
+        self, main_engine: QQmlEngine, main_window: QQuickWindow
+    ) -> bool:
+        """Keep the fast surface until a custom embedded splash is painted."""
+        self._main_engine = main_engine
+        self._main_window = main_window
+        if self._splash is None:
+            return self.restore_embedded_splash(main_window)
+        try:
+            if not self._bind_owner(self._splash, main_window):
+                warning("FastSplash 自定义回退无法绑定主窗口")
+                return self.restore_embedded_splash(main_window)
+            self._raise_owned_splash(self._splash, main_window)
+            if not QMetaObject.invokeMethod(main_window, "_enableDeferredSplash"):
+                warning("FastSplash 自定义回退无法启用内嵌 Splash")
+                return self.restore_embedded_splash(main_window)
+            self._embedded_handoff = True
+            main_window.frameSwapped.connect(self._on_main_frame)
+            self._ready_timer = QTimer(self)
+            self._ready_timer.setInterval(8)
+            self._ready_timer.timeout.connect(self._poll_main_ready)
+            self._ready_timer.start()
+            return True
+        except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
+            exception(f"FastSplash 自定义回退失败: {type(exc).__name__}: {exc}")
+            return self.restore_embedded_splash(main_window)
 
     def _on_splash_frame(self) -> None:
         self._splash_frame_count += 1
@@ -348,6 +393,17 @@ class FastSplashController(QObject):
     def _poll_main_ready(self) -> None:
         if self._handoff_done or self._main_window is None:
             return
+        if self._embedded_handoff:
+            if self._main_frame_count < 1:
+                return
+            if self._main_window.property("_splashInstance") is None:
+                return
+            if self._main_window.property("_startupPresentationReady") is False:
+                return
+            if self._ready_timer is not None:
+                self._ready_timer.stop()
+            self._finish_embedded_handoff()
+            return
         if self._main_frame_count < 3 or not self._page_ready(self._main_window):
             return
         if self._ready_timer is not None:
@@ -359,7 +415,8 @@ class FastSplashController(QObject):
         self._start_reveal()
 
     def _start_reveal(self) -> None:
-        if self._splash is None or self._main_engine is None:
+        if self._splash is None or self._main_engine is None or self._splash_engine is None:
+            self.restore_embedded_splash()
             return
         try:
             for path in self._main_engine.importPathList():
@@ -381,6 +438,7 @@ class FastSplashController(QObject):
                     "FastSplash 揭幕组件创建失败: "
                     + "; ".join(error.toString() for error in component.errors())
                 )
+                self.restore_embedded_splash()
                 return
             self._transition = transition
             root_item = self._splash.property("revealRoot")
@@ -391,17 +449,27 @@ class FastSplashController(QObject):
             info("FastSplash 开始 400ms 线性圆环揭幕")
             if not QMetaObject.invokeMethod(transition, "go"):
                 warning("FastSplash 揭幕启动失败")
+                self.restore_embedded_splash()
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
             exception(f"FastSplash 揭幕失败: {type(exc).__name__}: {exc}")
+            self.restore_embedded_splash()
+
+    def _finish_embedded_handoff(self) -> None:
+        if self._handoff_done or self._splash is None or self._main_window is None:
+            return
+        self._handoff_done = True
+        self._splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
+        self._splash.setVisible(False)
+
+        def activate_main() -> None:
+            info("FastSplash 自定义 Splash 已绘制, 交接主窗口")
+            self._main_window.raise_()
+            self._main_window.requestActivate()
+
+        QTimer.singleShot(0, activate_main)
 
     def _inject_context(self) -> None:
-        from ..core import ThemeManager
-        from ..runtime.configuration import get_config_manager
-
-        context = self._splash_engine.rootContext()
-        context.setContextProperty("ThemeManager", ThemeManager())
-        context.setContextProperty("ConfigManager", get_config_manager())
-        context.setContextProperty("PrismQmlStartupProfileVerbose", False)
+        register_fast_splash_context(self._splash_engine)
 
     def _finish_reveal(self) -> None:
         if self._handoff_done or self._splash is None or self._main_window is None:
@@ -470,7 +538,7 @@ class FastSplashController(QObject):
         return int(get_owner(splash_hwnd, 4) or 0) == main_hwnd
 
     @staticmethod
-    def _raise_owned_splash(splash: QQuickWindow) -> None:
+    def _raise_owned_splash(splash: QQuickWindow, main: QQuickWindow) -> None:
         if sys.platform != "win32":
             splash.raise_()
             return
@@ -487,7 +555,7 @@ class FastSplashController(QObject):
         ]
         set_window_pos.restype = wintypes.BOOL
         flags = 0x0001 | 0x0002 | 0x0010  # SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
-        set_window_pos(int(splash.winId()), wintypes.HWND(0), 0, 0, 0, 0, flags)
+        set_window_pos(int(splash.winId()), wintypes.HWND(int(main.winId())), 0, 0, 0, 0, flags)
 
     def close(self) -> None:
         """Hide the retained QQuickWindow during application teardown."""

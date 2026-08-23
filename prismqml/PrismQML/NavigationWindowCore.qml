@@ -4,10 +4,10 @@
 
 import QtQuick
 import QtQuick.Window
-import "controls/feedback/SplashScreen"
 import "_internal"
 import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
 import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
+import "_internal/NavigationSplashRouting.js" as NavigationSplashRouting
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -36,11 +36,7 @@ WindowsCore {
     property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration  // Reveal animation length; splash stays visible throughout 揭幕动画时长, 期间启动画面持续可见
     // Replaceable startup visual; the root must provide finish(). 可替换启动视觉，根对象须提供 finish()。
     property Component splashComponent: _defaultSplashComponent
-    // Fast startup may keep the default visual external; custom components use the embedded path.
-    // 快速启动可将默认视觉移到外部；自定义组件继续使用内嵌路径。
-    readonly property bool _usesDefaultSplashComponent:
-        splashComponent === _defaultSplashComponent
-
+    readonly property bool _usesDefaultSplashComponent: splashComponent === _defaultSplashComponent
     // ==================== Internal Props 内部属性 ====================
     // Splash instance owned by the shared loader. 由通用加载器持有的欢迎页实例。
     property var _splashInstance: null
@@ -65,6 +61,7 @@ WindowsCore {
     property bool _splashDismissSchedulePending: false
     property double _splashVisibleSinceMs: 0
     property bool _deferredSplashPending: false
+    readonly property var _splashTimerObject: _splashTimer
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _micaAvailable: MicaManager ? MicaManager.isMicaSupported : false
@@ -99,22 +96,8 @@ WindowsCore {
     function _markPythonPageReady(index) { NavigationWindowLoading.markPageReady(window, index) }
     function _syncPythonReadyPages() { NavigationWindowLoading.syncReadyPages(window) }
 
-    function _activateDeferredSplash() {
-        if (!_deferredSplashPending || !_splashInstance) return
-        _deferredSplashPending = false
-        _markSplashVisible()
-        if (stackedWidget) _dismissSplashWhenReady(stackedWidget)
-    }
-
-    function _enableDeferredSplash() {
-        _splashDismissed = false
-        _splashDismissRequested = false
-        _splashDismissSchedulePending = false
-        _splashTimer.stop()
-        _deferredSplashPending = true
-        splashEnabled = true
-        _activateDeferredSplash()
-    }
+    function _activateDeferredSplash() { NavigationSplashRouting.activate(window) }
+    function _enableDeferredSplash() { NavigationSplashRouting.enable(window) }
 
     function _applyMicaEffect(reason) {
         if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
@@ -419,16 +402,7 @@ WindowsCore {
     }
 
     // ==================== Content 内容 ====================
-    Component {
-        id: _defaultSplashComponent
-
-        SplashScreen {
-            iconSource: window.splashIcon !== "" ? window.splashIcon : window.windowIcon
-            title: window.splashTitle !== "" ? window.splashTitle : window.windowTitle
-            subtitle: window.splashSubtitle
-            revealDuration: window.splashRevealDuration
-        }
-    }
+    Component { id: _defaultSplashComponent; NavigationDefaultSplash { hostWindow: window } }
 
     Loader {
         id: _splashLoader

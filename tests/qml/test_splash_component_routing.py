@@ -13,9 +13,11 @@ from _test_process_bootstrap import configure_qml_test_process
 
 configure_qml_test_process()
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtWidgets import QApplication
+
+from prismqml.python.window.fast_splash import FastSplashController
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -97,8 +99,9 @@ NavigationWindowCore {
         print("[FAIL] 自定义 Splash 场景创建失败")
         return 1
 
-    if not QMetaObject.invokeMethod(window, "_enableDeferredSplash"):
-        print("[FAIL] Python 无法调用延迟 Splash 启用函数")
+    controller = FastSplashController(app)
+    if not controller.restore_embedded_splash(window):
+        print("[FAIL] 快速 Splash 回退控制器无法恢复内嵌启动页")
         return 1
 
     for _ in range(20):
