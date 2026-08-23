@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Window
 import "../../.."
 import "../../../effects"
 import "../../data/Label"
@@ -32,23 +33,48 @@ Widget {
  property alias color: card.color // Background color 背景色
  default property alias content: contentLoader.data
 
- // ==================== Internal Props 内部属性 ====================
- // Internal hover latch absorbs one-frame boundary misses.
- // 内部 hover 锁存吸收边界处的单帧丢失。
- property bool _hoverState: false
- 
  // ==================== Readonly State 只读状态 ====================
- readonly property bool hovered: isElevated ? _hoverState : hoverHandler.hovered
+ readonly property bool hovered: isElevated
+                                  ? hoverHandler.hovered || _isWindowHoverPointInElevationRegion()
+                                  : hoverHandler.hovered
  readonly property bool pressed: mouseArea.pressed
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
  readonly property bool isHeader: cardType === Enums.card.type_header
+ readonly property Item _hoverWindowContent: Window.window ? Window.window.contentItem : null
  readonly property real elevationOffset: !Enums.isVintageTicket && isElevated && hovered && !pressed
                                          ? -Enums.spacing.cardElevate : 0
  readonly property real _elevationHitMargin: !Enums.isVintageTicket && isElevated
                                                ? Enums.spacing.cardElevate + Enums.spacing.micro : 0
  // ==================== Signals 信号 ====================
  signal clicked()
+
+ // ==================== Internal Methods 内部方法 ====================
+ function _isWindowHoverPointInElevationRegion() {
+  var windowContent = _hoverWindowContent
+  if (!windowContent || !windowHoverHandler.hovered
+      || !enabled || !visible || opacity <= 0) return false
+
+  var windowPosition = windowHoverHandler.point.position
+  var localPosition = windowContent.mapToItem(
+   control, windowPosition.x, windowPosition.y)
+  if (localPosition.x < -_elevationHitMargin
+      || localPosition.x > width + _elevationHitMargin
+      || localPosition.y < -_elevationHitMargin
+      || localPosition.y > height + _elevationHitMargin) return false
+
+  var ancestor = control.parent
+  while (ancestor && ancestor !== windowContent) {
+   if (!ancestor.visible || !ancestor.enabled || ancestor.opacity <= 0) return false
+   if (ancestor.clip) {
+    var ancestorPosition = windowContent.mapToItem(
+     ancestor, windowPosition.x, windowPosition.y)
+    if (!ancestor.contains(ancestorPosition)) return false
+   }
+   ancestor = ancestor.parent
+  }
+  return true
+ }
  
  // ==================== Size 尺寸 ====================
  // Content size (inherited from Widget) 内容尺寸（继承自Widget）
@@ -58,6 +84,7 @@ Widget {
  contentHeight: isHeader ? card.height
                 : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                               : Enums.controlSize.cardHeight)
+ Component.onDestruction: windowHoverHandler.parent = control
  
  // Visual surface moves independently from the hit target.
  // 视觉层与命中层分离，避免上移改变 hover 命中几何。
@@ -219,30 +246,21 @@ Widget {
  
  }
 
- // Passive hover tracking stays on the static card geometry.
- // 被动 hover 监听固定在卡片布局几何上，避免视觉上移参与命中反馈。
+ // Local tracking preserves normal card interaction and cursor behavior.
+ // 本地监听保留普通卡片交互与光标行为。
  HoverHandler {
   id: hoverHandler
-  enabled: control.interactionEnabled
+  enabled: control.enabled && control.interactionEnabled
   margin: control._elevationHitMargin
   cursorShape: control.clickEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-  onHoveredChanged: {
-   if (hovered) {
-    hoverExitTimer.stop()
-    control._hoverState = true
-   } else if (control.isElevated) {
-    hoverExitTimer.restart()
-   } else {
-    control._hoverState = false
-   }
-  }
  }
 
- Timer {
-  id: hoverExitTimer
-  interval: Enums.duration.fast
-  repeat: false
-  onTriggered: control._hoverState = false
+ // Window-space tracking supplies continuous coordinates across the card edge.
+ // 窗口空间监听在跨越卡片边缘时提供连续坐标。
+ HoverHandler {
+  id: windowHoverHandler
+  parent: control._hoverWindowContent ? control._hoverWindowContent : control
+  enabled: control.enabled && control.interactionEnabled && control.isElevated
  }
 
  // Interaction 交互

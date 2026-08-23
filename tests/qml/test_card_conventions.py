@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QObject,
     QPoint,
     QTimer,
     QUrl,
@@ -47,6 +48,7 @@ Window {
     id: root
     objectName: "window"
 
+    property bool dynamicCardActive: false
     readonly property int cardMinimumHeight: Enums.controlSize.cardHeight
     readonly property real fixedHeight: fixedCard.height
     readonly property real tallHeight: tallCard.height
@@ -61,7 +63,6 @@ Window {
     readonly property int mediumDuration: Enums.duration.medium
     readonly property real defaultContentPadding: Enums.spacing.l
     readonly property real headerContentPadding: Enums.spacing.xxxl
-
     width: 680
     height: 560
     visible: false
@@ -159,6 +160,14 @@ Window {
         description: "Description"
 
         Rectangle { width: 100; height: 24 }
+    }
+
+    Loader {
+        active: root.dynamicCardActive
+        sourceComponent: Card {
+            objectName: "dynamicElevatedCard"
+            cardType: Enums.card.type_elevated
+        }
     }
 }
 """
@@ -342,6 +351,17 @@ def test_card_real_hover_press_and_click(card_scene):
     assert window.property("elevatedHovered")
     assert edge_transitions == [True]
 
+    # Repeat lower-edge events for one second to reproduce stationary jitter.
+    # 在下边缘重复发送指针事件，复现用户鼠标停在边缘时的抖动。
+    for _ in range(25):
+        QTest.mouseMove(window, QPoint(100, 412))
+        _pump(40)
+    assert window.property("elevatedHovered")
+    assert edge_transitions == [True]
+
+    QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=QPoint(100, 412))
+    assert clicks == [True]
+
     window.hide()
     _pump()
     assert warnings == []
@@ -369,6 +389,27 @@ def test_example_card_creates_neo_shadow_only_for_neo_skin(card_scene):
         assert _new_visible_windows(windows_before, window) == []
     finally:
         manager.setSkin(original_skin)
+
+
+def test_card_window_hover_handler_follows_dynamic_lifecycle(card_scene):
+    window, warnings, windows_before = card_scene
+
+    def handler_count():
+        return sum("HoverHandler" in child.metaObject().className()
+                   for child in window.findChildren(QObject))
+    baseline_count = handler_count()
+
+    assert window.setProperty("dynamicCardActive", True)
+    assert _wait_for(lambda: window.findChild(QQuickItem, "dynamicElevatedCard"))
+    assert handler_count() == baseline_count + 2
+
+    assert window.setProperty("dynamicCardActive", False)
+    assert _wait_for(
+        lambda: window.findChild(QQuickItem, "dynamicElevatedCard") is None
+        and handler_count() == baseline_count
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
 
 
 def test_card_loads_neo_shadow_only_for_neo_skin(card_scene):
