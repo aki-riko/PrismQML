@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import QMetaObject, Qt, QUrl
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
 from prismqml import register_types
@@ -179,12 +179,22 @@ def main():
     root = engine.rootObjects()[0]
     main_window = root.property("windowInstance")
     if fast_splash_enabled and main_window is not None:
-        attached = fast_splash.attach_and_reveal(engine, main_window)
-        if not attached:
-            # Keep the existing in-window fallback if the native owner cannot
-            # be established on a particular Qt/Windows build.
-            # 若特定 Qt/Windows 构建无法建立原生 owner，则恢复原内嵌兜底。
-            main_window.setProperty("splashEnabled", True)
+        uses_default_splash = main_window.property("_usesDefaultSplashComponent")
+        if uses_default_splash is not False:
+            attached = fast_splash.attach_and_reveal(engine, main_window)
+            if not attached:
+                # Keep the existing in-window fallback if the native owner cannot
+                # be established on a particular Qt/Windows build.
+                # 若特定 Qt/Windows 构建无法建立原生 owner，则恢复原内嵌兜底。
+                main_window.setProperty("splashEnabled", True)
+                fast_splash.close()
+        else:
+            # A custom QML splash belongs to the main engine; restore its normal
+            # lifecycle instead of silently replacing it with the fast surface.
+            # 自定义 QML 启动画面属于主引擎；恢复原有生命周期，不能静默替换。
+            if not QMetaObject.invokeMethod(main_window, "_enableDeferredSplash"):
+                log_time("自定义 Splash 延迟启用失败，恢复内嵌启动页")
+                main_window.setProperty("splashEnabled", True)
             fast_splash.close()
     else:
         fast_splash.close()
