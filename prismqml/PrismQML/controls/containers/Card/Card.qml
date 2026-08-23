@@ -38,7 +38,8 @@ Widget {
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
  readonly property bool isHeader: cardType === Enums.card.type_header
- readonly property real elevationOffset: visualSurface.transform[0].y
+ readonly property real elevationOffset: !Enums.isVintageTicket && isElevated && hovered && !pressed
+                                         ? -Enums.spacing.cardElevate : 0
  readonly property real _elevationHitMargin: !Enums.isVintageTicket && isElevated
                                               ? Enums.spacing.cardElevate : 0
  // ==================== Signals 信号 ====================
@@ -61,7 +62,7 @@ Widget {
 
  // Elevation animation for elevated cards 悬浮卡片上浮动画
  transform: Translate {
- y: !Enums.isVintageTicket && isElevated && hovered && !pressed ? -Enums.spacing.cardElevate : 0
+ y: control.elevationOffset
  HoverBehavior on y {
  active: control.hovered && !control.pressed
  enterDuration: Enums.duration.medium
