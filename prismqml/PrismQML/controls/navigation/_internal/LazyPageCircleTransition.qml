@@ -33,6 +33,9 @@ Item {
     // 转发给半径动画; 见 QMLPageCircleTransition。
     property int revealEasing: Easing.OutQuint
     property bool revealTarget: false
+    // Keep external reveal sources hidden after expansion so the next window can show through.
+    // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。
+    property bool keepSourceHiddenOnExpand: false
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -280,7 +283,8 @@ Item {
         // window has rendered and swapped one frame of its own.
         // 最终整页快照继续覆盖真实目标页，直到目标窗口完成一次实际渲染换帧。
         var sourceItem = transition._sourceItem
-        if (sourceItem) sourceItem.visible = true
+        if (sourceItem && !transition.keepSourceHiddenOnExpand)
+            sourceItem.visible = true
         if (!transition._hostWindow) {
             transition._finalizeExpansion()
             return
@@ -307,7 +311,8 @@ Item {
         var sourceItem = transition._sourceItem
         transition._mainFramePending = false
         transition._dissolving = false
-        if (sourceItem) sourceItem.visible = true
+        if (sourceItem)
+            sourceItem.visible = transition.keepSourceHiddenOnExpand ? false : true
         transition._restorePageLayer()
         overlayWindow.visible = false
         transition._detach(false)

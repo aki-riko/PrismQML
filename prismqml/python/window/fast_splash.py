@@ -227,6 +227,7 @@ NavigationInternal.LazyPageCircleTransition {{
     revealTarget: true
     revealDuration: 2000
     revealEasing: Easing.Linear
+    keepSourceHiddenOnExpand: true
     property Item revealTargetItem: null
     signal revealDone()
 
