@@ -231,7 +231,6 @@ NavigationInternal.LazyPageCircleTransition {{
     signal revealDone()
 
     onExpandFinished: {{
-        if (transition.revealTargetItem) transition.revealTargetItem.visible = false
         transition.revealDone()
     }}
 
@@ -527,9 +526,6 @@ class FastSplashController(QObject):
         if self._handoff_done or self._splash is None or self._main_window is None:
             return
         splash = self._splash
-        root_item = splash.property("revealRoot")
-        if root_item is not None:
-            root_item.setProperty("visible", False)
 
         gate = {"hidden_frame": False, "closed": False}
 

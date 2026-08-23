@@ -129,6 +129,13 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "transition.setParent(root_item)" in fast_splash_source
     assert "QQmlEngine.setObjectOwnership(" in fast_splash_source
     assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
+    reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
+        "\"\"\"", 1
+    )[0]
+    assert "transition.revealDone()" in reveal_qml
+    assert "revealTargetItem.visible = false" not in reveal_qml
+    finish_reveal = fast_splash_source.split("    def _finish_reveal", 1)[1]
+    assert "root_item.setProperty(\"visible\", False)" not in finish_reveal
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source
     assert "create_splash" not in python_source
