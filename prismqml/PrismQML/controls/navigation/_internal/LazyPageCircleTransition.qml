@@ -26,6 +26,15 @@ Item {
     readonly property Item _captureItem: _hasLoaderItem
         ? _sourceItem.item
         : _sourceItem
+    readonly property real revealMinimumRadiusPixels:
+        Enums.controlSize.navBarHeight / 2
+    readonly property real revealMaximumRadiusPixels:
+        Math.sqrt(width * width + height * height) * 0.5
+        + Enums.lazyLoadingTransitionMetrics.edgeSoftness * 2
+    readonly property real revealRadiusPixels:
+        revealMinimumRadiusPixels
+        + (revealMaximumRadiusPixels - revealMinimumRadiusPixels)
+        * Math.max(0, Math.min(1, progress))
 
     // ==================== Public Props 公开属性 ====================
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration

@@ -194,12 +194,8 @@ Window {{
 
     Rectangle {{
         id: revealRing
-        property real radiusPx: Math.max(
-            8,
-            Math.sqrt(parent.width * parent.width + parent.height * parent.height)
-                * 0.5 * (win.revealTransition
-                    ? win.revealTransition.progress : 0)
-        )
+        property real radiusPx: win.revealTransition
+            ? win.revealTransition.revealRadiusPixels : 8
         x: parent.width * 0.5 - radiusPx
         y: parent.height * 0.5 - radiusPx
         width: radiusPx * 2

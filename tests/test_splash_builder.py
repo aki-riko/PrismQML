@@ -131,6 +131,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
     assert "wintypes.HWND(0)" in fast_splash_source
     assert "HWND_TOPMOST" not in fast_splash_source
+    assert "win.revealTransition.revealRadiusPixels" in fast_splash_source
     assert "self._reveal_component = component" in fast_splash_source
     reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1
