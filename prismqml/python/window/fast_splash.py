@@ -257,6 +257,7 @@ class FastSplashController(QObject):
         self._main_engine = main_engine
         self._splash_engine: Optional[QQmlEngine] = None
         self._splash_component: Optional[QQmlComponent] = None
+        self._reveal_component: Optional[QQmlComponent] = None
         self._splash: Optional[QQuickWindow] = None
         self._transition = None
         self._main_window: Optional[QQuickWindow] = None
@@ -472,6 +473,13 @@ class FastSplashController(QObject):
                 _REVEAL_QML.format(root_url=root_url, internal_url=internal_url).encode("utf-8"),
                 QUrl("fast-startup-reveal"),
             )
+            # Keep the QQmlComponent alive with the controller. A component-created
+            # object can still be destroyed when its temporary component wrapper
+            # goes out of scope, even after assigning QObject ownership and a
+            # visual parent. 将动态组件本身绑定到控制器生命周期；即使已经设置
+            # QObject 所有权和 visual parent，临时 QQmlComponent wrapper 离开
+            # 作用域仍可能回收它创建的揭幕对象。
+            self._reveal_component = component
             transition = component.create()
             if transition is None:
                 warning(
@@ -483,14 +491,10 @@ class FastSplashController(QObject):
             self._transition = transition
             root_item = self._splash.property("revealRoot")
             transition.setParentItem(root_item)
-            # Keep the dynamically-created transition alive until the splash
-            # window is torn down. Visual parenting alone does not guarantee
-            # QObject ownership for a component-created QML object, so the
-            # engine may collect it immediately after the completion signal.
-            # 将动态创建的揭幕组件保持到 Splash 窗口销毁。仅设置 visual parent
-            # 不保证 component-created QML 对象的 QObject 所有权，可能在完成
-            # 信号发出后被引擎回收，导致 Splash 提前隐藏。
-            transition.setParent(root_item)
+            # Keep QObject ownership on the controller; the item parent only
+            # controls visual placement. 将 QObject 所有权交给控制器；item
+            # 父级只负责视觉挂载，避免 QML 引擎提前回收揭幕对象。
+            transition.setParent(self)
             QQmlEngine.setObjectOwnership(
                 transition, QQmlEngine.ObjectOwnership.CppOwnership
             )

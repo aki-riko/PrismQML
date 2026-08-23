@@ -126,9 +126,10 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "PrismQmlFastStartupSplashEnabled" not in gallery_entry_source
     assert "fastStartupSplashEnabled" not in gallery_source
     assert "transition.setParentItem(root_item)" in fast_splash_source
-    assert "transition.setParent(root_item)" in fast_splash_source
+    assert "transition.setParent(self)" in fast_splash_source
     assert "QQmlEngine.setObjectOwnership(" in fast_splash_source
     assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
+    assert "self._reveal_component = component" in fast_splash_source
     reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1
     )[0]
