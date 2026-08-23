@@ -221,7 +221,7 @@ NavigationInternal.LazyPageCircleTransition {{
     objectName: "fastStartupReveal"
     anchors.fill: parent
     revealTarget: true
-    revealDuration: 2000
+    revealDuration: 400
     revealEasing: Easing.Linear
     keepSourceHiddenOnExpand: true
     property Item revealTargetItem: null
@@ -502,7 +502,7 @@ class FastSplashController(QObject):
             transition.setProperty("revealTargetItem", root_item)
             self._splash.setProperty("revealTransition", transition)
             transition.revealDone.connect(self._finish_reveal)
-            info("FastSplash 开始 2000ms 线性圆环揭幕")
+            info("FastSplash 开始 400ms 线性圆环揭幕")
             if not QMetaObject.invokeMethod(transition, "go"):
                 warning("FastSplash 揭幕启动失败")
                 self.restore_embedded_splash()

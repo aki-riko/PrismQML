@@ -136,6 +136,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1
     )[0]
+    assert "revealDuration: 400" in reveal_qml
     assert "transition.revealDone()" in reveal_qml
     assert "keepSourceHiddenOnExpand: true" in reveal_qml
     finish_reveal = fast_splash_source.split("    def _finish_reveal", 1)[1]
