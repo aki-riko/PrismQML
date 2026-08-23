@@ -326,8 +326,17 @@ def test_card_real_hover_press_and_click(card_scene):
     elevated.hoveredChanged.connect(
         lambda: edge_transitions.append(bool(elevated.property("hovered")))
     )
-    edge_point = QPoint(100, 409)
-    for _ in range(8):
+    edge_points = (
+        QPoint(100, 317),
+        QPoint(100, 320),
+        QPoint(100, 323),
+        QPoint(100, 409),
+        QPoint(100, 412),
+        QPoint(17, 360),
+        QPoint(20, 360),
+        QPoint(243, 360),
+    )
+    for edge_point in edge_points:
         QTest.mouseMove(window, edge_point)
         _pump(40)
     assert window.property("elevatedHovered")

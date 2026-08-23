@@ -31,9 +31,14 @@ Widget {
  property alias border: card.border // Border access 边框访问
  property alias color: card.color // Background color 背景色
  default property alias content: contentLoader.data
+
+ // ==================== Internal Props 内部属性 ====================
+ // Internal hover latch absorbs one-frame boundary misses.
+ // 内部 hover 锁存吸收边界处的单帧丢失。
+ property bool _hoverState: false
  
  // ==================== Readonly State 只读状态 ====================
- readonly property bool hovered: mouseArea.containsMouse
+ readonly property bool hovered: isElevated ? _hoverState : hoverHandler.hovered
  readonly property bool pressed: mouseArea.pressed
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
@@ -41,7 +46,7 @@ Widget {
  readonly property real elevationOffset: !Enums.isVintageTicket && isElevated && hovered && !pressed
                                          ? -Enums.spacing.cardElevate : 0
  readonly property real _elevationHitMargin: !Enums.isVintageTicket && isElevated
-                                              ? Enums.spacing.cardElevate : 0
+                                               ? Enums.spacing.cardElevate + Enums.spacing.micro : 0
  // ==================== Signals 信号 ====================
  signal clicked()
  
@@ -214,14 +219,38 @@ Widget {
  
  }
 
+ // Passive hover tracking stays on the static card geometry.
+ // 被动 hover 监听固定在卡片布局几何上，避免视觉上移参与命中反馈。
+ HoverHandler {
+  id: hoverHandler
+  enabled: control.interactionEnabled
+  margin: control._elevationHitMargin
+  cursorShape: control.clickEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+  onHoveredChanged: {
+   if (hovered) {
+    hoverExitTimer.stop()
+    control._hoverState = true
+   } else if (control.isElevated) {
+    hoverExitTimer.restart()
+   } else {
+    control._hoverState = false
+   }
+  }
+ }
+
+ Timer {
+  id: hoverExitTimer
+  interval: Enums.duration.fast
+  repeat: false
+  onTriggered: control._hoverState = false
+ }
+
  // Interaction 交互
  MouseArea {
  id: mouseArea
  anchors.fill: parent
- anchors.topMargin: -control._elevationHitMargin
- anchors.bottomMargin: -control._elevationHitMargin
  z: Enums.zIndex.background // Below content to not block child interactions 置于内容下方避免阻挡子组件交互
- hoverEnabled: control.interactionEnabled
+ hoverEnabled: false
  enabled: control.interactionEnabled
  visible: control.interactionEnabled // 完全隐藏时不阻挡事件
  cursorShape: control.clickEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
