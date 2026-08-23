@@ -54,7 +54,7 @@ Window {
     readonly property real headerHeight: headerCard.height
     readonly property real headerContentHeight: headerContent.height
     readonly property real noPaddingHeaderHeight: noPaddingHeader.height
-    readonly property real elevatedOffset: elevatedCard.transform[0].y
+    readonly property real elevatedOffset: elevatedCard.elevationOffset
     readonly property bool elevatedHovered: elevatedCard.hovered
     readonly property bool elevatedPressed: elevatedCard.pressed
     readonly property real cardElevate: Enums.spacing.cardElevate
@@ -319,6 +319,19 @@ def test_card_real_hover_press_and_click(card_scene):
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=QPoint(100, 360))
     assert _wait_for(lambda: clicks == [True])
     assert not window.property("elevatedPressed")
+
+    QTest.mouseMove(window, QPoint(620, 520))
+    assert _wait_for(lambda: not window.property("elevatedHovered"))
+    edge_transitions = []
+    elevated.hoveredChanged.connect(
+        lambda: edge_transitions.append(bool(elevated.property("hovered")))
+    )
+    edge_point = QPoint(100, 409)
+    for _ in range(8):
+        QTest.mouseMove(window, edge_point)
+        _pump(40)
+    assert window.property("elevatedHovered")
+    assert edge_transitions == [True]
 
     window.hide()
     _pump()

@@ -36,7 +36,7 @@ import PrismQML
 Window {
     id: root
 
-    readonly property real cardOffset: elevatedCard.transform[0].y
+    readonly property real cardOffset: elevatedCard.elevationOffset
     readonly property bool cardHovered: elevatedCard.hovered
     readonly property real ticketGradientFactor: Enums.button.gradientLighten
     readonly property real buttonBorderWidth: button.border.width

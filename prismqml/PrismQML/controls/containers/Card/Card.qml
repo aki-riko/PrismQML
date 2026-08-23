@@ -38,6 +38,9 @@ Widget {
  readonly property bool isNormal: cardType === Enums.card.type_hover
  readonly property bool isElevated: cardType === Enums.card.type_elevated
  readonly property bool isHeader: cardType === Enums.card.type_header
+ readonly property real elevationOffset: visualSurface.transform[0].y
+ readonly property real _elevationHitMargin: !Enums.isVintageTicket && isElevated
+                                              ? Enums.spacing.cardElevate : 0
  // ==================== Signals 信号 ====================
  signal clicked()
  
@@ -50,8 +53,14 @@ Widget {
                 : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                               : Enums.controlSize.cardHeight)
  
+ // Visual surface moves independently from the hit target.
+ // 视觉层与命中层分离，避免上移改变 hover 命中几何。
+ Item {
+ id: visualSurface
+ anchors.fill: parent
+
  // Elevation animation for elevated cards 悬浮卡片上浮动画
- transform: Translate { 
+ transform: Translate {
  y: !Enums.isVintageTicket && isElevated && hovered && !pressed ? -Enums.spacing.cardElevate : 0
  HoverBehavior on y {
  active: control.hovered && !control.pressed
@@ -202,15 +211,20 @@ Widget {
  anchors.margins: control.contentPadding
  }
  
+ }
+
  // Interaction 交互
  MouseArea {
  id: mouseArea
  anchors.fill: parent
+ anchors.topMargin: -control._elevationHitMargin
+ anchors.bottomMargin: -control._elevationHitMargin
  z: Enums.zIndex.background // Below content to not block child interactions 置于内容下方避免阻挡子组件交互
  hoverEnabled: control.interactionEnabled
  enabled: control.interactionEnabled
  visible: control.interactionEnabled // 完全隐藏时不阻挡事件
  cursorShape: control.clickEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+
  onClicked: if (control.clickEnabled) control.clicked()
  }
  }
