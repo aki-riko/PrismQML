@@ -18,6 +18,7 @@ from prismqml.python.window._splash_builder import (
 )
 from prismqml.python.window.app import App
 from prismqml.python.window.fast_splash import FastSplashController
+from prismqml.python.window.window_core import WindowCore
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,6 +130,22 @@ def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
 
     controller.mark_window_metadata_ready()
     assert controller._splash.shown is True
+
+
+def test_window_show_splash_keeps_fast_surface_deferred_until_attach():
+    """Window.showSplash must not publish a partial metadata frame early."""
+    calls = []
+    window = SimpleNamespace(
+        _splash_enabled=False,
+        _splash_icon="",
+        _splash_title="",
+        _splash_subtitle="",
+        _update_fast_splash_metadata=lambda **metadata: calls.append(metadata),
+    )
+
+    WindowCore.showSplash(window, subtitle="Loading")
+
+    assert calls == [{"title": None, "icon": None, "subtitle": "Loading"}]
 
 
 def test_fast_splash_uses_legacy_application_name_when_display_name_is_empty():
@@ -363,8 +380,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "root_item.setProperty(\"visible\", False)" not in finish_reveal
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source
-    assert "self._mark_fast_splash_metadata_ready()" in window_core_source
+    assert "self._mark_fast_splash_metadata_ready()" not in window_core_source
     assert "def mark_window_metadata_ready(self)" in fast_splash_source
+    assert "self.mark_window_metadata_ready()" in fast_splash_source
     assert "create_splash" not in python_source
     assert "Window::createSplash" not in cpp_source
     assert "createSplash();" not in cpp_source

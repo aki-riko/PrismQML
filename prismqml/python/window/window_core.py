@@ -372,7 +372,12 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             icon=icon or None,
             subtitle=subtitle if subtitle else None,
         )
-        self._mark_fast_splash_metadata_ready()
+        # Keep the isolated surface hidden until ``show()`` has created the
+        # QML root and all pending window properties have been applied.  The
+        # attach path commits the final metadata in one transaction, including
+        # title changes made by an application after showSplash().
+        # 在 ``show()`` 创建 QML 根对象并刷入全部待处理窗口属性前，保持独立页隐藏。
+        # 交接路径会一次性提交最终元数据，包含应用在 showSplash() 之后追加的标题标识。
 
     def _mark_fast_splash_metadata_ready(self) -> None:
         """Commit Window splash metadata to the early engine surface."""
