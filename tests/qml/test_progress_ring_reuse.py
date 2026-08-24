@@ -331,9 +331,14 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     assert "from: transition._collapsing" in transition_source
     assert "to: transition._collapsing" in transition_source
     assert "qml_page_circle_transition.frag.qsb" in frame_source
-    assert shader_source.count("smoothstep(") == 1
+    assert shader_source.count("smoothstep(") == 2
     assert "float apertureRadius" in shader_source
     assert "float maskAlpha" in shader_source
+    assert "property real borderWidthPixels" in frame_source
+    assert "Enums.splashScreenMetrics.progressRingBorderWidth" in frame_source
+    assert "property color borderColor" in frame_source
+    assert "borderColor.rgb" in shader_source
+    assert "float borderAlpha" in shader_source
     assert "wave" not in shader_source.lower()
     assert "refraction" not in shader_source.lower()
     assert QML_PAGE_CIRCLE_SHADER_BINARY.stat().st_size > 0

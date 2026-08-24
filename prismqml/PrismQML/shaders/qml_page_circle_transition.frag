@@ -12,6 +12,8 @@ layout(std140, binding = 0) uniform buf {
     float minimumRadius;
     float edgeSoftness;
     float invertMask;
+    float borderWidth;
+    vec4 borderColor;
 };
 
 layout(binding = 1) uniform sampler2D source;
@@ -35,5 +37,19 @@ void main() {
     );
     float maskAlpha = mix(insideAperture, 1.0 - insideAperture, invertMask);
 
-    fragColor = texture(source, qt_TexCoord0) * (maskAlpha * qt_Opacity);
+    vec4 pageColor = texture(source, qt_TexCoord0) * (maskAlpha * qt_Opacity);
+    float borderHalfWidth = max(borderWidth, 0.0) * 0.5;
+    float borderAlpha = 1.0 - smoothstep(
+        max(borderHalfWidth - edgeSoftness, 0.0),
+        borderHalfWidth + edgeSoftness,
+        abs(distanceToCenter - apertureRadius)
+    );
+    vec4 outlineColor = vec4(
+        borderColor.rgb * (borderAlpha * borderColor.a * qt_Opacity),
+        borderAlpha * borderColor.a * qt_Opacity
+    );
+
+    // Paint the shared outline above the page snapshot while preserving
+    // premultiplied-alpha output. 在页面快照上方绘制共享描边并保持预乘透明度。
+    fragColor = outlineColor + pageColor * (1.0 - outlineColor.a);
 }
