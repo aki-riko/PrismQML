@@ -36,6 +36,7 @@ log_time("Python启动与核心库导入完成")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PySide6.QtCore import QUrl
+from PySide6.QtGui import QGuiApplication
 
 from prismqml.python.config import DEFAULT_APP_CONFIG
 from prismqml.python.config._app_config_schema import resolve_app_config_path
@@ -44,6 +45,11 @@ from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 GALLERY_CONFIG_PATH = resolve_app_config_path(default=DEFAULT_APP_CONFIG)
 GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"
+GALLERY_APPLICATION_TITLE = "PrismQML Gallery"
+
+# Publish static branding before App creates the fast splash. 在 App 创建快速启动页前
+# 发布静态品牌信息，避免首帧先显示通用标题再切换到 Gallery 标题。
+QGuiApplication.setApplicationDisplayName(GALLERY_APPLICATION_TITLE)
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)

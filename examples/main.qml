@@ -109,6 +109,7 @@ QtObject {
         FluentInternal.WindowsSplit {
             width: root.windowWidth; height: root.windowHeight
             visible: false
+            splashEnabled: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
@@ -133,6 +134,7 @@ QtObject {
         FluentInternal.WindowsBar {
             width: root.windowWidth; height: root.windowHeight
             visible: false
+            splashEnabled: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
@@ -154,6 +156,7 @@ QtObject {
         FluentInternal.WindowsFilled {
             width: root.windowWidth; height: root.windowHeight
             visible: false
+            splashEnabled: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored

@@ -162,6 +162,10 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "visible: false" in splash_qml
     assert "visible: true" not in splash_qml
     assert gallery_source.count("            visible: false") == 3
+    assert gallery_source.count("            splashEnabled: false") == 3
+    assert 'GALLERY_APPLICATION_TITLE = "PrismQML Gallery"' in gallery_entry_source
+    assert "QGuiApplication.setApplicationDisplayName(GALLERY_APPLICATION_TITLE)" in gallery_entry_source
+    assert 'splash.setProperty("splashTitle", str(application_title))' in fast_splash_source
     assert "self._show_qml_owned_window(main_window)" in fast_splash_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source

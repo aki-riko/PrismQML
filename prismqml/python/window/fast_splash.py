@@ -295,6 +295,9 @@ class FastSplashController(QObject):
             initial_icon = icon or getattr(self._app, "application_icon", "")
             if initial_icon:
                 splash.setProperty("splashIcon", self._qml_icon_source(initial_icon))
+            application_title = getattr(self._app, "applicationDisplayName", lambda: "")()
+            if application_title:
+                splash.setProperty("splashTitle", str(application_title))
             screen = self._app.primaryScreen()
             if screen is not None:
                 available = screen.availableGeometry()
