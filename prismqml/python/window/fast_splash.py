@@ -494,6 +494,12 @@ class FastSplashController(QObject):
         if main_window.property("_pythonPageMode") is True:
             current_index = stack.property("currentIndex")
             ready_indexes = main_window.property("_pythonReadyIndexes")
+            # PySide6 exposes QML `property var` values as QJSValue. Convert it
+            # before applying the Python collection guard. PySide6 会把 QML
+            # `property var` 暴露为 QJSValue，先转换再进行 Python 集合校验。
+            to_variant = getattr(ready_indexes, "toVariant", None)
+            if callable(to_variant):
+                ready_indexes = to_variant()
             if not isinstance(current_index, int) or not isinstance(
                 ready_indexes, (list, tuple)
             ):

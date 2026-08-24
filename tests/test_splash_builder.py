@@ -8,6 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml.python.window._splash_builder import (
     build_splash_properties,
@@ -48,6 +50,14 @@ class _PropertyObject:
         return self._properties.get(name)
 
 
+class _QmlVariant:
+    def __init__(self, value):
+        self._value = value
+
+    def toVariant(self):
+        return self._value
+
+
 def test_fast_splash_waits_for_python_page_readiness():
     """Python page containers must not satisfy the fast-splash readiness gate."""
     page = _PropertyObject()
@@ -64,6 +74,53 @@ def test_fast_splash_waits_for_python_page_readiness():
 
     assert FastSplashController._page_ready(window) is False
     window._properties["_pythonReadyIndexes"] = [0]
+    assert FastSplashController._page_ready(window) is True
+
+
+def test_fast_splash_converts_qml_ready_indexes_before_readiness_check():
+    """QML property-var wrappers must participate in the readiness gate."""
+    page = _PropertyObject()
+    stack = _PropertyObject(
+        currentWidget=page,
+        currentIndex=0,
+        _useSourceMode=False,
+    )
+    window = _PropertyObject(
+        stackedWidget=stack,
+        _pythonPageMode=True,
+        _pythonReadyIndexes=_QmlVariant([0]),
+    )
+
+    assert FastSplashController._page_ready(window) is True
+
+
+def test_fast_splash_reads_real_qml_ready_indexes(qapp):
+    """A real QML property-var value must satisfy the Python readiness gate."""
+    engine = QQmlEngine()
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+import QtQuick
+Item {
+    property bool _pythonPageMode: true
+    property var _pythonReadyIndexes: [0]
+    property var stackedWidget: stack
+
+    Item {
+        id: stack
+        property int currentIndex: 0
+        property var currentWidget: page
+        property bool _useSourceMode: false
+    }
+    Item { id: page }
+}
+""",
+        QUrl("fast-splash-readiness"),
+    )
+    window = component.create()
+    assert window is not None, [error.toString() for error in component.errors()]
+    ready_indexes = window.property("_pythonReadyIndexes")
+    assert hasattr(ready_indexes, "toVariant")
     assert FastSplashController._page_ready(window) is True
 
 
