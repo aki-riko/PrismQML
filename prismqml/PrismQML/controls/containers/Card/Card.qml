@@ -84,7 +84,10 @@ Widget {
  contentHeight: isHeader ? card.height
                 : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                               : Enums.controlSize.cardHeight)
- Component.onDestruction: windowHoverHandler.parent = control
+ Component.onDestruction: {
+  if (windowHoverHandler && control)
+   windowHoverHandler.parent = control
+ }
  
  // Visual surface moves independently from the hit target.
  // 视觉层与命中层分离，避免上移改变 hover 命中几何。

@@ -26,6 +26,20 @@ def test_fast_splash_normalizes_initial_icon_sources():
     assert FastSplashController._qml_icon_source("D:\\icons\\app.svg") == "file:///D:/icons/app.svg"
 
 
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("", True),
+        ("python", True),
+        ("pythonw", True),
+        ("PrismQML Gallery", False),
+    ],
+)
+def test_fast_splash_recognizes_unbranded_process_titles(title, expected):
+    """Unbranded interpreter titles must not be committed as a first frame."""
+    assert FastSplashController._is_default_process_title(title) is expected
+
+
 def _builder(**overrides):
     resolved = []
 

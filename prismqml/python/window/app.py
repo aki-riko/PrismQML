@@ -381,6 +381,23 @@ class App(ApplicationIconMixin):
     def setApplicationName(cls, name: str) -> None:
         """设置应用名称 Set application name"""
         QApplication.setApplicationName(name)
+        cls._update_fast_splash_metadata(title=name)
+
+    @classmethod
+    def setApplicationDisplayName(cls, name: str) -> None:
+        """设置应用显示名称并同步启动页 Set display name and sync startup splash"""
+        QApplication.setApplicationDisplayName(name)
+        cls._update_fast_splash_metadata(title=name)
+
+    @classmethod
+    def _update_fast_splash_metadata(cls, **metadata) -> None:
+        """Forward application branding to the engine-owned splash."""
+        instance = cls._instance
+        if instance is None:
+            return
+        controller = getattr(instance, "_fast_splash", None)
+        if controller is not None:
+            controller.update_metadata(**metadata)
 
     @classmethod
     def applicationName(cls) -> str:
@@ -457,6 +474,12 @@ class App(ApplicationIconMixin):
         QGuiApplication.setHighDpiScaleFactorRoundingPolicy(policy)
 
     # ==================== 实例方法 Instance Methods ====================
+
+    def setWindowIcon(self, icon) -> None:
+        """设置应用图标并同步可识别的启动页来源 Set app icon and sync splash source."""
+        self._app.setWindowIcon(icon)
+        if isinstance(icon, (str, os.PathLike)):
+            self._update_fast_splash_metadata(icon=os.fspath(icon))
 
     def create_window(self, window_type: int = _DEFAULT_WINDOW_TYPE) -> "Window":
         """创建窗口 Create window
@@ -561,7 +584,7 @@ class App(ApplicationIconMixin):
     # setQuitOnLastWindowClosed / setWindowIcon / aboutToQuit 等.
     #
     # __getattr__ 只在正常属性查找失败时才被调用,所以已显式定义的
-    # classmethod / property 不会被遮蔽.
+    # classmethod / property / setWindowIcon 不会被遮蔽.
     def __getattr__(self, name: str):
         # 拒绝转发私有/dunder属性 — 避免 _app 未初始化时触发递归,
         # 也避免把 __reduce__ / __getstate__ 等 pickle 钩子误转发.

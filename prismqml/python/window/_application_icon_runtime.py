@@ -74,6 +74,9 @@ def configure_application_icon(owner, icon: IconSource, colored: bool) -> str:
     owner._application_icon = source
     owner._application_icon_colored = bool(colored)
     get_window_helper().setAppIcon(source)
+    controller = getattr(owner, "_fast_splash", None)
+    if controller is not None:
+        controller.update_metadata(icon=source)
     for window in tuple(owner._windows):
         apply_application_icon_to_window(owner, window)
     return source

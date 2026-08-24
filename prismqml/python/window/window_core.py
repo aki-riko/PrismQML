@@ -204,6 +204,21 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         else:
             self._pending_calls.append((method, qvariant_arg))
 
+    def _update_fast_splash_metadata(self, **metadata) -> None:
+        """Sync pre-window branding without changing the Window API."""
+        from .app import App
+
+        try:
+            app = App.instance()
+        except RuntimeError:
+            return
+        controller = getattr(app, "_fast_splash", None)
+        if controller is None:
+            return
+        attached_window = getattr(controller, "_main_window", None)
+        if attached_window is None or attached_window is self._window:
+            controller.update_metadata(**metadata)
+
     def _apply_pending_state(self):
         """_create_window 后 apply 早期被缓存的属性/方法调用。"""
         if not self._window:
@@ -220,6 +235,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
     def setWindowTitle(self, title: str):
         self._title = title
         self._set_window_property("windowTitle", title)
+        self._update_fast_splash_metadata(title=title)
 
     def windowTitle(self) -> str:
         return self._title
@@ -253,6 +269,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
         self._set_window_property("windowIcon", icon)
         self._set_window_property("windowIconColored", colored)
+        self._update_fast_splash_metadata(icon=icon)
 
     def windowIcon(self) -> QIcon:
         """获取窗口图标
@@ -350,6 +367,11 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             self._splash_title = title
         if subtitle:
             self._splash_subtitle = subtitle
+        self._update_fast_splash_metadata(
+            title=title or None,
+            icon=icon or None,
+            subtitle=subtitle if subtitle else None,
+        )
 
     # ==================== 导航项 ====================
 
