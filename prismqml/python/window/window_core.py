@@ -372,12 +372,21 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             icon=icon or None,
             subtitle=subtitle if subtitle else None,
         )
-        # Keep the isolated surface hidden until ``show()`` has created the
-        # QML root and all pending window properties have been applied.  The
-        # attach path commits the final metadata in one transaction, including
-        # title changes made by an application after showSplash().
-        # 在 ``show()`` 创建 QML 根对象并刷入全部待处理窗口属性前，保持独立页隐藏。
-        # 交接路径会一次性提交最终元数据，包含应用在 showSplash() 之后追加的标题标识。
+        # Publish the isolated surface once this call has completed a full
+        # title/icon/subtitle transaction.  Incomplete branding still waits
+        # for the normal attach path, so legacy and custom splash routing keep
+        # their existing fallback behavior.
+        # 本次调用完成标题、图标、副标题的完整提交后即可显示独立页；元数据不完整时
+        # 继续等待常规绑定路径，保留旧版和自定义 Splash 的回退行为。
+        try:
+            from .app import App
+
+            app = App.instance()
+        except RuntimeError:
+            app = None
+        controller = getattr(app, "_fast_splash", None) if app is not None else None
+        if controller is not None:
+            controller.show_if_metadata_ready()
 
     def _mark_fast_splash_metadata_ready(self) -> None:
         """Commit Window splash metadata to the early engine surface."""

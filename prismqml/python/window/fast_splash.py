@@ -383,6 +383,20 @@ class FastSplashController(QObject):
             return
         self._show_deferred_splash()
 
+    def show_if_metadata_ready(self) -> None:
+        """Show after a complete pre-window branding transaction.
+
+        Python-managed windows publish their final title, icon, and subtitle
+        before creating the QML root.  Showing at that boundary removes the
+        otherwise invisible construction gap while keeping the generic
+        fallback hidden until the normal attach path can resolve its metadata.
+        """
+        if self._closed or self._splash is None:
+            return
+        if not (self._title_metadata_ready and self._icon_metadata_ready):
+            return
+        self._show_deferred_splash()
+
     def _set_icon_metadata(self, icon: Any) -> bool:
         """Publish a path/URL or legacy QIcon to the isolated QML surface."""
         return set_icon_metadata(self._splash, self._icon_provider, icon)

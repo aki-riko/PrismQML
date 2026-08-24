@@ -133,7 +133,24 @@ def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
 
 
 def test_window_show_splash_keeps_fast_surface_deferred_until_attach():
-    """Window.showSplash must not publish a partial metadata frame early."""
+    """Window.showSplash only releases the fast surface after full metadata."""
+    calls = []
+    window = SimpleNamespace(
+        _splash_enabled=False,
+        _splash_icon="",
+        _splash_title="",
+        _splash_subtitle="",
+        _update_fast_splash_metadata=lambda **metadata: calls.append(metadata),
+        _mark_fast_splash_metadata_ready=lambda: calls.append("ready"),
+    )
+
+    WindowCore.showSplash(window, subtitle="Loading")
+
+    assert calls == [{"title": None, "icon": None, "subtitle": "Loading"}]
+
+
+def test_window_show_splash_releases_complete_fast_metadata():
+    """A complete title/icon transaction can show before QML root creation."""
     calls = []
     window = SimpleNamespace(
         _splash_enabled=False,
@@ -143,9 +160,24 @@ def test_window_show_splash_keeps_fast_surface_deferred_until_attach():
         _update_fast_splash_metadata=lambda **metadata: calls.append(metadata),
     )
 
-    WindowCore.showSplash(window, subtitle="Loading")
+    controller = SimpleNamespace(show_if_metadata_ready=lambda: calls.append("ready"))
+    app = SimpleNamespace(_fast_splash=controller)
+    original_instance = App._instance
+    App._instance = app
+    try:
+        WindowCore.showSplash(
+            window,
+            icon=":/icons/kaleidos.svg",
+            title="Kaleidos",
+            subtitle="Loading",
+        )
+    finally:
+        App._instance = original_instance
 
-    assert calls == [{"title": None, "icon": None, "subtitle": "Loading"}]
+    assert calls == [
+        {"title": "Kaleidos", "icon": ":/icons/kaleidos.svg", "subtitle": "Loading"},
+        "ready",
+    ]
 
 
 def test_fast_splash_uses_legacy_application_name_when_display_name_is_empty():
