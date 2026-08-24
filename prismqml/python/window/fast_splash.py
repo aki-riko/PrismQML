@@ -288,6 +288,16 @@ class FastSplashController(QObject):
         """Create the splash before QML loads, deferring unbranded frames."""
         try:
             self._closed = False
+            self._handoff_done = False
+            self._embedded_handoff = False
+            self._main_window = None
+            self._transition = None
+            self._ready_timer = None
+            self._page_ready_observed_frame = -1
+            self._splash_frame_count = 0
+            self._main_frame_count = 0
+            self._title_metadata_ready = False
+            self._icon_metadata_ready = False
             palette = self._app.palette()
             is_dark = palette.window().color().lightness() < 128
             self._splash_engine = QQmlEngine()
@@ -318,9 +328,11 @@ class FastSplashController(QObject):
                 application_title and not self._is_default_process_title(application_title)
             )
             self._icon_metadata_ready = initial_icon_ready
-            self._visibility_deferred = not (
-                self._title_metadata_ready and self._icon_metadata_ready
-            )
+            # App-level branding is provisional: Window.showSplash() or the
+            # main-window attach must commit the final splash metadata first.
+            # App 级品牌信息只是暂态；必须等 Window.showSplash() 或主窗口绑定
+            # 提交最终 Splash 元数据后，才能显示独立启动页。
+            self._visibility_deferred = True
             if application_title and not self._is_default_process_title(application_title):
                 splash.setProperty("splashTitle", str(application_title))
             screen = self._app.primaryScreen()
@@ -362,14 +374,14 @@ class FastSplashController(QObject):
                 self._icon_metadata_ready = self._set_icon_metadata(icon)
             if subtitle is not None:
                 self._splash.setProperty("splashSubtitle", str(subtitle))
-            if (
-                self._visibility_deferred
-                and self._title_metadata_ready
-                and self._icon_metadata_ready
-            ):
-                self._show_deferred_splash()
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
             warning(f"FastSplash 元数据更新失败: {type(exc).__name__}: {exc}")
+
+    def mark_window_metadata_ready(self) -> None:
+        """Release the early surface after Window splash configuration is complete."""
+        if self._closed or self._splash is None:
+            return
+        self._show_deferred_splash()
 
     def _set_icon_metadata(self, icon: Any) -> bool:
         """Publish a path/URL or legacy QIcon to the isolated QML surface."""
@@ -456,6 +468,7 @@ class FastSplashController(QObject):
             or getattr(self._app, "application_icon", "")
         )
         self.update_metadata(title=title, icon=icon, subtitle=subtitle)
+        self.mark_window_metadata_ready()
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
         """Restore the normal QML splash after a fast-path failure or bypass."""

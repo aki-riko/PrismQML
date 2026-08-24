@@ -372,6 +372,19 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             icon=icon or None,
             subtitle=subtitle if subtitle else None,
         )
+        self._mark_fast_splash_metadata_ready()
+
+    def _mark_fast_splash_metadata_ready(self) -> None:
+        """Commit Window splash metadata to the early engine surface."""
+        from .app import App
+
+        try:
+            app = App.instance()
+        except RuntimeError:
+            return
+        controller = getattr(app, "_fast_splash", None)
+        if controller is not None:
+            controller.mark_window_metadata_ready()
 
     # ==================== 导航项 ====================
 

@@ -113,7 +113,7 @@ def test_fast_splash_waits_for_python_page_readiness():
 
 
 def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
-    """Legacy Window setters must release the deferred fast surface together."""
+    """Legacy metadata is cached until Window commits the final splash config."""
     controller = FastSplashController(None)
     controller._splash = _SplashSurface()
     controller._visibility_deferred = True
@@ -123,9 +123,12 @@ def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
     assert controller._splash.properties["splashTitle"] == "Kaleidos"
 
     controller.update_metadata(icon=":/icons/kaleidos.svg")
-    assert controller._splash.shown is True
+    assert controller._splash.shown is False
     assert controller._splash.properties["splashTitle"] == "Kaleidos"
     assert controller._splash.properties["splashIcon"] == "qrc:/icons/kaleidos.svg"
+
+    controller.mark_window_metadata_ready()
+    assert controller._splash.shown is True
 
 
 def test_fast_splash_uses_legacy_application_name_when_display_name_is_empty():
@@ -318,6 +321,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     python_source = (ROOT / "prismqml/python/window/_window_builder.py").read_text(
         encoding="utf-8"
     )
+    window_core_source = (ROOT / "prismqml/python/window/window_core.py").read_text(
+        encoding="utf-8"
+    )
     cpp_source = (ROOT / "cpp/src/Window.cpp").read_text(encoding="utf-8")
     gallery_source = (ROOT / "examples/main.qml").read_text(encoding="utf-8")
     gallery_entry_source = (ROOT / "examples/main.py").read_text(encoding="utf-8")
@@ -357,6 +363,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "root_item.setProperty(\"visible\", False)" not in finish_reveal
     assert 'objectName: "windowSplashLoader"' in qml_source
     assert "build_splash_properties(self)" in python_source
+    assert "self._mark_fast_splash_metadata_ready()" in window_core_source
+    assert "def mark_window_metadata_ready(self)" in fast_splash_source
     assert "create_splash" not in python_source
     assert "Window::createSplash" not in cpp_source
     assert "createSplash();" not in cpp_source
