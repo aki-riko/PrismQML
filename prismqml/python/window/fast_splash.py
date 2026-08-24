@@ -264,6 +264,7 @@ class FastSplashController(QObject):
         self._ready_timer: Optional[QTimer] = None
         self._splash_frame_count = 0
         self._main_frame_count = 0
+        self._page_ready_observed_frame = -1
         self._handoff_done = False
         self._embedded_handoff = False
         self._visibility_deferred = False
@@ -487,6 +488,18 @@ class FastSplashController(QObject):
         current = stack.property("currentWidget")
         if current is None:
             return False
+        # Python-managed windows create page containers before their real page
+        # content.  The container must not count as a loaded first page.
+        # Python 页面由宿主先创建容器、后挂载内容，不能把容器误判为首屏就绪。
+        if main_window.property("_pythonPageMode") is True:
+            current_index = stack.property("currentIndex")
+            ready_indexes = main_window.property("_pythonReadyIndexes")
+            if not isinstance(current_index, int) or not isinstance(
+                ready_indexes, (list, tuple)
+            ):
+                return False
+            if current_index not in ready_indexes:
+                return False
         if bool(stack.property("_useSourceMode")):
             return current.property("item") is not None
         return True
@@ -514,6 +527,16 @@ class FastSplashController(QObject):
             self._finish_embedded_handoff()
             return
         if self._main_frame_count < 3 or not self._page_ready(self._main_window):
+            self._page_ready_observed_frame = -1
+            return
+        # A ready signal means the page tree is constructed, not that it has
+        # reached the window surface. Require one frame after readiness so the
+        # reveal never exposes a partially painted first page.
+        # 页面就绪信号只代表页面树构建完成；必须再提交一帧后才能揭幕。
+        if self._page_ready_observed_frame < 0:
+            self._page_ready_observed_frame = self._main_frame_count
+            return
+        if self._main_frame_count <= self._page_ready_observed_frame:
             return
         if self._ready_timer is not None:
             self._ready_timer.stop()

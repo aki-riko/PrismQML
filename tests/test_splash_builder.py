@@ -40,6 +40,33 @@ def test_fast_splash_recognizes_unbranded_process_titles(title, expected):
     assert FastSplashController._is_default_process_title(title) is expected
 
 
+class _PropertyObject:
+    def __init__(self, **properties):
+        self._properties = properties
+
+    def property(self, name):
+        return self._properties.get(name)
+
+
+def test_fast_splash_waits_for_python_page_readiness():
+    """Python page containers must not satisfy the fast-splash readiness gate."""
+    page = _PropertyObject()
+    stack = _PropertyObject(
+        currentWidget=page,
+        currentIndex=0,
+        _useSourceMode=False,
+    )
+    window = _PropertyObject(
+        stackedWidget=stack,
+        _pythonPageMode=True,
+        _pythonReadyIndexes=[],
+    )
+
+    assert FastSplashController._page_ready(window) is False
+    window._properties["_pythonReadyIndexes"] = [0]
+    assert FastSplashController._page_ready(window) is True
+
+
 def _builder(**overrides):
     resolved = []
 
