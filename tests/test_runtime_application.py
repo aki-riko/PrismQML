@@ -17,6 +17,7 @@ import prismqml.python.core.shadow as shadow
 import prismqml.python.runtime as runtime
 import prismqml.python.runtime.application as runtime_application
 from prismqml.python.window import app as app_module
+import prismqml.python.window.fast_splash as fast_splash
 
 
 def _install_prepare_spies(monkeypatch, calls, failure_stage=None, failure=None):
@@ -222,7 +223,7 @@ def test_public_dwm_filter_entrypoint_delegates_to_runtime_owner(monkeypatch):
 
 
 @pytest.mark.parametrize("stage", ["input", "dwm"])
-def test_app_marks_filter_rollback_before_runtime_install(monkeypatch, stage):
+def test_app_marks_filter_rollback_after_runtime_install(monkeypatch, stage):
     application = object()
     failure = RuntimeError(stage)
     calls = []
@@ -232,6 +233,13 @@ def test_app_marks_filter_rollback_before_runtime_install(monkeypatch, stage):
         _input_filter_started=False,
         _dwm_filter_started=False,
     )
+
+    class FakeFastSplashController:
+        def __init__(self, application):
+            calls.append(("splash_create", application))
+
+        def show(self, icon=""):
+            calls.append(("splash_show", icon))
 
     def invoke(label, value=None):
         calls.append(label if value is None else (label, value))
@@ -253,6 +261,9 @@ def test_app_marks_filter_rollback_before_runtime_install(monkeypatch, stage):
         "install_application_dwm_filter",
         lambda: invoke("dwm"),
     )
+    monkeypatch.setattr(
+        fast_splash, "FastSplashController", FakeFastSplashController
+    )
 
     with pytest.raises(RuntimeError) as caught:
         app_module._create_qt_application(owner, ["prism"])
@@ -261,8 +272,14 @@ def test_app_marks_filter_rollback_before_runtime_install(monkeypatch, stage):
     assert owner._app is application
     assert owner._owns_app is True
     assert owner._input_filter_started is True
-    assert owner._dwm_filter_started is (stage == "dwm")
+    assert owner._dwm_filter_started is False
     expected = [("create", ["prism"]), ("input", application)]
     if stage == "dwm":
+        expected.extend(
+            [
+                ("splash_create", application),
+                ("splash_show", ""),
+            ]
+        )
         expected.append("dwm")
     assert calls == expected

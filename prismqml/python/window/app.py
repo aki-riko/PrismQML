@@ -84,12 +84,12 @@ def _create_qt_application(
     owner._app, owner._owns_app = create_qt_application(argv)
     owner._input_filter_started = True
     install_application_input_filter(owner._app)
-    owner._dwm_filter_started = True
-    install_application_dwm_filter()
     from .fast_splash import FastSplashController
 
     owner._fast_splash = FastSplashController(owner._app)
     owner._fast_splash.show(application_icon or "")
+    install_application_dwm_filter()
+    owner._dwm_filter_started = True
 
 
 def _create_qml_engine(owner, config_path, persist_appearance) -> None:

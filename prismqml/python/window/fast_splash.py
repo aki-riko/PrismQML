@@ -328,11 +328,15 @@ class FastSplashController(QObject):
                 application_title and not self._is_default_process_title(application_title)
             )
             self._icon_metadata_ready = initial_icon_ready
-            # App-level branding is provisional: Window.showSplash() or the
-            # main-window attach must commit the final splash metadata first.
-            # App 级品牌信息只是暂态；必须等 Window.showSplash() 或主窗口绑定
-            # 提交最终 Splash 元数据后，才能显示独立启动页。
-            self._visibility_deferred = True
+            # Constructor-level branding is complete when both static title and
+            # icon were supplied. Window.showSplash() still updates the same
+            # surface later for legacy callers that provide metadata at window
+            # construction time.
+            # App 构造器同时提供静态标题和图标时元数据已完整；旧调用方仍可在
+            # Window.showSplash() 时补交窗口级元数据并更新同一启动页。
+            self._visibility_deferred = not (
+                self._title_metadata_ready and self._icon_metadata_ready
+            )
             if application_title and not self._is_default_process_title(application_title):
                 splash.setProperty("splashTitle", str(application_title))
             screen = self._app.primaryScreen()

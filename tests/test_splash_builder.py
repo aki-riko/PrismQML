@@ -436,3 +436,4 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "def show(self, icon: str = \"\")" in fast_splash_source
     assert "initial_icon_ready = self._set_icon_metadata(initial_icon)" in fast_splash_source
     assert "self._icon_provider = FastSplashIconProvider()" in fast_splash_source
+    assert "self._visibility_deferred = not (" in fast_splash_source
