@@ -43,7 +43,6 @@ _SPIN_DURATION = 1000
 _BREATHE_MIN = 0.9
 _BREATHE_MAX = 1.1
 _BREATHE_DURATION = 1200
-_FADE_IN_DURATION = 150
 _ICON_SHADOW_COLOR = "#30000000"
 _ICON_SHADOW_BLUR = 0.8
 _ICON_SHADOW_OFFSET = 6
@@ -68,7 +67,6 @@ Window {{
     property string splashIcon: ""
     property string splashTitle: "PrismQML"
     property string splashSubtitle: "正在加载组件..."
-    property bool contentVisible: false
 
     property Item revealRoot: revealSurface
     readonly property string layerState:
@@ -83,14 +81,6 @@ Window {{
         id: revealSurface
         anchors.fill: parent
         property bool spinnerVisible: true
-        opacity: win.contentVisible ? 1 : 0
-
-        Behavior on opacity {{
-            NumberAnimation {{
-                duration: {fade_in_duration}
-                easing.type: Easing.OutCubic
-            }}
-        }}
 
         Rectangle {{
             anchors.fill: parent
@@ -254,7 +244,6 @@ def build_fast_splash_qml(is_dark: bool) -> str:
         background=_BACKGROUND_DARK if is_dark else _BACKGROUND_LIGHT,
         title_color="#ffffffff" if is_dark else "#ff000000",
         body_color="#99ffffff" if is_dark else "#99000000",
-        fade_in_duration=_FADE_IN_DURATION,
     )
 
 
@@ -315,7 +304,6 @@ class FastSplashController(QObject):
                 )
             splash.frameSwapped.connect(self._on_splash_frame)
             splash.show()
-            splash.setProperty("contentVisible", True)
             info("FastSplash 独立启动页已显示")
             return True
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:

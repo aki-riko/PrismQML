@@ -161,9 +161,6 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     )[0]
     assert "visible: false" in splash_qml
     assert "visible: true" not in splash_qml
-    assert "property bool contentVisible: false" in splash_qml
-    assert "duration: {fade_in_duration}" in splash_qml
-    assert 'splash.setProperty("contentVisible", True)' in fast_splash_source
     assert gallery_source.count("            visible: false") == 3
     assert "self._show_qml_owned_window(main_window)" in fast_splash_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
