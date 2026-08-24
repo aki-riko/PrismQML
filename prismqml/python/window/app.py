@@ -69,7 +69,11 @@ def _prepare_app_environment(allow_qml_file_read: bool, config_path) -> None:
     prepare_application_environment(allow_qml_file_read, config_path)
 
 
-def _create_qt_application(owner, argv: List[str]) -> None:
+def _create_qt_application(
+    owner,
+    argv: List[str],
+    application_icon=None,
+) -> None:
     """Create QApplication and install global filters. 创建应用并安装全局过滤器。"""
     from ..runtime import (
         create_qt_application,
@@ -85,7 +89,7 @@ def _create_qt_application(owner, argv: List[str]) -> None:
     from .fast_splash import FastSplashController
 
     owner._fast_splash = FastSplashController(owner._app)
-    owner._fast_splash.show()
+    owner._fast_splash.show(application_icon or "")
 
 
 def _create_qml_engine(owner, config_path, persist_appearance) -> None:
@@ -296,7 +300,7 @@ class App(ApplicationIconMixin):
         committed = False
         try:
             _prepare_app_environment(allow_qml_file_read, config_path)
-            _create_qt_application(self, argv or [])
+            _create_qt_application(self, argv or [], application_icon)
             _create_qml_engine(self, config_path, persist_appearance)
             configure_initial_application_icon(
                 self, application_icon, application_icon_colored

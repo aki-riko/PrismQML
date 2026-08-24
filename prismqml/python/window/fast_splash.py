@@ -268,7 +268,7 @@ class FastSplashController(QObject):
     def splash(self) -> Optional[QQuickWindow]:
         return self._splash
 
-    def show(self) -> bool:
+    def show(self, icon: str = "") -> bool:
         """Create and show the splash before the main QML engine loads."""
         try:
             palette = self._app.palette()
@@ -290,6 +290,9 @@ class FastSplashController(QObject):
                 warning("FastSplash QML 根对象不是 QQuickWindow")
                 return False
             self._splash = splash
+            initial_icon = icon or getattr(self._app, "application_icon", "")
+            if initial_icon:
+                splash.setProperty("splashIcon", self._qml_icon_source(initial_icon))
             screen = self._app.primaryScreen()
             if screen is not None:
                 available = screen.availableGeometry()
@@ -304,6 +307,20 @@ class FastSplashController(QObject):
         except (AttributeError, OSError, RuntimeError, TypeError, ValueError) as exc:
             exception(f"FastSplash 创建失败: {type(exc).__name__}: {exc}")
             return False
+
+    @staticmethod
+    def _qml_icon_source(icon: str) -> str:
+        """Normalize a known icon source for the isolated QML engine."""
+        source = str(icon).replace("\\", "/")
+        if source.startswith(":/"):
+            return "qrc" + source
+        if source.startswith(("qrc:/", "file:/", "http://", "https://")):
+            return source
+        if len(source) > 1 and source[1] == ":":
+            return QUrl.fromLocalFile(source).toString()
+        if source.startswith("/"):
+            return QUrl.fromLocalFile(source).toString()
+        return source
 
     def attach_and_reveal(self, main_engine: QQmlEngine, main_window: QQuickWindow) -> bool:
         """Bind the splash to the main HWND and reveal once its first page paints."""

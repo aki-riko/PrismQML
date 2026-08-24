@@ -13,9 +13,17 @@ from prismqml.python.window._splash_builder import (
     build_splash_properties,
     build_splash_template_values,
 )
+from prismqml.python.window.fast_splash import FastSplashController
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_fast_splash_normalizes_initial_icon_sources():
+    """Initial fast-splash sources must remain valid in the isolated QML engine."""
+    assert FastSplashController._qml_icon_source(":/app_icon.svg") == "qrc:/app_icon.svg"
+    assert FastSplashController._qml_icon_source("qrc:/app_icon.svg") == "qrc:/app_icon.svg"
+    assert FastSplashController._qml_icon_source("D:\\icons\\app.svg") == "file:///D:/icons/app.svg"
 
 
 def _builder(**overrides):
@@ -148,3 +156,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "createSplash();" not in cpp_source
     assert "splashSubtitle:" in gallery_source
     assert "splashComponent.createObject" not in gallery_source
+    assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
+    assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
+    assert "def show(self, icon: str = \"\")" in fast_splash_source
+    assert "splash.setProperty(\"splashIcon\", self._qml_icon_source(initial_icon))" in fast_splash_source

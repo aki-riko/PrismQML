@@ -43,6 +43,7 @@ from prismqml.python.runtime import get_svg_provider
 from examples.resources import GALLERY_RCC_PATH, register_gallery_resources
 
 GALLERY_CONFIG_PATH = resolve_app_config_path(default=DEFAULT_APP_CONFIG)
+GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"
 
 # 注册二进制资源文件(QML 通过 qrc:/ 访问图片等)
 # 用 .rcc 二进制资源代替编译成 .py 的资源(体积更小,不污染代码仓库)
@@ -57,6 +58,7 @@ def main():
     # App 统一持有 QApplication、QML 引擎和早期快速启动页。
     app = App(
         argv=sys.argv,
+        application_icon=GALLERY_APPLICATION_ICON,
         config_path=GALLERY_CONFIG_PATH,
         persist_appearance=True,
     )
