@@ -9,12 +9,14 @@ from types import SimpleNamespace
 
 import pytest
 from PySide6.QtCore import QUrl
+from PySide6.QtGui import QIcon
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml.python.window._splash_builder import (
     build_splash_properties,
     build_splash_template_values,
 )
+from prismqml.python.window.app import App
 from prismqml.python.window.fast_splash import FastSplashController
 
 
@@ -58,6 +60,39 @@ class _QmlVariant:
         return self._value
 
 
+class _SplashSurface:
+    def __init__(self):
+        self.properties = {}
+        self.shown = False
+
+    def setProperty(self, name, value):
+        self.properties[name] = value
+
+    def show(self):
+        self.shown = True
+
+
+class _ApplicationSurface:
+    def __init__(self, *, display_name="", application_name="", application_icon=""):
+        self._display_name = display_name
+        self._application_name = application_name
+        self.application_icon = application_icon
+
+    def applicationDisplayName(self):
+        return self._display_name
+
+    def applicationName(self):
+        return self._application_name
+
+
+class _WindowSurface:
+    def __init__(self, **properties):
+        self._properties = properties
+
+    def property(self, name):
+        return self._properties.get(name)
+
+
 def test_fast_splash_waits_for_python_page_readiness():
     """Python page containers must not satisfy the fast-splash readiness gate."""
     page = _PropertyObject()
@@ -75,6 +110,76 @@ def test_fast_splash_waits_for_python_page_readiness():
     assert FastSplashController._page_ready(window) is False
     window._properties["_pythonReadyIndexes"] = [0]
     assert FastSplashController._page_ready(window) is True
+
+
+def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
+    """Legacy Window setters must release the deferred fast surface together."""
+    controller = FastSplashController(None)
+    controller._splash = _SplashSurface()
+    controller._visibility_deferred = True
+
+    controller.update_metadata(title="Kaleidos")
+    assert controller._splash.shown is False
+    assert controller._splash.properties["splashTitle"] == "Kaleidos"
+
+    controller.update_metadata(icon=":/icons/kaleidos.svg")
+    assert controller._splash.shown is True
+    assert controller._splash.properties["splashTitle"] == "Kaleidos"
+    assert controller._splash.properties["splashIcon"] == "qrc:/icons/kaleidos.svg"
+
+
+def test_fast_splash_uses_legacy_application_name_when_display_name_is_empty():
+    """The old applicationName API must brand the early surface."""
+    app = _ApplicationSurface(application_name="Kaleidos")
+    assert FastSplashController._application_title(app) == "Kaleidos"
+
+
+def test_fast_splash_syncs_window_metadata_with_application_fallbacks():
+    """Window attachment must fill missing legacy metadata from App state."""
+    app = _ApplicationSurface(
+        display_name="Kaleidos",
+        application_icon=":/icons/kaleidos.svg",
+    )
+    controller = FastSplashController(None)
+    controller._app = app
+    controller._splash = _SplashSurface()
+    controller._visibility_deferred = True
+
+    controller._sync_window_metadata(_WindowSurface(splashSubtitle="Loading"))
+
+    assert controller._splash.shown is True
+    assert controller._splash.properties == {
+        "splashTitle": "Kaleidos",
+        "splashIcon": "qrc:/icons/kaleidos.svg",
+        "splashSubtitle": "Loading",
+    }
+
+
+def test_fast_splash_ignores_metadata_after_close():
+    """Late legacy setters must not resurrect a closed splash window."""
+    controller = FastSplashController(None)
+    controller._splash = _SplashSurface()
+    controller._visibility_deferred = True
+    controller.close()
+
+    controller.update_metadata(title="Kaleidos", icon=":/icons/kaleidos.svg")
+
+    assert controller._splash.shown is False
+    assert controller._splash.properties == {}
+
+
+def test_app_window_icon_forwards_legacy_qicon_to_fast_splash():
+    """App.setWindowIcon(QIcon) must retain the legacy fast-splash contract."""
+    calls = []
+    app = object.__new__(App)
+    app._app = SimpleNamespace(setWindowIcon=lambda icon: calls.append(("qt", icon)))
+    app._update_fast_splash_metadata = lambda **metadata: calls.append(metadata)
+    icon = QIcon()
+
+    app.setWindowIcon(icon)
+
+    assert calls[0] == ("qt", icon)
+    assert calls[1] == {"icon": icon}
 
 
 def test_fast_splash_converts_qml_ready_indexes_before_readiness_check():
@@ -219,6 +324,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     fast_splash_source = (
         ROOT / "prismqml/python/window/fast_splash.py"
     ).read_text(encoding="utf-8")
+    lifecycle_source = (
+        ROOT / "prismqml/python/window/_fast_splash_lifecycle.py"
+    ).read_text(encoding="utf-8")
 
     assert "property bool splashEnabled: true" in qml_source
     assert "property int splashMinimumVisibleDuration:" in qml_source
@@ -235,8 +343,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "transition.setParent(self)" in fast_splash_source
     assert "QQmlEngine.setObjectOwnership(" in fast_splash_source
     assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
-    assert "wintypes.HWND(0)" in fast_splash_source
-    assert "HWND_TOPMOST" not in fast_splash_source
+    assert "wintypes.HWND(0)" in lifecycle_source
+    assert "HWND_TOPMOST" not in lifecycle_source
     assert "win.revealTransition.revealRadiusPixels" in fast_splash_source
     assert "self._reveal_component = component" in fast_splash_source
     reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
@@ -268,4 +376,5 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
     assert "def show(self, icon: str = \"\")" in fast_splash_source
-    assert "splash.setProperty(\"splashIcon\", self._qml_icon_source(initial_icon))" in fast_splash_source
+    assert "initial_icon_ready = self._set_icon_metadata(initial_icon)" in fast_splash_source
+    assert "self._icon_provider = FastSplashIconProvider()" in fast_splash_source

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QIcon
 
 from ..core.utils import QML_XHR_ALLOW_FILE_READ_ENV
 from ._application_icon_runtime import (
@@ -480,6 +480,10 @@ class App(ApplicationIconMixin):
         self._app.setWindowIcon(icon)
         if isinstance(icon, (str, os.PathLike)):
             self._update_fast_splash_metadata(icon=os.fspath(icon))
+        elif isinstance(icon, QIcon):
+            # Preserve the legacy QIcon overload for the early isolated splash.
+            # 兼容旧版 QIcon 重载，让早期独立 Splash 也能拿到同一份图标。
+            self._update_fast_splash_metadata(icon=icon)
 
     def create_window(self, window_type: int = _DEFAULT_WINDOW_TYPE) -> "Window":
         """创建窗口 Create window

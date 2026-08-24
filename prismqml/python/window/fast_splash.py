@@ -7,25 +7,34 @@
 
 from __future__ import annotations
 
-import ctypes
-import sys
-from ctypes import wintypes
 from pathlib import Path
 from typing import Any, Optional
 
-from PySide6.QtCore import QMetaObject, QObject, QTimer, QUrl, Qt
+from PySide6.QtCore import QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickWindow
 
 from ..core.logger import exception, info, warning
 from ..runtime.fast_splash_context import register_fast_splash_context
+from ._fast_splash_metadata import (
+    ICON_PROVIDER_NAME,
+    FastSplashIconProvider,
+    application_title,
+    is_default_process_title,
+    qml_icon_source,
+    set_icon_metadata,
+)
+from ._fast_splash_lifecycle import (
+    bind_owner,
+    close as close_fast_splash,
+    finish_embedded_handoff,
+    finish_reveal,
+    raise_owned_splash,
+)
 
 
-# These values are the resolved Gallery splash metrics. They deliberately stay
-# in this lightweight module so the fast surface does not import PrismQML/QML
-# theme providers before the main engine is ready.
-# 这些是 Gallery 启动画面的已解析度量，保留在轻量模块中，避免快速表面在主引擎
-# 就绪前导入 PrismQML/QML 主题 provider。
+# Resolved metrics stay local so the fast surface avoids early theme imports.
+# 已解析度量保留在本模块，避免快速表面过早导入主题 provider。
 _ICON_SIZE = 102
 _SPACING_XL = 16
 _SPACING_M = 8
@@ -45,11 +54,9 @@ _BREATHE_MAX = 1.1
 _BREATHE_DURATION = 1200
 _ICON_SHADOW_COLOR = "#30000000"
 _ICON_SHADOW_BLUR = 0.8
-_ICON_SHADOW_OFFSET = 6
 _BACKGROUND_DARK = "#202020"
 _BACKGROUND_LIGHT = "#f0f4f9"
 _ACCENT = "#ff0e5a9c"
-_DEFAULT_PROCESS_TITLES = {"python", "pythonw", "pyside6"}
 
 
 _SPLASH_QML = """
@@ -262,12 +269,16 @@ class FastSplashController(QObject):
         self._transition = None
         self._main_window: Optional[QQuickWindow] = None
         self._ready_timer: Optional[QTimer] = None
+        self._icon_provider: Optional[FastSplashIconProvider] = None
         self._splash_frame_count = 0
         self._main_frame_count = 0
         self._page_ready_observed_frame = -1
         self._handoff_done = False
         self._embedded_handoff = False
         self._visibility_deferred = False
+        self._title_metadata_ready = False
+        self._icon_metadata_ready = False
+        self._closed = False
 
     @property
     def splash(self) -> Optional[QQuickWindow]:
@@ -276,9 +287,12 @@ class FastSplashController(QObject):
     def show(self, icon: str = "") -> bool:
         """Create the splash before QML loads, deferring unbranded frames."""
         try:
+            self._closed = False
             palette = self._app.palette()
             is_dark = palette.window().color().lightness() < 128
             self._splash_engine = QQmlEngine()
+            self._icon_provider = FastSplashIconProvider()
+            self._splash_engine.addImageProvider(ICON_PROVIDER_NAME, self._icon_provider)
             self._splash_component = QQmlComponent(self._splash_engine)
             self._splash_component.setData(
                 build_fast_splash_qml(is_dark).encode("utf-8"),
@@ -296,13 +310,18 @@ class FastSplashController(QObject):
                 return False
             self._splash = splash
             initial_icon = icon or getattr(self._app, "application_icon", "")
+            initial_icon_ready = False
             if initial_icon:
-                splash.setProperty("splashIcon", self._qml_icon_source(initial_icon))
-            application_title = getattr(self._app, "applicationDisplayName", lambda: "")()
-            self._visibility_deferred = (
-                self._is_default_process_title(application_title) or not initial_icon
+                initial_icon_ready = self._set_icon_metadata(initial_icon)
+            application_title = self._application_title(self._app)
+            self._title_metadata_ready = bool(
+                application_title and not self._is_default_process_title(application_title)
             )
-            if application_title and not self._visibility_deferred:
+            self._icon_metadata_ready = initial_icon_ready
+            self._visibility_deferred = not (
+                self._title_metadata_ready and self._icon_metadata_ready
+            )
+            if application_title and not self._is_default_process_title(application_title):
                 splash.setProperty("splashTitle", str(application_title))
             screen = self._app.primaryScreen()
             if screen is not None:
@@ -322,53 +341,54 @@ class FastSplashController(QObject):
             exception(f"FastSplash 创建失败: {type(exc).__name__}: {exc}")
             return False
 
-    @staticmethod
-    def _is_default_process_title(title: object) -> bool:
-        """Identify Qt's unbranded interpreter title. 识别 Qt 默认解释器标题。"""
-        normalized = str(title or "").strip().lower()
-        if not normalized:
-            return True
-        executable_title = Path(sys.executable).stem.strip().lower()
-        return normalized in _DEFAULT_PROCESS_TITLES or normalized == executable_title
+    _application_title = staticmethod(application_title)
+    _is_default_process_title = staticmethod(is_default_process_title)
 
     def update_metadata(
         self,
         *,
         title: Optional[str] = None,
-        icon: Optional[str] = None,
+        icon: Any = None,
         subtitle: Optional[str] = None,
     ) -> None:
         """Update visible startup metadata without changing its public API."""
-        if self._splash is None:
+        if self._closed or self._splash is None:
             return
-        if title:
-            self._splash.setProperty("splashTitle", str(title))
-        if icon:
-            self._splash.setProperty("splashIcon", self._qml_icon_source(str(icon)))
-        if subtitle is not None:
-            self._splash.setProperty("splashSubtitle", str(subtitle))
+        try:
+            if title:
+                self._splash.setProperty("splashTitle", str(title))
+                self._title_metadata_ready = not self._is_default_process_title(title)
+            if icon:
+                self._icon_metadata_ready = self._set_icon_metadata(icon)
+            if subtitle is not None:
+                self._splash.setProperty("splashSubtitle", str(subtitle))
+            if (
+                self._visibility_deferred
+                and self._title_metadata_ready
+                and self._icon_metadata_ready
+            ):
+                self._show_deferred_splash()
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            warning(f"FastSplash 元数据更新失败: {type(exc).__name__}: {exc}")
+
+    def _set_icon_metadata(self, icon: Any) -> bool:
+        """Publish a path/URL or legacy QIcon to the isolated QML surface."""
+        return set_icon_metadata(self._splash, self._icon_provider, icon)
 
     def _show_deferred_splash(self) -> None:
         """Show a deferred splash after the real window metadata is ready."""
-        if not self._visibility_deferred or self._splash is None:
+        if (
+            self._closed
+            or self._handoff_done
+            or not self._visibility_deferred
+            or self._splash is None
+        ):
             return
         self._splash.show()
         self._visibility_deferred = False
         info("FastSplash 独立启动页已显示")
 
-    @staticmethod
-    def _qml_icon_source(icon: str) -> str:
-        """Normalize a known icon source for the isolated QML engine."""
-        source = str(icon).replace("\\", "/")
-        if source.startswith(":/"):
-            return "qrc" + source
-        if source.startswith(("qrc:/", "file:/", "http://", "https://")):
-            return source
-        if len(source) > 1 and source[1] == ":":
-            return QUrl.fromLocalFile(source).toString()
-        if source.startswith("/"):
-            return QUrl.fromLocalFile(source).toString()
-        return source
+    _qml_icon_source = staticmethod(qml_icon_source)
 
     def attach_and_reveal(self, main_engine: QQmlEngine, main_window: QQuickWindow) -> bool:
         """Bind the splash to the main HWND and reveal once its first page paints."""
@@ -424,9 +444,17 @@ class FastSplashController(QObject):
         """Copy existing window splash metadata into the early surface."""
         if self._splash is None:
             return
-        title = main_window.property("splashTitle") or main_window.property("windowTitle")
+        title = (
+            main_window.property("splashTitle")
+            or main_window.property("windowTitle")
+            or self._application_title(self._app)
+        )
         subtitle = main_window.property("splashSubtitle")
-        icon = main_window.property("splashIcon") or main_window.property("windowIcon")
+        icon = (
+            main_window.property("splashIcon")
+            or main_window.property("windowIcon")
+            or getattr(self._app, "application_icon", "")
+        )
         self.update_metadata(title=title, icon=icon, subtitle=subtitle)
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
@@ -611,114 +639,16 @@ class FastSplashController(QObject):
             self.restore_embedded_splash()
 
     def _finish_embedded_handoff(self) -> None:
-        if self._handoff_done or self._splash is None or self._main_window is None:
-            return
-        self._handoff_done = True
-        self._splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
-        self._splash.setVisible(False)
-
-        def activate_main() -> None:
-            info("FastSplash 自定义 Splash 已绘制, 交接主窗口")
-            self._main_window.raise_()
-            self._main_window.requestActivate()
-
-        QTimer.singleShot(0, activate_main)
+        finish_embedded_handoff(self)
 
     def _inject_context(self) -> None:
         register_fast_splash_context(self._splash_engine)
 
     def _finish_reveal(self) -> None:
-        if self._handoff_done or self._splash is None or self._main_window is None:
-            return
-        splash = self._splash
-
-        gate = {"hidden_frame": False, "closed": False}
-
-        def handoff() -> None:
-            if gate["closed"] or not gate["hidden_frame"]:
-                return
-            gate["closed"] = True
-            self._handoff_done = True
-            try:
-                splash.frameSwapped.disconnect(on_hidden_frame)
-            except (RuntimeError, TypeError):
-                pass
-            splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
-            splash.setVisible(False)
-
-            def activate_main() -> None:
-                info("FastSplash 揭幕完成, 交接主窗口")
-                self._main_window.raise_()
-                self._main_window.requestActivate()
-
-            QTimer.singleShot(0, activate_main)
-
-        def on_hidden_frame() -> None:
-            gate["hidden_frame"] = True
-            handoff()
-
-        splash.frameSwapped.connect(on_hidden_frame)
-        splash.requestUpdate()
-
-        def handoff_timeout() -> None:
-            if gate["closed"]:
-                return
-            gate["hidden_frame"] = True
-            handoff()
-
-        QTimer.singleShot(250, handoff_timeout)
-
-    @staticmethod
-    def _bind_owner(splash: QQuickWindow, main: QQuickWindow) -> bool:
-        splash.setTransientParent(main)
-        if sys.platform != "win32":
-            return splash.transientParent() == main
-        splash_hwnd = int(splash.winId())
-        main_hwnd = int(main.winId())
-        if not splash_hwnd or not main_hwnd:
-            return False
-        user32 = ctypes.WinDLL("user32", use_last_error=True)
-        set_owner = user32.SetWindowLongPtrW
-        set_owner.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
-        set_owner.restype = ctypes.c_ssize_t
-        ctypes.set_last_error(0)
-        set_owner(splash_hwnd, -8, main_hwnd)
-        if ctypes.get_last_error():
-            return False
-        get_owner = user32.GetWindow
-        get_owner.argtypes = [wintypes.HWND, wintypes.UINT]
-        get_owner.restype = wintypes.HWND
-        return int(get_owner(splash_hwnd, 4) or 0) == main_hwnd
-
-    @staticmethod
-    def _raise_owned_splash(splash: QQuickWindow, main: QQuickWindow) -> None:
-        if sys.platform != "win32":
-            splash.raise_()
-            return
-        user32 = ctypes.WinDLL("user32", use_last_error=True)
-        set_window_pos = user32.SetWindowPos
-        set_window_pos.argtypes = [
-            wintypes.HWND,
-            wintypes.HWND,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_int,
-            ctypes.c_int,
-            wintypes.UINT,
-        ]
-        set_window_pos.restype = wintypes.BOOL
-        flags = 0x0001 | 0x0002 | 0x0010  # SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
-        # HWND_TOP is normal Z-order, not a system topmost window. The native
-        # owner set by _bind_owner keeps this window attached to the main window.
-        # HWND_TOP 是普通 Z 序, 不是系统置顶窗口; owner 关系负责绑定生命周期。
-        set_window_pos(int(splash.winId()), wintypes.HWND(0), 0, 0, 0, 0, flags)
+        finish_reveal(self)
 
     def close(self) -> None:
-        """Hide the retained QQuickWindow during application teardown."""
-        if self._ready_timer is not None:
-            self._ready_timer.stop()
-        if self._splash is not None:
-            try:
-                self._splash.setVisible(False)
-            except RuntimeError:
-                pass
+        close_fast_splash(self)
+
+    _bind_owner = staticmethod(bind_owner)
+    _raise_owned_splash = staticmethod(raise_owned_splash)
