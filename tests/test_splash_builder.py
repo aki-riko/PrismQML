@@ -156,6 +156,13 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "createSplash();" not in cpp_source
     assert "splashSubtitle:" in gallery_source
     assert "splashComponent.createObject" not in gallery_source
+    splash_qml = fast_splash_source.split('_SPLASH_QML = """', 1)[1].split(
+        '"""', 1
+    )[0]
+    assert "visible: false" in splash_qml
+    assert "visible: true" not in splash_qml
+    assert gallery_source.count("            visible: false") == 3
+    assert "self._show_qml_owned_window(main_window)" in fast_splash_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
     assert "def show(self, icon: str = \"\")" in fast_splash_source

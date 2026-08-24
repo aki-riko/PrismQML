@@ -60,7 +60,9 @@ Window {{
     width: 1200; height: 800
     flags: Qt.SplashScreen | Qt.FramelessWindowHint
     color: "transparent"
-    visible: true
+    // The controller shows the window after the object tree and metadata are ready.
+    // 由控制器在对象树和元数据准备完成后显示窗口，避免构造期间提交空白帧。
+    visible: false
 
     property string splashIcon: ""
     property string splashTitle: "PrismQML"
@@ -337,6 +339,7 @@ class FastSplashController(QObject):
             if not self._bind_owner(self._splash, main_window):
                 warning("FastSplash 原生 owner 绑定校验失败")
                 return False
+            self._show_qml_owned_window(main_window)
             self._raise_owned_splash(self._splash, main_window)
             main_window.frameSwapped.connect(self._on_main_frame)
             self._ready_timer = QTimer(self)
@@ -412,10 +415,11 @@ class FastSplashController(QObject):
             if not self._bind_owner(self._splash, main_window):
                 warning("FastSplash 自定义回退无法绑定主窗口")
                 return self.restore_embedded_splash(main_window)
-            self._raise_owned_splash(self._splash, main_window)
             if not QMetaObject.invokeMethod(main_window, "_enableDeferredSplash"):
                 warning("FastSplash 自定义回退无法启用内嵌 Splash")
                 return self.restore_embedded_splash(main_window)
+            self._show_qml_owned_window(main_window)
+            self._raise_owned_splash(self._splash, main_window)
             self._embedded_handoff = True
             main_window.frameSwapped.connect(self._on_main_frame)
             self._ready_timer = QTimer(self)
@@ -444,6 +448,14 @@ class FastSplashController(QObject):
         if bool(stack.property("_useSourceMode")):
             return current.property("item") is not None
         return True
+
+    @staticmethod
+    def _show_qml_owned_window(main_window: QQuickWindow) -> None:
+        """Expose a hidden pure-QML window after the splash owns its startup."""
+        if main_window.property("_pythonPageMode") is True:
+            return
+        if not main_window.isVisible():
+            main_window.show()
 
     def _poll_main_ready(self) -> None:
         if self._handoff_done or self._main_window is None:

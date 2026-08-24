@@ -108,6 +108,7 @@ QtObject {
     property Component fluentWindowComponent: Component {
         FluentInternal.WindowsSplit {
             width: root.windowWidth; height: root.windowHeight
+            visible: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
@@ -131,6 +132,7 @@ QtObject {
     property Component msWindowComponent: Component {
         FluentInternal.WindowsBar {
             width: root.windowWidth; height: root.windowHeight
+            visible: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
@@ -151,6 +153,7 @@ QtObject {
     property Component filledSplitWindowComponent: Component {
         FluentInternal.WindowsFilled {
             width: root.windowWidth; height: root.windowHeight
+            visible: false
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
