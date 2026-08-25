@@ -582,6 +582,8 @@ def test_windows_split_source_conventions_and_startup_delay_token():
     assert "interval: 50" not in helper_source
     assert "paperOriginX: window.navCompactWidth" in source
     assert "paperOriginY: window.titleBarHeight" in source
+    assert "pageStack.stackAlias, window.pageSources" in source
+    assert "navInterface, stack," not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int splitStartupDelayMs: 50" in metrics
 
@@ -668,6 +670,8 @@ def test_windows_bar_source_conventions_and_startup_gate():
         "root.hostWindow.navigationScrollDuration : Enums.duration.navigationScroll"
         in content_source
     )
+    assert "pageStack.stackAlias, root.hostWindow.pageSources" in content_source
+    assert "navigationBar, stack," not in content_source
     assert (
         "scrollStep: root.hostWindow ? "
         "root.hostWindow.navigationScrollStep : Enums.spacing.navigationScrollStep"

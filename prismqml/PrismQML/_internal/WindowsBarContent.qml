@@ -76,7 +76,9 @@ Item {
 
         onBottomItemClicked: (index) => {
             if (!root.hostWindow) return
-            root.hostWindow._handleBottomItemClicked(index, navigationBar, stack, root.hostWindow.pageSources)
+            root.hostWindow._handleBottomItemClicked(
+                index, navigationBar, pageStack.stackAlias, root.hostWindow.pageSources
+            )
         }
     }
 

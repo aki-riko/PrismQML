@@ -180,7 +180,7 @@ NavigationWindowCore {
  if (isExpanded) collapse()
  }
  onBottomItemClicked: (index) => {
- window._handleBottomItemClicked(index, navInterface, stack, window.pageSources)
+ window._handleBottomItemClicked(index, navInterface, pageStack.stackAlias, window.pageSources)
  if (isExpanded) collapse()
  }
  }
