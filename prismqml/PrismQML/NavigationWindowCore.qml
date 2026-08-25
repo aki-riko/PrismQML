@@ -34,6 +34,8 @@ WindowsCore {
     property string splashSubtitle: ""  // Startup status text 启动状态文本
     property int splashMinimumVisibleDuration: Enums.duration.splashMinimumVisible  // Stable display after window exposure 窗口可见后的最短稳定展示时长
     property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration  // Reveal animation length; splash stays visible throughout 揭幕动画时长, 期间启动画面持续可见
+    property int splashExitAnimationType: Enums.animation.lazy_circle  // Built-in splash exit animation 内置启动画面退场动画
+    property Component splashExitAnimation: null  // Custom splash exit Component 自定义启动画面退场 Component
     // Replaceable startup visual; the root must provide finish(). 可替换启动视觉，根对象须提供 finish()。
     property Component splashComponent: _defaultSplashComponent
     readonly property bool _usesDefaultSplashComponent: splashComponent === _defaultSplashComponent

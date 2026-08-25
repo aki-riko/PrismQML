@@ -505,9 +505,13 @@ def test_feedback_sources_use_shared_style_tokens():
         encoding="utf-8"
     )
     assert 'objectName: "splashLazyTransitionLoader"' in splash_source
-    assert "sourceComponent: NavigationInternal.LazyPageCircleTransition" in splash_source
+    assert "sourceComponent: PageTransition" in splash_source
     assert 'objectName: "splashLazyPageCircleTransition"' in splash_source
     assert "lazyExitLoader.item.expand(control)" in splash_source
+    assert "animationType: control.exitAnimationType" in splash_source
+    assert "customAnimation: control.exitAnimation" in splash_source
+    assert "property int exitAnimationType: Enums.animation.lazy_circle" in splash_source
+    assert "property Component exitAnimation: null" in splash_source
     assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
     assert "revealTarget: true" in splash_source
     assert lazy_transition_source.count(

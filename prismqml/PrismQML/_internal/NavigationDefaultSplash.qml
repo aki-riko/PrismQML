@@ -13,4 +13,6 @@ SplashScreen {
     title: hostWindow.splashTitle !== "" ? hostWindow.splashTitle : hostWindow.windowTitle
     subtitle: hostWindow.splashSubtitle
     revealDuration: hostWindow.splashRevealDuration
+    exitAnimationType: hostWindow.splashExitAnimationType
+    exitAnimation: hostWindow.splashExitAnimation
 }

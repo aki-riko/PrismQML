@@ -4,7 +4,6 @@
 
 import QtQuick.Effects
 import "../../.."
-import "../../navigation/_internal" as NavigationInternal
 import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
 
 // SplashScreen - Application splash screen overlay 应用启动画面覆盖层
@@ -39,6 +38,8 @@ Rectangle {
     property bool showProgress: true                 // Show progress ring 显示进度环
     // Reveal animation length on finish(). 调用 finish() 后的揭幕动画时长。
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+    property int exitAnimationType: Enums.animation.lazy_circle
+    property Component exitAnimation: null
 
     // ==================== Internal Props 内部属性 ====================
     readonly property color _splashBackground: Enums.backgroundColor
@@ -268,8 +269,10 @@ Rectangle {
         active: false
         asynchronous: false
 
-        sourceComponent: NavigationInternal.LazyPageCircleTransition {
+        sourceComponent: PageTransition {
             objectName: "splashLazyPageCircleTransition"
+            animationType: control.exitAnimationType
+            customAnimation: control.exitAnimation
             revealDuration: control.revealDuration
             revealTarget: true
 
