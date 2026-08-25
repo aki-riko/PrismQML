@@ -6,4 +6,5 @@ SegmentedControl SegmentedControl.qml
 TabWidget TabWidget.qml
 Breadcrumb Breadcrumb.qml
 StackedWidget StackedWidget.qml
+PageTransition PageTransition.qml
 NavigationProfileCard NavigationProfileCard.qml

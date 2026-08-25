@@ -13,4 +13,6 @@ QtObject {
     readonly property int slide: 4
     readonly property int card: 5
     readonly property int zoom: 6
+    readonly property int lazy_circle: 7
+    readonly property int custom: 8
 }

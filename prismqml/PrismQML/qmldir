@@ -112,6 +112,7 @@ SegmentedControl controls/navigation/SegmentedControl.qml
 TabWidget controls/navigation/TabWidget.qml
 Breadcrumb controls/navigation/Breadcrumb.qml
 StackedWidget controls/navigation/StackedWidget.qml
+PageTransition controls/navigation/PageTransition.qml
 NavigationProfileCard controls/navigation/NavigationProfileCard.qml
 
 # navigation (顶层)
