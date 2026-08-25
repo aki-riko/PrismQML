@@ -263,10 +263,6 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
                 and not bool(circle_transition.property("collapsing"))
             )
         )
-        assert (
-            loading_overlay.findChild(QObject, "qmlPageCloseRippleDissolve")
-            is None
-        )
         assert page_transition.property("collapsed") is True
         assert circle_transition.property("running") is False
         assert window._window.property("_pythonLoading") is True

@@ -67,7 +67,6 @@ WINDOW_LEAF_PATHS = [
         "WindowIcon.qml",
         "CaptionButton.qml",
         "ContentFrame.qml",
-        "WindowCloseDissolve.qml",
         "WindowsCoreFrame.qml",
     )
 ]
@@ -82,6 +81,21 @@ WINDOW_BUILDER_PATH = (
     ROOT / "prismqml" / "python" / "window" / "_window_builder.py"
 )
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+ENUMS_PATH = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
+CAPTION_BUTTON_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "CaptionButton.qml"
+)
+REMOVED_CLOSE_EFFECT_PATHS = [
+    ROOT / "prismqml" / "PrismQML" / relative_path
+    for relative_path in (
+        "_internal/WindowCloseDissolve.qml",
+        "_internal/CloseRippleAnimator.qml",
+        "_internal/CloseRippleDissolve.qml",
+        "_internal/CloseRippleFrame.qml",
+        "shaders/window_close_ripple.frag",
+        "shaders/window_close_ripple.frag.qsb",
+    )
+]
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
 )
@@ -495,7 +509,7 @@ def test_windows_core_titlebar_double_click_routes_native_transition(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_windows_core_native_close_waits_for_exit_animation(monkeypatch, qapp):
+def test_windows_core_native_close_has_no_custom_exit_animation(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
         engine,
@@ -513,20 +527,19 @@ def test_windows_core_native_close_waits_for_exit_animation(monkeypatch, qapp):
             and window.property("_animScale") == pytest.approx(1)
         )
 
-        # The first native/QWindow close is intercepted while the dissolve runs.
-        # 首次原生/QWindow 关闭会在渐隐期间被拦截。
+        # The first native/QWindow close leaves the current onClosing delivery,
+        # then closes directly without a custom visual transition.
+        # 首次原生/QWindow 关闭退出当前 onClosing 分发后直接关闭, 不播放自定义视觉过渡。
         assert window.close() is False
-        assert window.isVisible()
         assert window.property("_closeInProgress") is True
         assert window.property("nativeCloseAcceptedCount") == 0
 
-        # WindowAnimationHelper closes the QWindow only after the fade completes.
-        # 动画完成后 WindowAnimationHelper 才真正关闭 QWindow。
         assert _wait_for(
             lambda: window.property("nativeCloseAcceptedCount") == 1
             and not window.isVisible(),
-            timeout_ms=3000,
+            timeout_ms=500,
         )
+        assert window.opacity() == pytest.approx(1)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -612,9 +625,28 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     ] == []
     assert "animatedMinimizeWithForward" not in source
     assert "handleVisibilityChange" not in source
+    assert "WindowCloseDissolve" not in source
+    assert "closeEffectLoader" not in source
+    assert "prewarmCloseAnimation" not in source
+    assert "animatedClose" not in source
     assert "animHelper.handleVisibilityChange" not in SOURCE_PATH.read_text(
         encoding="utf-8"
     )
+    windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "Qt.callLater(window._completeAcceptedClose)" in windows_core_source
+    assert "animHelper.animatedClose()" not in windows_core_source
+
+
+def test_window_close_dissolve_artifacts_and_api_are_removed():
+    assert [path for path in REMOVED_CLOSE_EFFECT_PATHS if path.exists()] == []
+    windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
+    caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
+    metrics_source = METRICS_PATH.read_text(encoding="utf-8")
+    enums_source = ENUMS_PATH.read_text(encoding="utf-8")
+    assert "prewarmCloseAnimation" not in windows_core_source
+    assert "prewarmCloseAnimation" not in caption_source
+    assert "windowCloseMetrics" not in enums_source
+    assert "readonly property QtObject windowClose" not in metrics_source
 
 
 def test_window_leaf_source_conventions_and_icon_delay_token():

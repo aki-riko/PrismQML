@@ -343,7 +343,6 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert circle_frame is None
         assert page_transition.property("collapsed") is True
         assert transition.property("running") is False
-        assert overlay.findChild(QObject, "qmlPageCloseRippleDissolve") is None
 
         assert QMetaObject.invokeMethod(
             window, "_markPythonPageReady", Q_ARG("QVariant", 1)

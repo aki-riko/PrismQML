@@ -118,7 +118,15 @@ Window {
     }
     function _startAcceptedClose() {
         _closeInProgress = true
-        animHelper.animatedClose()
+        // Leave the current onClosing delivery before issuing the accepted close.
+        // 先退出当前 onClosing 分发, 再发起已接受的真实关闭, 避免重入。
+        Qt.callLater(window._completeAcceptedClose)
+    }
+    function _completeAcceptedClose() {
+        if (!_closeInProgress) return
+        _closeDesktopNotifications()
+        var closed = window.close()
+        if (closed === false) _cancelCloseRequest()
     }
     function _closeDesktopNotifications() {
         var component = Qt.createComponent(Qt.resolvedUrl("_internal/DesktopNotificationCloser.qml"))
@@ -176,7 +184,6 @@ Window {
     function animatedMinimize() { animHelper.animatedMinimize() }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
-    function prewarmCloseAnimation() { animHelper.prewarmCloseAnimation() }
 
     // ==================== Size 尺寸 ====================
     width: Enums.window.defaultWidth
@@ -225,8 +232,8 @@ Window {
                 _cancelCloseRequest()
                 return
             }
-            // Hold the first native close request until the dissolve finishes.
-            // 首次原生关闭请求先拦住，等渐隐动画完成后再真正销毁窗口。
+            // Leave the first native close delivery before issuing the accepted close.
+            // 首次原生关闭请求先退出当前分发, 再发起已接受的真实关闭。
             close.accepted = false
             _startAcceptedClose()
             return
@@ -281,14 +288,10 @@ Window {
     }
 
     // 从隐藏恢复显示时重新播放显示动画,把 opacity 拉回 1。
-    // 背景: 窗口 opacity 初值为 0(invisible),靠 startShow() 动画拉到 1;
-    // 关闭动画 closeAnim 会把 opacity 设回 0。下游"隐藏到托盘"再调裸 show()
-    // 恢复时,opacity 仍停在 0 → layered 窗口 alpha=0 完全透明 → 窗口"打开了"
-    // 却完全看不见(实测 GetLayeredWindowAttributes alpha=0)。这里在 visible
-    // 由 false→true 且 opacity 仍接近 0 时自动补一次 startShow,使所有下游
-    // (含直接调 QWindow.show() 的)无需改调用方即可正确恢复显示。
-    // 守卫 opacity < 0.5: 避免与正常启动序列(startShow 已在跑)/最大化还原
-    //   (opacity 已是 1)重复触发动画。
+    // 背景: 窗口 opacity 初值为 0(invisible),首个完整帧后由 startShow()
+    // 直接设为 1。若下游在首帧门槛期间隐藏后再调用裸 show(), layered 窗口
+    // 可能仍保持 alpha=0。这里在 visible 由 false→true 时恢复完整绘制状态,
+    // 使直接调用 QWindow.show() 的下游也能正确恢复显示。
     onVisibleChanged: ensureVisiblePaintState("visibleChanged")
 
     // ==================== Content 内容 ====================
@@ -302,15 +305,6 @@ Window {
     WindowAnimationHelper {
         id: animHelper
         targetWindow: window
-        targetItem: windowFrameLayer.frame
-        closeCornerRadius: windowFrameLayer.frame.radius
-        onCloseCallback: function() {
-            _closeDesktopNotifications()
-            var closed = window.close()
-            if (closed === false) {
-                window._cancelCloseRequest()
-            }
-        }
     }
 
     // Listen to ConfigManager directly. 直接监听 ConfigManager 信号。

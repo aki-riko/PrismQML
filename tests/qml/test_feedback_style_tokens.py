@@ -70,7 +70,6 @@ Item {
     readonly property int iconXl: Enums.iconSize.xl
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
-    readonly property int closeRippleDuration: Enums.windowCloseMetrics.rippleDuration
     readonly property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
@@ -318,19 +317,16 @@ def test_splash_animation_and_shadow_tokens_preserve_runtime_values(qapp):
         assert splash is not None
         breathe_duration = root.property("splashBreatheDuration")
         spin_duration = root.property("splashProgressSpinDuration")
-        close_ripple_duration = root.property("closeRippleDuration")
         shadow_blur = root.property("splashShadowBlur")
         shadow_offset = root.property("splashShadowOffset")
         assert (
             breathe_duration,
             spin_duration,
-            close_ripple_duration,
             shadow_blur,
             shadow_offset,
         ) == (
             1200,
             1000,
-            500,
             0.8,
             6,
         )

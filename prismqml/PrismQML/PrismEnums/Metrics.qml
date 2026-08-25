@@ -669,22 +669,6 @@ QtObject {
  readonly property int progressDotTopMargin: root.progressRing.orbitDotTopMargin
  }
 
- // ==================== WindowClose 窗口关闭度量 ====================
- readonly property QtObject windowClose: QtObject {
- readonly property int rippleDuration: 500
- readonly property real rippleTailLength: 0.22
- readonly property real rippleWaveFrequency: 54.0
- readonly property real rippleWaveDispersion: 0.65
- readonly property real rippleWaveDamping: 6.8
- readonly property real rippleWaveAmplitude: 0.0042
- readonly property real rippleHighlightStrength: 0.16
- readonly property real rippleFrontSoftness: 0.005
- readonly property real rippleFrontRefractionWidth: 0.018
- readonly property real rippleCrestSharpness: 8.0
- readonly property real rippleOpacity: 0.24
- readonly property real rippleFinishFadeStart: 0.92
- }
-
  // ==================== LazyLoadingTransition 懒加载过渡度量 ====================
  readonly property QtObject lazyLoadingTransition: QtObject {
  readonly property int coverDuration: 300 // Old page circle collapse 旧页面圆形收紧时长

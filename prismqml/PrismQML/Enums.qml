@@ -313,7 +313,6 @@ Item {
     readonly property alias skeletonMetrics: _metrics.skeletonMetrics
     readonly property alias imageCropperDialogMetrics: _metrics.imageCropperDialog
     readonly property alias splashScreenMetrics: _metrics.splashScreen
-    readonly property alias windowCloseMetrics: _metrics.windowClose
     readonly property alias lazyLoadingTransitionMetrics: _metrics.lazyLoadingTransition
     readonly property alias progressRingMetrics: _metrics.progressRing
     readonly property alias colorPickerMetrics: _metrics.colorPicker

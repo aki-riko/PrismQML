@@ -125,7 +125,6 @@ def test_qml_page_only_manages_the_wait_indicator(qapp):
         assert page is not None and content is not None and ring is not None
         assert root.findChild(QQuickItem, "qmlPageCircleTransition") is None
         assert root.findChild(QQuickItem, "qmlPageCircleFrame") is None
-        assert root.findChild(QQuickItem, "qmlPageCloseRippleDissolve") is None
 
         finished = []
         page.finished.connect(lambda: finished.append(True))
