@@ -42,7 +42,7 @@ Card {
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.cardWidth
-    implicitHeight: mainRow.implicitHeight + (expandable && expanded ? expandArea.height : 0)
+    implicitHeight: mainRow.height + (expandable && expanded ? expandArea.height : 0)
     cardType: Enums.card.type_default
     contentPadding: Enums.spacing.none
     borderRadius: Enums.surfaceRadius(Enums.radius.card)
