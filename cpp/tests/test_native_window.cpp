@@ -666,7 +666,8 @@ void exerciseRealWindowsCoreConsumer(const QString &qmlImportPath,
     QStringList messages;
     {
         prism::test::QtMessageCapture capture(messages);
-        const auto consumer = prism::test::createWindowsCoreConsumer(engine);
+        const auto consumer = prism::test::createWindowsCoreConsumer(
+            engine, expectedFinalizeCalls);
         checkWindowsCoreConsumer(consumer, messages, expectedReadyCount);
         prism::test::destroyQmlObject(consumer.object);
         checkNativeWindowFake(fake, expectedFinalizeCalls);

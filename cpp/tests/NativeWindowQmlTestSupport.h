@@ -107,7 +107,8 @@ inline QmlCreationResult createNativeWindowFake(
     return result;
 }
 
-inline QmlCreationResult createWindowsCoreConsumer(QQmlEngine &engine) {
+inline QmlCreationResult createWindowsCoreConsumer(
+    QQmlEngine &engine, int expectedFinalizeCalls) {
     QQmlComponent component(&engine);
     component.setData(
         kWindowsCoreConsumerQml,
@@ -119,10 +120,15 @@ inline QmlCreationResult createWindowsCoreConsumer(QQmlEngine &engine) {
     result.object = component.create(engine.rootContext());
     if (result.object)
         result.object->setProperty("visible", true);
+    const QVariant nativeWindow =
+        engine.rootContext()->contextProperty(QStringLiteral("NativeWindow"));
+    QObject *nativeWindowObject = nativeWindow.value<QObject *>();
     waitForQml([&]() {
-        return result.object &&
+        return result.object && nativeWindowObject &&
                result.object->property("_dwmInitializationDone").toBool() &&
-               result.object->property("opacity").toDouble() >= 0.99;
+               result.object->property("opacity").toDouble() >= 0.99 &&
+               nativeWindowObject->property("finalizeCalls").toInt() >=
+                   expectedFinalizeCalls;
     }, kNativeWindowAnimationWaitMs);
     result.status = component.status();
     result.errors = componentErrors(component);
