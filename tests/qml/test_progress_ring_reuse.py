@@ -283,7 +283,9 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     assert "CloseRipple" not in helper_source
 
     stacked_source = STACKED_WIDGET.read_text(encoding="utf-8")
-    assert "LazyPageCircleTransition {" in stacked_source
+    assert "PageTransition {" in stacked_source
+    assert "animationType: Enums.animation.lazy_circle" in stacked_source
+    assert "LazyPageCircleTransition {" not in stacked_source
     assert 'objectName: "lazyPageCircleTransition"' in stacked_source
 
     page_source = QML_PAGE.read_text(encoding="utf-8")

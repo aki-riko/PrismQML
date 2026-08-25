@@ -406,11 +406,12 @@ Item {
         sourceMode: control._useSourceMode
     }
 
-    LazyPageCircleTransition {
+    PageTransition {
         id: pageCircleTransition
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
+        animationType: Enums.animation.lazy_circle
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()

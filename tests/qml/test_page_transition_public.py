@@ -180,13 +180,13 @@ def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qap
         assert custom.property("customAnimationContractValid") is True
         circle = root.findChild(QQuickItem, "circleTransition")
         assert circle.property("customAnimationContractValid") is True
-        assert circle.findChild(QQuickItem, "pageTransitionCircleBackend") is not None
+        assert circle.findChild(QQuickItem, "qmlPageCircleTransition") is not None
         invalid = root.findChild(QQuickItem, "invalidTransition")
         assert invalid.property("customAnimationContractValid") is False
         assert invalid.property("collapsed") is True
         assert QMetaObject.invokeMethod(invalid, "stop")
         assert invalid.property("collapsed") is False
-        assert source.property("visible") is True
+        assert source.property("visible") is False
     finally:
         root.deleteLater()
         component.deleteLater()

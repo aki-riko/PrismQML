@@ -224,9 +224,8 @@ Window {{
 _REVEAL_QML = """
 import QtQuick
 import "{root_url}"
-import "{internal_url}" as NavigationInternal
 
-NavigationInternal.LazyPageCircleTransition {{
+PageTransition {{
     id: transition
     objectName: "fastStartupReveal"
     anchors.fill: parent
@@ -627,12 +626,9 @@ class FastSplashController(QObject):
             self._inject_context()
             lib_root = Path(__file__).resolve().parents[2] / "PrismQML"
             root_url = QUrl.fromLocalFile(str(lib_root)).toString()
-            internal_url = QUrl.fromLocalFile(
-                str(lib_root / "controls" / "navigation" / "_internal")
-            ).toString()
             component = QQmlComponent(self._splash_engine)
             component.setData(
-                _REVEAL_QML.format(root_url=root_url, internal_url=internal_url).encode("utf-8"),
+                _REVEAL_QML.format(root_url=root_url).encode("utf-8"),
                 QUrl("fast-startup-reveal"),
             )
             # Keep the QQmlComponent alive with the controller. A component-created

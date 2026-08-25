@@ -42,6 +42,27 @@ Item {
         ? Number(_backend.revealMaximumRadiusPixels) : 0
     readonly property real revealRadiusPixels: _backend && _contractValid
         ? Number(_backend.revealRadiusPixels) : 0
+    readonly property bool _capturePending: _backend && _contractValid
+        && typeof _backend._capturePending !== "undefined"
+        ? Boolean(_backend._capturePending) : false
+    readonly property int _overlayFrameStage: _backend && _contractValid
+        && typeof _backend._overlayFrameStage !== "undefined"
+        ? Number(_backend._overlayFrameStage) : 0
+    readonly property bool _dissolving: _backend && _contractValid
+        && typeof _backend._dissolving !== "undefined"
+        ? Boolean(_backend._dissolving) : false
+    readonly property bool _usingPageLayer: _backend && _contractValid
+        && typeof _backend._usingPageLayer !== "undefined"
+        ? Boolean(_backend._usingPageLayer) : false
+    readonly property bool _inWindowStartPending: _backend && _contractValid
+        && typeof _backend._inWindowStartPending !== "undefined"
+        ? Boolean(_backend._inWindowStartPending) : false
+    readonly property bool _mainFramePending: _backend && _contractValid
+        && typeof _backend._mainFramePending !== "undefined"
+        ? Boolean(_backend._mainFramePending) : false
+    readonly property string _lastFallbackReason: _backend && _contractValid
+        && typeof _backend._lastFallbackReason !== "undefined"
+        ? String(_backend._lastFallbackReason) : ""
 
     // ==================== Internal Props 内部属性 ====================
     property var _backend: transitionLoader.item
@@ -103,6 +124,11 @@ Item {
         }
     }
 
+    function _releaseCompletedSource() {
+        _sourceItem = null
+        _savedSourceVisible = false
+    }
+
     function _completeWithoutAnimation(sourceItem, collapsing) {
         _operationCollapsing = collapsing
         if (sourceItem) sourceItem.visible = !collapsing
@@ -114,6 +140,7 @@ Item {
             expandStarted()
             expandFinished()
         }
+        _releaseCompletedSource()
     }
 
     function _start(sourceItem, collapsing) {
@@ -159,7 +186,7 @@ Item {
         id: defaultTransitionComponent
 
         NavigationInternal.LazyPageCircleTransition {
-            objectName: "pageTransitionCircleBackend"
+            objectName: "qmlPageCircleTransition"
             revealDuration: control.revealDuration
             revealEasing: control.revealEasing
             revealTarget: control.revealTarget
@@ -170,8 +197,14 @@ Item {
     Connections {
         function onCollapseStarted() { control.collapseStarted() }
         function onExpandStarted() { control.expandStarted() }
-        function onCollapseFinished() { control.collapseFinished() }
-        function onExpandFinished() { control.expandFinished() }
+        function onCollapseFinished() {
+            control._releaseCompletedSource()
+            control.collapseFinished()
+        }
+        function onExpandFinished() {
+            control._releaseCompletedSource()
+            control.expandFinished()
+        }
 
         target: control._backend
         ignoreUnknownSignals: true
