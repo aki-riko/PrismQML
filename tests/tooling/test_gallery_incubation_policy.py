@@ -11,15 +11,17 @@ from prismqml.python.core.incubation import asynchronous_page_loader_enabled
 
 ROOT = Path(__file__).resolve().parents[2]
 GALLERY_MAIN = ROOT / "examples" / "main.py"
+RUNTIME_ENGINE = ROOT / "prismqml" / "python" / "runtime" / "engine.py"
 
 
 def test_gallery_injects_safe_async_page_loader_policy():
     source = GALLERY_MAIN.read_text(encoding="utf-8")
+    runtime_source = RUNTIME_ENGINE.read_text(encoding="utf-8")
 
     assert "asynchronous_page_loader_enabled" in source
     assert '"PrismQmlAsynchronousPageLoaderEnabled"' in source
     assert "asynchronous_page_loader_enabled()," in source
-    assert "install_default_incubation_controller(engine)" in source
+    assert "install_default_incubation_controller(engine)" in runtime_source
     assert source.index("PrismQmlAsynchronousPageLoaderEnabled") < source.index(
         "engine.load("
     )

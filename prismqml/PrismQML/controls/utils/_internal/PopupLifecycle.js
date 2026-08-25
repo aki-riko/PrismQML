@@ -14,7 +14,12 @@ function _timer(control) {
 function beginOpen(control) {
     if (control.isClosing) return false
     if (control.isOpen) return true
-    if (control._openRequested) return false
+    // Repeated open requests can arrive while the surface is still completing
+    // its first show timer. Keep the lifecycle idempotent but let the caller
+    // refresh the requested position instead of dropping that geometry update.
+    // 首次显示计时器尚未完成时可能收到重复 open 请求；生命周期仍保持幂等，
+    // 但允许调用方刷新目标位置，不能丢弃这次几何更新。
+    if (control._openRequested) return true
     control._openRequested = true
     control._surfaceRecoveryAttemptCount = 0
     return true

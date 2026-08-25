@@ -61,10 +61,16 @@ def test_gallery_uses_complete_public_runtime_registration():
         and node.func.id == "register_types"
     ]
 
-    assert len(calls) == 1
-    assert len(calls[0].args) == 1
-    assert isinstance(calls[0].args[0], ast.Name)
-    assert calls[0].args[0].id == "engine"
+    # App owns the complete public registration now; Gallery must not duplicate
+    # the engine wiring in its business entry point.
+    # 现在由 App 统一负责完整公开注册；Gallery 业务入口不得重复装配引擎。
+    assert calls == []
+    source = GALLERY_MAIN.read_text(encoding="utf-8")
+    assert "app = App(" in source
+    runtime_source = (
+        ROOT / "prismqml" / "python" / "runtime" / "engine.py"
+    ).read_text(encoding="utf-8")
+    assert "register_types(" in runtime_source
 
 
 def test_gallery_disables_debug_logging_by_default():
@@ -72,13 +78,16 @@ def test_gallery_disables_debug_logging_by_default():
 
     level_setup = "getLogger().set_level(Logger.INFO)"
     assert level_setup in source
-    assert source.index(level_setup) < source.index("install_qt_message_handler()")
+    assert source.index(level_setup) < source.index("app = App(")
 
 
 def test_gallery_uses_direct3d11_as_its_only_graphics_backend():
     source = GALLERY_MAIN.read_text(encoding="utf-8")
 
-    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in source
+    runtime_source = (
+        ROOT / "prismqml" / "python" / "runtime" / "application.py"
+    ).read_text(encoding="utf-8")
+    assert "QSGRendererInterface.GraphicsApi.Direct3D11" in runtime_source
     assert "QSGRendererInterface.OpenGL" not in source
     assert "GraphicsApi.OpenGL" not in source
 
