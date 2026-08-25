@@ -23,6 +23,9 @@ app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 window = app.create_window(WindowType.BAR)
 ```
 
+`splash_subtitle` 可在创建 `App` 时为快速启动页提供首帧副标题；不传入时保持
+默认启动文案和旧版启动时序。
+
 `App(allow_qml_file_read=True)` 默认在创建 QML 引擎前启用 Translator 的本地 i18n JSON 读取；传入 `False` 可显式关闭。普通 `import prismqml` 不会修改该环境变量。
 
 Windows 下 `App` 还会在首个 `QQuickWindow` 创建前固定选择 D3D11。自行装配

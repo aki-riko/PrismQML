@@ -284,7 +284,7 @@ class FastSplashController(QObject):
     def splash(self) -> Optional[QQuickWindow]:
         return self._splash
 
-    def show(self, icon: str = "") -> bool:
+    def show(self, icon: str = "", *, subtitle: Optional[str] = None) -> bool:
         """Create the splash before QML loads, deferring unbranded frames."""
         try:
             self._closed = False
@@ -334,6 +334,8 @@ class FastSplashController(QObject):
             # construction time.
             # App 构造器同时提供静态标题和图标时元数据已完整；旧调用方仍可在
             # Window.showSplash() 时补交窗口级元数据并更新同一启动页。
+            if subtitle is not None:
+                splash.setProperty("splashSubtitle", str(subtitle))
             self._visibility_deferred = not (
                 self._title_metadata_ready and self._icon_metadata_ready
             )

@@ -238,8 +238,8 @@ def test_app_marks_filter_rollback_after_runtime_install(monkeypatch, stage):
         def __init__(self, application):
             calls.append(("splash_create", application))
 
-        def show(self, icon=""):
-            calls.append(("splash_show", icon))
+        def show(self, icon="", *, subtitle=None):
+            calls.append(("splash_show", icon, subtitle))
 
     def invoke(label, value=None):
         calls.append(label if value is None else (label, value))
@@ -278,7 +278,7 @@ def test_app_marks_filter_rollback_after_runtime_install(monkeypatch, stage):
         expected.extend(
             [
                 ("splash_create", application),
-                ("splash_show", ""),
+                ("splash_show", "", None),
             ]
         )
         expected.append("dwm")

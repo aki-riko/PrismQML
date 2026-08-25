@@ -132,6 +132,24 @@ def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
     assert controller._splash.shown is True
 
 
+def test_fast_splash_commits_explicit_subtitle_before_first_show(qapp):
+    """App-level splash metadata must be present before the surface becomes visible."""
+    original_display_name = qapp.applicationDisplayName()
+    controller = FastSplashController(qapp)
+    try:
+        qapp.setApplicationDisplayName("Kaleidos")
+        assert controller.show(
+            ":/icons/kaleidos.svg",
+            subtitle="程序正在初始化，请稍候...",
+        )
+        assert controller.splash is not None
+        assert controller.splash.property("splashSubtitle") == "程序正在初始化，请稍候..."
+        assert controller.splash.isVisible() is True
+    finally:
+        controller.close()
+        qapp.setApplicationDisplayName(original_display_name)
+
+
 def test_window_show_splash_keeps_fast_surface_deferred_until_attach():
     """Window.showSplash only releases the fast surface after full metadata."""
     calls = []
@@ -433,7 +451,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "self._show_qml_owned_window(main_window)" in fast_splash_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
-    assert "def show(self, icon: str = \"\")" in fast_splash_source
+    assert 'def show(self, icon: str = "", *, subtitle: Optional[str] = None)' in fast_splash_source
     assert "initial_icon_ready = self._set_icon_metadata(initial_icon)" in fast_splash_source
     assert "self._icon_provider = FastSplashIconProvider()" in fast_splash_source
-    assert "self._visibility_deferred = not (" in fast_splash_source
+    app_source = (ROOT / "prismqml/python/window/app.py").read_text(encoding="utf-8")
+    assert "splash_subtitle: Optional[str] = None" in app_source
