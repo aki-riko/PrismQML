@@ -67,8 +67,82 @@ Fluent.Windows {
 }
 ```
 
+### 启动画面退场动画
+
+默认 `SplashScreen` 使用 `Enums.animation.lazy_circle`：它与懒加载页面的收紧/展开过渡共用同一套生命周期。窗口级属性会转发到默认启动画面：
+
+```qml
+Fluent.Windows {
+    splashExitAnimationType: Enums.animation.none
+    // 或：Enums.animation.lazy_circle（默认）
+    // splashExitAnimation: mySplashTransition
+}
+```
+
+`SplashScreen` 也可以直接配置同名属性：
+
+```qml
+SplashScreen {
+    exitAnimationType: Enums.animation.lazy_circle
+    exitAnimation: null
+}
+```
+
+内置模式通过 `Enums.animation` 访问：
+
+| 值 | 行为 |
+| --- | --- |
+| `Enums.animation.none` | 不创建过渡后端，`finish()` 同步完成并隐藏启动画面。 |
+| `Enums.animation.lazy_circle` | 默认圆形收紧/展开过渡；保留首帧、目标页换帧和失败回退语义。 |
+| `Enums.animation.custom` | 使用 `exitAnimation` / `splashExitAnimation` 提供的 `Component`。 |
+
+自定义 `Component` 必须实现以下合同。方法的 `sourceItem` 参数是当前要收紧或展开的源项；状态和信号由 `PageTransition` 读取与转发。
+
+```qml
+Component {
+    Item {
+        property bool active: false
+        property bool running: false
+        property bool collapsing: false
+        property bool collapsed: false
+        property real progress: 0
+
+        signal collapseStarted()
+        signal collapseFinished()
+        signal expandStarted()
+        signal expandFinished()
+
+        function collapse(sourceItem) { /* ... */ return true }
+        function expand(sourceItem) { /* ... */ return true }
+        function stop() { /* cancel and restore your state */ }
+    }
+}
+```
+
+`collapse()` / `expand()` 应在开始和完成时分别发出对应信号，并在 `progress`、`collapsing`、`collapsed` 等状态上保持一致；`stop()` 用于取消当前操作。调用 `finish()` 时，默认启动画面会调用 `expand(sourceItem)`，完成信号到达后才隐藏并发出 `finished()`。懒加载页面通常先调用 `collapse(sourceItem)`，切换内容后再调用 `expand(sourceItem)`。
+
+当 `Component` 缺少合同成员、创建失败或内置过渡无法捕获源项时，门面会记录错误并按无动画路径发出开始/完成信号，保证源项处于确定的最终可见性；自定义实现应让 `stop()` 可重复调用。动画完成后门面会释放源项引用，避免下一次 `stop()` 重新显示已经完成收紧的旧页面。
+
 纯 QML 窗口还可以通过 `splashComponent` 替换视觉组件；自定义根对象必须提供
 `finish()` 方法，框架会在首页就绪时调用它。
+
+### PageTransition
+
+需要在页面或其他覆盖层复用同一套过渡时，可直接使用公开的 `PageTransition`：
+
+```qml
+PageTransition {
+    id: transition
+    animationType: Enums.animation.lazy_circle
+    revealTarget: true
+
+    function showPage(page) {
+        transition.expand(page)
+    }
+}
+```
+
+它公开 `collapse(sourceItem)`、`expand(sourceItem)`、`stop()` 方法，以及 `active`、`running`、`collapsing`、`collapsed`、`progress` 状态和四个生命周期信号。`customAnimation` 属性接受上面的 `Component` 合同；自定义模式推荐同时设置 `animationType: Enums.animation.custom`。`animationType: Enums.animation.none` 会绕过动态加载并同步发出开始/完成信号。
 
 !!! tip "非 Fluent 皮肤下的窗口"
     新粗野、复古票据与新拟态都会自动关闭 Mica，并切换到各自的表面、边框、

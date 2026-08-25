@@ -70,9 +70,105 @@ Fluent.Windows {
 }
 ```
 
+### Splash exit animation
+
+The default `SplashScreen` uses `Enums.animation.lazy_circle`, sharing the same
+collapse/expand lifecycle as lazy-loaded pages. Window-level properties are
+forwarded to the default splash:
+
+```qml
+Fluent.Windows {
+    splashExitAnimationType: Enums.animation.none
+    // Or: Enums.animation.lazy_circle (the default)
+    // splashExitAnimation: mySplashTransition
+}
+```
+
+The same options are available when using `SplashScreen` directly:
+
+```qml
+SplashScreen {
+    exitAnimationType: Enums.animation.lazy_circle
+    exitAnimation: null
+}
+```
+
+Built-in modes are exposed through `Enums.animation`:
+
+| Value | Behavior |
+| --- | --- |
+| `Enums.animation.none` | Does not create a transition backend; `finish()` completes synchronously and hides the splash. |
+| `Enums.animation.lazy_circle` | The default circular collapse/expand transition, including first-frame, target-frame, and fallback handling. |
+| `Enums.animation.custom` | Uses the `Component` supplied by `exitAnimation` / `splashExitAnimation`. |
+
+A custom `Component` must implement the following contract. The
+`sourceItem` argument is the item being collapsed or expanded; `PageTransition`
+reads and forwards the declared state and signals.
+
+```qml
+Component {
+    Item {
+        property bool active: false
+        property bool running: false
+        property bool collapsing: false
+        property bool collapsed: false
+        property real progress: 0
+
+        signal collapseStarted()
+        signal collapseFinished()
+        signal expandStarted()
+        signal expandFinished()
+
+        function collapse(sourceItem) { /* ... */ return true }
+        function expand(sourceItem) { /* ... */ return true }
+        function stop() { /* cancel and restore your state */ }
+    }
+}
+```
+
+`collapse()` and `expand()` should emit their matching start and finish
+signals and keep `progress`, `collapsing`, and `collapsed` consistent.
+`stop()` cancels the current operation. When `finish()` is called, the default
+splash invokes `expand(sourceItem)` and hides itself only after the completion
+signal, then emits `finished()`. Lazy-loaded pages normally call
+`collapse(sourceItem)` before changing content and `expand(sourceItem)` after
+the new content is ready.
+
+If the `Component` is missing a contract member, cannot be created, or the
+built-in transition cannot capture its source, the facade logs the failure and
+uses the no-animation path with deterministic final visibility. Custom
+implementations should make `stop()` safe to call repeatedly. After a
+transition finishes, the facade releases its source reference so a later
+`stop()` cannot reveal a page that has already completed collapsing.
+
 Pure QML windows may replace the visual through `splashComponent`. Its root
 object must provide `finish()`, which the framework calls once the first page
 is ready.
+
+### PageTransition
+
+Use the public `PageTransition` component when the same transition is needed by
+a page or another overlay:
+
+```qml
+PageTransition {
+    id: transition
+    animationType: Enums.animation.lazy_circle
+    revealTarget: true
+
+    function showPage(page) {
+        transition.expand(page)
+    }
+}
+```
+
+It exposes `collapse(sourceItem)`, `expand(sourceItem)`, and `stop()` methods,
+the `active`, `running`, `collapsing`, `collapsed`, and `progress` states, and
+four lifecycle signals. Its `customAnimation` property accepts the
+`Component` contract above; custom mode should also set
+`animationType: Enums.animation.custom`. `animationType:
+Enums.animation.none` bypasses dynamic loading and emits start/finish signals
+synchronously.
 
 !!! tip "Windows under non-Fluent skins"
     Neobrutalism, Vintage Ticket, and Neumorphism auto-disable Mica and switch
