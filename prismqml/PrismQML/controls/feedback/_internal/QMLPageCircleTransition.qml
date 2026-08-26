@@ -19,14 +19,17 @@ Item {
     // 圆在约 40% 时长内就冲出边缘, 其余时间画面无变化; 做全窗口揭幕的调用方
     // 可覆盖此值。
     property int revealEasing: Easing.OutQuint
-    // Collapse easing. InCubic reads as a deliberate suck-toward-center on the
-    // small radii of a page switch, but on a full-window exit it holds the
-    // radius near maximum for most of the duration and then crosses the whole
-    // remaining distance in the last few frames; full-window callers should
-    // override this. 收紧缓动。InCubic 在页面切换的小半径上呈现刻意的向心吸入,
-    // 但全窗口退场时半径在大部分时长里几乎不动, 最后几帧才跨完剩余全部距离;
-    // 做全窗口退场的调用方应覆盖此值。
-    property int coverEasing: Easing.InCubic
+    // Collapse easing. Progress runs 1 -> 0 and the radius scales linearly with
+    // it, so an ease-in curve holds the radius near maximum for most of the
+    // duration and then crosses the whole remaining distance in the last few
+    // frames. Measured on a real presenting display, InCubic put half the
+    // radius in the final 20% of the timeline for both page switch and window
+    // exit; InOutQuad spreads the motion evenly instead.
+    // 收紧缓动。progress 由 1 走到 0 且半径随之线性缩放, 所以 ease-in 曲线会让
+    // 半径在大部分时长里几乎不动, 最后几帧才跨完剩余全部距离。真机实测: InCubic
+    // 在页面切换与窗口退场上都把半径的一半压在末尾 20% 时长里; InOutQuad 把运动
+    // 均匀铺开。
+    property int coverEasing: Easing.InOutQuad
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running

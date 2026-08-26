@@ -21,7 +21,7 @@ Item {
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
     property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
     property int revealEasing: Easing.OutQuint
-    property int coverEasing: Easing.InCubic
+    property int coverEasing: Easing.InOutQuad
     property bool revealTarget: false
     property bool keepSourceHiddenOnExpand: false
     property bool collapseToCenter: false

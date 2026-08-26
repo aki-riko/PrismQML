@@ -3838,6 +3838,21 @@ def test_window_page_stack_has_exactly_one_owner():
         "required property string overlayText",
     ):
         assert prop in owner_source, prop
+
+    # The activation budget is measured from collapse start and LazyLoadingHelper
+    # subtracts the elapsed collapse from it, so a hardcoded budget lets any
+    # collapse-duration change silently squeeze the loading indicator to the
+    # timer floor. It must stay derived from coverDuration.
+    # 激活预算从收紧开始计算, LazyLoadingHelper 会减去已花掉的收紧时长, 所以写死
+    # 预算会让任何收紧时长改动把加载指示器静默压到定时器下限。必须由
+    # coverDuration 推导。
+    assert (
+        "Enums.lazyLoadingTransitionMetrics.coverDuration\n"
+        "              + Enums.lazyLoadingTransitionMetrics."
+        "loaderActivationHeadroom" in owner_source
+    )
+    assert "lazyActivationDelay: root.navAnimationEnabled\n" in owner_source
+    assert "? Enums.duration.dialog" not in owner_source
     assert "readonly property alias stackAlias: stack" in owner_source
     assert 'objectName: "loadingOverlayLoader"' in owner_source
     # The loading state machine stays in NavigationWindowLoading.js.

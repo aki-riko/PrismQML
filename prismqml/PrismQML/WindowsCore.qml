@@ -333,14 +333,6 @@ Window {
         animationType: window.closeAnimationType
         customAnimation: window.closeAnimation
         collapseToCenter: true
-        // A window exit crosses the full diagonal, not a page-switch radius.
-        // The page-switch default holds the radius near maximum and then crosses
-        // the remaining distance in the last few frames, which reads as the
-        // window being cut away half-collapsed. 窗口退场跨越整条对角线, 不是页面
-        // 切换的小半径。页面切换默认值让半径长时间几乎不动, 最后几帧才跨完剩余
-        // 距离, 观感就是窗口在收到一半时被直接切掉。
-        coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration
-        coverEasing: Easing.InOutQuad
         onCollapseFinished: Qt.callLater(window._armAcceptedClose)
     }
 

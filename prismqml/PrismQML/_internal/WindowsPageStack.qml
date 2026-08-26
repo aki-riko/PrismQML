@@ -47,8 +47,15 @@ Item {
 
         anchors.fill: parent
         animationType: Enums.animation.popup
+        // Budget measured from collapse start; the helper subtracts the elapsed
+        // collapse to get the remaining indicator time. Derived from
+        // coverDuration so tuning the collapse cannot starve the indicator.
+        // 预算从收紧开始计算, helper 减去已花掉的收紧时长得到剩余指示器时间。
+        // 由 coverDuration 推导, 因此调收紧节奏不会饿死指示器。
         lazyActivationDelay: root.navAnimationEnabled
-            ? Enums.duration.dialog : Enums.duration.none
+            ? Enums.lazyLoadingTransitionMetrics.coverDuration
+              + Enums.lazyLoadingTransitionMetrics.loaderActivationHeadroom
+            : Enums.duration.none
         pageSources: root.host ? root.host.pageSources : []
         lazyLoading: root.host ? root.host.lazyLoading : false
         _pythonPageMode: root.host ? root.host._pythonPageMode : false

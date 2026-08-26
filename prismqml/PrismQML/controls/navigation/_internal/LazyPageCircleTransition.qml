@@ -43,7 +43,7 @@ Item {
     // Forwarded to the radius animation; see QMLPageCircleTransition.
     // 转发给半径动画; 见 QMLPageCircleTransition。
     property int revealEasing: Easing.OutQuint
-    property int coverEasing: Easing.InCubic
+    property int coverEasing: Easing.InOutQuad
     property bool revealTarget: false
     // Keep external reveal sources hidden after expansion so the next window can show through.
     // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。

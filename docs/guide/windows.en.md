@@ -88,22 +88,28 @@ enters the real close path synchronously. With `Enums.animation.custom`,
 lazy-page, and main-window exit transitions can therefore share one built-in or
 custom lifecycle.
 
-A window exit crosses the full diagonal rather than a page-switch radius, so
-`WindowsCore` overrides the collapse pacing: duration comes from
-`Enums.lazyLoadingTransitionMetrics.windowExitDuration` and easing from
-`Easing.InOutQuad`. The page-switch defaults (`coverDuration` with
-`Easing.InCubic`) hold the radius near maximum for most of the duration and then
-cross the entire remaining distance in the last few frames, which on a
-low-refresh display reads as the window being cut away half-collapsed.
-`PageTransition` exposes `coverDuration` and `coverEasing` so custom exits can
-override the same way:
+The collapse pacing is shared between the main-window exit and page switches:
+duration from `Enums.lazyLoadingTransitionMetrics.coverDuration` (420ms) and
+easing from `Easing.InOutQuad`. Collapse progress runs 1 -> 0 with the radius
+scaling linearly, so an ease-in curve holds the radius near maximum for most of
+the duration and then crosses the entire remaining distance in the last few
+frames, which on a low-refresh display reads as the window being cut away
+half-collapsed. Measured on a real display, both sites produce identical pacing,
+so one set of values serves both.
+
+`PageTransition` exposes `coverDuration` and `coverEasing` for per-site
+overrides:
 
 ```qml
 Fluent.PageTransition {
-    coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration
-    coverEasing: Easing.InOutQuad
+    coverDuration: 360
+    coverEasing: Easing.InOutCubic
 }
 ```
+
+When tuning `coverDuration`, note that the lazy page-switch Loader activation
+budget is derived from it (`coverDuration` plus `loaderActivationHeadroom`), so
+changing the collapse duration will not squeeze out the loading indicator.
 
 ### Splash exit animation
 

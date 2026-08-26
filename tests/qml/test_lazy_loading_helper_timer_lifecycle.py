@@ -430,3 +430,24 @@ def test_lazy_loading_helper_source_reuses_one_stage_timer():
     assert "_startLoaderActivationTimer(targetIdx)" in source
     assert "_startLoaderPollingTimer(targetIdx)" in source
     assert "_startPageRenderTimer(targetIdx)" in source
+
+
+def test_activation_interval_reads_collapse_duration_from_transition():
+    """激活间隔必须读实际过渡的收紧时长，而非全局 token。
+
+    coverDuration is overridable per site. Subtracting the global token instead
+    of the transition's own value would silently mis-time activation for any
+    caller that overrides it, and the error is invisible until someone measures
+    frames. coverDuration 可单点覆盖。减全局 token 而非过渡自身取值, 会让覆盖过的
+    调用方静默算错激活时机, 而且不逐帧测量根本看不出来。
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "helper.pageTransition.coverDuration" in source
+    assert "helper.loaderActivationDelay - _elapsedCollapse" in source
+    # The bare token must not be what the subtraction reads.
+    # 减法读的不得是裸 token。
+    assert (
+        "helper.loaderActivationDelay\n"
+        "                            - Enums.lazyLoadingTransitionMetrics"
+        ".coverDuration" not in source
+    )

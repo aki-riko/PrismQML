@@ -521,10 +521,13 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "signal collapseFinished()" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "property int revealEasing: Easing.OutQuint" in lazy_transition_source
-    # Collapse pacing must stay reachable from the public facade so a
-    # full-window exit can override the page-switch default.
-    # 收紧节奏必须能从公开门面覆盖, 供整窗退场替换页面切换默认值。
-    assert "property int coverEasing: Easing.InCubic" in lazy_transition_source
+    # Collapse pacing must stay reachable from the public facade, and the shared
+    # default must spread the motion evenly rather than pile it into the final
+    # frames. 收紧节奏必须能从公开门面触达, 且共用默认值必须把运动均匀铺开, 不得
+    # 堆到末尾几帧。
+    assert (
+        "property int coverEasing: Easing.InOutQuad" in lazy_transition_source
+    )
     assert (
         "property int coverDuration: "
         "Enums.lazyLoadingTransitionMetrics.coverDuration"
@@ -538,7 +541,7 @@ def test_feedback_sources_use_shared_style_tokens():
         / "QMLPageCircleTransition.qml"
     ).read_text(encoding="utf-8")
     assert (
-        "property int coverEasing: Easing.InCubic" in circle_transition_source
+        "property int coverEasing: Easing.InOutQuad" in circle_transition_source
     )
     assert (
         "easing.type: transition._collapsing" in circle_transition_source
@@ -548,7 +551,9 @@ def test_feedback_sources_use_shared_style_tokens():
     page_transition_source = (
         ROOT / "prismqml/PrismQML/controls/navigation/PageTransition.qml"
     ).read_text(encoding="utf-8")
-    assert "property int coverEasing: Easing.InCubic" in page_transition_source
+    assert (
+        "property int coverEasing: Easing.InOutQuad" in page_transition_source
+    )
     assert (
         "property int coverDuration: "
         "Enums.lazyLoadingTransitionMetrics.coverDuration"

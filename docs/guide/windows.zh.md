@@ -82,19 +82,23 @@ Fluent.Windows {
 `Enums.animation.custom` 时，`closeAnimation` 使用前文相同的 `Component` 合同。
 因此启动画面、懒加载页面和主窗口退场可以共享同一套内置或自定义生命周期。
 
-窗口退场跨越整条对角线，而不是页面切换的小半径，因此 `WindowsCore` 覆盖了收紧节奏：
-时长取 `Enums.lazyLoadingTransitionMetrics.windowExitDuration`，缓动取
-`Easing.InOutQuad`。页面切换默认值（`coverDuration` 与 `Easing.InCubic`）会让半径在
-大部分时长里几乎不动，最后几帧才跨完剩余全部距离；在低刷新率屏幕上，观感就是窗口
-在收到一半时被直接切掉。`PageTransition` 公开 `coverDuration` 与 `coverEasing`，
-自定义退场可按同样方式覆盖：
+收紧节奏由主窗口退场与页面切换共用：时长取
+`Enums.lazyLoadingTransitionMetrics.coverDuration`（420ms），缓动取
+`Easing.InOutQuad`。收紧的 progress 由 1 走到 0、半径随之线性缩放，所以 ease-in 类
+曲线会让半径在大部分时长里几乎不动，最后几帧才跨完剩余全部距离；在低刷新率屏幕上，
+观感就是窗口在收到一半时被直接切掉。真机实测两处节奏完全相同，因此共用一套值。
+
+`PageTransition` 公开 `coverDuration` 与 `coverEasing`，自定义过渡可单点覆盖：
 
 ```qml
 Fluent.PageTransition {
-    coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration
-    coverEasing: Easing.InOutQuad
+    coverDuration: 360
+    coverEasing: Easing.InOutCubic
 }
 ```
+
+调整 `coverDuration` 时注意：懒加载页面切换的 Loader 激活预算由它推导（`coverDuration`
+加 `loaderActivationHeadroom`），因此改收紧时长不会挤掉加载指示器的可见时间。
 
 ### 启动画面退场动画
 

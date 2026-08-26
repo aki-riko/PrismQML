@@ -328,7 +328,7 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
     assert "radiusTransition.prepare(transition._captureCollapsing)" in lazy_transition_source
     assert "target: transition._hostWindow" in lazy_transition_source
     assert "transition._mainFramePending = true" in lazy_transition_source
-    assert "Easing.InCubic" in transition_source
+    assert "Easing.InOutQuad" in transition_source
     assert "Easing.OutQuint" in transition_source
     assert "from: transition._collapsing" in transition_source
     assert "to: transition._collapsing" in transition_source

@@ -705,8 +705,10 @@ def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
 def test_windows_core_close_collapse_easing_spreads_motion_evenly():
     """收紧缓动必须把运动均匀分布，不得把大半距离压到末尾几帧。"""
     frame_count = 12
-    page_default = QEasingCurve(QEasingCurve.Type.InCubic)
-    window_exit = QEasingCurve(QEasingCurve.Type.InOutQuad)
+    # The curve replaced everywhere, kept here as the contrast case.
+    # 已被全面替换掉的曲线, 保留作对照。
+    rejected = QEasingCurve(QEasingCurve.Type.InCubic)
+    shared = QEasingCurve(QEasingCurve.Type.InOutQuad)
 
     def _radius_series(curve):
         # progress runs 1 -> 0, radius scales with progress.
@@ -728,16 +730,16 @@ def test_windows_core_close_collapse_easing_spreads_motion_evenly():
             if radius <= 0.5
         )
 
-    page_series = _radius_series(page_default)
-    exit_series = _radius_series(window_exit)
+    rejected_series = _radius_series(rejected)
+    shared_series = _radius_series(shared)
 
-    # The page default reaches half radius only near the very end, leaving the
-    # whole second half to the last frames. 页面默认值直到接近末尾才收到半径
+    # The rejected curve reaches half radius only near the very end, leaving the
+    # whole second half to the last frames. 被弃用的曲线直到接近末尾才收到半径
     # 一半, 把后半程全部压给最后几帧。
-    assert _half_at(page_series) > 0.7
-    assert _half_at(exit_series) == pytest.approx(0.5, abs=0.1)
-    assert _max_step(exit_series) < _max_step(page_series)
-    assert _max_step(exit_series) < 0.2
+    assert _half_at(rejected_series) > 0.7
+    assert _half_at(shared_series) == pytest.approx(0.5, abs=0.1)
+    assert _max_step(shared_series) < _max_step(rejected_series)
+    assert _max_step(shared_series) < 0.2
 
 
 def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
@@ -904,16 +906,13 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert "animationType: window.closeAnimationType" in windows_core_source
     assert "customAnimation: window.closeAnimation" in windows_core_source
     assert "collapseToCenter: true" in windows_core_source
-    # A window exit must not inherit the page-switch collapse pacing: the
-    # page default holds the radius near maximum and crosses the rest in the
-    # final frames. 窗口退场不得沿用页面切换的收紧节奏: 页面默认值让半径长时间
-    # 几乎不动, 最后几帧才跨完剩余距离。
-    assert (
-        "coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration"
-        in windows_core_source
-    )
-    assert "coverEasing: Easing.InOutQuad" in windows_core_source
-    assert "coverEasing: Easing.InCubic" not in windows_core_source
+    # The collapse pacing is shared with page switch, so the exit must inherit
+    # the facade default rather than pin its own duration or easing. Measured on
+    # a real display, both sites produce identical pacing.
+    # 收紧节奏与页面切换共用, 因此退场应继承门面默认值, 不得自己钉死时长或缓动。
+    # 真机实测两处节奏完全相同。
+    assert "coverDuration:" not in windows_core_source
+    assert "coverEasing:" not in windows_core_source
     assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
     assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
     assert "Qt.callLater(window._armAcceptedClose)" in windows_core_source

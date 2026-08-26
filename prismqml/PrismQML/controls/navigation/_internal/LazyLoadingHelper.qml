@@ -309,12 +309,24 @@ Item {
         property bool _activationPhase: false
         property bool _renderPhase: false
 
+        // The activation budget is measured from collapse start, so subtract the
+        // collapse that already elapsed. Read it off the transition in use, not
+        // the global token: coverDuration is overridable per site, and reading
+        // the token would silently use the wrong number for such a caller.
+        // 激活预算从收紧开始计算, 故减去已经花掉的收紧时长。取实际在用过渡上的值
+        // 而非全局 token: coverDuration 可单点覆盖, 读 token 会让这类调用方静默
+        // 用错数。
+        readonly property int _elapsedCollapse:
+            helper.pageTransition
+            && typeof helper.pageTransition.coverDuration === "number"
+                ? helper.pageTransition.coverDuration
+                : Enums.lazyLoadingTransitionMetrics.coverDuration
+
         objectName: "lazyLoaderActivateTimer"
         interval: _activationPhase
                   ? Math.max(
                         Enums.duration.tick,
-                        helper.loaderActivationDelay
-                            - Enums.lazyLoadingTransitionMetrics.coverDuration)
+                        helper.loaderActivationDelay - _elapsedCollapse)
                   : (_renderPhase
                      ? Enums.duration.ultraFast : Enums.duration.tick)
         repeat: !_activationPhase && !_renderPhase

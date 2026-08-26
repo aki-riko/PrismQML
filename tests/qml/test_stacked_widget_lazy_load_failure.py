@@ -80,7 +80,9 @@ StackedWidget {{
     height: 180
     animationEnabled: false
     lazyLoading: true
-    lazyActivationDelay: Enums.duration.dialog
+    lazyActivationDelay:
+        Enums.lazyLoadingTransitionMetrics.coverDuration
+        + Enums.lazyLoadingTransitionMetrics.loaderActivationHeadroom
     currentIndex: 0
     pageSources: ["{valid_url}", "{invalid_url}"]
 }}
