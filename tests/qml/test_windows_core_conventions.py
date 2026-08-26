@@ -111,11 +111,13 @@ WindowsCore {
     objectName: "window"
     property bool initialLeftLayout: false
     property bool customClose: false
+    property bool noneClose: false
     property int customCollapseCount: 0
     property int customStopCount: 0
     property int nativeCloseAcceptedCount: 0
     readonly property int topLayout: Enums.windowType.title_bar_top
     readonly property int leftLayout: Enums.windowType.title_bar_left
+    readonly property int noneAnimationType: Enums.animation.none
     readonly property int noShadow: Enums.windowShadow.mode_none
     readonly property int qmlShadow: Enums.windowShadow.mode_qml
     readonly property int navPanelMinWidth: Enums.window.navPanelMinWidth
@@ -129,7 +131,9 @@ WindowsCore {
     windowTitle: "WindowsCore Contract"
     windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
     titleBarPosition: initialLeftLayout ? leftLayout : topLayout
-    closeAnimationType: customClose ? Enums.animation.custom : Enums.animation.lazy_circle
+    closeAnimationType: noneClose
+        ? Enums.animation.none
+        : (customClose ? Enums.animation.custom : Enums.animation.lazy_circle)
     closeAnimation: customClose ? customCloseComponent : null
 
     onNativeCloseAccepted: nativeCloseAcceptedCount += 1
@@ -282,7 +286,11 @@ def _new_visible_windows(windows_before, *allowed):
 
 
 def _create_scene(
-    monkeypatch, *, initial_left_layout: bool = False, custom_close: bool = False
+    monkeypatch,
+    *,
+    initial_left_layout: bool = False,
+    custom_close: bool = False,
+    none_close: bool = False,
 ):
     engine = QQmlApplicationEngine()
     startup_events = []
@@ -309,6 +317,7 @@ def _create_scene(
         {
             "initialLeftLayout": initial_left_layout,
             "customClose": custom_close,
+            "noneClose": none_close,
         },
         engine.rootContext(),
     )
@@ -639,6 +648,37 @@ def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
         # PageTransition stops any previous operation before starting collapse.
         # PageTransition 会先停止已有操作, 再开始本次收紧。
         assert window.property("customStopCount") == 1
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_close_accepts_none_transition(monkeypatch, qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch, none_close=True)
+    try:
+        transition = window.findChild(QObject, "windowClosePageTransition")
+        assert transition is not None
+        assert transition.property("animationType") == window.property(
+            "noneAnimationType"
+        )
+
+        assert window.close() is False
+        assert window.property("nativeCloseAcceptedCount") == 0
+        assert _wait_for(
+            lambda: window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=500,
+        )
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
