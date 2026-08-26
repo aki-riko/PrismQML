@@ -304,6 +304,43 @@ def _runpy_bootstrap_state(
     return valid, (lines, rebindings)
 
 
+def _registered_public_type_count() -> int:
+    """Count root-qmldir types with the probe's own parser.
+
+    Reusing parse_qmldir keeps this in step with whatever the probe actually
+    walks; a second copy of the regex would drift.
+    复用 parse_qmldir, 与 probe 实际遍历的范围保持一致; 再抄一份正则会漂移。
+    """
+    sys.path.insert(0, str(REPO_ROOT / "tests" / "qml"))
+    try:
+        from probe_all_components import parse_qmldir
+    finally:
+        sys.path.pop(0)
+    return len(parse_qmldir(REPO_ROOT / "prismqml" / "PrismQML" / "qmldir"))
+
+
+def _declared_required_property_skips() -> set[str]:
+    """Read the probe's own allow-list instead of restating its size.
+
+    RELEASING.md forbids pinning counts that drift with component registration.
+    读 probe 自己声明的允许集合, 而不是复述它的大小。RELEASING.md 禁止钉死会随
+    组件注册漂移的计数。
+    """
+    source = (REPO_ROOT / "tests/qml/probe_all_components.py").read_text(
+        encoding="utf-8"
+    )
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Assign):
+            continue
+        if any(
+            isinstance(target, ast.Name)
+            and target.id == "EXPECTED_REQUIRED_PROPERTY_SKIPS"
+            for target in node.targets
+        ):
+            return set(ast.literal_eval(node.value))
+    raise AssertionError("EXPECTED_REQUIRED_PROPERTY_SKIPS not found in probe")
+
+
 def _entrypoint_bootstrap_failure(relative: Path) -> str | None:
     source = (REPO_ROOT / relative).read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(relative))
@@ -348,7 +385,15 @@ def test_probe_defaults_to_headless_through_process_runner():
         result.stdout,
     )
     assert summary is not None, result.stdout
-    assert tuple(map(int, summary.groups())) == (184, 0, 7)
+    ok_count, error_count, skip_count = map(int, summary.groups())
+    # Pin the invariants, not the component total: registering a public type is
+    # a routine change and must not require editing this gate.
+    # 钉住不变量而非组件总数: 注册公开类型是常规改动, 不应逼着改这条门禁。
+    assert error_count == 0
+    assert skip_count == len(_declared_required_property_skips())
+    # Every probed type is either OK or an expected skip; nothing goes missing.
+    # 每个被 probe 的类型要么 OK 要么是预期跳过, 不允许有类型凭空消失。
+    assert ok_count + skip_count == _registered_public_type_count()
     assert "单例跳过" not in result.stdout
 
 
