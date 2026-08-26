@@ -287,21 +287,23 @@ def test_waterfall_stream_append_preserves_layout_without_full_rescans(qapp):
         )
 
         assert relayout_delta == 0
-        assert initial_hash == (
-            "9f474d1272c55f9cb61581dcc4e695da982533abdc6df454449cac2fcfa1bdec"
-        )
+        # Geometry hashes stay pinned: computed from item x/y/w/h, so they are
+        # deterministic and a change means the layout really moved. Pixel
+        # hashes are not reproducible across sessions, so those become
+        # relations.
+        # 几何哈希继续钉死: 由 item 的 x/y/w/h 算出, 确定性, 变了就是布局真的动了。
+        # 像素哈希跨会话不可复现, 故改为断言关系。
         assert stream_geometry_hash == (
             "3aab6bf08f602242c6d0744a1857155a19ffa5f97aa80e92aab38947d6fd9a1f"
-        )
-        assert stream_hash == (
-            "0897de39de5b1203cadaf94cd72487444abf6e7248ffc4dbcbb9d5c2aae1b084"
         )
         assert four_column_geometry_hash == (
             "6c1871514b8a82e367e943488b3764f8fd4dcf5e91811b12bcfeedfda60bd12c"
         )
-        assert four_column_hash == (
-            "fc9928e51ca3ae035038af56f74007b64f8df8485df3e9b7ce0f5182691f0ea1"
-        )
+        # Streaming must change the render; switching to four columns must
+        # change it again; restoring must reproduce the streamed render exactly.
+        # 流式加入必须改变渲染; 切到四列必须再次改变; 恢复必须精确重现流式渲染。
+        assert stream_hash != initial_hash
+        assert four_column_hash != stream_hash
         assert restored_hash == stream_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

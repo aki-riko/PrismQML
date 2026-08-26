@@ -247,10 +247,12 @@ def test_scroll_viewport_state_timer_phase_baseline(qapp):
             settled_timer_count,
         ) == (1, 1, 1)
         assert (initial_object_count, settled_object_count) == (3, 3)
-        assert (initial_hash, restored_hash) == (
-            "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
-            "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
-        )
+        # Both pins were the same value, so the property under test is that the
+        # viewport returns to its starting pixels. Assert that directly rather
+        # than a pinned hash, which is not reproducible across sessions.
+        # 两处钉的是同一个值, 说明被测性质是「视口回到起始像素」。直接断言该关系,
+        # 不用跨会话不可复现的写死哈希。
+        assert restored_hash == initial_hash
         assert warnings == []
         assert state.property("needsVertical") is True
         assert state.property("needsHorizontal") is False

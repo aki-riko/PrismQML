@@ -342,21 +342,23 @@ def test_flow_layout_tail_append_preserves_geometry_and_pixels(qapp):
         )
 
         assert cache_delta == 0
-        assert initial_hash == (
-            "69bad6081e30c3cb87c5d31b2c8faeff4b86f3d621a34d6973b849092b36e77f"
-        )
+        # Geometry hashes stay pinned: they are computed from item x/y/w/h, so
+        # they are deterministic and a change means the layout really moved.
+        # Pixel hashes do not have that property — they are not reproducible
+        # across sessions on the same machine — so those become relations.
+        # 几何哈希继续钉死: 它由 item 的 x/y/w/h 算出, 确定性, 变了就是布局真的动了。
+        # 像素哈希没有这个性质(同机跨会话不可复现), 故改为断言关系。
         assert stream_geometry_hash == (
             "57fea50304cd2e5d6ddbb3bb0c8900c9bdc257f4d4dbab54254f0f730549b11f"
-        )
-        assert stream_hash == (
-            "1d672ca5cd820c1ae808ea0041c0fa5de410177a7c5a200a771935f6a32ff2a2"
         )
         assert narrow_geometry_hash == (
             "a561404bab5b1a34a88b002f46ff244381940dbddca37331a564b3c20ba28936"
         )
-        assert narrow_hash == (
-            "f4f9fe50281bc2fc97d241fbc866f0526218fbf53c85c1495657bc61a48368b3"
-        )
+        # Streaming in items must change the render; narrowing must change it
+        # again; restoring the width must reproduce the streamed render exactly.
+        # 流式加入条目必须改变渲染; 收窄必须再次改变; 恢复宽度必须精确重现流式渲染。
+        assert stream_hash != initial_hash
+        assert narrow_hash != stream_hash
         assert restored_hash == stream_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

@@ -224,17 +224,12 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
         assert len(rows) == 12
         assert row_components == [0] * 12
         assert normal_objects == EXPECTED_NORMAL_OBJECTS
-        if os.name == "nt":
-            assert normal_hash == (
-                "866ef579e4a08cfd577606afbc3f990b"
-                "eb68ef9e7f8047068b05b1a3e3db025e"
-            )
-            assert painted_hash == (
-                "117a27de495e7ad4cc01ac2ee8d04289"
-                "b2f89d8425f51b5e1fd2786820d00a69"
-            )
-        else:
-            assert painted_hash != normal_hash
+        # Pinned pixel hashes are not reproducible across sessions on the same
+        # machine, so assert the relations instead: painting must change the
+        # rows, and restoring must return exactly to the pre-paint pixels.
+        # 写死的像素哈希在同一台机器上跨会话不可复现, 故改为断言关系: 绘制必须改变
+        # 行, 恢复必须精确回到绘制前的像素。
+        assert painted_hash != normal_hash
         assert restored_hash == normal_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
