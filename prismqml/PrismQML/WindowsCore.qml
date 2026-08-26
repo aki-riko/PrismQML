@@ -367,10 +367,24 @@ Window {
     // QML shadow host. QML 阴影宿主。
     Loader {
         id: shadowHost
+
         property var hostWindow: window
 
+        objectName: "windowQmlShadowHost"
+
         anchors.fill: parent
-        active: !isMaximized && _useQmlShadow
+        // This host is a sibling of windowFrameLayer, so the close circle's
+        // layer mask never reaches it. It draws an opaque windowColor rect at
+        // full window size, which stayed visible under the shrinking circle as
+        // a rectangular blank. Drop it for the close collapse only: the shadow
+        // belongs to the periphery being clipped away. Gated on
+        // _closeInProgress, which only the window close path sets, so lazy page
+        // transitions are unaffected.
+        // 本宿主是 windowFrameLayer 的兄弟节点, 关闭圆环的 layer 遮罩到不了它。它
+        // 以整窗尺寸画一个不透明的 windowColor 矩形, 于是在收紧的圆下面残留成一块
+        // 矩形留白。仅在关闭收紧时去掉它: 阴影本就属于要被裁掉的外围。以
+        // _closeInProgress 作门, 该标志只由窗口关闭路径设置, 故不影响懒加载页面过渡。
+        active: !isMaximized && _useQmlShadow && !_closeInProgress
         visible: active
         opacity: _animOpacity
         scale: _animScale

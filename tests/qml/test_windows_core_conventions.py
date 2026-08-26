@@ -32,6 +32,9 @@ from scripts.qml_conventions import scan_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
+# Enums.windowShadow.mode_qml, kept in sync with PrismEnums/WindowShadow.qml.
+# 与 PrismEnums/WindowShadow.qml 保持同步。
+_WINDOW_SHADOW_MODE_QML = 2
 WINDOW_FRAME_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreFrame.qml"
 )
@@ -696,6 +699,75 @@ def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
         ]
         assert hide_events
         assert hide_events[-1] == pytest.approx(0, abs=1e-6)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_close_collapse_clips_unmasked_shadow_layer(monkeypatch, qapp):
+    """收紧期间必须撤掉未被遮罩的阴影层，否则圆外残留矩形留白。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        # The QML shadow host is a sibling of the masked frame layer, so the
+        # close circle's layer effect never clips it. It fills the window with
+        # an opaque windowColor rect, which shows through as a rectangular
+        # blank once the circle shrinks past it.
+        # QML 阴影宿主是被遮罩帧层的兄弟节点, 关闭圆环的 layer effect 裁不到它。它
+        # 以不透明 windowColor 矩形铺满窗口, 圆收过去后就露成矩形留白。
+        shadow_host = window.findChild(QObject, "windowQmlShadowHost")
+        assert shadow_host is not None
+        # The scene defaults to the native shadow, which leaves this host
+        # inactive and would make the assertion below vacuous. Force the QML
+        # shadow so the unmasked layer really exists.
+        # 场景默认走原生阴影, 该宿主不激活, 下面的断言会变成空断言。强制 QML 阴影,
+        # 让未遮罩层真实存在。
+        window.setProperty("shadowMode", _WINDOW_SHADOW_MODE_QML)
+        assert _wait_for(lambda: shadow_host.property("active") is True)
+
+        transition = window.findChild(QObject, "windowClosePageTransition")
+        assert transition is not None
+
+        samples = []
+
+        def _sample():
+            samples.append(
+                (
+                    float(transition.property("progress")),
+                    bool(shadow_host.property("active")),
+                )
+            )
+
+        sampler = QTimer()
+        sampler.setInterval(8)
+        sampler.timeout.connect(_sample)
+        sampler.start()
+
+        assert window.close() is False
+        assert _wait_for(
+            lambda: window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=2000,
+        )
+        sampler.stop()
+
+        # Every sample taken while the circle was still open must show the
+        # unmasked layer already gone. 圆尚未收完时的每个采样都必须显示未遮罩层
+        # 已经撤掉。
+        assert samples
+        still_active = [
+            progress for progress, active in samples if active
+        ]
+        assert still_active == []
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
