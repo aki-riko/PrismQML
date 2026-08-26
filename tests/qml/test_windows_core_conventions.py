@@ -784,6 +784,7 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert 'objectName: "windowClosePageTransition"' in windows_core_source
     assert "animationType: window.closeAnimationType" in windows_core_source
     assert "customAnimation: window.closeAnimation" in windows_core_source
+    assert "collapseToCenter: true" in windows_core_source
     assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
     assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
     assert "Qt.callLater(window._armAcceptedClose)" in windows_core_source

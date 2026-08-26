@@ -27,7 +27,8 @@ Item {
         ? _sourceItem.item
         : _sourceItem
     readonly property real revealMinimumRadiusPixels:
-        Enums.controlSize.navBarHeight / 2
+        collapseToCenter && _captureCollapsing
+            ? 0 : Enums.controlSize.navBarHeight / 2
     readonly property real revealMaximumRadiusPixels:
         Math.sqrt(width * width + height * height) * 0.5
         + Enums.lazyLoadingTransitionMetrics.edgeSoftness * 2
@@ -45,6 +46,7 @@ Item {
     // Keep external reveal sources hidden after expansion so the next window can show through.
     // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。
     property bool keepSourceHiddenOnExpand: false
+    property bool collapseToCenter: false
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -392,6 +394,7 @@ Item {
         id: pageLayerEffect
 
         FeedbackInternal.QMLPageCircleFrame {
+            minimumRadiusPixels: transition.revealMinimumRadiusPixels
             progress: radiusTransition.progress
             revealTarget: transition.revealTarget
         }
@@ -421,6 +424,7 @@ Item {
             id: circleFrame
 
             objectName: "lazyPageCircleFrame"
+            minimumRadiusPixels: transition.revealMinimumRadiusPixels
             width: parent.width
             height: parent.height
             x: transition._sourceItem

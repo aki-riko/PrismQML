@@ -523,6 +523,8 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "property int revealEasing: Easing.OutQuint" in lazy_transition_source
     assert "onFinished: transition._handleRadiusFinished()" in lazy_transition_source
     assert "property bool _collapseFramePending: false" in lazy_transition_source
+    assert "property bool collapseToCenter: false" in lazy_transition_source
+    assert "minimumRadiusPixels: transition.revealMinimumRadiusPixels" in lazy_transition_source
     assert "function _handleCollapseFrameEnd()" in lazy_transition_source
     assert "onAfterFrameEnd: transition._handleCollapseFrameEnd()" in lazy_transition_source
     assert "transition._collapseFramePending = true" in lazy_transition_source

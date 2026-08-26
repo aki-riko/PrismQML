@@ -332,6 +332,7 @@ Window {
         anchors.fill: parent
         animationType: window.closeAnimationType
         customAnimation: window.closeAnimation
+        collapseToCenter: true
         onCollapseFinished: Qt.callLater(window._armAcceptedClose)
     }
 

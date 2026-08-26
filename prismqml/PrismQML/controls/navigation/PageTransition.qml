@@ -22,6 +22,7 @@ Item {
     property int revealEasing: Easing.OutQuint
     property bool revealTarget: false
     property bool keepSourceHiddenOnExpand: false
+    property bool collapseToCenter: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool usingCustomAnimation: customAnimation !== null
@@ -191,6 +192,7 @@ Item {
             revealEasing: control.revealEasing
             revealTarget: control.revealTarget
             keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
+            collapseToCenter: control.collapseToCenter
         }
     }
 
