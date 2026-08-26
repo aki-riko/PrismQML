@@ -51,6 +51,7 @@ Window {
     property alias _animScale: animHelper.animScale
     property alias _animOpacity: animHelper.animOpacity
     property bool _closeInProgress: false
+    property bool _closeCompletionPending: false
     property bool _closeSourceWasVisible: true
     property bool _titleChromeReady: true
     property bool _resizeHandlesReady: false
@@ -116,6 +117,8 @@ Window {
     }
     function _cancelCloseRequest() {
         _closeInProgress = false
+        _closeCompletionPending = false
+        closeFrameWaiter.cancel()
         closeTransition.stop()
         windowFrameLayer.visible = _closeSourceWasVisible
         if (window.visible) {
@@ -132,6 +135,16 @@ Window {
         _closeDesktopNotifications()
         var closed = window.close()
         if (closed === false) _cancelCloseRequest()
+    }
+    function _armAcceptedClose() {
+        if (!_closeInProgress) return
+        _closeCompletionPending = true
+        closeFrameWaiter.arm()
+    }
+    function _handleCloseFrameEnd() {
+        if (!_closeCompletionPending) return
+        _closeCompletionPending = false
+        Qt.callLater(window._completeAcceptedClose)
     }
     function _closeDesktopNotifications() {
         var component = Qt.createComponent(Qt.resolvedUrl("_internal/DesktopNotificationCloser.qml"))
@@ -319,7 +332,14 @@ Window {
         anchors.fill: parent
         animationType: window.closeAnimationType
         customAnimation: window.closeAnimation
-        onCollapseFinished: Qt.callLater(window._completeAcceptedClose)
+        onCollapseFinished: Qt.callLater(window._armAcceptedClose)
+    }
+
+    WindowCloseFrameWaiter {
+        id: closeFrameWaiter
+
+        targetWindow: window
+        onCompleted: window._handleCloseFrameEnd()
     }
 
     // Listen to ConfigManager directly. 直接监听 ConfigManager 信号。

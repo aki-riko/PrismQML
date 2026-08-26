@@ -521,6 +521,7 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "signal collapseFinished()" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "property int revealEasing: Easing.OutQuint" in lazy_transition_source
+    assert "onFinished: transition._handleRadiusFinished()" in lazy_transition_source
     assert "Repeater {" not in splash_source
     assert "border.width:" not in splash_source
     assert "border.color:" not in splash_source

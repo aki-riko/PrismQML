@@ -51,6 +51,9 @@ WINDOW_ICON_DEFERRED_TIMER_PATH = (
 ANIMATION_HELPER_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
 )
+WINDOW_CLOSE_FRAME_WAITER_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseFrameWaiter.qml"
+)
 WINDOW_DRAG_HANDLE_PATH = (
     ROOT
     / "prismqml"
@@ -712,6 +715,9 @@ def test_leaf_startup_diagnostics_do_not_attach_to_default_object_tree():
 
 def test_window_animation_helper_source_conventions_and_dead_paths():
     source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
+    close_frame_waiter_source = WINDOW_CLOSE_FRAME_WAITER_PATH.read_text(
+        encoding="utf-8"
+    )
     path = PurePosixPath(ANIMATION_HELPER_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert [
@@ -733,13 +739,28 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert "property int closeAnimationType: Enums.animation.lazy_circle" in windows_core_source
     assert "property Component closeAnimation: null" in windows_core_source
     assert "property bool _closeSourceWasVisible: true" in windows_core_source
+    assert "property bool _closeCompletionPending: false" in windows_core_source
     assert "PageTransition {" in windows_core_source
     assert 'objectName: "windowClosePageTransition"' in windows_core_source
     assert "animationType: window.closeAnimationType" in windows_core_source
     assert "customAnimation: window.closeAnimation" in windows_core_source
     assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
     assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
-    assert "Qt.callLater(window._completeAcceptedClose)" in windows_core_source
+    assert "Qt.callLater(window._armAcceptedClose)" in windows_core_source
+    assert "function _handleCloseFrameEnd()" in windows_core_source
+    assert "closeFrameWaiter.arm()" in windows_core_source
+    waiter_path = PurePosixPath(
+        WINDOW_CLOSE_FRAME_WAITER_PATH.relative_to(ROOT).as_posix()
+    )
+    waiter_violations = scan_source_text(close_frame_waiter_source, waiter_path)
+    assert [
+        violation
+        for violation in waiter_violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert "function onAfterFrameEnd()" in close_frame_waiter_source
+    assert "Timer {" not in close_frame_waiter_source
+    assert "interval:" not in close_frame_waiter_source
     assert "animHelper.animatedClose()" not in windows_core_source
 
 
