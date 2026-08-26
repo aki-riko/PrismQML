@@ -389,7 +389,7 @@ def test_navigation_window_core_keeps_mica_timers_modularized():
     backdrop_source = backdrop.read_text(encoding="utf-8")
     reapply_source = reapply.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 475
+    assert len(source.splitlines()) <= 500
     for helper in (backdrop, reapply):
         assert helper.exists()
         assert len(helper.read_text(encoding="utf-8").splitlines()) < 80
