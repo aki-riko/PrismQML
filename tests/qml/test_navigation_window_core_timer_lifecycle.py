@@ -281,6 +281,49 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         ] == []
 
 
+def test_navigation_window_core_close_holds_window_color_transparent(
+    monkeypatch, qapp
+):
+    """关闭收紧期间 windowColor 必须按住透明, 否则外围露出不透明窗口底色。
+
+    windowColor 是 Window 自身的清屏色, 在被遮罩的帧层*下面*, 关闭圆环的 layer
+    遮罩裁不到它。关闭期间 _micaBackdropReady 会被清掉, 若不加门就会翻成不透明
+    backgroundColor, 于是圆环刚裁透明的外围露出一块窗口底色而不是桌面。
+    真机实测该值在收紧中途从 #00000000 变为 #f0f4f9。
+    """
+    engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
+    try:
+        window.setProperty("micaEnabled", True)
+        assert _wait_for(lambda: window.property("_micaActive") is True)
+        assert _wait_for(lambda: window.property("_micaBackdropReady") is True)
+        assert window.property("windowColor").alphaF() == 0.0
+
+        # Clearing the flag outside a close must still fall back to the opaque
+        # base colour: that is the pre-existing behaviour the fix must not break.
+        # 非关闭期间清掉标志仍须回落到不透明底色: 这是修复不能破坏的原有行为。
+        window.setProperty("_micaBackdropReady", False)
+        assert window.property("_micaTransparent") is False
+        assert window.property("windowColor").alphaF() == 1.0
+
+        # Same cleared flag, but during the close collapse: hold transparent so
+        # the clipped periphery reveals the desktop, not the window base colour.
+        # 同样清掉标志, 但处于关闭收紧中: 按住透明, 让被裁掉的外围露出桌面而不是
+        # 窗口底色。
+        window.setProperty("_closeInProgress", True)
+        assert window.property("windowColor").alphaF() == 0.0
+
+        # Without Mica the surface is not translucent, so a transparent clear
+        # colour would composite black. The gate must not fire there.
+        # 无 Mica 时表面并非半透明, 透明清屏色会合成为黑, 该门不得生效。
+        window.setProperty("micaEnabled", False)
+        assert _wait_for(lambda: window.property("_micaActive") is False)
+        assert window.property("windowColor").alphaF() == 1.0
+
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
+
+
 def test_navigation_window_core_source_reuses_one_splash_timer():
     """Exclusive splash roles reuse one timer. 互斥的欢迎页角色复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")

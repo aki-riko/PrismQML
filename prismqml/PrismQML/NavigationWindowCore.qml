@@ -344,7 +344,9 @@ WindowsCore {
         return -1
     }
 
-    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
+    // Clear colour sits under the masked frame layer, so the close circle cannot clip it; close clears _micaBackdropReady, which would turn it opaque and leave the clipped periphery showing base colour. _micaActive gates it: an opaque surface composites transparent as black.
+    // 清屏色位于被遮罩的帧层下方, 关闭圆环裁不到它; 关闭会清掉 _micaBackdropReady, 使其变不透明, 让被裁的外围露出底色。以 _micaActive 为门: 不透明表面下透明会合成为黑。
+    windowColor: _micaTransparent || (_closeInProgress && _micaActive) ? Enums.transparent : Enums.backgroundColor
 
     Component.onCompleted: {
         _markSplashVisible()

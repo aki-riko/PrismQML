@@ -52,6 +52,11 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # 显示器上观测。
     Path("scripts/manual/window_close_collapse_probe.py"),
     Path("scripts/manual/page_switch_collapse_probe.py"),
+    # Reads real screen pixels through GetPixel, so it needs a presenting
+    # desktop and a live DWM composition; offscreen returns CLR_INVALID.
+    # 通过 GetPixel 读真实屏幕像素, 需要上屏的桌面与在运行的 DWM 合成;
+    # offscreen 下只会返回 CLR_INVALID。
+    Path("scripts/manual/close_periphery_pixel_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
@@ -76,6 +81,9 @@ STANDALONE_QML_RUNTIME_CASES = (
     (Path("tests/qml/test_splash_component_routing.py"), 20),
     (Path("tests/qml/test_timeline_virtual_shadow_padding.py"), 15),
     (Path("tests/qml/test_window_restore_visible_state.py"), 15),
+    # Inspects sibling scene-graph nodes rather than screen pixels, so it runs
+    # headless. 检查兄弟场景图节点而非屏幕像素, 故可无界面运行。
+    (Path("scripts/manual/close_unmasked_siblings_probe.py"), 20),
 )
 AUTOMATED_QT_RUNTIME_COVERED_ELSEWHERE = {
     Path("tests/qml/probe_all_components.py"),
