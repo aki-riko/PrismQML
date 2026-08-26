@@ -120,6 +120,10 @@ Window {
         _closeCompletionPending = false
         closeFrameWaiter.cancel()
         closeTransition.stop()
+        // A cancelled close must put the native shadow back, or the window
+        // stays on screen without it. 取消关闭必须把原生阴影装回去, 否则窗口留在
+        // 屏上却没了阴影。
+        _setNativeShadowForClose(true)
         windowFrameLayer.visible = _closeSourceWasVisible
         if (window.visible) {
             animHelper.restoreVisibleState()
@@ -128,7 +132,24 @@ Window {
     function _startAcceptedClose() {
         _closeInProgress = true
         _closeSourceWasVisible = windowFrameLayer.visible
+        // The native shadow is a DWM non-client rendering policy on the hwnd,
+        // so no QML layer mask can clip it. Left on, DWM keeps painting a
+        // rectangular shadow around the full window bounds while the circle
+        // collapses, leaving the periphery visibly unclipped. Drop it for the
+        // duration of the close only; _cancelCloseRequest restores it.
+        // 原生阴影是 hwnd 上的 DWM 非客户区渲染策略, QML 的 layer 遮罩裁不到它。
+        // 不关掉的话, 圆环收紧期间 DWM 仍按整窗矩形画阴影, 外围就明显没被裁掉。
+        // 仅在关闭期间撤掉; _cancelCloseRequest 会恢复。
+        _setNativeShadowForClose(false)
         closeTransition.collapse(windowFrameLayer)
+    }
+    function _setNativeShadowForClose(enabled) {
+        if (!ShadowManager || !_useNativeShadow) return
+        if (enabled) {
+            ShadowManager.enableShadowForWindow(window)
+        } else {
+            ShadowManager.disableShadowForWindow(window)
+        }
     }
     function _completeAcceptedClose() {
         if (!_closeInProgress) return

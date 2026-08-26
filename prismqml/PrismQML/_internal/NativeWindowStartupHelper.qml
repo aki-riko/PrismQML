@@ -73,7 +73,14 @@ Item {
     function _callNativeHook() {
         var nativeHookSucceeded = false
         try {
-            if (useNativeShadow && typeof ShadowManager !== "undefined" && ShadowManager) {
+            // A failed finalizeAttach retries through delayTimer, which can land
+            // after the close collapse has started. Re-arming the DWM shadow
+            // then paints the full window rectangle back around the shrinking
+            // circle, so skip it once the close owns the window.
+            // finalizeAttach 失败会经 delayTimer 重试, 可能落在关闭收紧开始之后。
+            // 那时重新装上 DWM 阴影会把整窗矩形又画回收紧的圆外, 故关闭接管后跳过。
+            if (useNativeShadow && !targetWindow._closeInProgress &&
+                    typeof ShadowManager !== "undefined" && ShadowManager) {
                 targetWindow.profileTime("ShadowManager.enableShadowForWindow start")
                 ShadowManager.enableShadowForWindow(targetWindow)
                 targetWindow.profileTime("ShadowManager.enableShadowForWindow done")

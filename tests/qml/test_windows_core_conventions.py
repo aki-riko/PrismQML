@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QEasingCurve,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     QPoint,
     QPointF,
@@ -124,6 +125,7 @@ WindowsCore {
     readonly property int noneAnimationType: Enums.animation.none
     readonly property int noShadow: Enums.windowShadow.mode_none
     readonly property int qmlShadow: Enums.windowShadow.mode_qml
+    readonly property int nativeShadow: Enums.windowShadow.mode_native
     readonly property int navPanelMinWidth: Enums.window.navPanelMinWidth
     readonly property int dividerWidth: Enums.border.thin
     readonly property int resizeDelay: Enums.window.resizeHandlesDelayMs
@@ -699,6 +701,102 @@ def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
         ]
         assert hide_events
         assert hide_events[-1] == pytest.approx(0, abs=1e-6)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_close_collapse_drops_native_shadow(monkeypatch, qapp):
+    """收紧期间必须撤掉原生 DWM 阴影，否则整窗矩形阴影留在圆外。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    shadow_manager = window_services_module.getShadowManager()
+    calls = []
+    for name in ("enableShadowForWindow", "disableShadowForWindow"):
+        original = getattr(shadow_manager, name)
+
+        def _spy(window, _name=name, _original=original):
+            calls.append(_name)
+            return _original(window)
+
+        monkeypatch.setattr(shadow_manager, name, _spy)
+
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        # The native shadow is a DWM policy on the hwnd; no QML layer mask can
+        # clip it, so it must be switched off for the collapse itself. The scene
+        # defaults to mode_none, so opt in or the assertion is vacuous.
+        # 原生阴影是 hwnd 上的 DWM 策略, QML 遮罩裁不到, 必须在收紧时关掉。场景默认
+        # mode_none, 必须显式打开, 否则断言是空的。
+        window.setProperty("shadowMode", window.property("nativeShadow"))
+        assert _wait_for(lambda: window.property("_useNativeShadow") is True)
+        calls.clear()
+
+        assert window.close() is False
+        assert "disableShadowForWindow" in calls
+        assert _wait_for(
+            lambda: window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=2000,
+        )
+        # The collapse must not re-enable it midway.
+        # 收紧过程中不得又把它打开。
+        assert "enableShadowForWindow" not in calls
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_cancelled_close_restores_native_shadow(monkeypatch, qapp):
+    """取消关闭必须把原生阴影装回去。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    shadow_manager = window_services_module.getShadowManager()
+    calls = []
+    for name in ("enableShadowForWindow", "disableShadowForWindow"):
+        original = getattr(shadow_manager, name)
+
+        def _spy(window, _name=name, _original=original):
+            calls.append(_name)
+            return _original(window)
+
+        monkeypatch.setattr(shadow_manager, name, _spy)
+
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        window.setProperty("shadowMode", window.property("nativeShadow"))
+        assert _wait_for(lambda: window.property("_useNativeShadow") is True)
+        calls.clear()
+
+        # A cancelled close leaves the window on screen, so the shadow dropped
+        # for the collapse has to come back. This scene has no way to refuse a
+        # close, so drive the cancel entry point directly.
+        # 取消的关闭会让窗口留在屏上, 为收紧撤掉的阴影必须装回。本场景无法拒绝关闭,
+        # 故直接驱动取消入口。
+        assert QMetaObject.invokeMethod(window, "_startAcceptedClose")
+        assert window.property("_closeInProgress") is True
+        assert calls == ["disableShadowForWindow"]
+
+        assert QMetaObject.invokeMethod(window, "_cancelCloseRequest")
+        assert window.property("_closeInProgress") is False
+        assert window.isVisible()
+        assert calls[-1] == "enableShadowForWindow"
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
