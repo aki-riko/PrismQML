@@ -86,8 +86,6 @@ def main() -> int:
         "右下": (geo.x() + geo.width() - inset, geo.y() + geo.height() - inset),
     }
     baseline = {name: read_pixel(*point) for name, point in corners.items()}
-    print(f"窗口几何 = {geo.x()},{geo.y()} {geo.width()}x{geo.height()}")
-    print(f"关闭前角点(应为窗口底色) = {baseline}")
     if all(value is None for value in baseline.values()):
         print("PROBE-FAIL: GetPixel 全返回 CLR_INVALID — 本会话没有交互桌面")
         return 2
@@ -100,40 +98,44 @@ def main() -> int:
         if "WindowsCoreFrame" in child.metaObject().className():
             frame_layer = child
 
-    print(f"micaEnabled={qwindow.property('micaEnabled')} "
-          f"_micaActive={qwindow.property('_micaActive')} "
-          f"_micaTransparent={qwindow.property('_micaTransparent')} "
-          f"windowColor={qwindow.property('windowColor')}")
-
     frames = []
     path_log = []
 
     def _log_path():
-        """Record which collapse branch ran and whether the mask is applied.
+        """Record which collapse branch ran.
 
-        记录收紧走了哪条分支, 以及遮罩到底有没有挂上。
+        记录收紧走了哪条分支。
+
+        Do NOT touch frame_layer.property("layer"): PySide6 has no converter for
+        QQuickItemLayer* and raises, which would kill every sample and leave the
+        whole run INCONCLUSIVE. _usingPageLayer already distinguishes the two
+        branches. 不要碰 frame_layer.property("layer"): PySide6 没有
+        QQuickItemLayer* 的转换器会直接抛错, 打断每一次采样, 让整轮变成
+        INCONCLUSIVE。_usingPageLayer 已经足够区分两条分支。
         """
         if transition is None:
             return
-        row = {
-            "usingPageLayer": transition.property("_usingPageLayer"),
-            "fallback": transition.property("_lastFallbackReason"),
-        }
-        if frame_layer is not None:
-            layer = frame_layer.property("layer")
-            if layer is not None:
-                row["layerEnabled"] = layer.property("enabled")
-                row["hasEffect"] = layer.property("effect") is not None
+        row = (
+            transition.property("_usingPageLayer"),
+            transition.property("_lastFallbackReason"),
+            transition.property("_capturePending"),
+        )
         if row not in path_log:
             path_log.append(row)
 
     def _sample():
+        # A bug in diagnostics must never destroy the measurement.
+        # 诊断代码的 bug 绝不能毁掉测量本身。
         progress = None
-        if transition is not None:
-            value = transition.property("progress")
-            if value is not None:
-                progress = round(float(value), 3)
-        _log_path()
+        try:
+            if transition is not None:
+                value = transition.property("progress")
+                if value is not None:
+                    progress = round(float(value), 3)
+            _log_path()
+        except Exception as exc:  # noqa: BLE001 - 记录而非静默
+            if not any(r == ("诊断异常", str(exc), None) for r in path_log):
+                path_log.append(("诊断异常", str(exc), None))
         frames.append((progress, {n: read_pixel(*p) for n, p in corners.items()}))
 
     # 8ms: the collapse is ~420ms, and a 16ms tick only caught 10 frames on a
@@ -148,10 +150,6 @@ def main() -> int:
     _pump(1500)
     timer.stop()
 
-    print("\n收紧路径诊断:")
-    for row in path_log:
-        print(f"  {row}")
-
     # Only mid-collapse frames prove anything: at progress≈1 the circle still
     # covers the corners legitimately.
     # 只有收紧中段的帧能说明问题: progress≈1 时圆本就该盖住角点。
@@ -164,15 +162,40 @@ def main() -> int:
     )
     progresses = [f[0] for f in frames if f[0] is not None]
     span = f"{max(progresses)}->{min(progresses)}" if progresses else "无"
-
-    print(f"\n=== 采样 {len(frames)} 帧, progress {span}, 中段 {len(midway)} 帧 ===")
-    if not midway:
-        print("RESULT: INCONCLUSIVE")
-        return 3
-    print(
-        f"RESULT: {'PERIPHERY-NOT-CLIPPED' if matches else 'CLIPPED'}"
-        f" ({matches}/{len(midway) * 4} 个中段角点仍是底色)"
+    verdict = (
+        "INCONCLUSIVE"
+        if not midway
+        else ("PERIPHERY-NOT-CLIPPED" if matches else "CLIPPED")
     )
+
+    # Write the full report to a file: a real terminal interleaves and truncates
+    # this badly enough to be unreadable. 报告落盘: 真机终端会把输出交织截断到
+    # 读不出来。
+    lines = [
+        f"verdict={verdict}",
+        f"frames={len(frames)} progress={span} midway={len(midway)}",
+        f"midwayCornerMatches={matches}/{len(midway) * 4}",
+        f"micaEnabled={qwindow.property('micaEnabled')}",
+        f"_micaActive={qwindow.property('_micaActive')}",
+        f"_micaTransparent={qwindow.property('_micaTransparent')}",
+        f"windowColor={qwindow.property('windowColor')}",
+        f"baseline={baseline}",
+        "",
+        "# (usingPageLayer, lastFallbackReason, capturePending)",
+    ]
+    lines.extend(f"path={row}" for row in path_log)
+    lines.append("")
+    lines.extend(
+        f"frame progress={p} {s}" for p, s in frames if p is not None
+    )
+    report = ROOT / ".artifacts" / "close_periphery_report.txt"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text("\n".join(lines), encoding="utf-8")
+
+    print(f"RESULT: {verdict}")
+    print(f"报告已写入: {report}")
+    if not midway:
+        return 3
     return 0
 
 
