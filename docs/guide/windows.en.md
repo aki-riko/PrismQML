@@ -88,6 +88,23 @@ enters the real close path synchronously. With `Enums.animation.custom`,
 lazy-page, and main-window exit transitions can therefore share one built-in or
 custom lifecycle.
 
+A window exit crosses the full diagonal rather than a page-switch radius, so
+`WindowsCore` overrides the collapse pacing: duration comes from
+`Enums.lazyLoadingTransitionMetrics.windowExitDuration` and easing from
+`Easing.InOutQuad`. The page-switch defaults (`coverDuration` with
+`Easing.InCubic`) hold the radius near maximum for most of the duration and then
+cross the entire remaining distance in the last few frames, which on a
+low-refresh display reads as the window being cut away half-collapsed.
+`PageTransition` exposes `coverDuration` and `coverEasing` so custom exits can
+override the same way:
+
+```qml
+Fluent.PageTransition {
+    coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration
+    coverEasing: Easing.InOutQuad
+}
+```
+
 ### Splash exit animation
 
 The default `SplashScreen` uses `Enums.animation.lazy_circle`, sharing the same

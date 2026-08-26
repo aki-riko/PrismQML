@@ -521,6 +521,41 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "signal collapseFinished()" in lazy_transition_source
     assert "FeedbackInternal.QMLPageCircleFrame" in lazy_transition_source
     assert "property int revealEasing: Easing.OutQuint" in lazy_transition_source
+    # Collapse pacing must stay reachable from the public facade so a
+    # full-window exit can override the page-switch default.
+    # 收紧节奏必须能从公开门面覆盖, 供整窗退场替换页面切换默认值。
+    assert "property int coverEasing: Easing.InCubic" in lazy_transition_source
+    assert (
+        "property int coverDuration: "
+        "Enums.lazyLoadingTransitionMetrics.coverDuration"
+        in lazy_transition_source
+    )
+    assert "coverDuration: transition.coverDuration" in lazy_transition_source
+    assert "coverEasing: transition.coverEasing" in lazy_transition_source
+    circle_transition_source = (
+        ROOT
+        / "prismqml/PrismQML/controls/feedback/_internal"
+        / "QMLPageCircleTransition.qml"
+    ).read_text(encoding="utf-8")
+    assert (
+        "property int coverEasing: Easing.InCubic" in circle_transition_source
+    )
+    assert (
+        "easing.type: transition._collapsing" in circle_transition_source
+        and "? transition.coverEasing" in circle_transition_source
+    )
+    assert "? Easing.InCubic" not in circle_transition_source
+    page_transition_source = (
+        ROOT / "prismqml/PrismQML/controls/navigation/PageTransition.qml"
+    ).read_text(encoding="utf-8")
+    assert "property int coverEasing: Easing.InCubic" in page_transition_source
+    assert (
+        "property int coverDuration: "
+        "Enums.lazyLoadingTransitionMetrics.coverDuration"
+        in page_transition_source
+    )
+    assert "coverDuration: control.coverDuration" in page_transition_source
+    assert "coverEasing: control.coverEasing" in page_transition_source
     assert "onFinished: transition._handleRadiusFinished()" in lazy_transition_source
     assert "property bool _collapseFramePending: false" in lazy_transition_source
     assert "property bool collapseToCenter: false" in lazy_transition_source

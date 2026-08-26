@@ -47,6 +47,10 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("scripts/manual/native_popup_sendinput_probe.py"),
     Path("scripts/manual/gallery_menu_tab_hover_probe.py"),
     Path("scripts/manual/tab_widget_shadow_artifact_probe.py"),
+    # Visible window-exit collapse pacing probe; the collapse trajectory is
+    # only observable on a real presenting display. 可视窗口退场收紧节奏探针；
+    # 收紧轨迹只能在真实上屏的显示器上观测。
+    Path("scripts/manual/window_close_collapse_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"

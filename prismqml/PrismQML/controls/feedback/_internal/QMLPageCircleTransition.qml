@@ -19,6 +19,14 @@ Item {
     // 圆在约 40% 时长内就冲出边缘, 其余时间画面无变化; 做全窗口揭幕的调用方
     // 可覆盖此值。
     property int revealEasing: Easing.OutQuint
+    // Collapse easing. InCubic reads as a deliberate suck-toward-center on the
+    // small radii of a page switch, but on a full-window exit it holds the
+    // radius near maximum for most of the duration and then crosses the whole
+    // remaining distance in the last few frames; full-window callers should
+    // override this. 收紧缓动。InCubic 在页面切换的小半径上呈现刻意的向心吸入,
+    // 但全窗口退场时半径在大部分时长里几乎不动, 最后几帧才跨完剩余全部距离;
+    // 做全窗口退场的调用方应覆盖此值。
+    property int coverEasing: Easing.InCubic
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool running: progressAnimation.running
@@ -71,7 +79,7 @@ Item {
             ? transition.coverDuration
             : transition.revealDuration
         easing.type: transition._collapsing
-            ? Easing.InCubic
+            ? transition.coverEasing
             : transition.revealEasing
         onFinished: transition.finished()
     }

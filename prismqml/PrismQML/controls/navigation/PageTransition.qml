@@ -19,7 +19,9 @@ Item {
     property int animationType: Enums.animation.lazy_circle
     property Component customAnimation: null
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+    property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
     property int revealEasing: Easing.OutQuint
+    property int coverEasing: Easing.InCubic
     property bool revealTarget: false
     property bool keepSourceHiddenOnExpand: false
     property bool collapseToCenter: false
@@ -190,6 +192,8 @@ Item {
             objectName: "qmlPageCircleTransition"
             revealDuration: control.revealDuration
             revealEasing: control.revealEasing
+            coverDuration: control.coverDuration
+            coverEasing: control.coverEasing
             revealTarget: control.revealTarget
             keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
             collapseToCenter: control.collapseToCenter

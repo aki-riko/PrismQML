@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 import pytest
 from PySide6.QtCore import (
     QCoreApplication,
+    QEasingCurve,
     QEvent,
     QEventLoop,
     QObject,
@@ -621,6 +622,124 @@ def test_windows_core_native_close_reuses_lazy_circle_exit_animation(monkeypatch
         assert _new_visible_windows(windows_before) == []
 
 
+def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
+    monkeypatch, qapp
+):
+    """退场必须收紧到零半径才移除窗口，且中途不得跳步。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch)
+    try:
+        transition = window.findChild(QObject, "windowClosePageTransition")
+        assert transition is not None
+
+        # The exit must not inherit the page-switch collapse pacing.
+        # 退场不得沿用页面切换的收紧节奏。
+        page_cover_duration = 300
+        assert transition.property("coverDuration") > page_cover_duration
+        assert transition.property("coverEasing") == int(
+            QEasingCurve.Type.InOutQuad.value
+        )
+
+        # Offscreen presents almost no frames during the collapse, so the
+        # per-frame trajectory is not observable here; assert the ordering
+        # invariant instead and leave pacing to the visible D3D11 probe
+        # (scripts/manual/window_close_collapse_probe.py). offscreen 在收紧
+        # 期间几乎不上屏, 逐帧轨迹在此不可观测; 这里只断言时序不变量, 节奏交给
+        # 可见 D3D11 探针验收。
+        collapse_endpoints = []
+        transition.collapseFinished.connect(
+            lambda: collapse_endpoints.append(
+                (
+                    float(transition.property("progress")),
+                    float(transition.property("revealRadiusPixels")),
+                    bool(window.isVisible()),
+                )
+            )
+        )
+        visibility_progress = []
+        window.visibleChanged.connect(
+            lambda: visibility_progress.append(
+                (
+                    bool(window.isVisible()),
+                    float(transition.property("progress")),
+                )
+            )
+        )
+
+        assert window.close() is False
+        assert _wait_for(
+            lambda: window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=2000,
+        )
+
+        # The collapse must finish at the zero endpoint, and it must finish
+        # while the window is still on screen. 收紧必须走到零终点, 且必须在窗口
+        # 仍在屏上时完成。
+        assert collapse_endpoints
+        end_progress, end_radius, visible_at_end = collapse_endpoints[-1]
+        assert end_progress == pytest.approx(0, abs=1e-6)
+        assert end_radius == pytest.approx(0, abs=1e-6)
+        assert visible_at_end is True
+        # Teardown may only happen after the collapse reached zero.
+        # 只有收紧到零之后才允许移除窗口。
+        hide_events = [
+            progress for visible, progress in visibility_progress if not visible
+        ]
+        assert hide_events
+        assert hide_events[-1] == pytest.approx(0, abs=1e-6)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_close_collapse_easing_spreads_motion_evenly():
+    """收紧缓动必须把运动均匀分布，不得把大半距离压到末尾几帧。"""
+    frame_count = 12
+    page_default = QEasingCurve(QEasingCurve.Type.InCubic)
+    window_exit = QEasingCurve(QEasingCurve.Type.InOutQuad)
+
+    def _radius_series(curve):
+        # progress runs 1 -> 0, radius scales with progress.
+        # progress 由 1 走到 0, 半径随 progress 线性缩放。
+        return [
+            1.0 - curve.valueForProgress(index / (frame_count - 1))
+            for index in range(frame_count)
+        ]
+
+    def _max_step(series):
+        return max(
+            earlier - later for earlier, later in zip(series, series[1:])
+        )
+
+    def _half_at(series):
+        return next(
+            index / (frame_count - 1)
+            for index, radius in enumerate(series)
+            if radius <= 0.5
+        )
+
+    page_series = _radius_series(page_default)
+    exit_series = _radius_series(window_exit)
+
+    # The page default reaches half radius only near the very end, leaving the
+    # whole second half to the last frames. 页面默认值直到接近末尾才收到半径
+    # 一半, 把后半程全部压给最后几帧。
+    assert _half_at(page_series) > 0.7
+    assert _half_at(exit_series) == pytest.approx(0.5, abs=0.1)
+    assert _max_step(exit_series) < _max_step(page_series)
+    assert _max_step(exit_series) < 0.2
+
+
 def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -785,6 +904,16 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert "animationType: window.closeAnimationType" in windows_core_source
     assert "customAnimation: window.closeAnimation" in windows_core_source
     assert "collapseToCenter: true" in windows_core_source
+    # A window exit must not inherit the page-switch collapse pacing: the
+    # page default holds the radius near maximum and crosses the rest in the
+    # final frames. 窗口退场不得沿用页面切换的收紧节奏: 页面默认值让半径长时间
+    # 几乎不动, 最后几帧才跨完剩余距离。
+    assert (
+        "coverDuration: Enums.lazyLoadingTransitionMetrics.windowExitDuration"
+        in windows_core_source
+    )
+    assert "coverEasing: Easing.InOutQuad" in windows_core_source
+    assert "coverEasing: Easing.InCubic" not in windows_core_source
     assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
     assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
     assert "Qt.callLater(window._armAcceptedClose)" in windows_core_source

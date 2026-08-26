@@ -672,6 +672,7 @@ QtObject {
  // ==================== LazyLoadingTransition 懒加载过渡度量 ====================
  readonly property QtObject lazyLoadingTransition: QtObject {
  readonly property int coverDuration: 300 // Old page circle collapse 旧页面圆形收紧时长
+ readonly property int windowExitDuration: 420 // Whole-window circle collapse 整窗圆形收紧时长
  readonly property int revealDuration: 500 // Target page circle expansion 目标页面圆形展开时长
  readonly property int splashRevealDuration: 1000 // Splash entrance reveal duration 启动画面入场揭幕时长
  readonly property real edgeSoftness: 1.5 // Circular mask antialiasing width 圆形遮罩抗锯齿宽度

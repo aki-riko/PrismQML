@@ -39,9 +39,11 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
+    property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
     // Forwarded to the radius animation; see QMLPageCircleTransition.
     // 转发给半径动画; 见 QMLPageCircleTransition。
     property int revealEasing: Easing.OutQuint
+    property int coverEasing: Easing.InCubic
     property bool revealTarget: false
     // Keep external reveal sources hidden after expansion so the next window can show through.
     // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。
@@ -366,6 +368,8 @@ Item {
         objectName: "qmlPageCircleTransition"
         revealDuration: transition.revealDuration
         revealEasing: transition.revealEasing
+        coverDuration: transition.coverDuration
+        coverEasing: transition.coverEasing
         onFinished: transition._handleRadiusFinished()
     }
 
