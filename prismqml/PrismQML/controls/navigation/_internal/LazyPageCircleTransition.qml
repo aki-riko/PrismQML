@@ -16,7 +16,7 @@ Item {
     readonly property bool active:
         _capturePending || _overlayFrameStage > 0 || _dissolving
         || _usingPageLayer || _inWindowStartPending
-        || _mainFramePending || radiusTransition.running
+        || _mainFramePending || _collapseFramePending || radiusTransition.running
     readonly property bool collapsing: radiusTransition.collapsing
     readonly property bool collapsed: _collapsed
     readonly property real progress: radiusTransition.progress
@@ -57,6 +57,7 @@ Item {
     property bool _usingPageLayer: false
     property bool _inWindowStartPending: false
     property bool _mainFramePending: false
+    property bool _collapseFramePending: false
     property int _captureGeneration: 0
     property real _sourceStartX: 0
     property real _sourceStartY: 0
@@ -88,6 +89,7 @@ Item {
         transition._dissolving = false
         transition._inWindowStartPending = false
         transition._mainFramePending = false
+        transition._collapseFramePending = false
         // Child ids may already be null when Component.onDestruction invokes stop().
         // Component.onDestruction 调用 stop() 时，子对象 id 可能已经为空。
         if (captureTimeout) captureTimeout.stop()
@@ -239,6 +241,7 @@ Item {
         transition._dissolving = false
         transition._inWindowStartPending = false
         transition._mainFramePending = false
+        transition._collapseFramePending = false
         captureTimeout.stop()
         overlayWindow.visible = false
         var sourceItem = transition._sourceItem
@@ -284,7 +287,11 @@ Item {
     function _handleRadiusFinished() {
         if (!transition._dissolving) return
         if (radiusTransition.collapsing) {
-            transition._finalizeCollapse()
+            // Let the zero-radius shader frame render before removing its source.
+            // 先让半径归零的 shader 帧完成渲染,再移除源项。
+            transition._collapseFramePending = true
+            if (transition._hostWindow) transition._hostWindow.requestUpdate()
+            else overlayWindow.requestUpdate()
             return
         }
 
@@ -305,6 +312,7 @@ Item {
 
     function _finalizeCollapse() {
         var sourceItem = transition._sourceItem
+        transition._collapseFramePending = false
         transition._dissolving = false
         if (sourceItem) sourceItem.visible = false
         transition._restorePageLayer()
@@ -340,6 +348,11 @@ Item {
         }
         if (!transition._mainFramePending) return
         transition._finalizeExpansion()
+    }
+
+    function _handleCollapseFrameEnd() {
+        if (transition._collapseFramePending)
+            transition._finalizeCollapse()
     }
 
     visible: false
@@ -388,6 +401,7 @@ Item {
         target: transition._hostWindow
 
         function onFrameSwapped() { transition._handleSourceWindowFrameSwapped() }
+        function onAfterFrameEnd() { transition._handleCollapseFrameEnd() }
     }
 
     Window {
@@ -401,6 +415,7 @@ Item {
         transientParent: null
 
         onFrameSwapped: transition._handleOverlayFrameSwapped()
+        onAfterFrameEnd: transition._handleCollapseFrameEnd()
 
         FeedbackInternal.QMLPageCircleFrame {
             id: circleFrame
