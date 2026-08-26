@@ -70,6 +70,24 @@ Fluent.Windows {
 }
 ```
 
+The main window close path also reuses the same `PageTransition`. By default it
+uses `Enums.animation.lazy_circle` to collapse the window content; the real
+close is submitted only after the collapse completes. If the host rejects the
+close request, `stop()` restores the original page visibility.
+
+```qml
+Fluent.Windows {
+    closeAnimationType: Enums.animation.lazy_circle
+    closeAnimation: null
+}
+```
+
+`closeAnimationType: Enums.animation.none` skips the visual transition and
+enters the real close path synchronously. With `Enums.animation.custom`,
+`closeAnimation` uses the same `Component` contract described below. Startup,
+lazy-page, and main-window exit transitions can therefore share one built-in or
+custom lifecycle.
+
 ### Splash exit animation
 
 The default `SplashScreen` uses `Enums.animation.lazy_circle`, sharing the same

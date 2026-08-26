@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Window
 import "./_internal"
+import "./controls/navigation"
 
 // WindowsCore - Base class for all Window 所有 Window 的基类
 // Pure QML: rounded corners + shadow + titlebar + resize 纯QML实现
@@ -33,6 +34,8 @@ Window {
     property int shadowSize: Enums.window.qmlShadowSize
     property color windowColor: Enums.backgroundColor
     property int shadowMode: Enums.windowShadow.mode_auto
+    property int closeAnimationType: Enums.animation.lazy_circle
+    property Component closeAnimation: null
 
     // ==================== Internal Props 内部属性 ====================
     readonly property real _appStartTime: Date.now()
@@ -48,6 +51,7 @@ Window {
     property alias _animScale: animHelper.animScale
     property alias _animOpacity: animHelper.animOpacity
     property bool _closeInProgress: false
+    property bool _closeSourceWasVisible: true
     property bool _titleChromeReady: true
     property bool _resizeHandlesReady: false
     property bool _dwmInitializationDone: false
@@ -112,15 +116,16 @@ Window {
     }
     function _cancelCloseRequest() {
         _closeInProgress = false
+        closeTransition.stop()
+        windowFrameLayer.visible = _closeSourceWasVisible
         if (window.visible) {
             animHelper.restoreVisibleState()
         }
     }
     function _startAcceptedClose() {
         _closeInProgress = true
-        // Leave the current onClosing delivery before issuing the accepted close.
-        // 先退出当前 onClosing 分发, 再发起已接受的真实关闭, 避免重入。
-        Qt.callLater(window._completeAcceptedClose)
+        _closeSourceWasVisible = windowFrameLayer.visible
+        closeTransition.collapse(windowFrameLayer)
     }
     function _completeAcceptedClose() {
         if (!_closeInProgress) return
@@ -305,6 +310,16 @@ Window {
     WindowAnimationHelper {
         id: animHelper
         targetWindow: window
+    }
+
+    PageTransition {
+        id: closeTransition
+
+        objectName: "windowClosePageTransition"
+        anchors.fill: parent
+        animationType: window.closeAnimationType
+        customAnimation: window.closeAnimation
+        onCollapseFinished: Qt.callLater(window._completeAcceptedClose)
     }
 
     // Listen to ConfigManager directly. 直接监听 ConfigManager 信号。

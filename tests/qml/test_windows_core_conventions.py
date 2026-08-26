@@ -104,8 +104,12 @@ import QtQuick
 import PrismQML
 
 WindowsCore {
+    id: root
     objectName: "window"
     property bool initialLeftLayout: false
+    property bool customClose: false
+    property int customCollapseCount: 0
+    property int customStopCount: 0
     property int nativeCloseAcceptedCount: 0
     readonly property int topLayout: Enums.windowType.title_bar_top
     readonly property int leftLayout: Enums.windowType.title_bar_left
@@ -122,6 +126,8 @@ WindowsCore {
     windowTitle: "WindowsCore Contract"
     windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
     titleBarPosition: initialLeftLayout ? leftLayout : topLayout
+    closeAnimationType: customClose ? Enums.animation.custom : Enums.animation.lazy_circle
+    closeAnimation: customClose ? customCloseComponent : null
 
     onNativeCloseAccepted: nativeCloseAcceptedCount += 1
 
@@ -138,6 +144,53 @@ WindowsCore {
             height: 16
         }
     ]
+
+    Component {
+        id: customCloseComponent
+
+        Item {
+            property bool active: false
+            property bool running: false
+            property bool collapsing: false
+            property bool collapsed: false
+            property real progress: 0
+
+            signal collapseStarted()
+            signal collapseFinished()
+            signal expandStarted()
+            signal expandFinished()
+
+            function collapse(sourceItem) {
+                root.customCollapseCount += 1
+                active = true
+                running = true
+                collapsing = true
+                collapseStarted()
+                progress = 1
+                sourceItem.visible = false
+                collapsed = true
+                running = false
+                active = false
+                collapseFinished()
+                return true
+            }
+
+            function expand(sourceItem) {
+                sourceItem.visible = true
+                collapsed = false
+                expandStarted()
+                expandFinished()
+                return true
+            }
+
+            function stop() {
+                root.customStopCount += 1
+                active = false
+                running = false
+                collapsed = false
+            }
+        }
+    }
 }
 """
 
@@ -225,7 +278,9 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene(monkeypatch, *, initial_left_layout: bool = False):
+def _create_scene(
+    monkeypatch, *, initial_left_layout: bool = False, custom_close: bool = False
+):
     engine = QQmlApplicationEngine()
     startup_events = []
     native_window = _FakeNativeWindow(startup_events, engine)
@@ -248,7 +303,11 @@ def _create_scene(monkeypatch, *, initial_left_layout: bool = False):
         error.toString() for error in component.errors()
     ]
     window = component.createWithInitialProperties(
-        {"initialLeftLayout": initial_left_layout}, engine.rootContext()
+        {
+            "initialLeftLayout": initial_left_layout,
+            "customClose": custom_close,
+        },
+        engine.rootContext(),
     )
     assert isinstance(window, QQuickWindow), [
         error.toString() for error in component.errors()
@@ -509,7 +568,7 @@ def test_windows_core_titlebar_double_click_routes_native_transition(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_windows_core_native_close_has_no_custom_exit_animation(monkeypatch, qapp):
+def test_windows_core_native_close_reuses_lazy_circle_exit_animation(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
         engine,
@@ -527,9 +586,13 @@ def test_windows_core_native_close_has_no_custom_exit_animation(monkeypatch, qap
             and window.property("_animScale") == pytest.approx(1)
         )
 
+        transition = window.findChild(QObject, "windowClosePageTransition")
+        assert transition is not None
+        assert transition.property("animationType") == 7
+
         # The first native/QWindow close leaves the current onClosing delivery,
-        # then closes directly without a custom visual transition.
-        # 首次原生/QWindow 关闭退出当前 onClosing 分发后直接关闭, 不播放自定义视觉过渡。
+        # then reuses PageTransition before the accepted close.
+        # 首次原生/QWindow 关闭退出当前 onClosing 分发, 再复用 PageTransition 后真实关闭。
         assert window.close() is False
         assert window.property("_closeInProgress") is True
         assert window.property("nativeCloseAcceptedCount") == 0
@@ -540,6 +603,39 @@ def test_windows_core_native_close_has_no_custom_exit_animation(monkeypatch, qap
             timeout_ms=500,
         )
         assert window.opacity() == pytest.approx(1)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch, custom_close=True)
+    try:
+        transition = window.findChild(QObject, "windowClosePageTransition")
+        assert transition is not None
+        assert transition.property("animationType") == 8
+        assert window.property("customCollapseCount") == 0
+
+        assert window.close() is False
+        assert _wait_for(
+            lambda: window.property("customCollapseCount") == 1
+            and window.property("nativeCloseAcceptedCount") == 1
+            and not window.isVisible(),
+            timeout_ms=500,
+        )
+        # PageTransition stops any previous operation before starting collapse.
+        # PageTransition 会先停止已有操作, 再开始本次收紧。
+        assert window.property("customStopCount") == 1
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -633,6 +729,16 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
         encoding="utf-8"
     )
     windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert 'import "./controls/navigation"' in windows_core_source
+    assert "property int closeAnimationType: Enums.animation.lazy_circle" in windows_core_source
+    assert "property Component closeAnimation: null" in windows_core_source
+    assert "property bool _closeSourceWasVisible: true" in windows_core_source
+    assert "PageTransition {" in windows_core_source
+    assert 'objectName: "windowClosePageTransition"' in windows_core_source
+    assert "animationType: window.closeAnimationType" in windows_core_source
+    assert "customAnimation: window.closeAnimation" in windows_core_source
+    assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
+    assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
     assert "Qt.callLater(window._completeAcceptedClose)" in windows_core_source
     assert "animHelper.animatedClose()" not in windows_core_source
 

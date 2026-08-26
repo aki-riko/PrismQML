@@ -67,6 +67,21 @@ Fluent.Windows {
 }
 ```
 
+主窗口关闭时也复用同一套 `PageTransition`。默认使用
+`Enums.animation.lazy_circle` 收紧窗口内容；关闭确认完成后先播放收紧，动画完成
+才提交真实关闭。关闭请求被宿主否决时，过渡会调用 `stop()` 恢复原页面。
+
+```qml
+Fluent.Windows {
+    closeAnimationType: Enums.animation.lazy_circle
+    closeAnimation: null
+}
+```
+
+`closeAnimationType: Enums.animation.none` 会跳过视觉过渡并同步进入真实关闭；设置
+`Enums.animation.custom` 时，`closeAnimation` 使用前文相同的 `Component` 合同。
+因此启动画面、懒加载页面和主窗口退场可以共享同一套内置或自定义生命周期。
+
 ### 启动画面退场动画
 
 默认 `SplashScreen` 使用 `Enums.animation.lazy_circle`：它与懒加载页面的收紧/展开过渡共用同一套生命周期。窗口级属性会转发到默认启动画面：
