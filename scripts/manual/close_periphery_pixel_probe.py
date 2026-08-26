@@ -115,10 +115,19 @@ def main() -> int:
         """
         if transition is None:
             return
+        color = qwindow.property("windowColor")
         row = (
             transition.property("_usingPageLayer"),
             transition.property("_lastFallbackReason"),
             transition.property("_capturePending"),
+            # Discriminator: if _micaTransparent flips false mid-collapse,
+            # windowColor turns opaque #f0f4f9 and the culprit is QML, not DWM.
+            # 判别器: 若收紧中途 _micaTransparent 翻假, windowColor 会变成不透明
+            # #f0f4f9, 那真凶就是 QML 而不是 DWM。
+            qwindow.property("_micaTransparent"),
+            qwindow.property("_micaBackdropReady"),
+            color.name() if hasattr(color, "name") else None,
+            round(color.alphaF(), 3) if hasattr(color, "alphaF") else None,
         )
         if row not in path_log:
             path_log.append(row)
@@ -150,6 +159,14 @@ def main() -> int:
     _pump(1500)
     timer.stop()
 
+    # Ground truth: with the window gone these corners are bare desktop. If a
+    # mid-collapse corner equals this, the periphery really was clipped; if it
+    # equals the window baseline instead, it was not.
+    # 基准真值: 窗口消失后这几个角点就是裸桌面。中段角点等于它 = 外围真裁掉了;
+    # 等于窗口基线 = 没裁掉。
+    _pump(600)
+    desktop = {name: read_pixel(*point) for name, point in corners.items()}
+
     # Only mid-collapse frames prove anything: at progress≈1 the circle still
     # covers the corners legitimately.
     # 只有收紧中段的帧能说明问题: progress≈1 时圆本就该盖住角点。
@@ -162,11 +179,16 @@ def main() -> int:
     )
     progresses = [f[0] for f in frames if f[0] is not None]
     span = f"{max(progresses)}->{min(progresses)}" if progresses else "无"
-    verdict = (
-        "INCONCLUSIVE"
-        if not midway
-        else ("PERIPHERY-NOT-CLIPPED" if matches else "CLIPPED")
-    )
+    if not midway:
+        verdict = "INCONCLUSIVE-无中段帧"
+    elif baseline == desktop:
+        # Window colour and desktop colour are indistinguishable here, so a
+        # corner match proves nothing either way — say so instead of reporting a
+        # false CLIPPED. 窗口底色与桌面色在这里无法区分, 角点相等什么也证明不了,
+        # 直说而不是误报 CLIPPED。
+        verdict = "INCONCLUSIVE-桌面色与窗口底色相同"
+    else:
+        verdict = "PERIPHERY-NOT-CLIPPED" if matches else "CLIPPED"
 
     # Write the full report to a file: a real terminal interleaves and truncates
     # this badly enough to be unreadable. 报告落盘: 真机终端会把输出交织截断到
@@ -180,8 +202,11 @@ def main() -> int:
         f"_micaTransparent={qwindow.property('_micaTransparent')}",
         f"windowColor={qwindow.property('windowColor')}",
         f"baseline={baseline}",
+        f"desktopAfterClose={desktop}",
+        f"baselineEqualsDesktop={baseline == desktop}",
         "",
-        "# (usingPageLayer, lastFallbackReason, capturePending)",
+        "# (usingPageLayer, fallbackReason, capturePending,"
+        " micaTransparent, backdropReady, windowColor, alpha)",
     ]
     lines.extend(f"path={row}" for row in path_log)
     lines.append("")
@@ -194,9 +219,7 @@ def main() -> int:
 
     print(f"RESULT: {verdict}")
     print(f"报告已写入: {report}")
-    if not midway:
-        return 3
-    return 0
+    return 3 if verdict.startswith("INCONCLUSIVE") else 0
 
 
 if __name__ == "__main__":
