@@ -17,10 +17,24 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from PySide6.QtCore import QEventLoop, QTimer  # noqa: E402
+from PySide6.QtCore import QEventLoop, QTimer, qInstallMessageHandler  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 CLR_INVALID = 0xFFFFFFFF
+
+# Every mid-collapse bail-out in LazyPageCircleTransition goes through
+# _completeWithoutAnimation, which drops the mask early and logs via
+# console.warn/error. Capturing Qt messages is the only way to see that from here.
+# LazyPageCircleTransition 里每条中途放弃的路径都走 _completeWithoutAnimation, 它会
+# 提前摘掉遮罩并经 console.warn/error 打日志。抓 Qt 消息是这里唯一能看到它的办法。
+QML_LOG = []
+
+
+def _install_log_capture():
+    def _handler(mode, context, message):
+        QML_LOG.append(str(message))
+
+    qInstallMessageHandler(_handler)
 
 
 def _pump(ms):
@@ -54,6 +68,7 @@ def main() -> int:
 
     logging.disable(logging.CRITICAL)
 
+    _install_log_capture()
     QApplication.instance() or QApplication(sys.argv)
     from prismqml import Window, WindowType
 
@@ -167,19 +182,28 @@ def main() -> int:
     _pump(600)
     desktop = {name: read_pixel(*point) for name, point in corners.items()}
 
-    # Only mid-collapse frames prove anything: at progress≈1 the circle still
-    # covers the corners legitimately.
-    # 只有收紧中段的帧能说明问题: progress≈1 时圆本就该盖住角点。
-    midway = [f for f in frames if f[0] is not None and 0.05 < f[0] < 0.6]
-    matches = sum(
-        1
-        for _, samples in midway
-        for name, value in samples.items()
-        if value is not None and value == baseline.get(name)
-    )
+    # Split the collapse in two and judge each: the reported symptom is a
+    # full-window white with only a tiny circle left, i.e. progress near 0. The
+    # previous window (0.05 < p < 0.6) excluded exactly that, which is why a run
+    # could report CLIPPED while the user still saw white.
+    # 把收紧分两段分别判: 报告的症状是整窗全白、只剩一个极小的圆, 也就是 progress
+    # 接近 0。上一版判据 (0.05 < p < 0.6) 恰好把那一段排除在外, 所以会出现"探针说
+    # CLIPPED, 用户仍看到白"。
+    def _match_count(rows):
+        return sum(
+            1
+            for _, samples in rows
+            for name, value in samples.items()
+            if value is not None and value == baseline.get(name)
+        )
+
+    midway = [f for f in frames if f[0] is not None and 0.05 < f[0] < 0.85]
+    tail = [f for f in frames if f[0] is not None and f[0] <= 0.05]
+    matches = _match_count(midway)
+    tail_matches = _match_count(tail)
     progresses = [f[0] for f in frames if f[0] is not None]
     span = f"{max(progresses)}->{min(progresses)}" if progresses else "无"
-    if not midway:
+    if not midway and not tail:
         verdict = "INCONCLUSIVE-无中段帧"
     elif baseline == desktop:
         # Window colour and desktop colour are indistinguishable here, so a
@@ -187,16 +211,26 @@ def main() -> int:
         # false CLIPPED. 窗口底色与桌面色在这里无法区分, 角点相等什么也证明不了,
         # 直说而不是误报 CLIPPED。
         verdict = "INCONCLUSIVE-桌面色与窗口底色相同"
+    elif matches and tail_matches:
+        verdict = "PERIPHERY-NOT-CLIPPED-全段"
+    elif tail_matches:
+        # This is the reported symptom: mid-collapse clips fine, then the tail
+        # goes opaque. 这正是报告的症状: 中段裁得好, 末段翻不透明。
+        verdict = "PERIPHERY-NOT-CLIPPED-仅末段"
+    elif matches:
+        verdict = "PERIPHERY-NOT-CLIPPED-仅中段"
     else:
-        verdict = "PERIPHERY-NOT-CLIPPED" if matches else "CLIPPED"
+        verdict = "CLIPPED"
 
     # Write the full report to a file: a real terminal interleaves and truncates
     # this badly enough to be unreadable. 报告落盘: 真机终端会把输出交织截断到
     # 读不出来。
     lines = [
         f"verdict={verdict}",
-        f"frames={len(frames)} progress={span} midway={len(midway)}",
+        f"frames={len(frames)} progress={span}"
+        f" midway={len(midway)} tail={len(tail)}",
         f"midwayCornerMatches={matches}/{len(midway) * 4}",
+        f"tailCornerMatches={tail_matches}/{len(tail) * 4}",
         f"micaEnabled={qwindow.property('micaEnabled')}",
         f"_micaActive={qwindow.property('_micaActive')}",
         f"_micaTransparent={qwindow.property('_micaTransparent')}",
@@ -209,6 +243,16 @@ def main() -> int:
         " micaTransparent, backdropReady, windowColor, alpha)",
     ]
     lines.extend(f"path={row}" for row in path_log)
+    lines.append("")
+    # Only transition-related messages: the app logs a lot of unrelated noise.
+    # 只留过渡相关消息: 应用本身日志噪声很多。
+    relevant = [
+        message
+        for message in QML_LOG
+        if "Transition" in message or "collapse" in message.lower()
+    ]
+    lines.append(f"qmlLogTotal={len(QML_LOG)} relevant={len(relevant)}")
+    lines.extend(f"qml={message}" for message in relevant[:20])
     lines.append("")
     lines.extend(
         f"frame progress={p} {s}" for p, s in frames if p is not None
