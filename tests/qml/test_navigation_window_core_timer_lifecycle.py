@@ -281,39 +281,34 @@ def test_navigation_window_core_timer_lifecycle_baseline(monkeypatch, qapp):
         ] == []
 
 
-def test_navigation_window_core_close_holds_window_color_transparent(
-    monkeypatch, qapp
-):
-    """关闭收紧期间 windowColor 必须按住透明, 否则外围露出不透明窗口底色。
+def test_navigation_window_core_close_keeps_window_color_opaque(monkeypatch, qapp):
+    """撤掉 Mica 背板后 windowColor 必须变回不透明, 否则整个窗口内部变半透明。
 
-    windowColor 填充的是被遮罩层*内部*的 windowFrame, 不是 Window 的清屏色(那个在
-    WindowsCore.qml 里恒为 Enums.transparent)。关闭期间 _micaBackdropReady 会被清掉,
-    若不加门就会翻成不透明 backgroundColor, 把圆环刚裁空的区域又画回来。
+    windowColor 填充的是被遮罩层*内部*的 windowFrame 矩形(WindowsCoreFrame.qml:32),
+    关闭圆环**裁得到**它 —— 所以它不该在关闭期间按住透明: 圆内要有正常底色, 圆外由
+    遮罩裁掉。真机实测过按住透明的后果: Mica 一撤, 没人填充窗框, 整个内部透出后面的
+    窗口。这条断言锁住"撤背板"与"保持不透明"必须同时成立。
     """
     engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
     try:
         window.setProperty("micaEnabled", True)
+        window.setProperty("_nativeHookReady", True)
         assert _wait_for(lambda: window.property("_micaActive") is True)
         assert _wait_for(lambda: window.property("_micaBackdropReady") is True)
+        # Mica on: transparent so the DWM material shows through.
+        # Mica 开启时透明, 让 DWM 材质透出来。
         assert window.property("windowColor").alphaF() == 0.0
 
-        # Clearing the flag outside a close must still fall back to the opaque
-        # base colour: that is the pre-existing behaviour the fix must not break.
-        # 非关闭期间清掉标志仍须回落到不透明底色: 这是修复不能破坏的原有行为。
-        window.setProperty("_micaBackdropReady", False)
+        # Dropping the backdrop for the close must also clear the translucency flag, or
+        # windowColor stays transparent with nothing behind it.
+        # 为关闭撤掉背板时必须同时清掉半透明标志, 否则 windowColor 仍透明而背后已无物。
+        window.closeCollapseStateChanged.emit(True)
+        assert window.property("_micaBackdropReady") is False
         assert window.property("_micaTransparent") is False
         assert window.property("windowColor").alphaF() == 1.0
 
-        # Same cleared flag, but during the close collapse: hold transparent so
-        # the clipped periphery reveals the desktop, not the window base colour.
-        # 同样清掉标志, 但处于关闭收紧中: 按住透明, 让被裁掉的外围露出桌面而不是
-        # 窗口底色。
-        window.setProperty("_closeInProgress", True)
-        assert window.property("windowColor").alphaF() == 0.0
-
-        # Without Mica the surface is not translucent, so a transparent clear
-        # colour would composite black. The gate must not fire there.
-        # 无 Mica 时表面并非半透明, 透明清屏色会合成为黑, 该门不得生效。
+        # Without Mica at all the base colour must stay opaque too.
+        # 完全无 Mica 时底色同样必须不透明。
         window.setProperty("micaEnabled", False)
         assert _wait_for(lambda: window.property("_micaActive") is False)
         assert window.property("windowColor").alphaF() == 1.0
@@ -327,9 +322,9 @@ def test_navigation_window_core_close_collapse_drops_mica_backdrop(monkeypatch, 
     """收紧期间必须把 DWM Mica 背板撤成 NONE, 否则被裁的外围照样是 Mica 材质。
 
     Mica 是 hwnd 级的 DWM 材质, 关闭圆环的 QML layer 遮罩到不了它 —— 与原生 DWM
-    阴影同类。真机像素探针实测: windowColor 已被按住透明(alpha 0), QML 什么都没画,
-    但右下角判别点在 progress 1.0 / 0.62 / 0.0 每一帧都是 #f0f4f9, 直到窗口真正消失
-    才变成裸桌面色。见 scripts/manual/close_periphery_pixel_probe.py。
+    阴影同类。真机像素探针实测: QML 侧全透明什么都没画, 但判别点在 progress
+    1.0 / 0.62 / 0.0 每一帧都是 #f0f4f9, 直到窗口真正消失才变成裸桌面色。
+    见 scripts/manual/close_periphery_pixel_probe.py。
     """
     engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
     try:

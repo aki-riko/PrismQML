@@ -344,9 +344,9 @@ WindowsCore {
         return -1
     }
 
-    // Fills windowFrame inside the masked layer, not the Window clear colour (always transparent).
-    // 填充被遮罩层内的 windowFrame, 不是 Window 清屏色(恒透明)。关闭期间按住透明。
-    windowColor: _micaTransparent || (_closeInProgress && _micaActive) ? Enums.transparent : Enums.backgroundColor
+    // Fills the windowFrame rect inside the masked layer (WindowsCoreFrame.qml:32), which the
+    // close circle does clip. 填充被遮罩层内的 windowFrame 矩形(圆环裁得到它)。
+    windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
     onCloseCollapseStateChanged: (c) => NavigationMicaCloseBackdrop.apply(window, c, MicaManager, Enums.isDark)
 
     Component.onCompleted: {

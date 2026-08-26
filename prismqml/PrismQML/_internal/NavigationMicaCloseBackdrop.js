@@ -24,13 +24,22 @@ function apply(host, collapsing, micaManager, isDark) {
         // without Mica. 取消关闭必须把背板装回, 否则窗口留在屏上却没了 Mica。
         return host._applyMicaEffect("closeCancelled")
     }
-    // Pending reapply timers need no stopping here: NavigationMicaReapplyTimer triggers
-    // _applyMicaEffect, which refuses while _closeInProgress, and the commit timer only
-    // sets _micaBackdropReady (windowColor is held transparent for the close anyway).
-    // Their ids are not reachable from a .pragma library either.
+    // No pending reapply timer needs stopping here: NavigationMicaReapplyTimer triggers
+    // _applyMicaEffect, which refuses while _closeInProgress. Their ids are unreachable
+    // from a .pragma library anyway.
     // 无需在此停掉待重试定时器: NavigationMicaReapplyTimer 触发的是 _applyMicaEffect,
-    // 它在 _closeInProgress 时会拒绝; commit 定时器只置 _micaBackdropReady(关闭期间
-    // windowColor 本就被按住透明)。且 .pragma library 里取不到它们的 id。
+    // 它在 _closeInProgress 时会拒绝。且 .pragma library 里本就取不到它们的 id。
+    // Order matters. _micaTransparent is _micaActive && _micaBackdropReady and it drives
+    // windowColor, so clearing the flag is what flips the frame fill opaque. Dropping the
+    // backdrop first left one composited frame with no DWM material *and* a still-transparent
+    // fill — the window flashed see-through before turning opaque. Clear the flag first so
+    // the opaque fill is already queued when the material goes.
+    // 顺序有讲究。_micaTransparent 是 _micaActive && _micaBackdropReady, 它驱动
+    // windowColor, 所以清掉标志才是让窗框填充变不透明的动作。先撤背板会留下一帧
+    // 「无 DWM 材质 + 填充仍透明」, 于是窗口先闪一下透视再变不透明。先清标志, 让不透明
+    // 填充在材质消失时已经排上。
+    host._micaBackdropReady = false
+    host.requestUpdate()
     var ok = micaManager.setMicaEffect(host, false, isDark)
     // setMicaEffect writes DWMWCP_ROUND even when disabling, so restore the native
     // corner. 即使是关闭, setMicaEffect 也会写入 DWMWCP_ROUND, 故恢复原生边角。
