@@ -247,18 +247,25 @@ def test_widget_tooltip_timer_and_native_window_lifecycle(qapp):
             hidden_object_count,
             settled_object_count,
         ) == (13, 16, 19, 18)
-        if os.name == "nt":
-            assert (initial_hash, tooltip_hash, restored_hash) == (
-                "3bfa5ae50834d18c64f7389dc7a5e296"
-                "40b1a026a35a2ee1c3ae12590dac6ff7",
-                "0b0059793c978ab0cbcd6ead78a0e597d"
-                "601b8b768dbc43dd779377927fcac0f",
-                "3bfa5ae50834d18c64f7389dc7a5e296"
-                "40b1a026a35a2ee1c3ae12590dac6ff7",
-            )
-        else:
-            assert tooltip_hash != initial_hash
-            assert restored_hash == initial_hash
+        # Hiding the tooltip must return the main window to its exact starting
+        # pixels. Both hashes come from the same window, so this comparison is
+        # meaningful and does not depend on absolute pixel values.
+        # 隐藏 tooltip 后主窗口必须精确回到起始像素。两个哈希取自同一个窗口, 故该
+        # 比较有意义, 且不依赖绝对像素值。
+        #
+        # tooltip_hash is reported in the diagnostic line above but not
+        # asserted: it grabs the popup's own window while initial_hash grabs the
+        # main window, so any comparison between them is vacuous — verified by
+        # injection, a tooltip forced to opacity 0 passed it. The popup's own
+        # appearance is deliberately left unchecked here; the pinned hash that
+        # used to check it produced two different stable values on one machine
+        # in one session with no code change (0b005979 and 19bc7dcf).
+        # tooltip_hash 只在上面的诊断行里输出, 不做断言: 它抓的是弹出层自己的窗口,
+        # 而 initial_hash 抓主窗口, 二者之间任何比较都是空断言 —— 已用注入验证, 强制
+        # opacity 0 的 tooltip 也能通过。弹出层自身的外观在此有意不校验; 原先校验它
+        # 的写死哈希在同一台机器、同一会话、代码未变时给出过两个不同的稳定值
+        # (0b005979 与 19bc7dcf)。
+        assert restored_hash == initial_hash
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
