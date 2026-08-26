@@ -286,10 +286,9 @@ def test_navigation_window_core_close_holds_window_color_transparent(
 ):
     """关闭收紧期间 windowColor 必须按住透明, 否则外围露出不透明窗口底色。
 
-    windowColor 是 Window 自身的清屏色, 在被遮罩的帧层*下面*, 关闭圆环的 layer
-    遮罩裁不到它。关闭期间 _micaBackdropReady 会被清掉, 若不加门就会翻成不透明
-    backgroundColor, 于是圆环刚裁透明的外围露出一块窗口底色而不是桌面。
-    真机实测该值在收紧中途从 #00000000 变为 #f0f4f9。
+    windowColor 填充的是被遮罩层*内部*的 windowFrame, 不是 Window 的清屏色(那个在
+    WindowsCore.qml 里恒为 Enums.transparent)。关闭期间 _micaBackdropReady 会被清掉,
+    若不加门就会翻成不透明 backgroundColor, 把圆环刚裁空的区域又画回来。
     """
     engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
     try:
@@ -318,6 +317,50 @@ def test_navigation_window_core_close_holds_window_color_transparent(
         window.setProperty("micaEnabled", False)
         assert _wait_for(lambda: window.property("_micaActive") is False)
         assert window.property("windowColor").alphaF() == 1.0
+
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
+
+
+def test_navigation_window_core_close_collapse_drops_mica_backdrop(monkeypatch, qapp):
+    """收紧期间必须把 DWM Mica 背板撤成 NONE, 否则被裁的外围照样是 Mica 材质。
+
+    Mica 是 hwnd 级的 DWM 材质, 关闭圆环的 QML layer 遮罩到不了它 —— 与原生 DWM
+    阴影同类。真机像素探针实测: windowColor 已被按住透明(alpha 0), QML 什么都没画,
+    但右下角判别点在 progress 1.0 / 0.62 / 0.0 每一帧都是 #f0f4f9, 直到窗口真正消失
+    才变成裸桌面色。见 scripts/manual/close_periphery_pixel_probe.py。
+    """
+    engine, component, window, mica_manager, warnings = _create_scene(monkeypatch)
+    try:
+        window.setProperty("micaEnabled", True)
+        # The handler needs the native hook: the scene defaults it false, so opt in or
+        # the assertion is vacuous. 处理器需要原生钩子: 场景默认假, 不显式打开断言是空的。
+        window.setProperty("_nativeHookReady", True)
+        assert _wait_for(lambda: window.property("_micaActive") is True)
+        mica_manager.calls.clear()
+
+        # Collapse start must disable the backdrop. 收紧开始必须关掉背板。
+        window.closeCollapseStateChanged.emit(True)
+        assert (False, False) in mica_manager.calls
+
+        # A reapply landing mid-collapse would paint Mica back outside the circle,
+        # so both the immediate apply and the scheduled one must be refused.
+        # 收紧中途落地的重新应用会把 Mica 画回圆外, 故立即应用与排程都必须被拒。
+        mica_manager.calls.clear()
+        window.setProperty("_closeInProgress", True)
+        assert QMetaObject.invokeMethod(window, "beginMicaReapply")
+        # No timer may be armed and no apply may reach DWM while collapsing.
+        # 收紧期间不得排程任何定时器, 也不得有 apply 落到 DWM。
+        assert _running_timers(window) == []
+        _pump(220)
+        assert mica_manager.calls == []
+
+        # Cancelling the close must put the backdrop back, or the window stays on
+        # screen without Mica. 取消关闭必须装回背板, 否则窗口留在屏上却没了 Mica。
+        window.setProperty("_closeInProgress", False)
+        window.closeCollapseStateChanged.emit(False)
+        assert any(enabled for enabled, _dark in mica_manager.calls)
 
         assert warnings == []
     finally:

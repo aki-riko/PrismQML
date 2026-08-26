@@ -8,6 +8,7 @@ import "_internal"
 import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
 import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
 import "_internal/NavigationSplashRouting.js" as NavigationSplashRouting
+import "_internal/NavigationMicaCloseBackdrop.js" as NavigationMicaCloseBackdrop
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -102,16 +103,16 @@ WindowsCore {
     function _enableDeferredSplash() { NavigationSplashRouting.enable(window) }
 
     function _applyMicaEffect(reason) {
-        if (!MicaManager || !_micaAvailable || !_nativeHookReady) {
+        // _closeInProgress arm: a reapply landing mid-collapse repaints Mica outside the circle.
+        if (!MicaManager || !_micaAvailable || !_nativeHookReady || (_closeInProgress && reason !== "closeCancelled")) {
             _micaNativeApplySucceeded = false
             _micaBackdropReady = false
             return false
         }
         profileTime("NavigationWindowCore apply Mica " + reason + " start")
         var success = MicaManager.setMicaEffect(window, _micaActive, Enums.isDark)
-        // Mica writes DWMWCP_ROUND even when disabling the backdrop, so restore
-        // the native corner that matches the QML frame. Mica 即使关闭背板也会写入
-        // DWMWCP_ROUND，因此需恢复与 QML 窗框一致的原生边角。
+        // Mica writes DWMWCP_ROUND even when disabling, so restore the corner matching the QML
+        // frame. Mica 即使关闭背板也会写入 DWMWCP_ROUND, 故恢复与 QML 窗框一致的原生边角。
         _syncNativeCorner("mica:" + reason)
         _micaNativeApplySucceeded = success
         _micaBackdropReady = false
@@ -122,9 +123,8 @@ WindowsCore {
     }
 
     function _scheduleMicaReapply(reason) {
-        if (!_micaActive || !_nativeHookReady) return
-        // Hide the transparent fallback until DWM confirms the backdrop again.
-        // 在 DWM 重新确认背板前关闭透明兜底，避免只剩透明外壳。
+        if (!_micaActive || !_nativeHookReady || _closeInProgress) return
+        // 在 DWM 重新确认背板前关掉透明兜底, 否则只剩透明外壳。Hide transparent fallback.
         _micaBackdropReady = false
         _micaBackdropCommitTimer.stop()
         _micaReapplyReason = reason
@@ -344,9 +344,10 @@ WindowsCore {
         return -1
     }
 
-    // Clear colour sits under the masked frame layer, so the close circle cannot clip it; close clears _micaBackdropReady, which would turn it opaque and leave the clipped periphery showing base colour. _micaActive gates it: an opaque surface composites transparent as black.
-    // 清屏色位于被遮罩的帧层下方, 关闭圆环裁不到它; 关闭会清掉 _micaBackdropReady, 使其变不透明, 让被裁的外围露出底色。以 _micaActive 为门: 不透明表面下透明会合成为黑。
+    // Fills windowFrame inside the masked layer, not the Window clear colour (always transparent).
+    // 填充被遮罩层内的 windowFrame, 不是 Window 清屏色(恒透明)。关闭期间按住透明。
     windowColor: _micaTransparent || (_closeInProgress && _micaActive) ? Enums.transparent : Enums.backgroundColor
+    onCloseCollapseStateChanged: (c) => NavigationMicaCloseBackdrop.apply(window, c, MicaManager, Enums.isDark)
 
     Component.onCompleted: {
         _markSplashVisible()

@@ -88,6 +88,12 @@ Window {
     // closeRequestAccepted to false to keep the window alive.
     signal closeRequested()
 
+    // Emitted when the close collapse starts (true) or is cancelled (false). Derived types
+    // that own hwnd-level effects the QML mask cannot clip drop them here.
+    // 关闭收紧开始(true)或被取消(false)时发出。持有 QML 遮罩裁不到的 hwnd 级效果的派生
+    // 类型在此撤掉/装回它们。
+    signal closeCollapseStateChanged(bool collapsing)
+
     // ==================== Internal Methods 内部方法 ====================
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
@@ -124,6 +130,7 @@ Window {
         // stays on screen without it. 取消关闭必须把原生阴影装回去, 否则窗口留在
         // 屏上却没了阴影。
         _setNativeShadowForClose(true)
+        closeCollapseStateChanged(false)
         windowFrameLayer.visible = _closeSourceWasVisible
         if (window.visible) {
             animHelper.restoreVisibleState()
@@ -141,6 +148,11 @@ Window {
         // 不关掉的话, 圆环收紧期间 DWM 仍按整窗矩形画阴影, 外围就明显没被裁掉。
         // 仅在关闭期间撤掉; _cancelCloseRequest 会恢复。
         _setNativeShadowForClose(false)
+        // Same category as the native shadow: hwnd-level effects the mask cannot reach.
+        // Derived types drop theirs here (NavigationWindowCore: the Mica backdrop).
+        // 与原生阴影同类: 遮罩到不了的 hwnd 级效果。派生类型在此撤掉自己的那份
+        // (NavigationWindowCore: Mica 背板)。
+        closeCollapseStateChanged(true)
         closeTransition.collapse(windowFrameLayer)
     }
     function _setNativeShadowForClose(enabled) {
