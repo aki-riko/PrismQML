@@ -13,7 +13,7 @@ from _test_process_bootstrap import configure_qml_test_process
 
 configure_qml_test_process()
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl, Slot
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtWidgets import QApplication
 
@@ -22,6 +22,19 @@ from prismqml.python.window.fast_splash import FastSplashController
 
 ROOT = Path(__file__).resolve().parents[2]
 PKG_ROOT = ROOT / "prismqml"
+
+
+class StartupBridge(QObject):
+    """Record QML startup-window registration calls for this runtime probe."""
+
+    def __init__(self):
+        super().__init__()
+        self.windows = []
+
+    @Slot(QObject, result=bool)
+    def register_startup_window(self, window):
+        self.windows.append(window)
+        return True
 
 
 def pump(milliseconds: int) -> None:
@@ -34,6 +47,8 @@ def main() -> int:
     app = QApplication(sys.argv)
     engine = QQmlEngine()
     engine.addImportPath(str(PKG_ROOT))
+    startup_bridge = StartupBridge()
+    engine.rootContext().setContextProperty("PrismQmlStartup", startup_bridge)
     default_source = """
 import QtQuick
 import PrismQML
@@ -53,6 +68,9 @@ NavigationWindowCore {
         print("[FAIL] 默认 Splash 被误判为自定义组件")
         for error in default_component.errors():
             print("   ", error.toString())
+        return 1
+    if startup_bridge.windows != [default_window]:
+        print("[FAIL] 默认 NavigationWindowCore 未自动注册启动窗口")
         return 1
 
     source = """
@@ -97,6 +115,9 @@ NavigationWindowCore {
     window = component.create()
     if window is None:
         print("[FAIL] 自定义 Splash 场景创建失败")
+        return 1
+    if startup_bridge.windows != [default_window, window]:
+        print("[FAIL] 自定义 NavigationWindowCore 未自动注册启动窗口")
         return 1
 
     controller = FastSplashController(app)

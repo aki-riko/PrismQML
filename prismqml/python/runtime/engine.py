@@ -76,3 +76,10 @@ def configure_application_engine(
             config_path=config_path,
             persist_appearance=persist_appearance,
         )
+
+
+def register_startup_window_context(engine, owner):
+    """Expose the App-owned startup-window bridge to QML."""
+    from .startup_window import register_startup_window_context as register
+
+    return register(engine, owner)

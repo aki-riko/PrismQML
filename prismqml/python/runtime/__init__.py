@@ -26,6 +26,7 @@ __all__ = [
     "reset_qml_engine",
     "get_or_create_qml_engine",
     "configure_application_engine",
+    "register_startup_window_context",
     "prepare_application_environment",
     "create_qt_application",
     "install_application_input_filter",
@@ -82,6 +83,10 @@ _LAZY_EXPORTS = {
     "configure_application_engine": (
         ".engine",
         "configure_application_engine",
+    ),
+    "register_startup_window_context": (
+        ".engine",
+        "register_startup_window_context",
     ),
     "prepare_application_environment": (
         ".application",

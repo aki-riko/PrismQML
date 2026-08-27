@@ -130,11 +130,6 @@ def main():
         app.shutdown()
         return -1
 
-    root = engine.rootObjects()[0]
-    main_window = root.property("windowInstance")
-    if main_window is not None:
-        app._attach_fast_splash(main_window)
-    
     log_time("窗口准备就绪，进入事件循环")
     return app.exec()
 

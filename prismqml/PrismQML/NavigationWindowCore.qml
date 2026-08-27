@@ -99,6 +99,15 @@ WindowsCore {
     function _markPythonPageReady(index) { NavigationWindowLoading.markPageReady(window, index) }
     function _syncPythonReadyPages() { NavigationWindowLoading.syncReadyPages(window) }
 
+    function _registerStartupWindow() {
+        if (_pythonPageMode || typeof PrismQmlStartup === "undefined" || !PrismQmlStartup) return
+        try {
+            PrismQmlStartup.register_startup_window(window)
+        } catch (error) {
+            console.warn("[NavigationWindowCore] startup window registration failed", error)
+        }
+    }
+
     function _activateDeferredSplash() { NavigationSplashRouting.activate(window) }
     function _enableDeferredSplash() { NavigationSplashRouting.enable(window) }
 
@@ -349,6 +358,7 @@ WindowsCore {
     windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
     Component.onCompleted: {
         _markSplashVisible()
+        _registerStartupWindow()
     }
 
     onCurrentIndexChanged: {

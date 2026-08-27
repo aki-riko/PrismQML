@@ -59,6 +59,7 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._windows = []
     owner._updater = None
     owner._fast_splash = None
+    owner._startup_window_registrar = None
     initialize_application_icon_state(owner)
 
 
@@ -106,6 +107,7 @@ def _create_qml_engine(owner, config_path, persist_appearance) -> None:
         configure_application_engine,
         create_qml_engine,
         publish_qml_engine,
+        register_startup_window_context,
     )
 
     owner._engine = create_qml_engine()
@@ -115,6 +117,9 @@ def _create_qml_engine(owner, config_path, persist_appearance) -> None:
         owner._engine,
         config_path=config_path,
         persist_appearance=persist_appearance,
+    )
+    owner._startup_window_registrar = register_startup_window_context(
+        owner._engine, owner
     )
 
 
@@ -570,12 +575,19 @@ class App(ApplicationIconMixin):
         """获取所有窗口 Get all windows"""
         return self._windows
 
-    def _attach_fast_splash(self, main_window) -> bool:
-        """Attach the engine-owned splash to a QML-created window."""
+    def attach_startup_window(self, main_window) -> bool:
+        """Attach a QML-created window to the engine-owned startup surface."""
         controller = self._fast_splash
         if controller is None or self._engine is None or main_window is None:
             return False
+        attached_window = getattr(controller, "_main_window", None)
+        if attached_window is not None:
+            return attached_window is main_window
         return controller.attach_to_window(self._engine, main_window)
+
+    def _attach_fast_splash(self, main_window) -> bool:
+        """Compatibility wrapper for the former private attach hook."""
+        return self.attach_startup_window(main_window)
 
     @property
     def qapp(self) -> QApplication:
