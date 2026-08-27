@@ -365,7 +365,7 @@ _QT_CONTEXT_TEXT_LIMIT = 240
 _QT_BREADCRUMB_CAPACITY = 32
 _QT_BREADCRUMB_REPLAY_LIMIT = 12
 _QT_BREADCRUMB_PREFIXES = ("[懒加载诊断]", "[启动剖析]")
-_QT_TRANSIENT_MESSAGES = {
+_QT_IGNORED_MESSAGES = {
     ("qt.qpa.mime", "Retrying to obtain clipboard."),
 }
 
@@ -411,14 +411,14 @@ def _is_qt_source_location_only_message(context, message: str) -> bool:
     return bool(separator) and column.isdigit() and not body.strip()
 
 
-def _qt_message_level(mode, context, message: str, qt_msg_type) -> int:
-    """Map Qt messages while demoting known transient platform retries.
+def _qt_message_level(mode, context, message: str, qt_msg_type) -> Optional[int]:
+    """Map Qt messages and filter known transient platform retries.
 
-    映射 Qt 消息级别，并降低已知瞬态平台重试的噪声。
+    映射 Qt 消息级别，并过滤已知瞬态平台重试噪声。
     """
     category = (getattr(context, "category", None) or "").lower()
-    if (category, message) in _QT_TRANSIENT_MESSAGES:
-        return logging.DEBUG
+    if (category, message) in _QT_IGNORED_MESSAGES:
+        return None
 
     return {
         qt_msg_type.QtDebugMsg: logging.DEBUG,
@@ -445,6 +445,8 @@ def _create_qt_message_handler(qt_msg_type):
         if _is_qt_source_location_only_message(context, stripped_message):
             return
         level = _qt_message_level(mode, context, stripped_message, qt_msg_type)
+        if level is None:
+            return
         if stripped_message.startswith(_QT_BREADCRUMB_PREFIXES):
             breadcrumbs.append(stripped_message)
             breadcrumb_version += 1

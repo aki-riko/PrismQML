@@ -201,7 +201,7 @@ def test_qt_warning_includes_source_context_and_replays_breadcrumbs_once(
     assert breadcrumb in replay_records[0].getMessage()
 
 
-def test_qt_clipboard_retry_is_debug_but_other_mime_warnings_remain_visible(
+def test_qt_clipboard_retry_is_filtered_but_other_mime_warnings_remain_visible(
     project_log_records,
 ):
     from PySide6.QtCore import QtMsgType
@@ -218,18 +218,21 @@ def test_qt_clipboard_retry_is_debug_but_other_mime_warnings_remain_visible(
     handler(QtMsgType.QtWarningMsg, context, "Retrying to obtain clipboard.")
     handler(QtMsgType.QtWarningMsg, context, "Clipboard conversion failed.")
 
-    clipboard_records = [
+    retry_records = [
         record
         for record in project_log_records
-        if "clipboard" in record.getMessage().lower()
+        if "Retrying to obtain clipboard." in record.getMessage()
     ]
-    assert [record.levelno for record in clipboard_records] == [
-        logging.DEBUG,
-        logging.WARNING,
+    warning_records = [
+        record
+        for record in project_log_records
+        if "Clipboard conversion failed." in record.getMessage()
     ]
-    assert clipboard_records[0].tag == "QML:QT.QPA.MIME"
-    assert "[QtContext]" not in clipboard_records[0].getMessage()
-    assert "[QtContext]" in clipboard_records[1].getMessage()
+    assert retry_records == []
+    assert len(warning_records) == 1
+    assert warning_records[0].levelno == logging.WARNING
+    assert warning_records[0].tag == "QML:QT.QPA.MIME"
+    assert "[QtContext]" in warning_records[0].getMessage()
 
 
 def test_install_qt_message_handler_failure_logs_traceback(

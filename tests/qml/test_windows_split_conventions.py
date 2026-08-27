@@ -148,6 +148,31 @@ Internal.WindowsBar {
     }
 }
 """
+BAR_SOURCE_MODE_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+import "." as Internal
+
+Internal.WindowsBar {
+    id: window
+    objectName: "barWindowWithSourcePages"
+    width: 760
+    height: 540
+    visible: true
+    shadowMode: Enums.windowShadow.mode_none
+    splashEnabled: false
+    pageSources: [null]
+
+    Timer {
+        objectName: "nonPageTimer"
+        running: false
+    }
+
+    Item {
+        objectName: "auxiliaryItem"
+    }
+}
+"""
 
 
 class _FakeNativeWindow(QObject):
@@ -547,6 +572,43 @@ def test_windows_bar_skips_non_item_default_child_and_dismisses_splash(
                 "Cannot assign to read-only property \"parent\"" in warning
                 for warning in warnings
             )
+            assert _new_visible_windows(windows_before, window) == []
+        finally:
+            _dispose_scene(engine, component, window)
+            assert _new_visible_windows(windows_before) == []
+    finally:
+        qInstallMessageHandler(previous_handler)
+
+
+def test_windows_bar_source_pages_do_not_migrate_default_children(
+    monkeypatch, qapp
+):
+    marker = "[WindowsBar] Skipping non-Item default child"
+    messages = []
+    previous_handler = None
+
+    def message_handler(message_type, context, message):
+        if marker in message:
+            messages.append(message)
+            return
+        if previous_handler is not None:
+            previous_handler(message_type, context, message)
+
+    previous_handler = qInstallMessageHandler(message_handler)
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    try:
+        engine, component, window, warnings = _create_scene(
+            monkeypatch, BAR_SOURCE_MODE_SCENE_SOURCE
+        )
+        try:
+            assert _wait_for(lambda: window.property("stackedWidget") is not None)
+            stack = window.property("stackedWidget")
+            assert stack.property("count") == 1
+            auxiliary = window.findChild(QQuickItem, "auxiliaryItem")
+            assert auxiliary is not None
+            assert auxiliary.parentItem() is not stack.property("containerItem")
+            assert messages == []
+            assert not any(marker in warning for warning in warnings)
             assert _new_visible_windows(windows_before, window) == []
         finally:
             _dispose_scene(engine, component, window)

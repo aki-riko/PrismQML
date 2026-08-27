@@ -5,6 +5,9 @@
 .pragma library
 
 function moveDefaultPages(window, stagedItems, container, ownerName) {
+    var pageSources = window["pageSources"]
+    if (pageSources && typeof pageSources.length === "number" && pageSources.length > 0) return 0
+
     var items = []
     for (var index = 0; index < stagedItems.length; index++) {
         items.push(stagedItems[index])
