@@ -64,6 +64,10 @@ WindowsCore {
     property bool _splashDismissSchedulePending: false
     property double _splashVisibleSinceMs: 0
     property bool _deferredSplashPending: false
+    // Keep the embedded splash behind the independent FastSplash until its
+    // first complete frame is ready for an atomic handoff.
+    // 外部 FastSplash 交接完成前，先在 Loader 层隐藏内嵌启动画面，避免双表面暴露。
+    property bool _fastSplashExternalCover: false
     readonly property var _splashTimerObject: _splashTimer
 
     // ==================== Readonly State 只读状态 ====================
@@ -424,6 +428,7 @@ WindowsCore {
         parent: window.contentItem
         anchors.fill: parent
         z: Enums.zIndex.splash
+        visible: !window._fastSplashExternalCover
         active: window.splashEnabled
         sourceComponent: window.splashComponent
         onItemChanged: {

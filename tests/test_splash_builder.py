@@ -59,6 +59,16 @@ def test_fast_splash_syncs_attached_window_dimensions():
     assert controller._splash.properties["height"] == 640
 
 
+def test_fast_splash_repositions_after_attached_window_resize():
+    controller = FastSplashController(None)
+    controller._splash = _SplashSurface()
+    window = _WindowSurface(width=980, height=640, x=-120, y=48)
+
+    controller._sync_window_size(window)
+
+    assert controller._splash.position == (-120, 48)
+
+
 @pytest.mark.parametrize(
     ("title", "expected"),
     [
@@ -93,12 +103,16 @@ class _SplashSurface:
     def __init__(self):
         self.properties = {}
         self.shown = False
+        self.position = None
 
     def setProperty(self, name, value):
         self.properties[name] = value
 
     def show(self):
         self.shown = True
+
+    def setPosition(self, x, y):
+        self.position = (x, y)
 
 
 class _ApplicationSurface:
@@ -430,6 +444,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     ).read_text(encoding="utf-8")
 
     assert "property bool splashEnabled: true" in qml_source
+    assert "property bool _fastSplashExternalCover: false" in qml_source
+    assert "visible: !window._fastSplashExternalCover" in qml_source
     assert "property int splashMinimumVisibleDuration:" in qml_source
     assert "_splashVisibleSinceMs = Date.now()" in qml_source
     assert "_splashTimer.restart()" in qml_source
@@ -480,6 +496,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "QGuiApplication.setApplicationDisplayName(GALLERY_APPLICATION_TITLE)" in gallery_entry_source
     assert 'splash.setProperty("splashTitle", str(application_title))' in fast_splash_source
     assert "self._show_qml_owned_window(main_window)" in fast_splash_source
+    assert 'main_window.setProperty("_fastSplashExternalCover", True)' in fast_splash_source
+    assert 'main_window.setProperty("_fastSplashExternalCover", False)' in lifecycle_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
     assert "def show(" in fast_splash_source

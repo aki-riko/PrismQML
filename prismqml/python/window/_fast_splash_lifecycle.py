@@ -22,18 +22,58 @@ def finish_embedded_handoff(controller) -> None:
         or controller._main_window is None
     ):
         return
-    controller._handoff_done = True
-    controller._splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
-    controller._splash.setVisible(False)
+    # The embedded Loader is mounted while FastSplash remains the only exposed
+    # surface.  Release that cover, wait for one submitted frame, then hide the
+    # external window.  This prevents a compositor frame from exposing both
+    # splash surfaces during the handoff.
+    main_window = controller._main_window
+    gate = {"embedded_frame": False, "closed": False}
 
-    def activate_main() -> None:
-        if controller._closed or controller._main_window is None:
+    def finish() -> None:
+        if controller._closed or gate["closed"]:
             return
-        info("FastSplash 自定义 Splash 已绘制, 交接主窗口")
-        controller._main_window.raise_()
-        controller._main_window.requestActivate()
+        gate["closed"] = True
+        try:
+            main_window.frameSwapped.disconnect(on_embedded_frame)
+        except (AttributeError, RuntimeError, TypeError):
+            pass
+        controller._handoff_done = True
+        controller._splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
+        controller._splash.setVisible(False)
 
-    QTimer.singleShot(0, activate_main)
+        def activate_main() -> None:
+            if controller._closed or controller._main_window is None:
+                return
+            info("FastSplash 自定义 Splash 已绘制, 交接主窗口")
+            controller._main_window.raise_()
+            controller._main_window.requestActivate()
+
+        QTimer.singleShot(0, activate_main)
+
+    def on_embedded_frame() -> None:
+        if controller._closed:
+            return
+        gate["embedded_frame"] = True
+        finish()
+
+    try:
+        # The Loader-level property is the only visibility switch.  Setting it
+        # before waiting for frameSwapped makes the transition one event-loop
+        # transaction from the user's perspective.
+        main_window.setProperty("_fastSplashExternalCover", False)
+        main_window.frameSwapped.connect(on_embedded_frame)
+        main_window.requestUpdate()
+    except (AttributeError, RuntimeError, TypeError):
+        finish()
+        return
+
+    def handoff_timeout() -> None:
+        if gate["closed"]:
+            return
+        gate["embedded_frame"] = True
+        finish()
+
+    QTimer.singleShot(250, handoff_timeout)
 
 
 def finish_reveal(controller) -> None:

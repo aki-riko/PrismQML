@@ -469,6 +469,9 @@ class FastSplashController(QObject):
                 return False
             self._show_deferred_splash()
             self._show_qml_owned_window(main_window)
+            # QML may resolve the final window position only when it is shown.
+            # 主窗口真正 show 后再同步一次位置，避免尺寸变化后启动页偏移。
+            self._sync_window_size(main_window)
             self._raise_owned_splash(self._splash, main_window)
             main_window.frameSwapped.connect(self._on_main_frame)
             self._ready_timer = QTimer(self)
@@ -490,6 +493,7 @@ class FastSplashController(QObject):
             if uses_default is True:
                 # The root is still hidden here, so disabling the loader does not
                 # create a visible gap before the independent surface is bound.
+                main_window.setProperty("_fastSplashExternalCover", False)
                 main_window.setProperty("splashEnabled", False)
                 if self.attach_and_reveal(main_engine, main_window):
                     return True
@@ -536,6 +540,21 @@ class FastSplashController(QObject):
             return None
         return value if value > 0 else None
 
+    @staticmethod
+    def _read_window_coordinate(main_window: QQuickWindow, name: str) -> Optional[int]:
+        """Read a window x/y coordinate, preserving valid negative positions."""
+        try:
+            value = main_window.property(name)
+        except (AttributeError, RuntimeError, TypeError):
+            value = None
+        if value is None:
+            getter = getattr(main_window, name, None)
+            value = getter() if callable(getter) else getter
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
     def _sync_window_size(self, main_window: QQuickWindow) -> None:
         """Match the independent splash to the attached window's logical size."""
         if self._splash is None:
@@ -555,7 +574,26 @@ class FastSplashController(QObject):
             set_height(height)
         else:
             self._splash.setProperty("height", height)
-        info(f"FastSplash 尺寸同步: main={width}x{height}, splash={width}x{height}")
+        set_position = getattr(self._splash, "setPosition", None)
+        if callable(set_position):
+            x = self._read_window_coordinate(main_window, "x")
+            y = self._read_window_coordinate(main_window, "y")
+            if x is not None and y is not None:
+                set_position(x, y)
+            else:
+                screen = getattr(main_window, "screen", lambda: None)()
+                if screen is None and self._app is not None:
+                    screen = getattr(self._app, "primaryScreen", lambda: None)()
+                if screen is not None:
+                    available = screen.availableGeometry()
+                    set_position(
+                        available.x() + (available.width() - width) // 2,
+                        available.y() + (available.height() - height) // 2,
+                    )
+        info(
+            f"FastSplash 尺寸同步: main={width}x{height}, "
+            f"splash={width}x{height}"
+        )
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
         """Restore the normal QML splash after a fast-path failure or bypass."""
@@ -563,6 +601,7 @@ class FastSplashController(QObject):
         restored = False
         if target is not None:
             try:
+                target.setProperty("_fastSplashExternalCover", False)
                 restored = bool(QMetaObject.invokeMethod(target, "_enableDeferredSplash"))
                 if not restored:
                     warning("FastSplash 内嵌回退函数不可用，直接恢复 Splash Loader")
@@ -585,11 +624,15 @@ class FastSplashController(QObject):
             if not self._bind_owner(self._splash, main_window):
                 warning("FastSplash 自定义回退无法绑定主窗口")
                 return self.restore_embedded_splash(main_window)
+            # Keep the embedded Loader mounted but occluded by the fast surface
+            # until its first complete frame is ready.
+            main_window.setProperty("_fastSplashExternalCover", True)
             self._show_deferred_splash()
             if not QMetaObject.invokeMethod(main_window, "_enableDeferredSplash"):
                 warning("FastSplash 自定义回退无法启用内嵌 Splash")
                 return self.restore_embedded_splash(main_window)
             self._show_qml_owned_window(main_window)
+            self._sync_window_size(main_window)
             self._raise_owned_splash(self._splash, main_window)
             self._embedded_handoff = True
             main_window.frameSwapped.connect(self._on_main_frame)
