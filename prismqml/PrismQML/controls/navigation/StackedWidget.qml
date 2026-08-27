@@ -16,6 +16,8 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int currentIndex: 0
     property int animationType: Enums.animation.opacity
+    // Transition used only while a lazy page is loading 懒加载期间使用的过渡类型
+    property int lazyAnimationType: Enums.animation.lazy_circle
     property int animationDuration: Enums.duration.slow
     // Extra delay before Loader activation, used to let navigation feedback settle
     // Loader 激活前的额外延迟，用于等待导航反馈动画稳定
@@ -411,7 +413,7 @@ Item {
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
-        animationType: Enums.animation.lazy_circle
+        animationType: control.lazyAnimationType
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()

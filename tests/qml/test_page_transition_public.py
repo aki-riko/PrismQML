@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import register_types
 
@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "controls" / "navigation" / "PageTransition.qml"
 QMldir_PATH = ROOT / "prismqml" / "PrismQML" / "qmldir"
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "page-transition-public.qml"))
+CPU_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "page-transition-cpu-lifecycle.qml")
+)
 SCENE_SOURCE = b"""
 import QtQuick
 import PrismQML
@@ -27,6 +30,7 @@ Item {
     property int noneType: Enums.animation.none
     property int circleType: Enums.animation.lazy_circle
     property int customType: Enums.animation.custom
+    property int cpuType: Enums.animation.cpu
     property int collapseStartedCount: 0
     property int collapseFinishedCount: 0
     property int expandStartedCount: 0
@@ -60,6 +64,12 @@ Item {
         id: circleTransition
         objectName: "circleTransition"
         animationType: Enums.animation.lazy_circle
+    }
+
+    PageTransition {
+        id: cpuTransition
+        objectName: "cpuTransition"
+        animationType: Enums.animation.cpu
     }
 
     PageTransition {
@@ -133,11 +143,65 @@ Item {
 }
 """
 
+CPU_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    property int collapseStartedCount: 0
+    property int collapseFinishedCount: 0
+    property int expandStartedCount: 0
+    property int expandFinishedCount: 0
+
+    function collapseCpu() { cpuTransition.collapse(source) }
+    function expandCpu() { cpuTransition.expand(source) }
+
+    width: 320
+    height: 180
+    visible: true
+
+    Rectangle {
+        id: source
+
+        objectName: "cpuLifecycleSource"
+        anchors.fill: parent
+        color: "#3487eb"
+    }
+
+    PageTransition {
+        id: cpuTransition
+
+        objectName: "cpuLifecycleTransition"
+        anchors.fill: parent
+        animationType: Enums.animation.cpu
+        coverDuration: 120
+        revealDuration: 160
+        onCollapseStarted: root.collapseStartedCount += 1
+        onCollapseFinished: root.collapseFinishedCount += 1
+        onExpandStarted: root.expandStartedCount += 1
+        onExpandFinished: root.expandFinishedCount += 1
+    }
+}
+"""
+
 
 def _pump(milliseconds=20):
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
+
+
+def _wait_for(predicate, timeout_ms=2_000):
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump(10)
+        elapsed += 10
+    return predicate()
 
 
 def _create_scene():
@@ -155,6 +219,27 @@ def _create_scene():
     return engine, component, root
 
 
+def _create_cpu_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(CPU_SCENE_SOURCE, CPU_SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create()
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    assert _wait_for(window.isExposed)
+    return engine, component, window, warnings
+
+
 def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qapp):
     engine, component, root = _create_scene()
     try:
@@ -165,6 +250,7 @@ def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qap
         assert root.property("noneType") == 0
         assert root.property("circleType") == 7
         assert root.property("customType") == 8
+        assert root.property("cpuType") == 9
         assert root.property("collapseStartedCount") == 1
         assert root.property("collapseFinishedCount") == 1
         assert root.property("expandStartedCount") == 1
@@ -181,6 +267,16 @@ def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qap
         circle = root.findChild(QQuickItem, "circleTransition")
         assert circle.property("customAnimationContractValid") is True
         assert circle.findChild(QQuickItem, "qmlPageCircleTransition") is not None
+        cpu = root.findChild(QQuickItem, "cpuTransition")
+        assert cpu.property("customAnimationContractValid") is True
+        assert cpu.findChild(QQuickItem, "qmlPageCpuTransition") is not None
+        cpu_visual = cpu.findChild(QQuickItem, "cpuTransitionVisual")
+        cpu_chip = cpu.findChild(QQuickItem, "cpuTransitionChip")
+        assert cpu_visual is not None
+        assert cpu_visual.property("visible") is False
+        assert cpu_chip is not None
+        assert cpu_chip.width() == 96
+        assert cpu_chip.height() == 64
         invalid = root.findChild(QQuickItem, "invalidTransition")
         assert invalid.property("customAnimationContractValid") is False
         assert invalid.property("collapsed") is True
@@ -199,8 +295,70 @@ def test_page_transition_source_declares_explicit_custom_contract():
     assert 'property int animationType: Enums.animation.lazy_circle' in source
     assert 'property Component customAnimation: null' in source
     assert 'Enums.animation.none' in source
+    assert 'Enums.animation.cpu' in source
     assert 'Enums.animation.custom' in source
     assert '"collapse", "expand", "stop"' in source
     assert '"active", "running", "collapsing", "collapsed", "progress"' in source
     assert 'signal collapseStarted()' in source
     assert 'signal expandFinished()' in source
+
+
+def test_cpu_transition_is_selectable_for_lazy_loading():
+    stacked_source = (
+        ROOT
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "navigation"
+        / "StackedWidget.qml"
+    ).read_text(encoding="utf-8")
+    window_source = (ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml").read_text(
+        encoding="utf-8"
+    )
+    page_stack_source = (
+        ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsPageStack.qml"
+    ).read_text(encoding="utf-8")
+
+    assert "property int lazyAnimationType: Enums.animation.lazy_circle" in stacked_source
+    assert "animationType: control.lazyAnimationType" in stacked_source
+    assert "property int lazyAnimationType: Enums.animation.lazy_circle" in window_source
+    assert "root.host.lazyAnimationType" in page_stack_source
+
+
+def test_cpu_transition_runs_drop_then_circuit_lifecycle(qapp):
+    engine, component, window, warnings = _create_cpu_scene()
+    try:
+        transition = window.findChild(QQuickItem, "cpuLifecycleTransition")
+        source = window.findChild(QQuickItem, "cpuLifecycleSource")
+        backend = transition.findChild(QQuickItem, "qmlPageCpuTransition")
+        visual = transition.findChild(QQuickItem, "cpuTransitionVisual")
+        assert transition is not None
+        assert source is not None
+        assert backend is not None
+        assert visual is not None
+
+        assert QMetaObject.invokeMethod(window, "collapseCpu")
+        assert _wait_for(lambda: window.property("collapseStartedCount") == 1)
+        assert _wait_for(lambda: window.property("collapseFinishedCount") == 1)
+        assert transition.property("collapsed") is True
+        assert source.property("visible") is False
+        assert visual.property("visible") is True
+
+        assert QMetaObject.invokeMethod(window, "expandCpu")
+        assert _wait_for(lambda: window.property("expandStartedCount") == 1)
+        assert _wait_for(
+            lambda: 0 < float(backend.property("_circuitProgress")) < 1
+        )
+        assert transition.property("active") is True
+        assert _wait_for(lambda: window.property("expandFinishedCount") == 1)
+        assert transition.property("collapsed") is False
+        assert transition.property("active") is False
+        assert source.property("visible") is True
+        assert visual.property("visible") is False
+        assert warnings == []
+    finally:
+        window.close()
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump(1)

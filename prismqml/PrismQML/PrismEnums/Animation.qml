@@ -15,4 +15,5 @@ QtObject {
     readonly property int zoom: 6
     readonly property int lazy_circle: 7
     readonly property int custom: 8
+    readonly property int cpu: 9
 }

@@ -177,6 +177,15 @@ PageTransition {
 
 它公开 `collapse(sourceItem)`、`expand(sourceItem)`、`stop()` 方法，以及 `active`、`running`、`collapsing`、`collapsed`、`progress` 状态和四个生命周期信号。`customAnimation` 属性接受上面的 `Component` 合同；自定义模式推荐同时设置 `animationType: Enums.animation.custom`。`animationType: Enums.animation.none` 会绕过动态加载并同步发出开始/完成信号。
 
+懒加载页面默认继续使用 `Enums.animation.lazy_circle`。需要 CPU 放下后电路线展开的样式时，在窗口或 `StackedWidget` 上选择 `Enums.animation.cpu`：
+
+```qml
+NavigationWindowCore {
+    lazyLoading: true
+    lazyAnimationType: Enums.animation.cpu
+}
+```
+
 !!! tip "非 Fluent 皮肤下的窗口"
     新粗野、复古票据与新拟态都会自动关闭 Mica，并切换到各自的表面、边框、
     阴影与导航状态。这些都由皮肤系统处理，无需手动配置。

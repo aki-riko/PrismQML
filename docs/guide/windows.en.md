@@ -211,6 +211,17 @@ four lifecycle signals. Its `customAnimation` property accepts the
 Enums.animation.none` bypasses dynamic loading and emits start/finish signals
 synchronously.
 
+Lazy pages continue to use `Enums.animation.lazy_circle` by default. Select
+`Enums.animation.cpu` on the window or `StackedWidget` for the CPU-drop and
+circuit-expansion style:
+
+```qml
+NavigationWindowCore {
+    lazyLoading: true
+    lazyAnimationType: Enums.animation.cpu
+}
+```
+
 !!! tip "Windows under non-Fluent skins"
     Neobrutalism, Vintage Ticket, and Neumorphism auto-disable Mica and switch
     to their own surfaces, borders, shadows, and navigation states. The skin

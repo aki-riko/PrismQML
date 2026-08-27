@@ -169,6 +169,7 @@ Item {
 
         if (animationType === Enums.animation.none ||
                 (animationType !== Enums.animation.lazy_circle &&
+                 animationType !== Enums.animation.cpu &&
                  animationType !== Enums.animation.custom && !usingCustomAnimation)) {
             _completeWithoutAnimation(sourceItem, collapsing)
             return true
@@ -191,12 +192,15 @@ Item {
         objectName: "pageTransitionBackendLoader"
         anchors.fill: parent
         active: control.customAnimation !== null ||
-                control.animationType === Enums.animation.lazy_circle
+                control.animationType === Enums.animation.lazy_circle ||
+                control.animationType === Enums.animation.cpu
         asynchronous: false
         sourceComponent: control.customAnimation !== null
             ? control.customAnimation
             : (control.animationType === Enums.animation.lazy_circle
-                ? defaultTransitionComponent : null)
+                ? defaultTransitionComponent
+                : (control.animationType === Enums.animation.cpu
+                    ? cpuTransitionComponent : null))
         onItemChanged: control._syncBackendContract(item)
     }
 
@@ -205,6 +209,22 @@ Item {
 
         NavigationInternal.LazyPageCircleTransition {
             objectName: "qmlPageCircleTransition"
+            revealDuration: control.revealDuration
+            revealEasing: control.revealEasing
+            coverDuration: control.coverDuration
+            coverEasing: control.coverEasing
+            revealTarget: control.revealTarget
+            keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
+            collapseToCenter: control.collapseToCenter
+            preferOverlayWindow: control.preferOverlayWindow
+        }
+    }
+
+    Component {
+        id: cpuTransitionComponent
+
+        NavigationInternal.LazyPageCpuTransition {
+            objectName: "qmlPageCpuTransition"
             revealDuration: control.revealDuration
             revealEasing: control.revealEasing
             coverDuration: control.coverDuration

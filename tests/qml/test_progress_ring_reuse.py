@@ -284,7 +284,8 @@ def test_lazy_pages_use_one_circle_without_close_ripple_layers():
 
     stacked_source = STACKED_WIDGET.read_text(encoding="utf-8")
     assert "PageTransition {" in stacked_source
-    assert "animationType: Enums.animation.lazy_circle" in stacked_source
+    assert "property int lazyAnimationType: Enums.animation.lazy_circle" in stacked_source
+    assert "animationType: control.lazyAnimationType" in stacked_source
     assert "LazyPageCircleTransition {" not in stacked_source
     assert 'objectName: "lazyPageCircleTransition"' in stacked_source
 
