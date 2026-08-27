@@ -413,6 +413,8 @@ Item {
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
+        z: control.lazyAnimationType === Enums.lazyAnimation.cpu
+            ? Enums.zIndex.overlay : Enums.zIndex.base
         animationType: control.lazyAnimationType
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()

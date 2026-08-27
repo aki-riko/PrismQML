@@ -179,6 +179,8 @@ PageTransition {
 
 懒加载页面默认继续使用 `Enums.lazyAnimation.lazy_circle`。需要 CPU 放下后电路线展开的样式时，在窗口或 `StackedWidget` 上选择 `Enums.lazyAnimation.cpu`：
 
+CPU 模式只绘制无文字、无图片图标的 CPU 描边；芯片落下后由电路链路向外辐射，链路经过的遮罩区域消失并露出目标页面，不会复用圆形收紧/展开后端。
+
 ```qml
 NavigationWindowCore {
     lazyLoading: true

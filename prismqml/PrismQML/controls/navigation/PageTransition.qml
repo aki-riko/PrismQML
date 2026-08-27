@@ -226,7 +226,7 @@ Item {
         NavigationInternal.LazyPageCpuTransition {
             objectName: "qmlPageCpuTransition"
             revealDuration: control.revealDuration
-            revealEasing: control.revealEasing
+            revealEasing: Easing.InOutQuad
             coverDuration: control.coverDuration
             coverEasing: control.coverEasing
             revealTarget: control.revealTarget

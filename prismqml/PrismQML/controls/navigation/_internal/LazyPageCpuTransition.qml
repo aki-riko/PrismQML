@@ -4,10 +4,11 @@
 
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../../../effects"
 import "../../.."
 
-// LazyPageCpuTransition - CPU drop and circuit expansion for lazy pages
-// LazyPageCpuTransition - 懒加载页面 CPU 下落后电路展开过渡
+// LazyPageCpuTransition - Outline CPU and circuit reveal for lazy pages
+// LazyPageCpuTransition - 懒加载页面描边 CPU 与电路辐射揭幕
 Item {
     id: transition
 
@@ -22,40 +23,47 @@ Item {
     property bool preferOverlayWindow: false
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool running: pageTransition.running
-        || dropAnimation.running || circuitAnimation.running
-    readonly property bool active: pageTransition.active
-        || dropAnimation.running || circuitAnimation.running
+    readonly property bool running: dropAnimation.running || circuitAnimation.running
+    readonly property bool active: _visualVisible || running
     readonly property bool collapsing: _operationCollapsing
     readonly property bool collapsed: _collapsed
-    readonly property real progress: pageTransition.progress
-    readonly property real revealMinimumRadiusPixels:
-        pageTransition.revealMinimumRadiusPixels
-    readonly property real revealMaximumRadiusPixels:
-        pageTransition.revealMaximumRadiusPixels
-    readonly property real revealRadiusPixels: pageTransition.revealRadiusPixels
-    readonly property bool _capturePending: pageTransition._capturePending
-    readonly property int _overlayFrameStage: pageTransition._overlayFrameStage
-    readonly property bool _dissolving: pageTransition._dissolving
-    readonly property bool _usingPageLayer: pageTransition._usingPageLayer
-    readonly property bool _inWindowStartPending: pageTransition._inWindowStartPending
-    readonly property bool _mainFramePending: pageTransition._mainFramePending
-    readonly property string _lastFallbackReason: pageTransition._lastFallbackReason
+    readonly property real progress: _progress
+    // CPU mode has no circular radius; these properties remain for the public facade contract.
+    // CPU 模式没有圆形半径；保留这些属性以满足公开门面合同。
+    readonly property real revealMinimumRadiusPixels: 0
+    readonly property real revealMaximumRadiusPixels: 0
+    readonly property real revealRadiusPixels: 0
+    readonly property bool _capturePending: false
+    readonly property int _overlayFrameStage: 0
+    readonly property bool _dissolving: false
+    readonly property bool _usingPageLayer: false
+    readonly property bool _inWindowStartPending: false
+    readonly property bool _mainFramePending: false
+    readonly property string _lastFallbackReason: ""
 
     // ==================== Internal Props 内部属性 ====================
     readonly property QtObject _cpuMetrics: Enums.lazyLoadingTransitionMetrics.cpu
-    readonly property string _chipLabel: "CPU"
     property bool _operationCollapsing: false
     property bool _collapsed: false
     property bool _visualVisible: false
+    property real _progress: Enums.opacityLevel.invisible
     property real _circuitProgress: Enums.opacityLevel.invisible
-    property bool _collapsePageFinished: false
-    property bool _dropFinished: false
-    property bool _expandPageFinished: false
-    property bool _circuitFinished: false
+    property Item _sourceItem: null
+    property bool _savedSourceVisible: false
     readonly property real _chipRestX: (width - _cpuMetrics.chipWidth) / 2
     readonly property real _chipRestY: (height - _cpuMetrics.chipHeight) / 2
     readonly property real _chipStartY: _chipRestY - _cpuMetrics.dropDistance
+    readonly property real _horizontalReach: Math.max(
+        0, (width - _cpuMetrics.chipWidth) / 2 - _cpuMetrics.pinLength)
+    readonly property real _verticalReach: Math.max(
+        0, (height - _cpuMetrics.chipHeight) / 2 - _cpuMetrics.pinLength)
+    readonly property real _branchProgress: Math.max(
+        0, Math.min(1, (_circuitProgress - _cpuMetrics.branchStartRatio)
+            / (1 - _cpuMetrics.branchStartRatio)))
+    readonly property real _coverOpacity: _operationCollapsing ? 1
+        : Math.max(0, 1 - Math.max(0, Math.min(1,
+            (_circuitProgress - _cpuMetrics.coverFadeStart)
+                / (1 - _cpuMetrics.coverFadeStart))))
 
     // ==================== Signals 信号 ====================
     signal collapseStarted()
@@ -66,46 +74,67 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function collapse(sourceItem) {
         transition.stop()
+        transition._sourceItem = sourceItem
+        transition._savedSourceVisible = sourceItem ? sourceItem.visible : false
         transition._operationCollapsing = true
-        transition._visualVisible = true
         transition._collapsed = false
-        transition._collapsePageFinished = false
-        transition._dropFinished = false
+        transition._visualVisible = true
+        transition._progress = Enums.opacityLevel.invisible
+        transition._circuitProgress = Enums.opacityLevel.invisible
+        if (!sourceItem) {
+            transition._visualVisible = false
+            transition._collapsed = true
+            transition.collapseStarted()
+            transition.collapseFinished()
+            return false
+        }
+        sourceItem.visible = true
+        chip.x = transition._chipRestX
         chip.y = transition._chipStartY
         chip.opacity = Enums.opacityLevel.invisible
         chip.scale = transition._cpuMetrics.dropStartScale
-        transition._circuitProgress = Enums.opacityLevel.invisible
+        transition.collapseStarted()
         dropAnimation.restart()
-        return pageTransition.collapse(sourceItem)
+        return true
     }
 
     function expand(sourceItem) {
-        dropAnimation.stop()
+        transition.stop()
+        transition._sourceItem = sourceItem
+        transition._savedSourceVisible = sourceItem ? sourceItem.visible : false
         transition._operationCollapsing = false
         transition._collapsed = false
         transition._visualVisible = true
-        transition._expandPageFinished = false
-        transition._circuitFinished = false
+        transition._progress = Enums.opacityLevel.invisible
+        transition._circuitProgress = Enums.opacityLevel.invisible
+        if (!sourceItem) {
+            transition._visualVisible = false
+            transition.expandStarted()
+            transition.expandFinished()
+            return false
+        }
+        sourceItem.visible = true
         chip.x = transition._chipRestX
         chip.y = transition._chipRestY
         chip.opacity = Enums.opacityLevel.visible
         chip.scale = Enums.opacityLevel.visible
-        transition._circuitProgress = Enums.opacityLevel.invisible
+        transition.expandStarted()
         circuitAnimation.restart()
-        return pageTransition.expand(sourceItem)
+        return true
     }
 
     function stop() {
         if (dropAnimation) dropAnimation.stop()
         if (circuitAnimation) circuitAnimation.stop()
-        if (pageTransition) pageTransition.stop()
+        if (transition._sourceItem) {
+            transition._sourceItem.visible = transition._savedSourceVisible
+        }
+        transition._sourceItem = null
+        transition._savedSourceVisible = false
         transition._operationCollapsing = false
         transition._collapsed = false
         transition._visualVisible = false
-        transition._collapsePageFinished = false
-        transition._dropFinished = false
-        transition._expandPageFinished = false
-        transition._circuitFinished = false
+        transition._progress = Enums.opacityLevel.invisible
         transition._circuitProgress = Enums.opacityLevel.invisible
         if (chip) {
             chip.x = transition._chipRestX
@@ -116,22 +145,32 @@ Item {
     }
 
     function _restoreHostWindowAfterOverlay() {
-        if (pageTransition && typeof pageTransition._restoreHostWindowAfterOverlay === "function")
-            pageTransition._restoreHostWindowAfterOverlay()
+        // CPU reveal stays in the page window and never hides the host window.
+        // CPU 揭幕始终在页面窗口内完成，不会隐藏宿主窗口。
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _maybeFinishCollapse() {
-        if (!transition._operationCollapsing || !transition._collapsePageFinished
-                || !transition._dropFinished || transition._collapsed) return
+    function _finishCollapse() {
+        if (!transition._operationCollapsing) return
+        if (transition._sourceItem) transition._sourceItem.visible = false
+        transition._sourceItem = null
+        transition._savedSourceVisible = false
+        transition._progress = Enums.opacityLevel.visible
         transition._collapsed = true
         transition.collapseFinished()
     }
 
-    function _maybeFinishExpand() {
-        if (transition._operationCollapsing || !transition._expandPageFinished
-                || !transition._circuitFinished) return
+    function _finishExpand() {
+        if (transition._operationCollapsing) return
+        if (transition._sourceItem) {
+            transition._sourceItem.visible = transition.keepSourceHiddenOnExpand
+                ? false : true
+        }
+        transition._sourceItem = null
+        transition._savedSourceVisible = false
+        transition._progress = Enums.opacityLevel.visible
         transition._visualVisible = false
+        transition._collapsed = false
         transition.expandFinished()
     }
 
@@ -139,30 +178,166 @@ Item {
     Component.onDestruction: transition.stop()
 
     // ==================== Content 内容 ====================
-    LazyPageCircleTransition {
-        id: pageTransition
-
-        anchors.fill: parent
-        revealDuration: transition.revealDuration
-        revealEasing: transition.revealEasing
-        coverDuration: transition.coverDuration
-        coverEasing: transition.coverEasing
-        revealTarget: transition.revealTarget
-        keepSourceHiddenOnExpand: transition.keepSourceHiddenOnExpand
-        collapseToCenter: transition.collapseToCenter
-        preferOverlayWindow: transition.preferOverlayWindow
-    }
-
     Item {
         id: cpuVisual
 
         objectName: "cpuTransitionVisual"
         anchors.fill: parent
         visible: transition._visualVisible
-        opacity: Enums.opacityLevel.visible
-        z: transition._operationCollapsing
-            ? Enums.zIndex.controls : Enums.zIndex.controlsAbove
+        z: Enums.zIndex.overlay
 
+        Rectangle {
+            id: revealCover
+
+            objectName: "cpuTransitionCover"
+            anchors.fill: parent
+            color: Enums.backgroundColor
+            opacity: transition._coverOpacity
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                invert: true
+                mask: ShaderEffectSource {
+                    hideSource: false
+                    live: true
+                    smooth: true
+                    sourceItem: circuitArtwork
+                }
+            }
+        }
+
+        Item {
+            id: circuitArtwork
+
+            objectName: "cpuTransitionCircuit"
+            anchors.fill: parent
+            visible: transition._visualVisible
+
+            Rectangle {
+                id: topTrace
+
+                x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
+                    - width / 2
+                y: chip.y - transition._cpuMetrics.pinLength - height
+                width: transition._cpuMetrics.traceWidth
+                height: transition._circuitProgress * transition._verticalReach
+                color: Enums.accentColorLight
+                opacity: transition._circuitProgress
+            }
+
+            Rectangle {
+                id: bottomTrace
+
+                x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
+                    - width / 2
+                y: chip.y + chip.height + transition._cpuMetrics.pinLength
+                width: transition._cpuMetrics.traceWidth
+                height: transition._circuitProgress * transition._verticalReach
+                color: Enums.accentColorLight
+                opacity: transition._circuitProgress
+            }
+
+            Rectangle {
+                id: leftTrace
+
+                x: chip.x - transition._cpuMetrics.pinLength - width
+                y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
+                    - height / 2
+                width: transition._circuitProgress * transition._horizontalReach
+                height: transition._cpuMetrics.traceWidth
+                color: Enums.accentColorLight
+                opacity: transition._circuitProgress
+            }
+
+            Rectangle {
+                id: rightTrace
+
+                x: chip.x + chip.width + transition._cpuMetrics.pinLength
+                y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
+                    - height / 2
+                width: transition._circuitProgress * transition._horizontalReach
+                height: transition._cpuMetrics.traceWidth
+                color: Enums.accentColorLight
+                opacity: transition._circuitProgress
+            }
+
+            // Short orthogonal branches make the reveal read as a circuit rather than a circle.
+            // 短正交分支让揭幕呈现电路链路，而不是圆形扩散。
+            Rectangle {
+                x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
+                    - width / 2
+                y: transition._chipRestY - transition._cpuMetrics.pinLength
+                    - transition._verticalReach * transition._cpuMetrics.branchOffsetRatio
+                width: transition._branchProgress * transition._horizontalReach
+                    * transition._cpuMetrics.branchSpanRatio
+                height: transition._cpuMetrics.traceWidth
+                color: Enums.accentColorLight
+                opacity: transition._branchProgress
+            }
+
+            Rectangle {
+                x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
+                    - width / 2
+                y: transition._chipRestY + transition._cpuMetrics.chipHeight
+                    + transition._cpuMetrics.pinLength
+                    + transition._verticalReach * transition._cpuMetrics.branchOffsetRatio
+                width: transition._branchProgress * transition._horizontalReach
+                    * transition._cpuMetrics.branchSpanRatio
+                height: transition._cpuMetrics.traceWidth
+                color: Enums.accentColorLight
+                opacity: transition._branchProgress
+            }
+
+            Rectangle {
+                x: transition._chipRestX - transition._cpuMetrics.pinLength
+                    - transition._horizontalReach * transition._cpuMetrics.branchOffsetRatio
+                y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
+                    - height / 2
+                width: transition._cpuMetrics.traceWidth
+                height: transition._branchProgress * transition._verticalReach
+                    * transition._cpuMetrics.branchSpanRatio
+                color: Enums.accentColorLight
+                opacity: transition._branchProgress
+            }
+
+            Rectangle {
+                x: transition._chipRestX + transition._cpuMetrics.chipWidth
+                    + transition._cpuMetrics.pinLength
+                    + transition._horizontalReach * transition._cpuMetrics.branchOffsetRatio
+                y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
+                    - height / 2
+                width: transition._cpuMetrics.traceWidth
+                height: transition._branchProgress * transition._verticalReach
+                    * transition._cpuMetrics.branchSpanRatio
+                color: Enums.accentColorLight
+                opacity: transition._branchProgress
+            }
+
+            Repeater {
+                model: transition._cpuMetrics.traceNodeCount
+                delegate: Rectangle {
+                    required property int index
+
+                    width: transition._cpuMetrics.traceNodeSize
+                    height: width
+                    radius: width / 2
+                    color: Enums.accentColorLight
+                    opacity: transition._circuitProgress
+                    x: index < 2
+                        ? transition._chipRestX
+                            + transition._cpuMetrics.chipWidth / 2 - width / 2
+                        : (index === 2 ? leftTrace.x - width / 2
+                                       : rightTrace.x + leftTrace.width - width / 2)
+                    y: index < 2
+                        ? (index === 0 ? topTrace.y - height / 2
+                                       : bottomTrace.y + bottomTrace.height - height / 2)
+                        : transition._chipRestY
+                            + transition._cpuMetrics.chipHeight / 2 - height / 2
+                }
+            }
+        }
+
+        // Outline-only CPU body; no icon or text is rendered in this transition.
+        // 仅描边 CPU 外壳；此过渡不渲染任何图标或文字。
         Rectangle {
             id: chip
 
@@ -172,28 +347,10 @@ Item {
             width: transition._cpuMetrics.chipWidth
             height: transition._cpuMetrics.chipHeight
             radius: Enums.radius.small
-            color: Enums.cardColor
+            color: Enums.transparent
             border.width: Enums.border.normal
             border.color: Enums.accentColor
             transformOrigin: Item.Center
-
-            Rectangle {
-                anchors.centerIn: parent
-                width: parent.width - Enums.spacing.l
-                height: parent.height - Enums.spacing.l
-                radius: Enums.radius.micro
-                color: Enums.accentColor
-                opacity: Enums.opacityLevel.light
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: transition._chipLabel
-                color: Enums.accentColorLight
-                font.family: Enums.fontMonospace
-                font.pixelSize: Enums.typography.bodyLarge
-                font.bold: true
-            }
         }
 
         Repeater {
@@ -263,95 +420,13 @@ Item {
                 opacity: chip.opacity
             }
         }
-
-        Rectangle {
-            id: topTrace
-
-            x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
-                - width / 2
-            y: chip.y - transition._cpuMetrics.pinLength - height
-            width: Math.max(
-                transition._cpuMetrics.traceWidth,
-                transition._circuitProgress * transition._cpuMetrics.traceLength)
-            height: transition._cpuMetrics.traceWidth
-            color: Enums.accentColorLight
-            opacity: transition._circuitProgress
-        }
-
-        Rectangle {
-            id: bottomTrace
-
-            x: transition._chipRestX + transition._cpuMetrics.chipWidth / 2
-                - width / 2
-            y: chip.y + chip.height + transition._cpuMetrics.pinLength
-            width: Math.max(
-                transition._cpuMetrics.traceWidth,
-                transition._circuitProgress * transition._cpuMetrics.traceLength)
-            height: transition._cpuMetrics.traceWidth
-            color: Enums.accentColorLight
-            opacity: transition._circuitProgress
-        }
-
-        Rectangle {
-            id: leftTrace
-
-            x: chip.x - transition._cpuMetrics.pinLength - width
-            y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
-                - height / 2
-            width: transition._cpuMetrics.traceWidth
-            height: Math.max(
-                transition._cpuMetrics.traceWidth,
-                transition._circuitProgress * transition._cpuMetrics.traceLength)
-            color: Enums.accentColorLight
-            opacity: transition._circuitProgress
-        }
-
-        Rectangle {
-            id: rightTrace
-
-            x: chip.x + chip.width + transition._cpuMetrics.pinLength
-            y: transition._chipRestY + transition._cpuMetrics.chipHeight / 2
-                - height / 2
-            width: transition._cpuMetrics.traceWidth
-            height: Math.max(
-                transition._cpuMetrics.traceWidth,
-                transition._circuitProgress * transition._cpuMetrics.traceLength)
-            color: Enums.accentColorLight
-            opacity: transition._circuitProgress
-        }
-
-        Repeater {
-            model: transition._cpuMetrics.traceNodeCount
-            delegate: Rectangle {
-                required property int index
-                readonly property bool verticalNode: index >= 2
-
-                width: transition._cpuMetrics.traceNodeSize
-                height: width
-                radius: width / 2
-                color: Enums.accentColor
-                opacity: transition._circuitProgress
-                x: verticalNode
-                    ? (index === 2 ? leftTrace.x - width / 2
-                                   : rightTrace.x - width / 2)
-                    : transition._chipRestX + transition._cpuMetrics.chipWidth / 2
-                        - width / 2
-                y: verticalNode
-                    ? transition._chipRestY + transition._cpuMetrics.chipHeight / 2
-                        - height / 2
-                    : (index === 0
-                        ? topTrace.y - height / 2 : bottomTrace.y - height / 2)
-            }
-        }
     }
 
+    // ==================== Transition Animations 过渡动画 ====================
     ParallelAnimation {
         id: dropAnimation
 
-        onFinished: {
-            transition._dropFinished = true
-            transition._maybeFinishCollapse()
-        }
+        onFinished: transition._finishCollapse()
 
         NumberAnimation {
             target: chip
@@ -379,15 +454,20 @@ Item {
             duration: transition.coverDuration
             easing.type: Easing.OutBack
         }
-
     }
 
     ParallelAnimation {
         id: circuitAnimation
 
-        onFinished: {
-            transition._circuitFinished = true
-            transition._maybeFinishExpand()
+        onFinished: transition._finishExpand()
+
+        NumberAnimation {
+            target: transition
+            property: "_progress"
+            from: Enums.opacityLevel.invisible
+            to: Enums.opacityLevel.visible
+            duration: transition.revealDuration
+            easing.type: transition.revealEasing
         }
 
         NumberAnimation {
@@ -396,7 +476,7 @@ Item {
             from: Enums.opacityLevel.invisible
             to: Enums.opacityLevel.visible
             duration: transition.revealDuration
-            easing.type: Easing.OutCubic
+            easing.type: transition.revealEasing
         }
 
         SequentialAnimation {
@@ -423,21 +503,5 @@ Item {
                 easing.type: Easing.InOutSine
             }
         }
-
-    }
-
-    Connections {
-        function onCollapseStarted() { transition.collapseStarted() }
-        function onExpandStarted() { transition.expandStarted() }
-        function onCollapseFinished() {
-            transition._collapsePageFinished = true
-            transition._maybeFinishCollapse()
-        }
-        function onExpandFinished() {
-            transition._expandPageFinished = true
-            transition._maybeFinishExpand()
-        }
-
-        target: pageTransition
     }
 }

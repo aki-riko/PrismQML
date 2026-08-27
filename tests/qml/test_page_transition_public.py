@@ -318,11 +318,29 @@ def test_cpu_transition_is_selectable_for_lazy_loading():
     page_stack_source = (
         ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsPageStack.qml"
     ).read_text(encoding="utf-8")
+    cpu_source = (
+        ROOT
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "navigation"
+        / "_internal"
+        / "LazyPageCpuTransition.qml"
+    ).read_text(encoding="utf-8")
 
     assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in stacked_source
     assert "animationType: control.lazyAnimationType" in stacked_source
     assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in window_source
     assert "root.host.lazyAnimationType" in page_stack_source
+    assert "LazyPageCircleTransition" not in cpu_source
+    assert "Text {" not in cpu_source
+    assert "sourceItem: circuitArtwork" in cpu_source
+    assert "color: Enums.transparent" in cpu_source
+    assert "revealEasing: Easing.InOutQuad" in (
+        ROOT / "prismqml" / "PrismQML" / "controls" / "navigation"
+        / "PageTransition.qml"
+    ).read_text(encoding="utf-8")
+    assert "_usesCpuLazyAnimation" in page_stack_source
 
 
 def test_lazy_animation_enum_is_separate_from_stacked_widget_animation_enum():

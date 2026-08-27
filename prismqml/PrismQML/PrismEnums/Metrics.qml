@@ -696,12 +696,15 @@ QtObject {
  readonly property int pinLength: 10 // Pin length 引脚长度
  readonly property int pinWidth: 3 // Pin width 引脚宽度
  readonly property int pinInset: 12 // Pin inset from chip edge 引脚距芯片边缘内缩
- readonly property int traceLength: 52 // Circuit trace expansion length 电路走线展开长度
  readonly property real traceWidth: root.border.thin // Circuit trace width 电路走线宽度
  readonly property int traceNodeCount: 4 // Circuit endpoint count 电路端点数量
  readonly property int traceNodeSize: 6 // Trace endpoint node size 走线端点尺寸
  readonly property int dropDistance: 72 // CPU drop distance CPU 下落距离
  readonly property real dropStartScale: 0.86 // CPU drop start scale CPU 下落起始缩放
+ readonly property real branchStartRatio: 0.28 // Circuit branch start ratio 电路分支起始比例
+ readonly property real branchSpanRatio: 0.45 // Circuit branch span ratio 电路分支长度比例
+ readonly property real branchOffsetRatio: 0.68 // Circuit branch offset ratio 电路分支位置比例
+ readonly property real coverFadeStart: 0.82 // Final cover fade start ratio 遮罩最终淡出起始比例
  readonly property real circuitPauseRatio: 0.65 // Circuit pulse lead-in ratio 电路脉冲前置比例
  readonly property real circuitPulseInRatio: 0.18 // Circuit pulse-in ratio 电路脉冲放大比例
  readonly property real circuitPulseOutRatio: 0.17 // Circuit pulse-out ratio 电路脉冲回落比例

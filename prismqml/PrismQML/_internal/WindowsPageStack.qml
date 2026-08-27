@@ -35,6 +35,8 @@ Item {
     // Loading caption, owned by the caller so translation deps stay there.
     // 文案由调用方持有，翻译依赖因此留在调用方。
     required property string overlayText
+    readonly property bool _usesCpuLazyAnimation: root.host
+        && root.host.lazyAnimationType === Enums.lazyAnimation.cpu
 
     readonly property alias stackAlias: stack
     readonly property alias overlayLoader: loadingOverlayLoader
@@ -110,6 +112,7 @@ Item {
 
             objectName: "loadingOverlay"
             backgroundColor: Enums.transparent
+            visible: !root._usesCpuLazyAnimation
             running: visible && !finishing
             text: root.overlayText
             Component.onCompleted: if (loading) start()
