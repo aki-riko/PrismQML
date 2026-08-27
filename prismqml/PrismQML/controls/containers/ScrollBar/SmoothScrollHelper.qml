@@ -46,6 +46,16 @@ Item {
     property QtObject _bounceTimerV: null
     property QtObject _bounceTimerH: null
     property real _devicePixelRatio: 1.0
+
+    // The guards and the reconciler reach the drivers through scrollHelper, and an
+    // id is not visible outside this component, so each child is also exposed as a
+    // property here. 门闸与校正器经 scrollHelper 访问驱动器，而 id 在组件外不可见，
+    // 故每个子对象在此另以属性暴露。
+    readonly property QtObject verticalFrameDriver: verticalFrameDriverObject
+    readonly property QtObject horizontalFrameDriver: horizontalFrameDriverObject
+    readonly property QtObject verticalOvershootGuard: verticalOvershootGuardObject
+    readonly property QtObject horizontalOvershootGuard: horizontalOvershootGuardObject
+    readonly property QtObject boundsReconciler: boundsReconcilerObject
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -201,128 +211,55 @@ Item {
 
     function _publishSmoothY() {
         if (!_isVertical || !target || _discardingStaleFrameV) return
-        var now = Date.now()
-        // Do not publish a catch-up peak after the complete outward window
-        // elapsed without a frame. 外移窗口内整段无帧时，不发布恢复后的补算峰值。
-        if (_isOutwardBounceV && _lastBounceFrameTimestampV > 0
-                && now - _lastBounceFrameTimestampV >= Enums.duration.fast) {
-            _discardStaleOutwardFrameV()
-            return
-        }
+        // The guard owns both frame-dropping cases: a clamp by the view, and a
+        // stale catch-up peak after the whole outward window elapsed frameless.
+        // 门闸掌管两类弃帧：视图夹紧，以及整段外移窗口无帧后的补算峰值。
+        if (verticalOvershootGuard.consumesFrame(
+                target.contentY, _lastPublishedY, _minY, _maxY,
+                _isOvershotV, _isOutwardBounceV, _lastBounceFrameTimestampV)) return
         target.contentY = _publishedPosition(_smoothY, _minY, _maxY)
         _lastPublishedY = target.contentY
-        if (_isOutwardBounceV) _lastBounceFrameTimestampV = now
+        if (_isOutwardBounceV) _lastBounceFrameTimestampV = Date.now()
     }
 
     function _publishSmoothX() {
         if (_isVertical || !target || _discardingStaleFrameH) return
-        var now = Date.now()
-        // Keep horizontal recovery identical to the vertical path.
-        // 水平恢复与垂直路径保持一致。
-        if (_isOutwardBounceH && _lastBounceFrameTimestampH > 0
-                && now - _lastBounceFrameTimestampH >= Enums.duration.fast) {
-            _discardStaleOutwardFrameH()
-            return
-        }
+        // Keep the guard handling identical to the vertical path.
+        // 门闸处理与垂直路径保持一致。
+        if (horizontalOvershootGuard.consumesFrame(
+                target.contentX, _lastPublishedX, _minX, _maxX,
+                _isOvershotH, _isOutwardBounceH, _lastBounceFrameTimestampH)) return
         target.contentX = _publishedPosition(_smoothX, _minX, _maxX)
         _lastPublishedX = target.contentX
-        if (_isOutwardBounceH) _lastBounceFrameTimestampH = now
-    }
-
-    function _discardStaleOutwardFrameV() {
-        _discardingStaleFrameV = true
-        _stopBounceTimer(true)
-        _syncing = true
-        verticalFrameDriver.moveTo(_lastPublishedY)
-        _syncing = false
-        _discardingStaleFrameV = false
-        _bounceBackV()
-    }
-
-    function _discardStaleOutwardFrameH() {
-        _discardingStaleFrameH = true
-        _stopBounceTimer(false)
-        _syncing = true
-        horizontalFrameDriver.moveTo(_lastPublishedX)
-        _syncing = false
-        _discardingStaleFrameH = false
-        _bounceBackH()
+        if (_isOutwardBounceH) _lastBounceFrameTimestampH = Date.now()
     }
 
     // ListView/GridView may change origin while delegates are recycled.
     // ListView/GridView 复用 delegate 时可能动态改变 origin，目标与动画值必须同步回合法区间。
-    function _reconcileVerticalBounds() {
-        if (!target) return
-        if (_boundaryTargetV === 0 && !verticalFrameDriver.running && !_isOvershotV) {
-            var currentY = _clamp(target.contentY, _minY, _maxY)
-            if (currentY === _targetY && currentY === _smoothY) return
-            _syncing = true
-            _targetY = currentY
-            verticalFrameDriver.moveTo(currentY)
-            _syncing = false
-            return
-        }
-        var targetY = _boundaryTargetV < 0
-            ? _minY
-            : (_boundaryTargetV > 0 ? _maxY : _clamp(_targetY, _minY, _maxY))
-        var smoothY = _clamp(_smoothY, _minY, _maxY)
-        if (targetY === _targetY && smoothY === _smoothY) return
-        _isOvershotV = false
-        _isOutwardBounceV = false
-        _stopBounceTimer(true)
-        _targetY = targetY
-        if (smoothY !== _smoothY) {
-            _syncing = true
-            verticalFrameDriver.moveTo(smoothY)
-            _syncing = false
-        }
-        if (_smoothY !== _targetY) verticalFrameDriver.moveTo(_targetY)
-    }
+    // Bounds realignment is owned by the reconciler. 边界重对齐由校正器所有。
+    function _reconcileVerticalBounds() { boundsReconciler.reconcile(true) }
 
-    function _reconcileHorizontalBounds() {
-        if (!target) return
-        if (_boundaryTargetH === 0 && !horizontalFrameDriver.running && !_isOvershotH) {
-            var currentX = _clamp(target.contentX, _minX, _maxX)
-            if (currentX === _targetX && currentX === _smoothX) return
-            _syncing = true
-            _targetX = currentX
-            horizontalFrameDriver.moveTo(currentX)
-            _syncing = false
-            return
-        }
-        var targetX = _boundaryTargetH < 0
-            ? _minX
-            : (_boundaryTargetH > 0 ? _maxX : _clamp(_targetX, _minX, _maxX))
-        var smoothX = _clamp(_smoothX, _minX, _maxX)
-        if (targetX === _targetX && smoothX === _smoothX) return
-        _isOvershotH = false
-        _isOutwardBounceH = false
-        _stopBounceTimer(false)
-        _targetX = targetX
-        if (smoothX !== _smoothX) {
-            _syncing = true
-            horizontalFrameDriver.moveTo(smoothX)
-            _syncing = false
-        }
-        if (_smoothX !== _targetX) horizontalFrameDriver.moveTo(_targetX)
-    }
+    function _reconcileHorizontalBounds() { boundsReconciler.reconcile(false) }
 
     // Vertical implementation 垂直实现
     function _scrollToY(targetY) {
         _stopBounceTimer(true)
         _isOutwardBounceV = false
+        verticalOvershootGuard.reset()
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         verticalFrameDriver.moveTo(_targetY)
     }
 
     function _scrollByY(delta) {
+        verticalOvershootGuard.noteRelativeScroll()
         var newTarget = _targetY + delta
 
         // Normal scroll 正常滚动
         if (newTarget >= _minY && newTarget <= _maxY) {
             _stopBounceTimer(true)
             _isOutwardBounceV = false
+            verticalOvershootGuard.reset()
             _targetY = newTarget
             _isOvershotV = false
             verticalFrameDriver.moveTo(_targetY)
@@ -335,11 +272,21 @@ Item {
             return
         }
 
+        // A boundary whose overshoot the view already clamped away must not launch
+        // another outward leg, otherwise it is clamped again and the axis jitters.
+        // 视图已夹掉超出的边界不得再次外移，否则会被再次夹紧并造成轴向抖动。
+        if (verticalOvershootGuard.blocksBoundary(newTarget < _minY)) {
+            _targetY = newTarget < _minY ? _minY : _maxY
+            verticalFrameDriver.moveTo(_targetY)
+            return
+        }
+
         if (newTarget < _minY) {
             // Top overshoot 顶部超出
             _targetY = _minY
             _isOvershotV = true
             _isOutwardBounceV = true
+            verticalOvershootGuard.outwardBoundary = -1
             _lastPublishedY = target.contentY
             _lastBounceFrameTimestampV = Date.now()
             var overshootDelta = _minY - newTarget
@@ -352,6 +299,7 @@ Item {
             _targetY = _maxY
             _isOvershotV = true
             _isOutwardBounceV = true
+            verticalOvershootGuard.outwardBoundary = 1
             _lastPublishedY = target.contentY
             _lastBounceFrameTimestampV = Date.now()
             var overshootDeltaBottom = newTarget - _maxY
@@ -373,18 +321,21 @@ Item {
     function _scrollToX(targetX) {
         _stopBounceTimer(false)
         _isOutwardBounceH = false
+        horizontalOvershootGuard.reset()
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         horizontalFrameDriver.moveTo(_targetX)
     }
 
     function _scrollByX(delta) {
+        horizontalOvershootGuard.noteRelativeScroll()
         var newTarget = _targetX + delta
 
         // Normal scroll 正常滚动
         if (newTarget >= _minX && newTarget <= _maxX) {
             _stopBounceTimer(false)
             _isOutwardBounceH = false
+            horizontalOvershootGuard.reset()
             _targetX = newTarget
             _isOvershotH = false
             horizontalFrameDriver.moveTo(_targetX)
@@ -397,11 +348,20 @@ Item {
             return
         }
 
+        // Keep the revoked-boundary handling identical to the vertical path.
+        // 撤销边界处理与垂直路径保持一致。
+        if (horizontalOvershootGuard.blocksBoundary(newTarget < _minX)) {
+            _targetX = newTarget < _minX ? _minX : _maxX
+            horizontalFrameDriver.moveTo(_targetX)
+            return
+        }
+
         if (newTarget < _minX) {
             // Left overshoot 左侧超出
             _targetX = _minX
             _isOvershotH = true
             _isOutwardBounceH = true
+            horizontalOvershootGuard.outwardBoundary = -1
             _lastPublishedX = target.contentX
             _lastBounceFrameTimestampH = Date.now()
             var overshootDelta = _minX - newTarget
@@ -414,6 +374,7 @@ Item {
             _targetX = _maxX
             _isOvershotH = true
             _isOutwardBounceH = true
+            horizontalOvershootGuard.outwardBoundary = 1
             _lastPublishedX = target.contentX
             _lastBounceFrameTimestampH = Date.now()
             var overshootDeltaRight = newTarget - _maxX
@@ -458,15 +419,33 @@ Item {
     // ==================== Content 内容 ====================
     // Refresh-synchronized axis drivers 跟随刷新率的双轴驱动器
     ScrollBarInternal.SmoothScrollFrameDriver {
-        id: verticalFrameDriver
+        id: verticalFrameDriverObject
         scrollHelper: helper
         verticalAxis: true
     }
 
     ScrollBarInternal.SmoothScrollFrameDriver {
-        id: horizontalFrameDriver
+        id: horizontalFrameDriverObject
         scrollHelper: helper
         verticalAxis: false
+    }
+
+    // Per-axis overshoot arbiters 双轴超出仲裁器
+    ScrollBarInternal.SmoothScrollOvershootGuard {
+        id: verticalOvershootGuardObject
+        scrollHelper: helper
+        verticalAxis: true
+    }
+
+    ScrollBarInternal.SmoothScrollOvershootGuard {
+        id: horizontalOvershootGuardObject
+        scrollHelper: helper
+        verticalAxis: false
+    }
+
+    ScrollBarInternal.SmoothScrollBoundsReconciler {
+        id: boundsReconcilerObject
+        scrollHelper: helper
     }
 
     // On-demand bounce timer 按需回弹计时器

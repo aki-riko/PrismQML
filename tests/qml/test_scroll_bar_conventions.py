@@ -89,6 +89,9 @@ Window {
         defaultArea.smoothScrollTo(160)
         defaultArea.smoothScrollToX(120)
     }
+    // Move the scroll bounds while the axis is overshooting.
+    function shrinkDefaultContent() { defaultContent.height = 390 }
+    function restoreDefaultContent() { defaultContent.height = 420 }
     function scrollList() { listArea.scrollToIndex(10) }
     function scrollGrid() { gridArea.scrollToBottom() }
 
@@ -217,6 +220,7 @@ Window {
         padding: 10
 
         Rectangle {
+            id: defaultContent
             width: 360
             height: 420
         }
@@ -316,6 +320,20 @@ def _new_visible_windows(windows_before, *allowed):
         and not any(window is existing for existing in windows_before)
         and not any(window is accepted for accepted in allowed)
     ]
+
+
+def _outward_excursions(trajectory, boundary, at_start, tolerance=0.5):
+    """Count separate outward legs beyond one boundary. 统计越界外移腿的段数。"""
+    excursions = 0
+    was_outside = False
+    for value in trajectory:
+        outside = (
+            value < boundary - tolerance if at_start else value > boundary + tolerance
+        )
+        if outside and not was_outside:
+            excursions += 1
+        was_outside = outside
+    return excursions
 
 
 def _create_scene():
@@ -506,6 +524,121 @@ def test_horizontal_bounce_discards_stale_peak_after_gui_stall(scroll_scene):
     assert resumed_values
     assert max(resumed_values) <= before_stall + 0.5
     assert window.property("horizontalX") == pytest.approx(520)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_same_direction_wheel_does_not_amplify_bounce(scroll_scene):
+    """Same-direction wheel during a bounce must not grow the peak.
+
+    回弹期间的同向滚轮不得放大峰值。
+    """
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    maximum = float(helper.property("maxScroll"))
+    overshoot_limit = float(helper.property("_maxOvershoot"))
+
+    values = []
+    area.contentYChanged.connect(
+        lambda: values.append(float(area.property("contentY")))
+    )
+    area.setProperty("contentY", maximum)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+
+    assert _send_wheel(window, area, -120).isAccepted()
+    _pump(45)
+    assert values
+    first_peak = max(values)
+    assert first_peak > maximum
+
+    # Five more ticks in the same direction while the bounce is in flight.
+    # 回弹进行中再发五次同向滚轮。
+    for _ in range(5):
+        assert _send_wheel(window, area, -120).isAccepted()
+        _pump(40)
+    _pump(1200)
+
+    assert max(values) <= maximum + overshoot_limit + 0.5, max(values)
+    assert _outward_excursions(values, maximum, False) == 1, values
+    assert area.property("contentY") == pytest.approx(maximum)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
+    """Bounds moving mid-overshoot must not relaunch the outward leg.
+
+    超出期间边界移动不得重启外移腿。
+
+    A view clamps an out-of-bounds contentY whenever its own bounds change, which
+    revokes the helper's overshoot. Republishing it, or letting the next tick start
+    a fresh outward leg, makes the axis jitter at the boundary.
+    视图自身边界变化时会夹掉越界 contentY，从而撤销 helper 的超出。重新发布该位置，
+    或让下一次滚轮开启新的外移腿，都会造成轴向在边界处抖动。
+    """
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+
+    assert QMetaObject.invokeMethod(helper, "scrollToEnd")
+    assert _wait_for(
+        lambda: not helper.property("isOvershot")
+        and float(area.property("contentY"))
+        == pytest.approx(float(helper.property("maxScroll")), abs=0.5),
+        timeout_ms=3000,
+    )
+
+    # A moving boundary legitimately puts a stationary position out of bounds, so
+    # counting boundary crossings cannot separate that from a relaunch. Jitter is
+    # direction reversals while out of bounds plus a peak past the overshoot limit.
+    # 边界移动会合法地把静止位置变成越界，故穿越计数无法与重启区分。抖动的判据是
+    # 越界期间的方向反转，以及超过超出上限的峰值。
+    overshoot_limit = float(helper.property("_maxOvershoot"))
+    samples = []
+    area.contentYChanged.connect(
+        lambda: samples.append(
+            (
+                round(float(area.property("contentY")), 1),
+                round(float(helper.property("maxScroll")), 1),
+            )
+        )
+    )
+
+    # Same-direction ticks while the bottom boundary keeps moving underneath.
+    # 底部边界持续移动期间的同向滚轮。
+    for index in range(6):
+        assert _send_wheel(window, area, -120).isAccepted()
+        if index % 2 == 0:
+            assert QMetaObject.invokeMethod(window, "shrinkDefaultContent")
+        else:
+            assert QMetaObject.invokeMethod(window, "restoreDefaultContent")
+        _pump(40)
+    assert QMetaObject.invokeMethod(window, "restoreDefaultContent")
+    _pump(1200)
+
+    assert samples
+    reversals = 0
+    previous_delta = 0.0
+    for index in range(1, len(samples)):
+        if samples[index][0] <= samples[index][1] + 0.5:
+            continue
+        delta = samples[index][0] - samples[index - 1][0]
+        if delta == 0.0:
+            continue
+        if previous_delta != 0.0 and (delta > 0) != (previous_delta > 0):
+            reversals += 1
+        previous_delta = delta
+    assert reversals == 0, samples
+    peak_beyond = max(content_y - maximum for content_y, maximum in samples)
+    assert peak_beyond <= overshoot_limit + 0.5, peak_beyond
+    # Growing content below the viewport must not drag the view down, so resting
+    # anywhere inside the restored range is correct.
+    # 视口下方内容变长不应拖动视图，故停在恢复后区间内的任意位置都正确。
+    resting = float(area.property("contentY"))
+    assert -0.5 <= resting <= float(helper.property("maxScroll")) + 0.5, resting
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

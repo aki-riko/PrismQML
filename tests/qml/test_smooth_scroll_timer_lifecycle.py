@@ -277,8 +277,10 @@ def test_smooth_scroll_bounce_timer_and_pixels(qapp):
         assert len(active_horizontal_timers) == 3
         assert len(settled_vertical_timers) == 2
         assert len(settled_horizontal_timers) == 2
-        assert initial_objects == (7, 7)
-        assert settled_objects == (7, 7)
+        # Two overshoot guards and one bounds reconciler are persistent children.
+        # 两个超出门闸与一个边界校正器是常驻子对象。
+        assert initial_objects == (10, 10)
+        assert settled_objects == initial_objects
         assert peak_vertical > vertical_maximum
         assert peak_horizontal > horizontal_maximum
         assert repeated_hash == settled_hash

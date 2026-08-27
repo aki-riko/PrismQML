@@ -527,6 +527,189 @@ def test_timeline_virtual_wheel_bounces_at_both_boundaries_without_jitter(
     assert _new_visible_windows(windows_before, window) == []
 
 
+def _virtual_viewport_and_helper(owner):
+    list_view = next(
+        item
+        for item in owner.findChildren(QQuickItem)
+        if item.objectName() == "timelineVirtualViewport"
+    )
+    helper = next(
+        item
+        for item in owner.findChildren(QQuickItem)
+        if "SmoothScrollHelper" in item.metaObject().className()
+    )
+    return list_view, helper
+
+
+def test_timeline_virtual_continuous_same_direction_wheel_keeps_one_bounce(
+    timeline_scene,
+):
+    """Continuous same-direction wheel must not re-bounce at a boundary.
+
+    连续同向滚轮在边界不得反复回弹。
+    """
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    large_timeline = window.findChild(QQuickItem, "largeVirtualTimeline")
+    assert large_timeline is not None
+    list_view, helper = _virtual_viewport_and_helper(large_timeline)
+    assert _wait_for(
+        lambda: list_view.property("count")
+        == window.property("largeVirtualFlatCount")
+        and helper.property("maxScroll") > helper.property("minScroll")
+    )
+
+    assert QMetaObject.invokeMethod(helper, "scrollToStart")
+    assert _wait_for(
+        lambda: list_view.property("contentY")
+        == pytest.approx(helper.property("minScroll"), abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+    maximum_overshoot = float(helper.property("_maxOvershoot"))
+    # Delegate re-measurement can still move minScroll during the burst, which
+    # legitimately puts a stationary position out of bounds. Record each sample's
+    # own boundary so the assertions below do not read that as a re-bounce.
+    # delegate 重新测量可能在滚轮串期间移动 minScroll，这会合法地把静止位置变成越界。
+    # 记录每个样本自身的边界，避免下面的断言把它误读成再次回弹。
+    samples = []
+    list_view.contentYChanged.connect(
+        lambda: samples.append(
+            (
+                round(float(list_view.property("contentY")), 1),
+                round(float(helper.property("minScroll")), 1),
+            )
+        )
+    )
+
+    # Keep wheeling the same direction while the bounce is still in flight.
+    # 回弹仍在进行时持续朝同一方向滚动。
+    for _ in range(6):
+        event = _send_wheel(window, list_view, 120)
+        assert event.isAccepted()
+        _pump(40)
+    # Settle against the live boundary, which delegate re-measurement may have moved.
+    # 与实时边界比较落位，delegate 重新测量可能已移动它。
+    assert _wait_for(
+        lambda: list_view.property("contentY")
+        == pytest.approx(float(helper.property("minScroll")), abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+    _pump(200)
+
+    assert samples
+    # The first overshoot must still be visible. 首次超出滚动必须仍然可见。
+    assert any(
+        content_y < minimum - 1 for content_y, minimum in samples
+    ), samples
+    # Overshoot must stay bounded relative to each sample's own boundary.
+    # 超出幅度相对每个样本自身的边界必须有界。
+    assert all(
+        content_y >= minimum - maximum_overshoot - 1
+        for content_y, minimum in samples
+    ), samples
+    # A single outward leg, not repeated bouncing. Direction reversals while out of
+    # bounds are the jitter signature; boundary crossings are not, because a moving
+    # minScroll produces them without any re-bounce.
+    # 单条外移腿而非反复弹跳。越界期间的方向反转才是抖动特征；边界穿越不是，
+    # 因为 minScroll 移动本身就会产生穿越而并无再次回弹。
+    reversals = 0
+    previous_delta = 0.0
+    for index in range(1, len(samples)):
+        if samples[index][0] >= samples[index][1] - 0.5:
+            continue
+        delta = samples[index][0] - samples[index - 1][0]
+        if delta == 0.0:
+            continue
+        if previous_delta != 0.0 and (delta > 0) != (previous_delta > 0):
+            reversals += 1
+        previous_delta = delta
+    assert reversals == 0, samples
+    # No counter-direction yank while still moving outward. Measure raw contentY,
+    # not the distance past the boundary: minScroll moves during delegate
+    # re-measurement, so a boundary-relative distance shrinks without contentY
+    # ever being pulled back.
+    # 外移期间不得被反向拽回。用原始 contentY 而非越界距离衡量：delegate 重新测量
+    # 期间 minScroll 会移动，故越界距离会在 contentY 从未被拉回时自行缩小。
+    positions = [content_y for content_y, _minimum in samples]
+    outward = positions[: positions.index(min(positions)) + 1]
+    yanks = [
+        (index, outward[index - 1], outward[index])
+        for index in range(1, len(outward))
+        if outward[index] > outward[index - 1] + 2
+    ]
+    assert yanks == [], (yanks, samples)
+    # Rest against the boundary as it stands now, not the pre-burst snapshot.
+    # 与当前边界比较落位，而非滚轮前的快照。
+    assert list_view.property("contentY") == pytest.approx(
+        float(helper.property("minScroll")), abs=0.5
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
+    """Reverse input into content must re-arm the boundary bounce.
+
+    反向输入回到内容区后必须重新武装边界回弹。
+    """
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    large_timeline = window.findChild(QQuickItem, "largeVirtualTimeline")
+    assert large_timeline is not None
+    list_view, helper = _virtual_viewport_and_helper(large_timeline)
+    assert _wait_for(
+        lambda: list_view.property("count")
+        == window.property("largeVirtualFlatCount")
+        and helper.property("maxScroll") > helper.property("minScroll")
+    )
+
+    assert QMetaObject.invokeMethod(helper, "scrollToStart")
+    assert _wait_for(
+        lambda: list_view.property("contentY")
+        == pytest.approx(helper.property("minScroll"), abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+    boundary = float(helper.property("minScroll"))
+
+    for _ in range(4):
+        assert _send_wheel(window, list_view, 120).isAccepted()
+        _pump(40)
+    assert _wait_for(
+        lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+
+    # Reverse into the content region, then come back to the boundary.
+    # 反向进入内容区，再回到边界。
+    assert _send_wheel(window, list_view, -120).isAccepted()
+    assert _wait_for(lambda: list_view.property("contentY") > boundary + 5)
+    _pump(400)
+    assert QMetaObject.invokeMethod(helper, "scrollToStart")
+    assert _wait_for(
+        lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+
+    trajectory = []
+    list_view.contentYChanged.connect(
+        lambda: trajectory.append(float(list_view.property("contentY")))
+    )
+    assert _send_wheel(window, list_view, 120).isAccepted()
+    assert _wait_for(
+        lambda: any(value < boundary - 1 for value in trajectory)
+    ), trajectory
+    assert _wait_for(
+        lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
+        and not helper.property("isOvershot"),
+        timeout_ms=3000,
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_virtual_scrollbar_stays_visible_during_height_relayout(
     timeline_scene,
 ):
