@@ -129,6 +129,20 @@ def test_exception_traceback_is_reused_once_across_handlers():
         assert output.count("RuntimeError: DwmFlush failed") == 1
 
 
+def test_log_time_prints_wall_clock_and_elapsed_time(monkeypatch, capsys):
+    """Shared print profiling must align downstream logs on one wall clock. 共享 print 打点应能按墙钟时间对齐。"""
+    from prismqml.python.core import logger as logger_module
+
+    monkeypatch.setattr(logger_module.time, "time_ns", lambda: 3_987_671_000_000)
+    monkeypatch.setattr(logger_module.time, "localtime", lambda _seconds: object())
+    monkeypatch.setattr(logger_module.time, "strftime", lambda _format, _local_time: "01:06:27")
+    monkeypatch.setattr(logger_module.time, "perf_counter", lambda: 10.039)
+
+    logger_module.log_time("Python启动", start_time=10.0)
+
+    assert capsys.readouterr().out == "01:06:27.671 [   39.00ms] Python启动\n"
+
+
 def test_install_qt_message_handler_routes_real_warning(project_log_records):
     from PySide6.QtCore import qInstallMessageHandler, qWarning
     from prismqml.python.core.logger import install_qt_message_handler

@@ -353,10 +353,15 @@ def set_level(level: int):
     getLogger().set_level(level)
 
 
-def log_time(msg: str) -> None:
-    """Print log with millisecond timestamp since module load 打印带模块加载以来毫秒时间戳的性能日志"""
-    elapsed = (time.perf_counter() - _start_time) * 1000
-    print(f"[{elapsed:8.2f}ms] {msg}")
+def log_time(msg: str, *, start_time: Optional[float] = None) -> None:
+    """Print wall-clock and elapsed timestamps. 打印墙钟时间与累计毫秒。"""
+    origin = _start_time if start_time is None else start_time
+    wall_time_ns = time.time_ns()
+    wall_seconds, wall_remainder_ns = divmod(wall_time_ns, 1_000_000_000)
+    wall_timestamp = time.strftime("%H:%M:%S", time.localtime(wall_seconds))
+    wall_milliseconds = wall_remainder_ns // 1_000_000
+    elapsed = (time.perf_counter() - origin) * 1000
+    print(f"{wall_timestamp}.{wall_milliseconds:03d} [{elapsed:8.2f}ms] {msg}")
 
 
 # ==================== Qt Message Handler Qt消息处理器 ====================
