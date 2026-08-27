@@ -44,6 +44,7 @@ Item {
 
     // ==================== Internal Props 内部属性 ====================
     readonly property QtObject _cpuMetrics: Enums.lazyLoadingTransitionMetrics.cpu
+    readonly property string _chipLabel: "CPU"
     property bool _operationCollapsing: false
     property bool _collapsed: false
     property bool _visualVisible: false
@@ -187,7 +188,7 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: "CPU"
+                text: transition._chipLabel
                 color: Enums.accentColorLight
                 font.family: Enums.fontMonospace
                 font.pixelSize: Enums.typography.bodyLarge

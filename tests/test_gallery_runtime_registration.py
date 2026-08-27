@@ -201,6 +201,17 @@ def test_gallery_applies_lazy_loading_changes_after_restart():
     assert "ConfigManager.setLazyLoading(isChecked)" in settings_source
 
 
+def test_gallery_selects_and_persists_lazy_animation_type():
+    qml_source = GALLERY_QML.read_text(encoding="utf-8")
+    settings_source = GALLERY_SETTINGS_PAGE.read_text(encoding="utf-8")
+
+    assert "property int lazyAnimationType: ConfigManager" in qml_source
+    assert qml_source.count("lazyAnimationType: root.lazyAnimationType") == 3
+    assert "ConfigManager.lazyAnimationTypeOptions" in settings_source
+    assert "type: Fluent.Enums.settingCard.type_combobox" in settings_source
+    assert "ConfigManager.setLazyAnimationType(selectedType)" in settings_source
+
+
 def test_gallery_exposes_fractional_dpi_git_graph_timeline():
     menu_source = GALLERY_MENU_PAGE.read_text(encoding="utf-8")
     graph_source = GALLERY_GIT_GRAPH.read_text(encoding="utf-8")
