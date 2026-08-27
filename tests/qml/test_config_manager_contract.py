@@ -20,7 +20,6 @@ import QtQml
 QtObject {
     function setDpi(value) { ConfigManager.setDpiScale(value) }
     function setWindow(value) { ConfigManager.setWindowType(value) }
-    function setLazy(value) { ConfigManager.setLazyAnimationType(value) }
 }
 """
 
@@ -101,70 +100,6 @@ def test_qml_reads_exact_runtime_options(qml_config_bridge):
         200,
     ]
     assert _evaluate(bridge, "ConfigManager.windowTypeOptions") == [0, 1, 2]
-    assert _evaluate(bridge, "ConfigManager.lazyAnimationTypeOptions") == [7, 9]
-
-
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "setLazy(true)",
-        "setLazy(8)",
-        "setLazy(7.5)",
-        "setLazy(String(9))",
-        "setLazy([9])",
-        "setLazy(NaN)",
-        "setLazy(Infinity)",
-    ],
-)
-def test_qml_lazy_animation_setter_rejects_non_contract_values(
-    qml_config_bridge, monkeypatch, expression
-):
-    manager, bridge, path = qml_config_bridge
-    manager.setLazyAnimationType(9)
-    _wait_persistence(manager)
-    baseline = path.read_bytes()
-    persist_calls = _spy_persistence(manager, monkeypatch)
-    lazy_changes = []
-    config_changes = []
-    manager.lazyAnimationTypeChanged.connect(lambda: lazy_changes.append(True))
-    manager.configChanged.connect(lambda: config_changes.append(True))
-
-    _evaluate(bridge, expression)
-
-    assert manager.lazyAnimationType == 9
-    assert path.read_bytes() == baseline
-    assert persist_calls == []
-    assert lazy_changes == []
-    assert config_changes == []
-
-
-@pytest.mark.parametrize("animation_type", [7, 9])
-def test_qml_legal_lazy_animation_types_persist_and_reload(
-    qml_config_bridge, animation_type
-):
-    manager, bridge, path = qml_config_bridge
-    baseline = 9 if animation_type == 7 else 7
-    manager.setLazyAnimationType(baseline)
-    _wait_persistence(manager)
-    lazy_changes = []
-    manager.lazyAnimationTypeChanged.connect(lambda: lazy_changes.append(True))
-
-    _evaluate(bridge, f"setLazy({animation_type})")
-    _wait_persistence(manager)
-
-    assert manager.lazyAnimationType == animation_type
-    assert json.loads(path.read_text(encoding="utf-8"))["Window"][
-        "LazyAnimationType"
-    ] == animation_type
-    assert lazy_changes == [True]
-
-    original = ConfigManager._instance
-    ConfigManager._instance = None
-    try:
-        restored = ConfigManager(str(path))
-        assert restored.lazyAnimationType == animation_type
-    finally:
-        ConfigManager._instance = original
 
 
 @pytest.mark.parametrize(

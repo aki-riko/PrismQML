@@ -15,22 +15,11 @@ Item {
     
     // Get parent window reference 获取父窗口引用
     readonly property var parentWindow: Window.window
-    readonly property var lazyAnimationTypeValues: ConfigManager
-        ? ConfigManager.lazyAnimationTypeOptions
-        : [Fluent.Enums.lazyAnimation.lazy_circle, Fluent.Enums.lazyAnimation.cpu]
-    readonly property bool cpuLazyAnimationEnabled: root.parentWindow
-        ? root.parentWindow.lazyAnimationType === Fluent.Enums.lazyAnimation.cpu : false
     
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
 
-    function lazyAnimationLabel(value) {
-        return value === Fluent.Enums.lazyAnimation.cpu
-            ? Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
-                + " (CPU)"
-            : Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
-    }
     
     ScrollArea {
         anchors.fill: parent
@@ -274,38 +263,6 @@ Item {
                     }
                 }
 
-                // Lazy animation style 懒加载动画样式
-                SettingsCard {
-                    readonly property var animationValues: root.lazyAnimationTypeValues
-
-                    objectName: "cpuLazyAnimationSettingsCard"
-                    width: parent ? parent.width : 0
-                    title: Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
-                    content: Fluent.Translator.tr("gallery_e2748c46180717bc", Fluent.Translator._v)
-                    icon: iconPath("Memory")
-                    type: Fluent.Enums.settingCard.type_combobox
-                    model: animationValues.map(function(value) {
-                        return root.lazyAnimationLabel(value)
-                    })
-                    currentIndex: animationValues.indexOf(
-                        root.parentWindow && typeof root.parentWindow.lazyAnimationType === "number"
-                            ? root.parentWindow.lazyAnimationType
-                            : (ConfigManager ? ConfigManager.lazyAnimationType
-                                : Fluent.Enums.lazyAnimation.lazy_circle)
-                    )
-                    onIndexSelected: function(idx) {
-                        if (idx < 0 || idx >= animationValues.length) return
-                        var selectedType = animationValues[idx]
-                        // Set the window immediately; ConfigManager persists the same choice.
-                        // 先立即切换当前窗口，再由 ConfigManager 持久化相同选择。
-                        if (root.parentWindow) {
-                            root.parentWindow.lazyAnimationType = selectedType
-                        }
-                        if (ConfigManager) {
-                            ConfigManager.setLazyAnimationType(selectedType)
-                        }
-                    }
-                }
             }
             
         }

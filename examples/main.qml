@@ -18,10 +18,6 @@ QtObject {
     
     // 从配置读取窗口类型 Read window type from config
     property int windowType: ConfigManager ? ConfigManager.windowType : Fluent.Enums.windowType.type_ms
-    // Runtime lazy-animation choice is shared by all window shells.
-    // 懒加载动画选择由所有窗口外壳共享，并可在当前会话即时切换。
-    property int lazyAnimationType: ConfigManager
-        ? ConfigManager.lazyAnimationType : Fluent.Enums.lazyAnimation.lazy_circle
     // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
     property bool _startupLazyLoading: true
     // ==================== Common Config 公共配置 ====================
@@ -103,14 +99,6 @@ QtObject {
         windowInstance = windowComponent.createObject(null)
     }
 
-    // Keep a window synchronized if the persisted choice changes elsewhere.
-    // 配置从其他入口变化时，继续同步当前窗口。
-    onLazyAnimationTypeChanged: {
-        if (windowInstance && windowInstance.lazyAnimationType !== lazyAnimationType) {
-            windowInstance.lazyAnimationType = lazyAnimationType
-        }
-    }
-    
     Component.onDestruction: {
         if (windowInstance) windowInstance.destroy()
     }
@@ -128,7 +116,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            lazyAnimationType: root.lazyAnimationType
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -154,7 +141,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            lazyAnimationType: root.lazyAnimationType
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -177,7 +163,6 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
-            lazyAnimationType: root.lazyAnimationType
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems

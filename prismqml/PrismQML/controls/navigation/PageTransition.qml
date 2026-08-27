@@ -169,7 +169,6 @@ Item {
 
         if (animationType === Enums.lazyAnimation.none ||
                 (animationType !== Enums.lazyAnimation.lazy_circle &&
-                 animationType !== Enums.lazyAnimation.cpu &&
                  animationType !== Enums.lazyAnimation.custom && !usingCustomAnimation)) {
             _completeWithoutAnimation(sourceItem, collapsing)
             return true
@@ -192,15 +191,12 @@ Item {
         objectName: "pageTransitionBackendLoader"
         anchors.fill: parent
         active: control.customAnimation !== null ||
-                control.animationType === Enums.lazyAnimation.lazy_circle ||
-                control.animationType === Enums.lazyAnimation.cpu
+                control.animationType === Enums.lazyAnimation.lazy_circle
         asynchronous: false
         sourceComponent: control.customAnimation !== null
             ? control.customAnimation
             : (control.animationType === Enums.lazyAnimation.lazy_circle
-                ? defaultTransitionComponent
-                : (control.animationType === Enums.lazyAnimation.cpu
-                    ? cpuTransitionComponent : null))
+                ? defaultTransitionComponent : null)
         onItemChanged: control._syncBackendContract(item)
     }
 
@@ -211,22 +207,6 @@ Item {
             objectName: "qmlPageCircleTransition"
             revealDuration: control.revealDuration
             revealEasing: control.revealEasing
-            coverDuration: control.coverDuration
-            coverEasing: control.coverEasing
-            revealTarget: control.revealTarget
-            keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
-            collapseToCenter: control.collapseToCenter
-            preferOverlayWindow: control.preferOverlayWindow
-        }
-    }
-
-    Component {
-        id: cpuTransitionComponent
-
-        NavigationInternal.LazyPageCpuTransition {
-            objectName: "qmlPageCpuTransition"
-            revealDuration: control.revealDuration
-            revealEasing: Easing.InOutQuad
             coverDuration: control.coverDuration
             coverEasing: control.coverEasing
             revealTarget: control.revealTarget

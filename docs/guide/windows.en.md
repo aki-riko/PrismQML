@@ -212,20 +212,8 @@ four lifecycle signals. Its `customAnimation` property accepts the
 Enums.lazyAnimation.none` bypasses dynamic loading and emits start/finish signals
 synchronously.
 
-Lazy pages continue to use `Enums.lazyAnimation.lazy_circle` by default. Select
-`Enums.lazyAnimation.cpu` on the window or `StackedWidget` for the CPU-drop and
-circuit-expansion style:
-
-CPU mode draws only an outline CPU with no text or image icon. After the chip
-drops, circuit links radiate outward; the mask disappears along those links to
-reveal the target page, without reusing the circular transition backend.
-
-```qml
-NavigationWindowCore {
-    lazyLoading: true
-    lazyAnimationType: Enums.lazyAnimation.cpu
-}
-```
+Lazy pages use `Enums.lazyAnimation.lazy_circle` by default, independently of
+regular `StackedWidget` page-switch animations.
 
 !!! tip "Windows under non-Fluent skins"
     Neobrutalism, Vintage Ticket, and Neumorphism auto-disable Mica and switch

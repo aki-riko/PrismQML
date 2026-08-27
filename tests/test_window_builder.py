@@ -477,7 +477,6 @@ def test_window_template_preserves_dollar_values_and_boolean_literals():
     builder._title = 'Dollar $HOME "quoted" {brace}\nline'
     builder._icon_colored = True
     builder._lazy_loading = True
-    builder._lazy_animation_type = 9
 
     source = builder._render_window_qml(
         Path("D:/Qml$Root"),
@@ -496,7 +495,6 @@ def test_window_template_preserves_dollar_values_and_boolean_literals():
     assert "windowIconColored: true" in source
     assert "startupProfilingVerbose: false" in source
     assert "lazyLoading: true" in source
-    assert "lazyAnimationType: 9" in source
     assert "micaEnabled: true\n    \n" in source
     assert 'navigationItems: [{"text": "$nav"}]' in source
     assert source.endswith("}\n")

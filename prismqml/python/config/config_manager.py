@@ -55,7 +55,6 @@ class ConfigManager(QObject):
     
     configChanged = Signal()
     lazyLoadingChanged = Signal()
-    lazyAnimationTypeChanged = Signal()
     dwmShadowChanged = Signal()
     dpiScaleChanged = Signal()
     micaEnabledChanged = Signal()
@@ -164,9 +163,6 @@ class ConfigManager(QObject):
     def _connect_config_signals(self):
         """Forward entry changes through the public QML signals. 转发配置信号。"""
         self._cfg.lazy_loading.valueUpdated.connect(self.lazyLoadingChanged)
-        self._cfg.lazy_animation_type.valueUpdated.connect(
-            self.lazyAnimationTypeChanged
-        )
         self._cfg.dwm_shadow.valueUpdated.connect(self.dwmShadowChanged)
         self._cfg.dpi_scale.valueUpdated.connect(self.dpiScaleChanged)
         self._cfg.mica_enabled.valueUpdated.connect(self.micaEnabledChanged)
@@ -390,25 +386,6 @@ class ConfigManager(QObject):
     @Slot(bool)
     def setLazyLoading(self, value: bool):
         self._set_value(self._cfg.lazy_loading, value)
-
-    @Property(int, notify=lazyAnimationTypeChanged)
-    def lazyAnimationType(self) -> int:
-        return self._cfg.get(self._cfg.lazy_animation_type)
-
-    @Property("QVariantList", constant=True)
-    def lazyAnimationTypeOptions(self):
-        return self._cfg.lazy_animation_type.options
-
-    @Slot("QVariant")
-    def setLazyAnimationType(self, value):
-        debug(f"setLazyAnimationType: {value}")
-        if not self._cfg.lazy_animation_type.validator.accepts(value):
-            warning(
-                "拒绝无效 lazyAnimationType "
-                f"Invalid lazyAnimationType rejected: {value!r}"
-            )
-            return
-        self._set_value(self._cfg.lazy_animation_type, value)
 
     @Property(bool, notify=dwmShadowChanged)
     def dwmShadow(self) -> bool:

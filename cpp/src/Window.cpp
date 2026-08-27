@@ -259,13 +259,10 @@ void Window::build() {
 
     // 消费 ConfigManager 设置 (镜像 Python _window_builder): 懒加载、Mica 与 DWM 阴影。
     auto *cfg = ConfigManager::instance();
-    const QString lazyLoadingQml = QStringLiteral(
-        "    lazyLoading: %1\n"
-        "    lazyAnimationType: %2\n")
+    const QString lazyLoadingQml = QStringLiteral("    lazyLoading: %1\n")
                                        .arg(cfg->lazyLoading()
                                                  ? QStringLiteral("true")
-                                                 : QStringLiteral("false"))
-                                       .arg(cfg->lazyAnimationType());
+                                                 : QStringLiteral("false"));
     const QString micaQml = QStringLiteral("    micaEnabled: %1\n")
                                 .arg(cfg->micaEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
     // shadowMode: dwmShadow=false → mode_none(3, 跨平台禁用); dwmShadow=true →

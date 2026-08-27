@@ -149,8 +149,7 @@ private:
         while (m_position < m_data.size()) {
             const QString key = readString();
             consume(':');
-            if (key == QStringLiteral("LazyAnimationType") ||
-                key == QStringLiteral("DpiScale") ||
+            if (key == QStringLiteral("DpiScale") ||
                 key == QStringLiteral("WindowType")) {
                 skipWhitespace();
                 const char value = peek();
@@ -313,9 +312,6 @@ QString resolveConfigFilePath(const QString &configured) {
 
 bool isValidDpiScale(int value) { return contains(kValidDpiScales, value); }
 bool isValidWindowType(int value) { return contains(kValidWindowTypes, value); }
-bool isValidLazyAnimationType(int value) {
-    return contains(kValidLazyAnimationTypes, value);
-}
 bool isValidTheme(const QString &value) { return containsString(kValidThemes, value); }
 bool isValidSkin(const QString &value) { return containsString(kValidSkins, value); }
 bool isValidLanguage(const QString &value) {
@@ -354,12 +350,6 @@ QVariantList windowTypeOptions() {
     return result;
 }
 
-QVariantList lazyAnimationTypeOptions() {
-    QVariantList result;
-    for (int value : kValidLazyAnimationTypes) result.append(value);
-    return result;
-}
-
 template <std::size_t Size>
 QVariantList stringOptions(const std::array<const char *, Size> &values) {
     QVariantList result;
@@ -390,10 +380,6 @@ ConfigLoadStatus readAppConfigState(const QString &path,
     const bool windowValid =
         readOptionalBool(window, QStringLiteral("LazyLoading"),
                          candidate.window.lazyLoading, invalidField) &&
-        readOptionalInteger(window, QStringLiteral("LazyAnimationType"),
-                            candidate.window.lazyAnimationType,
-                            kValidLazyAnimationTypes, integerTokens,
-                            invalidField) &&
         readOptionalBool(window, QStringLiteral("DwmShadow"),
                          candidate.window.dwmShadow, invalidField) &&
         readOptionalBool(window, QStringLiteral("MicaEnabled"),

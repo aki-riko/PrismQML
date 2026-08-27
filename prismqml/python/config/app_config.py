@@ -36,13 +36,6 @@ class AppConfig(SettingsCore):
         validator=_schema.LAZY_LOADING_VALIDATOR,
     )
 
-    lazy_animation_type: ClassVar[EnumEntry] = EnumEntry(
-        group="Window",
-        name="LazyAnimationType",
-        default=_schema.LAZY_ANIMATION_TYPE_DEFAULT,
-        validator=_schema.LAZY_ANIMATION_TYPE_VALIDATOR,
-    )
-
     dwm_shadow: ClassVar[SettingEntry] = SettingEntry(
         group="Window",
         name="DwmShadow",

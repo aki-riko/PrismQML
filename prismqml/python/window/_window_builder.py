@@ -48,7 +48,6 @@ ${qml_component} {
     splashSubtitle: "${splash_subtitle}"
     startupProfilingVerbose: ${startup_profiling_verbose}
     lazyLoading: ${lazy_loading}
-    lazyAnimationType: ${lazy_animation_type}
     _pythonPageMode: true
     micaEnabled: ${mica_enabled}
 $indent
@@ -217,7 +216,6 @@ class WindowBuilderMixin:
             "windowIconColored": self._icon_colored,
             "startupProfilingVerbose": startup_profile_verbose,
             "lazyLoading": bool(self._lazy_loading),
-            "lazyAnimationType": self._lazy_animation_type,
             "_pythonPageMode": True,
             "micaEnabled": mica_enabled,
             "navigationItems": self._build_navigation_items_data(),
@@ -394,7 +392,6 @@ class WindowBuilderMixin:
             window_icon_colored="true" if self._icon_colored else "false",
             startup_profiling_verbose="true" if startup_profile_verbose else "false",
             lazy_loading="true" if self._lazy_loading else "false",
-            lazy_animation_type=self._lazy_animation_type,
             mica_enabled="true" if mica_enabled else "false",
             nav_items=nav_items_qml,
             bottom_items=bottom_items_qml,

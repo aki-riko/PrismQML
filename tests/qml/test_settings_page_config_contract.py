@@ -18,7 +18,6 @@ from PySide6.QtCore import (
     Slot,
     Qt,
 )
-from PySide6.QtQuick import QQuickView
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml.python.core.theme import ThemeManager
@@ -30,7 +29,6 @@ ROOT = Path(__file__).resolve().parents[2]
 class _ConfigManagerFixture(QObject):
     windowTypeChanged = Signal()
     dpiScaleChanged = Signal()
-    lazyAnimationTypeChanged = Signal()
     themeChanged = Signal()
     skinChanged = Signal()
     languageChanged = Signal()
@@ -43,14 +41,12 @@ class _ConfigManagerFixture(QObject):
         self._dpi_options = dpi_options or [200, 0, 125]
         self._window_type = 0
         self._dpi_scale = 0
-        self._lazy_animation_type = 7
         self._theme = "auto"
         self._skin = "fluent"
         self._language = "auto"
         self._accent_color = "#0e5a9c"
         self.window_calls = []
         self.dpi_calls = []
-        self.lazy_animation_calls = []
 
     @Property(bool, notify=persistencePendingChanged)
     def persistencePending(self):
@@ -87,22 +83,6 @@ class _ConfigManagerFixture(QObject):
             return
         self._dpi_scale = value
         self.dpiScaleChanged.emit()
-
-    @Property("QVariantList", constant=True)
-    def lazyAnimationTypeOptions(self):
-        return [7, 9]
-
-    @Property(int, notify=lazyAnimationTypeChanged)
-    def lazyAnimationType(self):
-        return self._lazy_animation_type
-
-    @Slot("QVariant")
-    def setLazyAnimationType(self, value):
-        self.lazy_animation_calls.append(value)
-        if not self._accept_updates:
-            return
-        self._lazy_animation_type = value
-        self.lazyAnimationTypeChanged.emit()
 
     @Property(bool, constant=True)
     def micaEnabled(self):
@@ -184,23 +164,6 @@ class _ConfigManagerFixture(QObject):
         self.accentColorChanged.emit()
 
 
-class _LazyAnimationView(QQuickView):
-    lazyAnimationTypeChanged = Signal()
-
-    def __init__(self):
-        super().__init__()
-        self._lazy_animation_type = 7
-
-    @Property(int, notify=lazyAnimationTypeChanged)
-    def lazyAnimationType(self):
-        return self._lazy_animation_type
-
-    @lazyAnimationType.setter
-    def lazyAnimationType(self, value):
-        self._lazy_animation_type = value
-        self.lazyAnimationTypeChanged.emit()
-
-
 def _find_qml_descendant(root, qml_type):
     pending = list(root.children())
     while pending:
@@ -273,26 +236,6 @@ def _settings_page(manager, qapp):
         if component is not None:
             component.deleteLater()
         engine.deleteLater()
-        qapp.processEvents()
-
-
-@contextmanager
-def _settings_page_in_window(manager, qapp):
-    window = _LazyAnimationView()
-    try:
-        window.engine().addImportPath(str(ROOT / "prismqml"))
-        context = window.rootContext()
-        context.setContextProperty("ThemeManager", ThemeManager())
-        context.setContextProperty("ConfigManager", manager)
-        window.setSource(
-            QUrl.fromLocalFile(str(ROOT / "examples" / "pages" / "SettingsPage.qml"))
-        )
-        root = window.rootObject()
-        assert root is not None, [error.toString() for error in window.errors()]
-        yield window, root
-    finally:
-        window.close()
-        window.deleteLater()
         qapp.processEvents()
 
 
@@ -399,32 +342,6 @@ def test_settings_page_reverts_selection_when_backend_rejects_update(qapp):
         assert manager.property("dpiScale") == 0
         _assert_combo_index(window_card, *window_nodes, 1)
         _assert_combo_index(dpi_card, *dpi_nodes, 1)
-
-
-def test_settings_page_lazy_animation_selection_controls_current_window(qapp):
-    manager = _ConfigManagerFixture()
-    with _settings_page_in_window(manager, qapp) as (window, root):
-        card = root.findChild(QObject, "cpuLazyAnimationSettingsCard")
-        assert card is not None
-        assert root.property("parentWindow") is not None
-        assert window.property("lazyAnimationType") == 7
-        assert root.property("cpuLazyAnimationEnabled") is False
-        assert card.property("type") == 4
-        assert card.property("currentIndex") == 0
-
-        _activate_combo_index(card, 1)
-        qapp.processEvents()
-        assert window.property("lazyAnimationType") == 9
-        assert root.property("cpuLazyAnimationEnabled") is True
-        assert card.property("currentIndex") == 1
-        assert manager.lazy_animation_calls == [9]
-
-        _activate_combo_index(card, 0)
-        qapp.processEvents()
-        assert window.property("lazyAnimationType") == 7
-        assert root.property("cpuLazyAnimationEnabled") is False
-        assert card.property("currentIndex") == 0
-        assert manager.lazy_animation_calls == [9, 7]
 
 
 def test_appearance_cards_follow_selected_and_persisted_state(qapp):

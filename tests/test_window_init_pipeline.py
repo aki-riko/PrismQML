@@ -50,9 +50,9 @@ _SPLASH_FIELDS = (
     "_splash_subtitle",
 )
 _TRACKED_FIELDS = frozenset(
-    (*_PRE_CONFIG_FIELDS, "_lazy_loading", "_lazy_animation_type", *_SPLASH_FIELDS)
+    (*_PRE_CONFIG_FIELDS, "_lazy_loading", *_SPLASH_FIELDS)
 )
-_ASSIGNMENT_ORDER = (*_PRE_CONFIG_FIELDS, "_lazy_loading", "_lazy_animation_type", *_SPLASH_FIELDS)
+_ASSIGNMENT_ORDER = (*_PRE_CONFIG_FIELDS, "_lazy_loading", *_SPLASH_FIELDS)
 _ERROR_TYPES = (RuntimeError, ValueError, KeyboardInterrupt, SystemExit)
 
 
@@ -73,11 +73,6 @@ class _ConfigProbe:
         if self._error is not None:
             raise self._error
         return self._value
-
-    @property
-    def lazyAnimationType(self):
-        self._events.append(("config", "animation_property"))
-        return 7
 
 
 class _RecordingWindowCore(window_core.WindowCore):
@@ -108,7 +103,6 @@ class _RecordingWindowCore(window_core.WindowCore):
 def _install_config_value(monkeypatch, value):
     manager = SimpleNamespace(
         lazyLoading=value,
-        lazyAnimationType=7,
         appearancePersistenceEnabled=True,
         _bind_appearance_runtime=lambda _callback, *, apply_persisted=True: None,
     )
@@ -172,8 +166,6 @@ def _expected_success_events():
             ("config", "factory", True),
             ("config", "property"),
             ("set", "_lazy_loading", True),
-            ("config", "animation_property"),
-            ("set", "_lazy_animation_type", True),
         ]
     )
     events.extend(("set", name, True) for name in _SPLASH_FIELDS)
@@ -192,7 +184,6 @@ def _assert_partial_state(instance, window_type, parent):
     for name in _PRE_CONFIG_FIELDS:
         assert hasattr(instance, name)
     assert not hasattr(instance, "_lazy_loading")
-    assert not hasattr(instance, "_lazy_animation_type")
     for name in _SPLASH_FIELDS:
         assert not hasattr(instance, name)
 
@@ -247,8 +238,6 @@ def _expected_assignment_failure_events(field):
             events.extend(
                 [("config", "factory", True), ("config", "property")]
             )
-        elif name == "_lazy_animation_type":
-            events.append(("config", "animation_property"))
         events.append(("set", name, True))
         if name == field:
             return events
@@ -293,7 +282,6 @@ def _assert_default_state(instance, lazy_value):
     assert (instance._icon, instance._icon_colored) == ("", True)
     assert instance._current_index == 0
     assert instance._lazy_loading is lazy_value
-    assert instance._lazy_animation_type == 7
     assert all(not getattr(instance, name) for name in _MUTABLE_FIELDS)
     assert type(instance._pending_props) is type(instance._pages) is dict
     assert all(
@@ -375,7 +363,6 @@ def test_assignment_and_config_read_order_are_preserved(monkeypatch):
         assert events == _expected_success_events()
         assert instance._window_type is token
         assert instance._lazy_loading is lazy_value
-        assert instance._lazy_animation_type == 7
     finally:
         _reset_recording_state()
         _dispose(instance, parent)

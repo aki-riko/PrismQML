@@ -27,10 +27,6 @@ class ConfigManager : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool lazyLoading READ lazyLoading NOTIFY lazyLoadingChanged)
-    Q_PROPERTY(int lazyAnimationType READ lazyAnimationType
-               NOTIFY lazyAnimationTypeChanged)
-    Q_PROPERTY(QVariantList lazyAnimationTypeOptions
-               READ lazyAnimationTypeOptions CONSTANT)
     Q_PROPERTY(bool dwmShadow READ dwmShadow NOTIFY dwmShadowChanged)
     Q_PROPERTY(int dpiScale READ dpiScale NOTIFY dpiScaleChanged)
     Q_PROPERTY(QVariantList dpiScaleOptions READ dpiScaleOptions CONSTANT)
@@ -63,8 +59,6 @@ public:
 
     // ---- 属性读取 (默认值镜像 Python app_config.py) ----
     bool lazyLoading() const { return m_state.lazyLoading; }
-    int lazyAnimationType() const { return m_state.lazyAnimationType; }
-    QVariantList lazyAnimationTypeOptions() const;
     bool dwmShadow() const { return m_state.dwmShadow; }
     int dpiScale() const { return m_state.dpiScale; }
     QVariantList dpiScaleOptions() const;
@@ -84,7 +78,6 @@ public:
 public slots:
     // ---- QML 可调用 setter (镜像 Python @Slot) ----
     void setLazyLoading(bool value);
-    void setLazyAnimationType(const QVariant &value);
     void setDwmShadow(bool value);
     void setDpiScale(const QVariant &value);
     void setMicaEnabled(bool value);
@@ -100,7 +93,6 @@ public slots:
 signals:
     void configChanged();
     void lazyLoadingChanged();
-    void lazyAnimationTypeChanged();
     void dwmShadowChanged();
     void dpiScaleChanged();
     void micaEnabledChanged();
@@ -114,7 +106,6 @@ signals:
 private:
     struct State {
         bool lazyLoading = true;
-        int lazyAnimationType = 7;
         bool dwmShadow = true;
         bool micaEnabled = false;
         int dpiScale = 0;
@@ -127,7 +118,6 @@ private:
 
     enum class Field {
         LazyLoading,
-        LazyAnimationType,
         DwmShadow,
         MicaEnabled,
         DpiScale,
@@ -182,7 +172,7 @@ private:
     std::optional<ActiveWrite> m_activeWrite;
     QFutureWatcher<bool> m_persistenceWatcher;
     PersistenceWriter m_persistenceWriter;
-    std::array<quint64, 10> m_runtimeOverrides{};
+    std::array<quint64, 9> m_runtimeOverrides{};
     quint64 m_runtimeRequestId = 0;
 };
 

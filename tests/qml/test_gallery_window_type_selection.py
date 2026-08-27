@@ -28,12 +28,10 @@ WINDOW_TYPES = (
 
 class _GalleryConfig(QObject):
     windowTypeChanged = Signal()
-    lazyAnimationTypeChanged = Signal()
 
-    def __init__(self, window_type: int, lazy_animation_type: int = 7) -> None:
+    def __init__(self, window_type: int) -> None:
         super().__init__()
         self._window_type = window_type
-        self._lazy_animation_type = lazy_animation_type
 
     def _bind_appearance_runtime(
         self, _callback, *, apply_persisted: bool = True
@@ -48,13 +46,6 @@ class _GalleryConfig(QObject):
     def windowType(self) -> int:
         return self._window_type
 
-    @Property(int, notify=lazyAnimationTypeChanged)
-    def lazyAnimationType(self) -> int:
-        return self._lazy_animation_type
-
-    @Property("QVariantList", constant=True)
-    def lazyAnimationTypeOptions(self):
-        return [7, 9]
 
     @Property(bool, constant=True)
     def dwmShadow(self) -> bool:
@@ -116,22 +107,5 @@ def test_gallery_creates_only_configured_window_type(
         assert _normalized_type(window) == expected_type
         assert window.property("lazyLoading") is True
         assert window.property("micaEnabled") is False
-    finally:
-        _destroy_gallery(engine, component, root, qapp)
-
-
-def test_gallery_passes_configured_lazy_animation_type_to_window(
-    qapp, monkeypatch, tmp_path
-) -> None:
-    manager = _GalleryConfig(1, lazy_animation_type=9)
-    monkeypatch.setattr(
-        config_module, "getConfigManager", lambda *_args, **_kwargs: manager
-    )
-    engine, component, root = _create_gallery(tmp_path / "gallery.json")
-    try:
-        window = root.property("windowInstance")
-        assert window is not None
-        assert root.property("lazyAnimationType") == 9
-        assert window.property("lazyAnimationType") == 9
     finally:
         _destroy_gallery(engine, component, root, qapp)

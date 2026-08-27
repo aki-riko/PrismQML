@@ -25,7 +25,6 @@ inline constexpr std::array<int, 6> kValidDpiScales = {
     0, 100, 125, 150, 175, 200,
 };
 inline constexpr std::array<int, 3> kValidWindowTypes = {0, 1, 2};
-inline constexpr std::array<int, 2> kValidLazyAnimationTypes = {7, 9};
 inline constexpr std::array<const char *, 3> kValidThemes = {
     "auto", "light", "dark",
 };
@@ -40,7 +39,6 @@ inline constexpr std::array<const char *, 21> kValidLanguages = {
 QString resolveConfigFilePath(const QString &configured = QString());
 bool isValidDpiScale(int value);
 bool isValidWindowType(int value);
-bool isValidLazyAnimationType(int value);
 bool isValidTheme(const QString &value);
 bool isValidSkin(const QString &value);
 bool isValidLanguage(const QString &value);
@@ -48,7 +46,6 @@ bool isValidAccentColor(const QString &value);
 bool strictIntegerVariant(const QVariant &value, int &result);
 QVariantList dpiScaleOptions();
 QVariantList windowTypeOptions();
-QVariantList lazyAnimationTypeOptions();
 QVariantList themeOptions();
 QVariantList skinOptions();
 QVariantList languageOptions();
