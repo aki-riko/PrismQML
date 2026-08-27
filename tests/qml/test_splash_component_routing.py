@@ -32,7 +32,7 @@ class StartupBridge(QObject):
         self.windows = []
 
     @Slot(QObject, result=bool)
-    def register_startup_window(self, window):
+    def registerStartupWindow(self, window):
         self.windows.append(window)
         return True
 

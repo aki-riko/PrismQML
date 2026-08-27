@@ -585,10 +585,6 @@ class App(ApplicationIconMixin):
             return attached_window is main_window
         return controller.attach_to_window(self._engine, main_window)
 
-    def _attach_fast_splash(self, main_window) -> bool:
-        """Compatibility wrapper for the former private attach hook."""
-        return self.attach_startup_window(main_window)
-
     @property
     def qapp(self) -> QApplication:
         """获取底层 QApplication 实例 Get underlying QApplication.

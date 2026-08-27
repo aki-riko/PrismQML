@@ -12,7 +12,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_app_exposes_public_startup_window_attach_and_compatibility_wrapper():
+def test_app_exposes_public_startup_window_attach():
     from prismqml.python.window.app import App
 
     calls = []
@@ -27,7 +27,6 @@ def test_app_exposes_public_startup_window_attach_and_compatibility_wrapper():
 
     assert app.attach_startup_window(window) is True
     controller._main_window = window
-    assert app._attach_fast_splash(window) is True
     assert app.attach_startup_window(object()) is False
     assert calls == [(app._engine, window)]
 
@@ -42,9 +41,9 @@ def test_qml_startup_bridge_forwards_to_public_app_api():
     registrar = StartupWindowRegistrar(owner, None)
     window = object()
 
-    assert registrar.register_startup_window(window) is True
+    assert registrar.registerStartupWindow(window) is True
     assert calls == [window]
-    assert registrar.register_startup_window(None) is False
+    assert registrar.registerStartupWindow(None) is False
 
 
 def test_navigation_window_core_registers_only_pure_qml_windows():
@@ -53,6 +52,6 @@ def test_navigation_window_core_registers_only_pure_qml_windows():
     ).read_text(encoding="utf-8")
 
     assert "function _registerStartupWindow()" in source
-    assert "PrismQmlStartup.register_startup_window(window)" in source
+    assert "PrismQmlStartup.registerStartupWindow(window)" in source
     assert "if (_pythonPageMode" in source
     assert "_registerStartupWindow()" in source

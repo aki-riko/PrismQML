@@ -41,6 +41,10 @@ Qt 应用时，必须在创建 `QApplication` 前调用
 macOS/Linux 则返回 Nuitka 已验证的平台参数。Inno Setup 等外部安装器可直接消费
 `prepare_windows_icon()` 返回的 ICO 路径。
 
+使用自定义 QML 宿主时，可将已创建的主窗口交给
+`app.attach_startup_window(window)`，接入 App 持有的 FastSplash 生命周期。
+标准 `Fluent.Windows` 会自动完成这一步。
+
 `AsyncQmlPage` 供 Python 页面工厂使用。目标 QML 根对象必须声明
 `property var backend`；页面管理器会先挂载轻量宿主，再通过异步 `Loader`
 分帧创建目标对象树，并在 `page_ready` 之前持续显示窗口自带的标准加载遮罩：

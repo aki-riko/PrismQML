@@ -70,6 +70,11 @@ Fluent.Windows {
 }
 ```
 
+Pure-QML `Fluent.Windows` instances register with the App-owned startup
+lifecycle when they are created, so hosts do not need to call an internal
+binding method. Non-standard QML windows can join the same FastSplash lifecycle
+through the public `app.attach_startup_window(window)` API.
+
 The main window close path also reuses the same `PageTransition`. By default it
 uses `Enums.lazyAnimation.lazy_circle` to collapse the window content; the real
 close is submitted only after the collapse completes. If the host rejects the

@@ -102,7 +102,7 @@ WindowsCore {
     function _registerStartupWindow() {
         if (_pythonPageMode || typeof PrismQmlStartup === "undefined" || !PrismQmlStartup) return
         try {
-            PrismQmlStartup.register_startup_window(window)
+            PrismQmlStartup.registerStartupWindow(window)
         } catch (error) {
             console.warn("[NavigationWindowCore] startup window registration failed", error)
         }

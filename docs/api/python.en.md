@@ -45,6 +45,10 @@ multi-size ICO, while macOS and Linux receive their verified Nuitka option.
 External installers such as Inno Setup can consume the ICO path returned by
 `prepare_windows_icon()`.
 
+For a custom QML host, pass the created main window to
+`app.attach_startup_window(window)` to join the App-owned FastSplash lifecycle.
+Standard `Fluent.Windows` instances register automatically.
+
 `AsyncQmlPage` is intended for Python page factories. The target QML root must
 declare `property var backend`. The page manager attaches a lightweight host,
 incubates the target tree through an asynchronous `Loader`, and keeps the

@@ -437,7 +437,7 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "readonly property bool _usesDefaultSplashComponent:" in qml_source
     assert "function _enableDeferredSplash()" in qml_source
     assert "app._attach_fast_splash(main_window)" not in gallery_entry_source
-    assert "PrismQmlStartup.register_startup_window(window)" in qml_source
+    assert "PrismQmlStartup.registerStartupWindow(window)" in qml_source
     assert "uses_default_splash" not in gallery_entry_source
     assert "PrismQmlFastStartupSplashEnabled" not in gallery_entry_source
     assert "fastStartupSplashEnabled" not in gallery_source

@@ -159,6 +159,10 @@ Component {
 纯 QML 窗口还可以通过 `splashComponent` 替换视觉组件；自定义根对象必须提供
 `finish()` 方法，框架会在首页就绪时调用它。
 
+纯 QML 的 `Fluent.Windows` 会在对象创建完成时自动注册到 App 的启动页生命周期，
+无需宿主手动调用内部绑定方法。非标准 QML 窗口可通过公开的
+`app.attach_startup_window(window)` 接入同一套 FastSplash 生命周期。
+
 ### PageTransition
 
 需要在页面或其他覆盖层复用同一套过渡时，可直接使用公开的 `PageTransition`：
