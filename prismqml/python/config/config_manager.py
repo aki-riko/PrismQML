@@ -29,32 +29,6 @@ from ._app_config_schema import (
 from ..core import debug, error, exception, warning
 
 
-def _remove_obsolete_window_fields(file_path, writer):
-    """Remove retired Window fields while preserving the rest of the JSON. 删除废弃字段并保留其余配置。"""
-    try:
-        with open(file_path, encoding="utf-8") as stream:
-            payload = json.load(stream)
-    except FileNotFoundError:
-        return False
-    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
-        warning(f"读取旧配置迁移失败 Legacy config migration read failed: {exc}")
-        return False
-
-    if not isinstance(payload, dict):
-        return False
-    window = payload.get("Window")
-    if not isinstance(window, dict) or "LazyAnimationType" not in window:
-        return False
-
-    del window["LazyAnimationType"]
-    try:
-        writer(file_path, payload)
-    except Exception as exc:
-        warning(f"删除旧配置字段失败 Legacy config cleanup failed: {exc}")
-        return False
-    return True
-
-
 def _write_window_mapping_preserving_appearance(
     writer, file_path, mapping
 ):
@@ -153,9 +127,7 @@ class ConfigManager(QObject):
         self._persist_appearance = self._resolve_appearance_persistence(
             config_path, persist_appearance
         )
-        loaded = self._cfg.load(path)
-        if loaded:
-            _remove_obsolete_window_fields(path, self._cfg._write_mapping_file)
+        self._cfg.load(path)
         if not self._persist_appearance:
             self._reset_loaded_appearance()
         self._pending_updates = deque()
