@@ -33,6 +33,7 @@ Item {
     property real _lastPublishedY: 0
     property double _lastBounceFrameTimestampV: 0
     property int _boundaryTargetV: 0  // -1=start, 0=absolute, 1=end
+    property int _blockedBounceBoundaryV: 0  // Ignore repeated same-direction edge input 忽略同向边界输入
     
     // Horizontal state 水平状态
     property real _targetX: 0
@@ -43,6 +44,7 @@ Item {
     property real _lastPublishedX: 0
     property double _lastBounceFrameTimestampH: 0
     property int _boundaryTargetH: 0  // -1=start, 0=absolute, 1=end
+    property int _blockedBounceBoundaryH: 0  // Ignore repeated same-direction edge input 忽略同向边界输入
     property QtObject _bounceTimerV: null
     property QtObject _bounceTimerH: null
     property real _devicePixelRatio: 1.0
@@ -116,12 +118,14 @@ Item {
             _stopBounceTimer(true)
             _isOutwardBounceV = false
             _boundaryTargetV = 0
+            _blockedBounceBoundaryV = 0
             _targetY = target.contentY
             verticalFrameDriver.moveTo(target.contentY)
         } else {
             _stopBounceTimer(false)
             _isOutwardBounceH = false
             _boundaryTargetH = 0
+            _blockedBounceBoundaryH = 0
             _targetX = target.contentX
             horizontalFrameDriver.moveTo(target.contentX)
         }
@@ -270,6 +274,7 @@ Item {
         _isOvershotV = false
         _isOutwardBounceV = false
         _stopBounceTimer(true)
+        _blockedBounceBoundaryV = 0
         _targetY = targetY
         if (smoothY !== _smoothY) {
             _syncing = true
@@ -298,6 +303,7 @@ Item {
         _isOvershotH = false
         _isOutwardBounceH = false
         _stopBounceTimer(false)
+        _blockedBounceBoundaryH = 0
         _targetX = targetX
         if (smoothX !== _smoothX) {
             _syncing = true
@@ -311,6 +317,7 @@ Item {
     function _scrollToY(targetY) {
         _stopBounceTimer(true)
         _isOutwardBounceV = false
+        _blockedBounceBoundaryV = 0
         _targetY = _clamp(targetY, _minY, _maxY)
         _isOvershotV = false
         verticalFrameDriver.moveTo(_targetY)
@@ -323,6 +330,7 @@ Item {
         if (newTarget >= _minY && newTarget <= _maxY) {
             _stopBounceTimer(true)
             _isOutwardBounceV = false
+            if (delta !== 0) _blockedBounceBoundaryV = 0
             _targetY = newTarget
             _isOvershotV = false
             verticalFrameDriver.moveTo(_targetY)
@@ -337,6 +345,8 @@ Item {
 
         if (newTarget < _minY) {
             // Top overshoot 顶部超出
+            if (_blockedBounceBoundaryV === -1) return
+            _blockedBounceBoundaryV = -1
             _targetY = _minY
             _isOvershotV = true
             _isOutwardBounceV = true
@@ -349,6 +359,8 @@ Item {
             _restartBounceTimer(true)
         } else {
             // Bottom overshoot 底部超出
+            if (_blockedBounceBoundaryV === 1) return
+            _blockedBounceBoundaryV = 1
             _targetY = _maxY
             _isOvershotV = true
             _isOutwardBounceV = true
@@ -373,6 +385,7 @@ Item {
     function _scrollToX(targetX) {
         _stopBounceTimer(false)
         _isOutwardBounceH = false
+        _blockedBounceBoundaryH = 0
         _targetX = _clamp(targetX, _minX, _maxX)
         _isOvershotH = false
         horizontalFrameDriver.moveTo(_targetX)
@@ -385,6 +398,7 @@ Item {
         if (newTarget >= _minX && newTarget <= _maxX) {
             _stopBounceTimer(false)
             _isOutwardBounceH = false
+            if (delta !== 0) _blockedBounceBoundaryH = 0
             _targetX = newTarget
             _isOvershotH = false
             horizontalFrameDriver.moveTo(_targetX)
@@ -399,6 +413,8 @@ Item {
 
         if (newTarget < _minX) {
             // Left overshoot 左侧超出
+            if (_blockedBounceBoundaryH === -1) return
+            _blockedBounceBoundaryH = -1
             _targetX = _minX
             _isOvershotH = true
             _isOutwardBounceH = true
@@ -411,6 +427,8 @@ Item {
             _restartBounceTimer(false)
         } else {
             // Right overshoot 右侧超出
+            if (_blockedBounceBoundaryH === 1) return
+            _blockedBounceBoundaryH = 1
             _targetX = _maxX
             _isOvershotH = true
             _isOutwardBounceH = true
