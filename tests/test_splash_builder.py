@@ -17,7 +17,10 @@ from prismqml.python.window._splash_builder import (
     build_splash_template_values,
 )
 from prismqml.python.window.app import App
-from prismqml.python.window.fast_splash import FastSplashController
+from prismqml.python.window.fast_splash import (
+    FastSplashController,
+    build_fast_splash_qml,
+)
 from prismqml.python.window.window_core import WindowCore
 
 
@@ -29,6 +32,31 @@ def test_fast_splash_normalizes_initial_icon_sources():
     assert FastSplashController._qml_icon_source(":/app_icon.svg") == "qrc:/app_icon.svg"
     assert FastSplashController._qml_icon_source("qrc:/app_icon.svg") == "qrc:/app_icon.svg"
     assert FastSplashController._qml_icon_source("D:\\icons\\app.svg") == "file:///D:/icons/app.svg"
+
+
+def test_fast_splash_template_uses_configured_dimensions():
+    source = build_fast_splash_qml(False, 980, 640)
+
+    assert "width: 980; height: 640" in source
+
+
+@pytest.mark.parametrize("value", [0, -1, True, 1.5, "980"])
+def test_fast_splash_rejects_invalid_dimensions(value):
+    with pytest.raises(ValueError):
+        FastSplashController._validate_dimension(value, "splash_width")
+
+
+def test_fast_splash_syncs_attached_window_dimensions():
+    controller = FastSplashController(None)
+    controller._splash = _SplashSurface()
+    controller._splash_size = (1200, 800)
+    window = _WindowSurface(width=980, height=640)
+
+    controller._sync_window_size(window)
+
+    assert controller._splash_size == (980, 640)
+    assert controller._splash.properties["width"] == 980
+    assert controller._splash.properties["height"] == 640
 
 
 @pytest.mark.parametrize(
@@ -453,7 +481,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "self._show_qml_owned_window(main_window)" in fast_splash_source
     assert 'GALLERY_APPLICATION_ICON = "qrc:/app_icon.svg"' in gallery_entry_source
     assert "application_icon=GALLERY_APPLICATION_ICON" in gallery_entry_source
-    assert 'def show(self, icon: str = "", *, subtitle: Optional[str] = None)' in fast_splash_source
+    assert "def show(" in fast_splash_source
+    assert "splash_width: Optional[int] = None" in fast_splash_source
+    assert "splash_height: Optional[int] = None" in fast_splash_source
     assert "initial_icon_ready = self._set_icon_metadata(initial_icon)" in fast_splash_source
     assert "self._icon_provider = FastSplashIconProvider()" in fast_splash_source
     app_source = (ROOT / "prismqml/python/window/app.py").read_text(encoding="utf-8")

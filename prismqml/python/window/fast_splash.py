@@ -57,6 +57,8 @@ _ICON_SHADOW_BLUR = 0.8
 _BACKGROUND_DARK = "#202020"
 _BACKGROUND_LIGHT = "#f0f4f9"
 _ACCENT = "#ff0e5a9c"
+_DEFAULT_SPLASH_WIDTH = 1200
+_DEFAULT_SPLASH_HEIGHT = 800
 
 
 _SPLASH_QML = """
@@ -65,7 +67,7 @@ import QtQuick.Effects
 
 Window {{
     id: win
-    width: 1200; height: 800
+    width: {splash_width}; height: {splash_height}
     flags: Qt.SplashScreen | Qt.FramelessWindowHint
     color: "transparent"
     // The controller shows the window after the object tree and metadata are ready.
@@ -245,9 +247,15 @@ PageTransition {{
 """
 
 
-def build_fast_splash_qml(is_dark: bool) -> str:
+def build_fast_splash_qml(
+    is_dark: bool,
+    splash_width: int = _DEFAULT_SPLASH_WIDTH,
+    splash_height: int = _DEFAULT_SPLASH_HEIGHT,
+) -> str:
     """Build the lightweight splash surface without importing PrismQML."""
     return _SPLASH_QML.format(
+        splash_width=splash_width,
+        splash_height=splash_height,
         background=_BACKGROUND_DARK if is_dark else _BACKGROUND_LIGHT,
         title_color="#ffffffff" if is_dark else "#ff000000",
         body_color="#99ffffff" if is_dark else "#99000000",
@@ -277,15 +285,31 @@ class FastSplashController(QObject):
         self._visibility_deferred = False
         self._title_metadata_ready = False
         self._icon_metadata_ready = False
+        self._splash_size = (_DEFAULT_SPLASH_WIDTH, _DEFAULT_SPLASH_HEIGHT)
         self._closed = False
 
     @property
     def splash(self) -> Optional[QQuickWindow]:
         return self._splash
 
-    def show(self, icon: str = "", *, subtitle: Optional[str] = None) -> bool:
+    def show(
+        self,
+        icon: str = "",
+        *,
+        subtitle: Optional[str] = None,
+        splash_width: Optional[int] = None,
+        splash_height: Optional[int] = None,
+    ) -> bool:
         """Create the splash before QML loads, deferring unbranded frames."""
         try:
+            width = self._validate_dimension(
+                _DEFAULT_SPLASH_WIDTH if splash_width is None else splash_width,
+                "splash_width",
+            )
+            height = self._validate_dimension(
+                _DEFAULT_SPLASH_HEIGHT if splash_height is None else splash_height,
+                "splash_height",
+            )
             self._closed = False
             self._handoff_done = False
             self._embedded_handoff = False
@@ -297,6 +321,7 @@ class FastSplashController(QObject):
             self._main_frame_count = 0
             self._title_metadata_ready = False
             self._icon_metadata_ready = False
+            self._splash_size = (width, height)
             palette = self._app.palette()
             is_dark = palette.window().color().lightness() < 128
             self._splash_engine = QQmlEngine()
@@ -304,7 +329,7 @@ class FastSplashController(QObject):
             self._splash_engine.addImageProvider(ICON_PROVIDER_NAME, self._icon_provider)
             self._splash_component = QQmlComponent(self._splash_engine)
             self._splash_component.setData(
-                build_fast_splash_qml(is_dark).encode("utf-8"),
+                build_fast_splash_qml(is_dark, width, height).encode("utf-8"),
                 QUrl("fast-startup-splash"),
             )
             if self._splash_component.isError():
@@ -360,6 +385,12 @@ class FastSplashController(QObject):
 
     _application_title = staticmethod(application_title)
     _is_default_process_title = staticmethod(is_default_process_title)
+
+    @staticmethod
+    def _validate_dimension(value: int, name: str) -> int:
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{name} must be a positive integer")
+        return value
 
     def update_metadata(
         self,
@@ -475,6 +506,7 @@ class FastSplashController(QObject):
         """Copy existing window splash metadata into the early surface."""
         if self._splash is None:
             return
+        self._sync_window_size(main_window)
         title = (
             main_window.property("splashTitle")
             or main_window.property("windowTitle")
@@ -488,6 +520,42 @@ class FastSplashController(QObject):
         )
         self.update_metadata(title=title, icon=icon, subtitle=subtitle)
         self.mark_window_metadata_ready()
+
+    @staticmethod
+    def _read_window_dimension(main_window: QQuickWindow, name: str) -> Optional[int]:
+        try:
+            value = main_window.property(name)
+        except (AttributeError, RuntimeError, TypeError):
+            value = None
+        if value is None:
+            getter = getattr(main_window, name, None)
+            value = getter() if callable(getter) else getter
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            return None
+        return value if value > 0 else None
+
+    def _sync_window_size(self, main_window: QQuickWindow) -> None:
+        """Match the independent splash to the attached window's logical size."""
+        if self._splash is None:
+            return
+        width = self._read_window_dimension(main_window, "width")
+        height = self._read_window_dimension(main_window, "height")
+        if width is None or height is None:
+            return
+        self._splash_size = (width, height)
+        set_width = getattr(self._splash, "setWidth", None)
+        set_height = getattr(self._splash, "setHeight", None)
+        if callable(set_width):
+            set_width(width)
+        else:
+            self._splash.setProperty("width", width)
+        if callable(set_height):
+            set_height(height)
+        else:
+            self._splash.setProperty("height", height)
+        info(f"FastSplash 尺寸同步: main={width}x{height}, splash={width}x{height}")
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
         """Restore the normal QML splash after a fast-path failure or bypass."""

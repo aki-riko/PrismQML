@@ -74,6 +74,8 @@ def _create_qt_application(
     argv: List[str],
     application_icon=None,
     splash_subtitle: Optional[str] = None,
+    splash_width: Optional[int] = None,
+    splash_height: Optional[int] = None,
 ) -> None:
     """Create QApplication and install global filters. 创建应用并安装全局过滤器。"""
     from ..runtime import (
@@ -88,7 +90,12 @@ def _create_qt_application(
     from .fast_splash import FastSplashController
 
     owner._fast_splash = FastSplashController(owner._app)
-    owner._fast_splash.show(application_icon or "", subtitle=splash_subtitle)
+    owner._fast_splash.show(
+        application_icon or "",
+        subtitle=splash_subtitle,
+        splash_width=splash_width,
+        splash_height=splash_height,
+    )
     install_application_dwm_filter()
     owner._dwm_filter_started = True
 
@@ -269,6 +276,8 @@ class App(ApplicationIconMixin):
     ``config_path`` 可指定应用独立配置；显式路径默认启用外观持久化。
     ``persist_appearance=False`` 可让宿主自行管理主题、皮肤、语言和主题色。
     ``splash_subtitle`` 可在快速启动页首帧显示自定义副标题。
+    ``splash_width`` / ``splash_height`` 可指定快速启动页初始尺寸；绑定窗口后
+    引擎仍会以主窗口实际逻辑尺寸为准。
     """
 
     _instance: "App" = None
@@ -282,6 +291,8 @@ class App(ApplicationIconMixin):
         application_icon: Optional[Union[str, os.PathLike]] = None,
         application_icon_colored: bool = True,
         splash_subtitle: Optional[str] = None,
+        splash_width: Optional[int] = None,
+        splash_height: Optional[int] = None,
         auto_update_slot_redirect: bool = True,
         config_path: Optional[Union[str, os.PathLike]] = None,
         persist_appearance: Optional[bool] = None,
@@ -308,6 +319,8 @@ class App(ApplicationIconMixin):
                 argv or [],
                 application_icon,
                 splash_subtitle,
+                splash_width,
+                splash_height,
             )
             _create_qml_engine(self, config_path, persist_appearance)
             configure_initial_application_icon(
