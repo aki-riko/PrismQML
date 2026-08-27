@@ -252,6 +252,30 @@ static void testLegacyWindowLoad(const QTemporaryDir &directory) {
           "旧版 Window 配置兼容加载并补齐外观默认值");
 }
 
+static void testLegacyLazyAnimationFieldCleanup(const QTemporaryDir &directory) {
+    const QString path = directory.filePath(
+        QStringLiteral("legacy-lazy-animation-cleanup/app.json"));
+    QJsonObject window = validWindow();
+    window[QStringLiteral("LazyAnimationType")] = 9;
+    window[QStringLiteral("FutureWindowExtension")] = QStringLiteral("keep-me");
+    CHECK(writeJson(path, {
+              {QStringLiteral("Window"), window},
+              {QStringLiteral("FutureRootExtension"), true},
+          }),
+          "写入带旧懒加载动画字段的配置夹具");
+    ConfigManager config(path);
+    const QJsonObject migrated = readRoot(path);
+    const QJsonObject migratedWindow = migrated.value(
+        QStringLiteral("Window")).toObject();
+    CHECK(!migratedWindow.contains(QStringLiteral("LazyAnimationType")) &&
+              migratedWindow.value(QStringLiteral("FutureWindowExtension")).toString() ==
+                  QStringLiteral("keep-me") &&
+              migrated.value(QStringLiteral("FutureRootExtension")).toBool(),
+          "启动迁移只删除旧字段并保留其他扩展配置");
+    CHECK(config.windowType() == 2 && !config.lazyLoading(),
+          "旧字段迁移不影响现有窗口设置读取");
+}
+
 static void testRejectedLoad(const QString &path, const QJsonObject &window,
                              const char *fixtureName, const char *resultName) {
     CHECK(writeJson(path, {{QStringLiteral("Window"), window}}), fixtureName);
@@ -347,6 +371,7 @@ static void testLoads(const QTemporaryDir &directory) {
     CHECK(hasDefaults(missing), "缺失配置使用完整默认状态");
     testValidLoad(directory);
     testLegacyWindowLoad(directory);
+    testLegacyLazyAnimationFieldCleanup(directory);
     testInvalidFieldLoads(directory);
     testRawRejectedLoad(directory.filePath(QStringLiteral("malformed/app.json")),
                         QByteArrayLiteral("{"), "畸形 JSON 保持完整默认状态");

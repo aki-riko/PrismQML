@@ -156,6 +156,44 @@ def test_implicit_appearance_ignores_shared_vintage_ticket_config(
         ConfigManager._instance = original_config
 
 
+def test_legacy_lazy_animation_field_is_removed_without_losing_other_settings(
+    qapp, tmp_path
+):
+    path = tmp_path / "legacy-app.json"
+    path.write_text(
+        json.dumps(
+            {
+                "Window": {
+                    "LazyLoading": False,
+                    "LazyAnimationType": 9,
+                    "WindowType": 2,
+                    "FutureWindowExtension": "keep-me",
+                },
+                "Appearance": {
+                    "Theme": "dark",
+                    "FutureAppearanceExtension": 17,
+                },
+                "FutureRootExtension": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    original_config = ConfigManager._instance
+    try:
+        manager = _new_manager(path)
+        assert manager.lazyLoading is False
+        migrated = json.loads(path.read_text(encoding="utf-8"))
+        assert "LazyAnimationType" not in migrated["Window"]
+        assert migrated["Window"]["FutureWindowExtension"] == "keep-me"
+        assert migrated["Appearance"] == {
+            "Theme": "dark",
+            "FutureAppearanceExtension": 17,
+        }
+        assert migrated["FutureRootExtension"] is True
+    finally:
+        ConfigManager._instance = original_config
+
+
 def test_ephemeral_configuration_preserves_pre_registration_skin(
     qapp, tmp_path
 ):

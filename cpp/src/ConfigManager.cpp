@@ -78,6 +78,22 @@ bool mergeLatestAppearance(const QString &path, QByteArray &payload) {
     payload = QJsonDocument(root).toJson(QJsonDocument::Indented);
     return true;
 }
+
+bool removeObsoleteWindowFields(const QString &path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+    if (!document.isObject()) return false;
+    QJsonObject root = document.object();
+    const QJsonValue windowValue = root.value(QStringLiteral("Window"));
+    if (!windowValue.isObject()) return true;
+    QJsonObject window = windowValue.toObject();
+    if (!window.contains(QStringLiteral("LazyAnimationType"))) return true;
+    window.remove(QStringLiteral("LazyAnimationType"));
+    root[QStringLiteral("Window")] = window;
+    return writeAtomically(path,
+                           QJsonDocument(root).toJson(QJsonDocument::Indented));
+}
 }  // namespace
 
 ConfigManager *ConfigManager::instance() {
@@ -177,6 +193,9 @@ void ConfigManager::load() {
         qWarning() << "prism::ConfigManager 配置读取失败:"
                    << (invalidField.isEmpty() ? error : invalidField);
         return;
+    }
+    if (!removeObsoleteWindowFields(configFilePath())) {
+        qWarning() << "prism::ConfigManager 删除旧配置字段失败";
     }
     m_state = State{
         candidate.window.lazyLoading,
