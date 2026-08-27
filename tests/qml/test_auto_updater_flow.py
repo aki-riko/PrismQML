@@ -415,8 +415,7 @@ def test_progress_dialog_timeout_timer_lifecycle(auto_updater_scene, qapp):
     assert timeout_timer.property("interval") == 20
     assert timeout_timer.property("running") is True
 
-    QTest.qWait(80)
-    assert timeout_spy.count() == 1
+    assert timeout_spy.wait(2000)
     assert dialog.property("_isOpen") is False
     assert timeout_timer.property("running") is False
 

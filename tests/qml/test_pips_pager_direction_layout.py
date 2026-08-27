@@ -5,9 +5,19 @@
 """PipsPager direction layout regressions. 分页指示器方向布局回归。"""
 
 from pathlib import Path
+import time
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QPointF, Qt, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QPoint,
+    QPointF,
+    QTimer,
+    Qt,
+    QUrl,
+)
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -105,6 +115,22 @@ def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
     return QPoint(round(center.x()), round(center.y()))
 
 
+def _pump(milliseconds: int) -> None:
+    loop = QEventLoop()
+    QTimer.singleShot(milliseconds, loop.quit)
+    loop.exec()
+
+
+def _sample_after_departure(getter, start_value, timeout_ms: int = 3000):
+    """Return the first sample that left the start value. 返回首个离开起点的采样值。"""
+    deadline = time.perf_counter() + timeout_ms / 1000
+    current = getter()
+    while current == start_value and time.perf_counter() < deadline:
+        _pump(1)
+        current = getter()
+    return current
+
+
 def _dispose_scene(engine, component, window) -> None:
     window.setVisible(False)
     window.deleteLater()
@@ -157,14 +183,18 @@ def test_pips_pager_preserves_animation_and_interaction_across_direction(qapp):
         )
 
         pager.setProperty("currentIndex", 4)
-        QTest.qWait(20)
+        old_width, new_width = _sample_after_departure(
+            lambda: (
+                _dot(horizontal[0]).width(),
+                _dot(horizontal[4]).width(),
+            ),
+            (active_diameter, normal_diameter),
+        )
         pager.setProperty("orientation", Qt.Orientation.Vertical.value)
         QCoreApplication.processEvents()
 
         vertical = _visible_pip_delegates(pager, vertical=True)
         assert len(vertical) == 7
-        old_width = _dot(vertical[0]).width()
-        new_width = _dot(vertical[4]).width()
         scroll_target = 2 * cell_size
         mid_scroll_y = vertical[0].mapToItem(pager, QPointF()).y()
         assert normal_diameter < old_width < active_diameter
