@@ -294,16 +294,34 @@ def test_dynamic_clear_and_readd_restores_valid_geometry(segmented_scene):
     assert segment_row.parentItem() is control
     assert item_repeater.parent() is segment_row
     assert QMetaObject.invokeMethod(window, "clearItems")
-    _pump(30)
+    # Clearing settles asynchronously: destroying delegates keeps shrinking the
+    # centred row, and every resulting x shift restarts the 1 ms slide-sync
+    # timer. Wait for real quiescence instead of sampling at a fixed delay.
+    # 清空是异步收敛：销毁委托会持续缩小居中行，每次 x 位移都重启 1ms 同步定时器。
+    # 等待真正静止，而不是在固定延迟处采样。
+    assert _wait_for(
+        lambda: not indicator.isVisible()
+        and not animation.property("running")
+        and sync_timer.property("running") is False
+        and sync_timer.property("candidateReady") is False
+    )
     assert not indicator.isVisible()
     assert not animation.property("running")
     assert sync_timer.property("running") is False
     assert sync_timer.property("candidateReady") is False
 
     assert QMetaObject.invokeMethod(window, "addSingleWideItem")
-    _pump(80)
+    assert _wait_for(
+        lambda: sync_timer.property("running") is False
+        and sync_timer.property("candidateReady") is False
+        and indicator.isVisible()
+    )
     control, indicator, animation, delegates = _parts(window)
     target_x = _expected_x(control, delegates[0])
+    assert _wait_for(
+        lambda: float(animation.property("indicatorX"))
+        == pytest.approx(target_x, abs=0.5)
+    )
 
     assert indicator.isVisible()
     assert animation.property("indicatorX") == pytest.approx(target_x, abs=0.5)

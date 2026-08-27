@@ -5,6 +5,7 @@
 """Shared hover exit motion policy regressions. 共享悬浮退出运动策略回归。"""
 
 from pathlib import Path
+import time
 
 import pytest
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
@@ -190,6 +191,31 @@ def _pump(milliseconds: int) -> None:
     loop.exec()
 
 
+# Offscreen has no frame swap driving the QML animation clock, so wall-clock
+# delays are not a reliable proxy for animation progress. Synchronise on the
+# observed property instead of betting on a fixed pump duration.
+# offscreen 没有帧交换驱动 QML 动画时钟，墙钟延迟无法代表动画进度。
+# 因此同步在被观测属性上，而不是赌固定的 pump 时长。
+def _wait_until(predicate, timeout_ms: int = 3000) -> bool:
+    """Poll until the predicate holds or the timeout expires. 轮询至谓词成立或超时。"""
+    deadline = time.perf_counter() + timeout_ms / 1000
+    while time.perf_counter() < deadline:
+        if predicate():
+            return True
+        _pump(1)
+    return predicate()
+
+
+def _sample_after_departure(getter, start_value, timeout_ms: int = 3000):
+    """Return the first sample that left the start value. 返回首个离开起点的采样值。"""
+    deadline = time.perf_counter() + timeout_ms / 1000
+    current = getter()
+    while current == start_value and time.perf_counter() < deadline:
+        _pump(1)
+        current = getter()
+    return current
+
+
 def test_hover_motion_policy_disables_exit_animation():
     source = METRICS_SOURCE.read_text(encoding="utf-8")
     assert "readonly property int hoverExitDuration: root.duration.none" in source
@@ -246,8 +272,12 @@ def test_hover_behavior_animates_entry_and_resets_exit_immediately(qapp):
     try:
         _pump(20)
         window.setProperty("hovered", True)
-        _pump(FRAME_SAMPLE_MS)
-        entering_color = window.property("surfaceColor")
+        # Sample the first frame that actually advanced, so a lagging animation
+        # clock cannot report the untouched start colour.
+        # 采样首个真正推进过的帧，避免动画时钟滞后时读回未变的起点色。
+        entering_color = _sample_after_departure(
+            lambda: window.property("surfaceColor"), QColor("#ffffff")
+        )
         assert QColor("#000000") != entering_color != QColor("#ffffff")
         transparent_entering_color = window.property("transparentSurfaceColor")
         assert transparent_entering_color.alpha() > 0
@@ -256,7 +286,10 @@ def test_hover_behavior_animates_entry_and_resets_exit_immediately(qapp):
         assert transparent_entering_color.blue() > 200
         assert 1.0 < window.property("hoverScale") < 1.2
 
-        _pump(window.property("enterDuration"))
+        assert _wait_until(
+            lambda: window.property("surfaceColor") == QColor("#000000")
+            and window.property("hoverScale") == pytest.approx(1.2)
+        )
         assert window.property("surfaceColor") == QColor("#000000")
         assert window.property("hoverScale") == pytest.approx(1.2)
 
@@ -332,7 +365,9 @@ def test_hover_behavior_exit_stays_idle_when_active_updates_before_target(qapp):
         assert unmatched_timer.property("repeat") is False
         window.setProperty("hoverActive", True)
         window.setProperty("targetHovered", True)
-        _pump(window.property("enterDuration") + 20)
+        assert _wait_until(
+            lambda: window.property("surfaceColor") == QColor("#000000")
+        )
         assert window.property("surfaceColor") == QColor("#000000")
 
         # Reproduce the real stale frame: hover state exits one event turn
