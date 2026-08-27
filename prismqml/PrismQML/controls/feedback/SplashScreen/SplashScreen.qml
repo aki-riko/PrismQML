@@ -38,7 +38,7 @@ Rectangle {
     property bool showProgress: true                 // Show progress ring 显示进度环
     // Reveal animation length on finish(). 调用 finish() 后的揭幕动画时长。
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
-    property int exitAnimationType: Enums.animation.lazy_circle
+    property int exitAnimationType: Enums.lazyAnimation.lazy_circle
     property Component exitAnimation: null
 
     // ==================== Internal Props 内部属性 ====================

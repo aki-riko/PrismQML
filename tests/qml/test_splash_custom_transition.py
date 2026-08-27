@@ -35,7 +35,7 @@ Item {
         objectName: "splash"
         showTitleBar: false
         showProgress: false
-        exitAnimationType: Enums.animation.custom
+        exitAnimationType: Enums.lazyAnimation.custom
         exitAnimation: Component {
             Item {
                 property bool active: false

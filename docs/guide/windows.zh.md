@@ -68,18 +68,18 @@ Fluent.Windows {
 ```
 
 主窗口关闭时也复用同一套 `PageTransition`。默认使用
-`Enums.animation.lazy_circle` 收紧窗口内容；关闭确认完成后先播放收紧，动画完成
+`Enums.lazyAnimation.lazy_circle` 收紧窗口内容；关闭确认完成后先播放收紧，动画完成
 才提交真实关闭。关闭请求被宿主否决时，过渡会调用 `stop()` 恢复原页面。
 
 ```qml
 Fluent.Windows {
-    closeAnimationType: Enums.animation.lazy_circle
+    closeAnimationType: Enums.lazyAnimation.lazy_circle
     closeAnimation: null
 }
 ```
 
-`closeAnimationType: Enums.animation.none` 会跳过视觉过渡并同步进入真实关闭；设置
-`Enums.animation.custom` 时，`closeAnimation` 使用前文相同的 `Component` 合同。
+`closeAnimationType: Enums.lazyAnimation.none` 会跳过视觉过渡并同步进入真实关闭；设置
+`Enums.lazyAnimation.custom` 时，`closeAnimation` 使用前文相同的 `Component` 合同。
 因此启动画面、懒加载页面和主窗口退场可以共享同一套内置或自定义生命周期。
 
 收紧节奏由主窗口退场与页面切换共用：时长取
@@ -102,12 +102,12 @@ Fluent.PageTransition {
 
 ### 启动画面退场动画
 
-默认 `SplashScreen` 使用 `Enums.animation.lazy_circle`：它与懒加载页面的收紧/展开过渡共用同一套生命周期。窗口级属性会转发到默认启动画面：
+默认 `SplashScreen` 使用 `Enums.lazyAnimation.lazy_circle`：它与懒加载页面的收紧/展开过渡共用同一套生命周期。窗口级属性会转发到默认启动画面：
 
 ```qml
 Fluent.Windows {
-    splashExitAnimationType: Enums.animation.none
-    // 或：Enums.animation.lazy_circle（默认）
+    splashExitAnimationType: Enums.lazyAnimation.none
+    // 或：Enums.lazyAnimation.lazy_circle（默认）
     // splashExitAnimation: mySplashTransition
 }
 ```
@@ -116,18 +116,18 @@ Fluent.Windows {
 
 ```qml
 SplashScreen {
-    exitAnimationType: Enums.animation.lazy_circle
+    exitAnimationType: Enums.lazyAnimation.lazy_circle
     exitAnimation: null
 }
 ```
 
-内置模式通过 `Enums.animation` 访问：
+启动画面退场模式通过 `Enums.lazyAnimation` 访问；普通 `StackedWidget` 切页模式才使用 `Enums.animation`：
 
 | 值 | 行为 |
 | --- | --- |
-| `Enums.animation.none` | 不创建过渡后端，`finish()` 同步完成并隐藏启动画面。 |
-| `Enums.animation.lazy_circle` | 默认圆形收紧/展开过渡；保留首帧、目标页换帧和失败回退语义。 |
-| `Enums.animation.custom` | 使用 `exitAnimation` / `splashExitAnimation` 提供的 `Component`。 |
+| `Enums.lazyAnimation.none` | 不创建过渡后端，`finish()` 同步完成并隐藏启动画面。 |
+| `Enums.lazyAnimation.lazy_circle` | 默认圆形收紧/展开过渡；保留首帧、目标页换帧和失败回退语义。 |
+| `Enums.lazyAnimation.custom` | 使用 `exitAnimation` / `splashExitAnimation` 提供的 `Component`。 |
 
 自定义 `Component` 必须实现以下合同。方法的 `sourceItem` 参数是当前要收紧或展开的源项；状态和信号由 `PageTransition` 读取与转发。
 
@@ -166,7 +166,7 @@ Component {
 ```qml
 PageTransition {
     id: transition
-    animationType: Enums.animation.lazy_circle
+    animationType: Enums.lazyAnimation.lazy_circle
     revealTarget: true
 
     function showPage(page) {
@@ -175,14 +175,14 @@ PageTransition {
 }
 ```
 
-它公开 `collapse(sourceItem)`、`expand(sourceItem)`、`stop()` 方法，以及 `active`、`running`、`collapsing`、`collapsed`、`progress` 状态和四个生命周期信号。`customAnimation` 属性接受上面的 `Component` 合同；自定义模式推荐同时设置 `animationType: Enums.animation.custom`。`animationType: Enums.animation.none` 会绕过动态加载并同步发出开始/完成信号。
+它公开 `collapse(sourceItem)`、`expand(sourceItem)`、`stop()` 方法，以及 `active`、`running`、`collapsing`、`collapsed`、`progress` 状态和四个生命周期信号。`customAnimation` 属性接受上面的 `Component` 合同；自定义模式推荐同时设置 `animationType: Enums.lazyAnimation.custom`。`animationType: Enums.lazyAnimation.none` 会绕过动态加载并同步发出开始/完成信号。
 
-懒加载页面默认继续使用 `Enums.animation.lazy_circle`。需要 CPU 放下后电路线展开的样式时，在窗口或 `StackedWidget` 上选择 `Enums.animation.cpu`：
+懒加载页面默认继续使用 `Enums.lazyAnimation.lazy_circle`。需要 CPU 放下后电路线展开的样式时，在窗口或 `StackedWidget` 上选择 `Enums.lazyAnimation.cpu`：
 
 ```qml
 NavigationWindowCore {
     lazyLoading: true
-    lazyAnimationType: Enums.animation.cpu
+    lazyAnimationType: Enums.lazyAnimation.cpu
 }
 ```
 

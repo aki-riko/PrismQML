@@ -10,7 +10,7 @@ import "PrismEnums"
 // Usage 使用方式: Enums.radius.large, Enums.button.type_primary
 // 
 // Architecture 架构: Modular design, each category in separate file 模块化设计
-// Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Icons.qml
+// Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Animation.qml, LazyAnimation.qml, Icons.qml
 // TODO: 45 个子组件在启动时同步创建，可能影响首帧渲染时间。
 //       如需优化，可对低频使用的枚举组件改用 Loader 按需加载。
 
@@ -159,6 +159,7 @@ Item {
     Notification { id: _notification }
     Slider { id: _slider }
     Animation { id: _animation }
+    LazyAnimation { id: _lazyAnimation }
     Input { id: _input }
     Scroll { id: _scroll }
     ComboBox { id: _comboBox }
@@ -203,6 +204,7 @@ Item {
     readonly property alias notification: _notification
     readonly property alias slider: _slider
     readonly property alias animation: _animation
+    readonly property alias lazyAnimation: _lazyAnimation
     readonly property alias input: _input
     readonly property alias scroll: _scroll
     readonly property alias comboBox: _comboBox

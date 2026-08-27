@@ -60,7 +60,7 @@ Item {
         lazyLoading: root.host ? root.host.lazyLoading : false
         lazyAnimationType: root.host
             && typeof root.host.lazyAnimationType === "number"
-                ? root.host.lazyAnimationType : Enums.animation.lazy_circle
+                ? root.host.lazyAnimationType : Enums.lazyAnimation.lazy_circle
         _pythonPageMode: root.host ? root.host._pythonPageMode : false
         // Bind host.currentIndex to stack.currentIndex in one direction.
         // 单向绑定 host.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。

@@ -34,7 +34,7 @@ Window {
     property int shadowSize: Enums.window.qmlShadowSize
     property color windowColor: Enums.backgroundColor
     property int shadowMode: Enums.windowShadow.mode_auto
-    property int closeAnimationType: Enums.animation.lazy_circle
+    property int closeAnimationType: Enums.lazyAnimation.lazy_circle
     property Component closeAnimation: null
 
     // ==================== Internal Props 内部属性 ====================

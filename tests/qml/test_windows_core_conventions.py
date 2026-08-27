@@ -122,7 +122,7 @@ WindowsCore {
     property int nativeCloseAcceptedCount: 0
     readonly property int topLayout: Enums.windowType.title_bar_top
     readonly property int leftLayout: Enums.windowType.title_bar_left
-    readonly property int noneAnimationType: Enums.animation.none
+    readonly property int noneAnimationType: Enums.lazyAnimation.none
     readonly property int noShadow: Enums.windowShadow.mode_none
     readonly property int qmlShadow: Enums.windowShadow.mode_qml
     readonly property int nativeShadow: Enums.windowShadow.mode_native
@@ -138,8 +138,8 @@ WindowsCore {
     windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
     titleBarPosition: initialLeftLayout ? leftLayout : topLayout
     closeAnimationType: noneClose
-        ? Enums.animation.none
-        : (customClose ? Enums.animation.custom : Enums.animation.lazy_circle)
+        ? Enums.lazyAnimation.none
+        : (customClose ? Enums.lazyAnimation.custom : Enums.lazyAnimation.lazy_circle)
     closeAnimation: customClose ? customCloseComponent : null
 
     onNativeCloseAccepted: nativeCloseAcceptedCount += 1
@@ -971,7 +971,7 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     )
     windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
     assert 'import "./controls/navigation"' in windows_core_source
-    assert "property int closeAnimationType: Enums.animation.lazy_circle" in windows_core_source
+    assert "property int closeAnimationType: Enums.lazyAnimation.lazy_circle" in windows_core_source
     assert "property Component closeAnimation: null" in windows_core_source
     assert "property bool _closeSourceWasVisible: true" in windows_core_source
     assert "property bool _closeCompletionPending: false" in windows_core_source

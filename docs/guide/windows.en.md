@@ -71,19 +71,19 @@ Fluent.Windows {
 ```
 
 The main window close path also reuses the same `PageTransition`. By default it
-uses `Enums.animation.lazy_circle` to collapse the window content; the real
+uses `Enums.lazyAnimation.lazy_circle` to collapse the window content; the real
 close is submitted only after the collapse completes. If the host rejects the
 close request, `stop()` restores the original page visibility.
 
 ```qml
 Fluent.Windows {
-    closeAnimationType: Enums.animation.lazy_circle
+    closeAnimationType: Enums.lazyAnimation.lazy_circle
     closeAnimation: null
 }
 ```
 
-`closeAnimationType: Enums.animation.none` skips the visual transition and
-enters the real close path synchronously. With `Enums.animation.custom`,
+`closeAnimationType: Enums.lazyAnimation.none` skips the visual transition and
+enters the real close path synchronously. With `Enums.lazyAnimation.custom`,
 `closeAnimation` uses the same `Component` contract described below. Startup,
 lazy-page, and main-window exit transitions can therefore share one built-in or
 custom lifecycle.
@@ -113,14 +113,14 @@ changing the collapse duration will not squeeze out the loading indicator.
 
 ### Splash exit animation
 
-The default `SplashScreen` uses `Enums.animation.lazy_circle`, sharing the same
+The default `SplashScreen` uses `Enums.lazyAnimation.lazy_circle`, sharing the same
 collapse/expand lifecycle as lazy-loaded pages. Window-level properties are
 forwarded to the default splash:
 
 ```qml
 Fluent.Windows {
-    splashExitAnimationType: Enums.animation.none
-    // Or: Enums.animation.lazy_circle (the default)
+    splashExitAnimationType: Enums.lazyAnimation.none
+    // Or: Enums.lazyAnimation.lazy_circle (the default)
     // splashExitAnimation: mySplashTransition
 }
 ```
@@ -129,18 +129,19 @@ The same options are available when using `SplashScreen` directly:
 
 ```qml
 SplashScreen {
-    exitAnimationType: Enums.animation.lazy_circle
+    exitAnimationType: Enums.lazyAnimation.lazy_circle
     exitAnimation: null
 }
 ```
 
-Built-in modes are exposed through `Enums.animation`:
+Splash exit modes are exposed through `Enums.lazyAnimation`; regular
+`StackedWidget` page-switch modes use `Enums.animation`:
 
 | Value | Behavior |
 | --- | --- |
-| `Enums.animation.none` | Does not create a transition backend; `finish()` completes synchronously and hides the splash. |
-| `Enums.animation.lazy_circle` | The default circular collapse/expand transition, including first-frame, target-frame, and fallback handling. |
-| `Enums.animation.custom` | Uses the `Component` supplied by `exitAnimation` / `splashExitAnimation`. |
+| `Enums.lazyAnimation.none` | Does not create a transition backend; `finish()` completes synchronously and hides the splash. |
+| `Enums.lazyAnimation.lazy_circle` | The default circular collapse/expand transition, including first-frame, target-frame, and fallback handling. |
+| `Enums.lazyAnimation.custom` | Uses the `Component` supplied by `exitAnimation` / `splashExitAnimation`. |
 
 A custom `Component` must implement the following contract. The
 `sourceItem` argument is the item being collapsed or expanded; `PageTransition`
@@ -194,7 +195,7 @@ a page or another overlay:
 ```qml
 PageTransition {
     id: transition
-    animationType: Enums.animation.lazy_circle
+    animationType: Enums.lazyAnimation.lazy_circle
     revealTarget: true
 
     function showPage(page) {
@@ -207,18 +208,18 @@ It exposes `collapse(sourceItem)`, `expand(sourceItem)`, and `stop()` methods,
 the `active`, `running`, `collapsing`, `collapsed`, and `progress` states, and
 four lifecycle signals. Its `customAnimation` property accepts the
 `Component` contract above; custom mode should also set
-`animationType: Enums.animation.custom`. `animationType:
-Enums.animation.none` bypasses dynamic loading and emits start/finish signals
+`animationType: Enums.lazyAnimation.custom`. `animationType:
+Enums.lazyAnimation.none` bypasses dynamic loading and emits start/finish signals
 synchronously.
 
-Lazy pages continue to use `Enums.animation.lazy_circle` by default. Select
-`Enums.animation.cpu` on the window or `StackedWidget` for the CPU-drop and
+Lazy pages continue to use `Enums.lazyAnimation.lazy_circle` by default. Select
+`Enums.lazyAnimation.cpu` on the window or `StackedWidget` for the CPU-drop and
 circuit-expansion style:
 
 ```qml
 NavigationWindowCore {
     lazyLoading: true
-    lazyAnimationType: Enums.animation.cpu
+    lazyAnimationType: Enums.lazyAnimation.cpu
 }
 ```
 

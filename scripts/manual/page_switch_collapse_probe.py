@@ -105,7 +105,7 @@ Window {
         id: sharedPageTransition
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
-        animationType: Enums.animation.lazy_circle
+        animationType: Enums.lazyAnimation.lazy_circle
     }
 
     LazyLoadingHelper {

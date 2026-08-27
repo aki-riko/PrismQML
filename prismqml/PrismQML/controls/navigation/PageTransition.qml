@@ -16,7 +16,7 @@ Item {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property int animationType: Enums.animation.lazy_circle
+    property int animationType: Enums.lazyAnimation.lazy_circle
     property Component customAnimation: null
     property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
     property int coverDuration: Enums.lazyLoadingTransitionMetrics.coverDuration
@@ -167,10 +167,10 @@ Item {
         _savedSourceVisible = sourceItem ? sourceItem.visible : false
         _operationCollapsing = collapsing
 
-        if (animationType === Enums.animation.none ||
-                (animationType !== Enums.animation.lazy_circle &&
-                 animationType !== Enums.animation.cpu &&
-                 animationType !== Enums.animation.custom && !usingCustomAnimation)) {
+        if (animationType === Enums.lazyAnimation.none ||
+                (animationType !== Enums.lazyAnimation.lazy_circle &&
+                 animationType !== Enums.lazyAnimation.cpu &&
+                 animationType !== Enums.lazyAnimation.custom && !usingCustomAnimation)) {
             _completeWithoutAnimation(sourceItem, collapsing)
             return true
         }
@@ -192,14 +192,14 @@ Item {
         objectName: "pageTransitionBackendLoader"
         anchors.fill: parent
         active: control.customAnimation !== null ||
-                control.animationType === Enums.animation.lazy_circle ||
-                control.animationType === Enums.animation.cpu
+                control.animationType === Enums.lazyAnimation.lazy_circle ||
+                control.animationType === Enums.lazyAnimation.cpu
         asynchronous: false
         sourceComponent: control.customAnimation !== null
             ? control.customAnimation
-            : (control.animationType === Enums.animation.lazy_circle
+            : (control.animationType === Enums.lazyAnimation.lazy_circle
                 ? defaultTransitionComponent
-                : (control.animationType === Enums.animation.cpu
+                : (control.animationType === Enums.lazyAnimation.cpu
                     ? cpuTransitionComponent : null))
         onItemChanged: control._syncBackendContract(item)
     }

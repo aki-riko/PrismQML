@@ -17,16 +17,16 @@ Item {
     readonly property var parentWindow: Window.window
     readonly property var lazyAnimationTypeValues: ConfigManager
         ? ConfigManager.lazyAnimationTypeOptions
-        : [Fluent.Enums.animation.lazy_circle, Fluent.Enums.animation.cpu]
+        : [Fluent.Enums.lazyAnimation.lazy_circle, Fluent.Enums.lazyAnimation.cpu]
     readonly property bool cpuLazyAnimationEnabled: root.parentWindow
-        ? root.parentWindow.lazyAnimationType === Fluent.Enums.animation.cpu : false
+        ? root.parentWindow.lazyAnimationType === Fluent.Enums.lazyAnimation.cpu : false
     
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
 
     function lazyAnimationLabel(value) {
-        return value === Fluent.Enums.animation.cpu
+        return value === Fluent.Enums.lazyAnimation.cpu
             ? Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
                 + " (CPU)"
             : Fluent.Translator.tr("gallery_d1d1bedf66228659", Fluent.Translator._v)
@@ -291,7 +291,7 @@ Item {
                         root.parentWindow && typeof root.parentWindow.lazyAnimationType === "number"
                             ? root.parentWindow.lazyAnimationType
                             : (ConfigManager ? ConfigManager.lazyAnimationType
-                                : Fluent.Enums.animation.lazy_circle)
+                                : Fluent.Enums.lazyAnimation.lazy_circle)
                     )
                     onIndexSelected: function(idx) {
                         if (idx < 0 || idx >= animationValues.length) return

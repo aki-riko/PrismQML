@@ -510,7 +510,7 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "lazyExitLoader.item.expand(control)" in splash_source
     assert "animationType: control.exitAnimationType" in splash_source
     assert "customAnimation: control.exitAnimation" in splash_source
-    assert "property int exitAnimationType: Enums.animation.lazy_circle" in splash_source
+    assert "property int exitAnimationType: Enums.lazyAnimation.lazy_circle" in splash_source
     assert "property Component exitAnimation: null" in splash_source
     assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
     assert "revealTarget: true" in splash_source

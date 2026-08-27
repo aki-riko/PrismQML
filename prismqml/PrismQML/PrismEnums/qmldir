@@ -15,6 +15,7 @@ Position Position.qml
 Notification Notification.qml
 Slider Slider.qml
 Animation Animation.qml
+LazyAnimation LazyAnimation.qml
 Input Input.qml
 Scroll Scroll.qml
 ComboBox ComboBox.qml

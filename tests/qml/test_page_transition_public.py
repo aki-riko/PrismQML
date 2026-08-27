@@ -27,10 +27,10 @@ import PrismQML
 Item {
     id: root
 
-    property int noneType: Enums.animation.none
-    property int circleType: Enums.animation.lazy_circle
-    property int customType: Enums.animation.custom
-    property int cpuType: Enums.animation.cpu
+    property int noneType: Enums.lazyAnimation.none
+    property int circleType: Enums.lazyAnimation.lazy_circle
+    property int customType: Enums.lazyAnimation.custom
+    property int cpuType: Enums.lazyAnimation.cpu
     property int collapseStartedCount: 0
     property int collapseFinishedCount: 0
     property int expandStartedCount: 0
@@ -53,7 +53,7 @@ Item {
     PageTransition {
         id: noneTransition
         objectName: "noneTransition"
-        animationType: Enums.animation.none
+        animationType: Enums.lazyAnimation.none
         onCollapseStarted: root.collapseStartedCount += 1
         onCollapseFinished: root.collapseFinishedCount += 1
         onExpandStarted: root.expandStartedCount += 1
@@ -63,19 +63,19 @@ Item {
     PageTransition {
         id: circleTransition
         objectName: "circleTransition"
-        animationType: Enums.animation.lazy_circle
+        animationType: Enums.lazyAnimation.lazy_circle
     }
 
     PageTransition {
         id: cpuTransition
         objectName: "cpuTransition"
-        animationType: Enums.animation.cpu
+        animationType: Enums.lazyAnimation.cpu
     }
 
     PageTransition {
         id: customTransition
         objectName: "customTransition"
-        animationType: Enums.animation.custom
+        animationType: Enums.lazyAnimation.custom
         onCollapseStarted: root.customCollapseStartedCount += 1
         onCollapseFinished: root.customCollapseFinishedCount += 1
         onExpandStarted: root.customExpandStartedCount += 1
@@ -129,7 +129,7 @@ Item {
     PageTransition {
         id: invalidTransition
         objectName: "invalidTransition"
-        animationType: Enums.animation.custom
+        animationType: Enums.lazyAnimation.custom
         customAnimation: Component { Item {} }
     }
 
@@ -176,7 +176,7 @@ Window {
 
         objectName: "cpuLifecycleTransition"
         anchors.fill: parent
-        animationType: Enums.animation.cpu
+        animationType: Enums.lazyAnimation.cpu
         coverDuration: 120
         revealDuration: 160
         onCollapseStarted: root.collapseStartedCount += 1
@@ -247,7 +247,7 @@ def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qap
         assert "PageTransition controls/navigation/PageTransition.qml" in QMldir_PATH.read_text(
             encoding="utf-8"
         )
-        assert root.property("noneType") == 0
+        assert root.property("noneType") == 10
         assert root.property("circleType") == 7
         assert root.property("customType") == 8
         assert root.property("cpuType") == 9
@@ -292,11 +292,11 @@ def test_page_transition_is_public_and_supports_builtin_and_custom_contracts(qap
 
 def test_page_transition_source_declares_explicit_custom_contract():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert 'property int animationType: Enums.animation.lazy_circle' in source
+    assert 'property int animationType: Enums.lazyAnimation.lazy_circle' in source
     assert 'property Component customAnimation: null' in source
-    assert 'Enums.animation.none' in source
-    assert 'Enums.animation.cpu' in source
-    assert 'Enums.animation.custom' in source
+    assert 'Enums.lazyAnimation.none' in source
+    assert 'Enums.lazyAnimation.cpu' in source
+    assert 'Enums.lazyAnimation.custom' in source
     assert '"collapse", "expand", "stop"' in source
     assert '"active", "running", "collapsing", "collapsed", "progress"' in source
     assert 'signal collapseStarted()' in source
@@ -319,10 +319,35 @@ def test_cpu_transition_is_selectable_for_lazy_loading():
         ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsPageStack.qml"
     ).read_text(encoding="utf-8")
 
-    assert "property int lazyAnimationType: Enums.animation.lazy_circle" in stacked_source
+    assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in stacked_source
     assert "animationType: control.lazyAnimationType" in stacked_source
-    assert "property int lazyAnimationType: Enums.animation.lazy_circle" in window_source
+    assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in window_source
     assert "root.host.lazyAnimationType" in page_stack_source
+
+
+def test_lazy_animation_enum_is_separate_from_stacked_widget_animation_enum():
+    animation_source = (
+        ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Animation.qml"
+    ).read_text(encoding="utf-8")
+    lazy_animation_source = (
+        ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "LazyAnimation.qml"
+    ).read_text(encoding="utf-8")
+    enums_source = (ROOT / "prismqml" / "PrismQML" / "Enums.qml").read_text(
+        encoding="utf-8"
+    )
+    qmldir_source = (
+        ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "qmldir"
+    ).read_text(encoding="utf-8")
+
+    assert "lazy_circle" not in animation_source
+    assert "cpu" not in animation_source
+    assert "readonly property int lazy_circle: 7" in lazy_animation_source
+    assert "readonly property int cpu: 9" in lazy_animation_source
+    assert "LazyAnimation { id: _lazyAnimation }" in enums_source
+    assert "readonly property alias lazyAnimation: _lazyAnimation" in enums_source
+    assert "LazyAnimation LazyAnimation.qml" in qmldir_source
+    assert "readonly property int none: 10" in lazy_animation_source
+    assert "readonly property int custom: 8" in lazy_animation_source
 
 
 def test_cpu_transition_runs_drop_then_circuit_lifecycle(qapp):

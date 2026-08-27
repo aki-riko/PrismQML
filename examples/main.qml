@@ -21,7 +21,7 @@ QtObject {
     // Runtime lazy-animation choice is shared by all window shells.
     // 懒加载动画选择由所有窗口外壳共享，并可在当前会话即时切换。
     property int lazyAnimationType: ConfigManager
-        ? ConfigManager.lazyAnimationType : Fluent.Enums.animation.lazy_circle
+        ? ConfigManager.lazyAnimationType : Fluent.Enums.lazyAnimation.lazy_circle
     // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
     property bool _startupLazyLoading: true
     // ==================== Common Config 公共配置 ====================
