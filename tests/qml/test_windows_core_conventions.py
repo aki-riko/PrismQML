@@ -707,102 +707,6 @@ def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
         assert _new_visible_windows(windows_before) == []
 
 
-def test_windows_core_close_collapse_drops_native_shadow(monkeypatch, qapp):
-    """收紧期间必须撤掉原生 DWM 阴影，否则整窗矩形阴影留在圆外。"""
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    shadow_manager = window_services_module.getShadowManager()
-    calls = []
-    for name in ("enableShadowForWindow", "disableShadowForWindow"):
-        original = getattr(shadow_manager, name)
-
-        def _spy(window, _name=name, _original=original):
-            calls.append(_name)
-            return _original(window)
-
-        monkeypatch.setattr(shadow_manager, name, _spy)
-
-    (
-        engine,
-        component,
-        window,
-        _content,
-        _left_probe,
-        warnings,
-        _startup_events,
-    ) = _create_scene(monkeypatch)
-    try:
-        # The native shadow is a DWM policy on the hwnd; no QML layer mask can
-        # clip it, so it must be switched off for the collapse itself. The scene
-        # defaults to mode_none, so opt in or the assertion is vacuous.
-        # 原生阴影是 hwnd 上的 DWM 策略, QML 遮罩裁不到, 必须在收紧时关掉。场景默认
-        # mode_none, 必须显式打开, 否则断言是空的。
-        window.setProperty("shadowMode", window.property("nativeShadow"))
-        assert _wait_for(lambda: window.property("_useNativeShadow") is True)
-        calls.clear()
-
-        assert window.close() is False
-        assert "disableShadowForWindow" in calls
-        assert _wait_for(
-            lambda: window.property("nativeCloseAcceptedCount") == 1
-            and not window.isVisible(),
-            timeout_ms=2000,
-        )
-        # The collapse must not re-enable it midway.
-        # 收紧过程中不得又把它打开。
-        assert "enableShadowForWindow" not in calls
-        assert warnings == []
-    finally:
-        _dispose_scene(engine, component, window)
-        assert _new_visible_windows(windows_before) == []
-
-
-def test_windows_core_cancelled_close_restores_native_shadow(monkeypatch, qapp):
-    """取消关闭必须把原生阴影装回去。"""
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    shadow_manager = window_services_module.getShadowManager()
-    calls = []
-    for name in ("enableShadowForWindow", "disableShadowForWindow"):
-        original = getattr(shadow_manager, name)
-
-        def _spy(window, _name=name, _original=original):
-            calls.append(_name)
-            return _original(window)
-
-        monkeypatch.setattr(shadow_manager, name, _spy)
-
-    (
-        engine,
-        component,
-        window,
-        _content,
-        _left_probe,
-        warnings,
-        _startup_events,
-    ) = _create_scene(monkeypatch)
-    try:
-        window.setProperty("shadowMode", window.property("nativeShadow"))
-        assert _wait_for(lambda: window.property("_useNativeShadow") is True)
-        calls.clear()
-
-        # A cancelled close leaves the window on screen, so the shadow dropped
-        # for the collapse has to come back. This scene has no way to refuse a
-        # close, so drive the cancel entry point directly.
-        # 取消的关闭会让窗口留在屏上, 为收紧撤掉的阴影必须装回。本场景无法拒绝关闭,
-        # 故直接驱动取消入口。
-        assert QMetaObject.invokeMethod(window, "_startAcceptedClose")
-        assert window.property("_closeInProgress") is True
-        assert calls == ["disableShadowForWindow"]
-
-        assert QMetaObject.invokeMethod(window, "_cancelCloseRequest")
-        assert window.property("_closeInProgress") is False
-        assert window.isVisible()
-        assert calls[-1] == "enableShadowForWindow"
-        assert warnings == []
-    finally:
-        _dispose_scene(engine, component, window)
-        assert _new_visible_windows(windows_before) == []
-
-
 def test_windows_core_close_collapse_clips_unmasked_shadow_layer(monkeypatch, qapp):
     """收紧期间必须撤掉未被遮罩的阴影层，否则圆外残留矩形留白。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -1150,3 +1054,85 @@ def test_window_leaf_source_conventions_and_icon_delay_token():
     assert "interval: 1" not in window_icon
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int iconDeferredLoadDelayMs: 1" in metrics
+
+
+def test_windows_core_close_animates_in_overlay_window_not_by_dropping_dwm_effects():
+    """关闭收紧必须在覆盖窗口里跑, 且禁止为此撤掉 hwnd 级 DWM 效果。
+
+    真机 A/B 隔离过: --drop=mica 会闪一帧, --drop=none/host/shadow 都不闪。写
+    DWMWA_SYSTEMBACKDROP_TYPE 让 DWM 在 QML 重绘之前可见地重新合成, QML 侧无论怎么
+    排序都盖不住 —— 所以"撤掉 Mica 好让遮罩裁到外围"这条路本身就是闪烁的来源。
+
+    正解是根本不在主窗口里遮罩: 收紧改在覆盖窗口(无 Mica、Qt.NoFluentShadowWindowHint)
+    里跑, 主窗口在遮罩帧上屏后以 opacity 藏掉。这条门禁锁住那个开关, 并挡住撤除方案
+    以任何形式回来 —— 它在 offscreen 测试里不会复现, 只在真机上闪。
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "preferOverlayWindow: true" in source
+
+    # The drop-based approach and its scaffolding must stay gone.
+    # 撤除方案及其脚手架必须保持删除状态。
+    for banned in (
+        "closeCollapseStateChanged",
+        "_setNativeShadowForClose",
+        "NavigationMicaCloseBackdrop",
+    ):
+        assert banned not in source, f"WindowsCore.qml 又出现撤除方案残留: {banned}"
+
+    # Shadow mode switching and the dwmShadow config handler legitimately toggle the native
+    # shadow; only the close path must not. Scope the check to the close functions.
+    # 阴影模式切换与 dwmShadow 配置响应本就该切原生阴影, 只有关闭路径不许。把检查限定在
+    # 关闭相关函数内。
+    for function_name in ("_startAcceptedClose", "_cancelCloseRequest"):
+        body = source.split(f"function {function_name}")[1].split("\n    function ")[0]
+        assert "ShadowManager" not in body, (
+            f"{function_name} 又在动原生阴影: 那是真机实测过的闪烁源"
+        )
+        assert "MicaManager" not in body, f"{function_name} 又在动 Mica"
+
+    navigation = (ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml").read_text(
+        encoding="utf-8"
+    )
+    for banned in ("closeCollapseStateChanged", "NavigationMicaCloseBackdrop"):
+        assert banned not in navigation, f"NavigationWindowCore.qml 残留: {banned}"
+    assert not (
+        ROOT / "prismqml" / "PrismQML" / "_internal" / "NavigationMicaCloseBackdrop.js"
+    ).exists()
+
+
+def test_overlay_window_path_hides_host_and_restores_it_only_after_close():
+    """覆盖窗口那条路必须藏住宿主窗口, 且只在关闭成功后才还原。
+
+    只藏源项不够: 宿主窗口仍带着 hwnd 级 Mica 和原生阴影, 它们画在覆盖窗遮罩之外,
+    搬到覆盖窗这件事就白做了。两个顺序坑:
+
+    1. 用 opacity 而非 visible=false —— 后者拆掉场景图, 而那个场景图还在驱动覆盖窗动画
+    2. 还原必须等 window.close() 成功之后 —— 早一点就露出一帧完整的、没收紧的窗口
+    """
+    backend = (
+        ROOT
+        / "prismqml"
+        / "PrismQML"
+        / "controls"
+        / "navigation"
+        / "_internal"
+        / "LazyPageCircleTransition.qml"
+    ).read_text(encoding="utf-8")
+
+    # The switch must gate the in-window branch, or _hostWindow being always set for a
+    # window-hosted transition means the overlay branch is unreachable.
+    # 开关必须门控窗口内分支, 否则窗口内过渡的 _hostWindow 恒有值, 覆盖窗分支不可达。
+    assert "if (transition._hostWindow && !transition.preferOverlayWindow) {" in backend
+    assert "host.opacity = Enums.opacityLevel.invisible" in backend
+    assert "visible = false" not in backend.split("_hideHostWindowForOverlay")[1].split(
+        "function _restoreHostWindowAfterOverlay"
+    )[0]
+
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    completed = source.split("function _completeAcceptedClose")[1].split("function ")[0]
+    close_index = completed.index("window.close()")
+    restore_index = completed.index("closeTransition.restoreHostWindow()")
+    assert close_index < restore_index, (
+        "还原必须在 window.close() 之后, 否则会露出一帧完整的未收紧窗口"
+    )

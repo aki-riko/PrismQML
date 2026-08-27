@@ -25,6 +25,11 @@ Item {
     property bool revealTarget: false
     property bool keepSourceHiddenOnExpand: false
     property bool collapseToCenter: false
+    // Animate in a separate clean window instead of masking inside the host. Needed when the
+    // host has hwnd-level effects (DWM Mica, native shadow) that a QML mask cannot clip.
+    // 在独立的干净窗口里做动画, 而不是在宿主内部遮罩。当宿主带有 QML 遮罩裁不到的 hwnd 级
+    // 效果(DWM Mica、原生阴影)时需要它。
+    property bool preferOverlayWindow: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool usingCustomAnimation: customAnimation !== null
@@ -88,6 +93,16 @@ Item {
 
     function expand(sourceItem) {
         return _start(sourceItem, false)
+    }
+
+    // Undo the host-window hide from preferOverlayWindow. Safe to call unconditionally: it
+    // is a no-op unless the backend actually hid the host.
+    // 撤销 preferOverlayWindow 造成的宿主窗口隐藏。可以无条件调用: 除非后端真的藏了宿主,
+    // 否则它什么都不做。
+    function restoreHostWindow() {
+        if (_backend && _contractValid
+            && typeof _backend._restoreHostWindowAfterOverlay === "function")
+            _backend._restoreHostWindowAfterOverlay()
     }
 
     function stop() {
@@ -197,6 +212,7 @@ Item {
             revealTarget: control.revealTarget
             keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
             collapseToCenter: control.collapseToCenter
+            preferOverlayWindow: control.preferOverlayWindow
         }
     }
 

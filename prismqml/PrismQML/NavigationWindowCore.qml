@@ -8,7 +8,6 @@ import "_internal"
 import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
 import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
 import "_internal/NavigationSplashRouting.js" as NavigationSplashRouting
-import "_internal/NavigationMicaCloseBackdrop.js" as NavigationMicaCloseBackdrop
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -347,8 +346,6 @@ WindowsCore {
     // Fills the windowFrame rect inside the masked layer (WindowsCoreFrame.qml:32), which the
     // close circle does clip. 填充被遮罩层内的 windowFrame 矩形(圆环裁得到它)。
     windowColor: _micaTransparent ? Enums.transparent : Enums.backgroundColor
-    onCloseCollapseStateChanged: (c) => NavigationMicaCloseBackdrop.apply(window, c, MicaManager, Enums.isDark)
-
     Component.onCompleted: {
         _markSplashVisible()
     }

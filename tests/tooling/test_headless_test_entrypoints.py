@@ -45,6 +45,11 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # Visible Windows input probe; run manually with a real D3D11 desktop.
     # 可视 Windows 输入探针；仅在真实 D3D11 桌面上手工运行。
     Path("scripts/manual/native_popup_sendinput_probe.py"),
+    # Measures close-collapse overlay geometry against the main window. Needs a real
+    # composited desktop: the offscreen backend produces no DWM window rects to compare.
+    # 量关闭收紧时覆盖窗与主窗的几何。需要真实合成桌面: offscreen 后端不产生可比对的
+    # DWM 窗口矩形。
+    Path("scripts/manual/close_overlay_geometry_probe.py"),
     Path("scripts/manual/gallery_menu_tab_hover_probe.py"),
     Path("scripts/manual/tab_widget_shadow_artifact_probe.py"),
     # Visible collapse pacing probes; a collapse trajectory is only observable

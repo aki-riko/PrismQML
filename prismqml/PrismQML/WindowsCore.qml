@@ -88,12 +88,6 @@ Window {
     // closeRequestAccepted to false to keep the window alive.
     signal closeRequested()
 
-    // Emitted when the close collapse starts (true) or is cancelled (false). Derived types
-    // that own hwnd-level effects the QML mask cannot clip drop them here.
-    // 关闭收紧开始(true)或被取消(false)时发出。持有 QML 遮罩裁不到的 hwnd 级效果的派生
-    // 类型在此撤掉/装回它们。
-    signal closeCollapseStateChanged(bool collapsing)
-
     // ==================== Internal Methods 内部方法 ====================
     function logTime(msg) { console.log("[" + Math.round(Date.now() - _appStartTime) + "ms]", msg) }
     function profileTime(msg) {
@@ -125,12 +119,9 @@ Window {
         _closeInProgress = false
         _closeCompletionPending = false
         closeFrameWaiter.cancel()
+        // stop() also restores this window's opacity if the overlay path hid it.
+        // stop() 同时会在覆盖窗口那条路藏了本窗口时把不透明度还原。
         closeTransition.stop()
-        // A cancelled close must put the native shadow back, or the window
-        // stays on screen without it. 取消关闭必须把原生阴影装回去, 否则窗口留在
-        // 屏上却没了阴影。
-        _setNativeShadowForClose(true)
-        closeCollapseStateChanged(false)
         windowFrameLayer.visible = _closeSourceWasVisible
         if (window.visible) {
             animHelper.restoreVisibleState()
@@ -139,35 +130,34 @@ Window {
     function _startAcceptedClose() {
         _closeInProgress = true
         _closeSourceWasVisible = windowFrameLayer.visible
-        // The native shadow is a DWM non-client rendering policy on the hwnd,
-        // so no QML layer mask can clip it. Left on, DWM keeps painting a
-        // rectangular shadow around the full window bounds while the circle
-        // collapses, leaving the periphery visibly unclipped. Drop it for the
-        // duration of the close only; _cancelCloseRequest restores it.
-        // 原生阴影是 hwnd 上的 DWM 非客户区渲染策略, QML 的 layer 遮罩裁不到它。
-        // 不关掉的话, 圆环收紧期间 DWM 仍按整窗矩形画阴影, 外围就明显没被裁掉。
-        // 仅在关闭期间撤掉; _cancelCloseRequest 会恢复。
-        _setNativeShadowForClose(false)
-        // Same category as the native shadow: hwnd-level effects the mask cannot reach.
-        // Derived types drop theirs here (NavigationWindowCore: the Mica backdrop).
-        // 与原生阴影同类: 遮罩到不了的 hwnd 级效果。派生类型在此撤掉自己的那份
-        // (NavigationWindowCore: Mica 背板)。
-        closeCollapseStateChanged(true)
+        // Nothing hwnd-level is dropped here on purpose. The collapse runs in the overlay
+        // window (preferOverlayWindow), which has no Mica and no native shadow, and this
+        // window is hidden by opacity once the overlay's mask frame is up — so there is
+        // nothing left for a drop to accomplish. Dropping was also the flash itself: writing
+        // DWMWA_SYSTEMBACKDROP_TYPE makes DWM recompose visibly. Isolated on a real machine
+        // with a throwaway flag that dropped one effect per run — only the Mica variant
+        // flashed. Offscreen tests cannot see this, so the gates for it are static.
+        // 这里故意不撤任何 hwnd 级效果。收紧是在覆盖窗口里跑的(preferOverlayWindow), 那个
+        // 窗口既没 Mica 也没原生阴影, 而本窗口在覆盖窗遮罩帧上屏后就被 opacity 藏了 ——
+        // 所以撤除已无事可做。撤除本身就是闪烁源: 写 DWMWA_SYSTEMBACKDROP_TYPE 会让 DWM
+        // 可见地重新合成。真机上用一次性开关逐个撤效果隔离过, 只有撤 Mica 那次会闪。
+        // offscreen 测试看不到这个现象, 所以相关门禁只能是静态的。
         closeTransition.collapse(windowFrameLayer)
-    }
-    function _setNativeShadowForClose(enabled) {
-        if (!ShadowManager || !_useNativeShadow) return
-        if (enabled) {
-            ShadowManager.enableShadowForWindow(window)
-        } else {
-            ShadowManager.disableShadowForWindow(window)
-        }
     }
     function _completeAcceptedClose() {
         if (!_closeInProgress) return
         _closeDesktopNotifications()
         var closed = window.close()
-        if (closed === false) _cancelCloseRequest()
+        if (closed === false) {
+            _cancelCloseRequest()
+            return
+        }
+        // The overlay path hid this window to keep its Mica out of the collapsing circle.
+        // Restore it only now that the close succeeded and the window is off screen —
+        // restoring any earlier shows one frame of the full, un-collapsed window.
+        // 覆盖窗口那条路把本窗口藏了, 好让它的 Mica 不出现在收缩圆里。只有现在关闭已成功、
+        // 窗口已下屏才还原 —— 早一点还原就会露出一帧完整的、没收紧的窗口。
+        closeTransition.restoreHostWindow()
     }
     function _armAcceptedClose() {
         if (!_closeInProgress) return
@@ -366,6 +356,11 @@ Window {
         animationType: window.closeAnimationType
         customAnimation: window.closeAnimation
         collapseToCenter: true
+        // The main window carries DWM Mica and a native shadow, both hwnd-level and both
+        // outside any QML mask's reach. Animate in the overlay window, which has neither.
+        // 主窗口带着 DWM Mica 和原生阴影, 两者都是 hwnd 级、都在 QML 遮罩管不到的地方。
+        // 改在覆盖窗口里做动画, 那个窗口两样都没有。
+        preferOverlayWindow: true
         onCollapseFinished: Qt.callLater(window._armAcceptedClose)
     }
 

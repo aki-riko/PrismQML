@@ -49,6 +49,9 @@ Item {
     // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。
     property bool keepSourceHiddenOnExpand: false
     property bool collapseToCenter: false
+    // Force the overlay window even when hosted in one; see _beginTransition.
+    // 即使身处窗口内也强制走覆盖窗口; 见 _beginTransition。
+    property bool preferOverlayWindow: false
 
     // ==================== Internal Props 内部属性 ====================
     property Item _sourceItem: null
@@ -56,6 +59,11 @@ Item {
     property bool _collapsed: false
     property bool _capturePending: false
     property bool _captureCollapsing: false
+    // Which capture path produced the current frame; decides whether an image load error
+    // still has a fallback left. 当前帧出自哪条抓图路径; 决定图片加载失败时是否还有兜底。
+    property bool _usingScreenCapture: false
+    property bool _hostHiddenForOverlay: false
+    property real _hostOpacityBeforeOverlay: Enums.opacityLevel.visible
     property int _overlayFrameStage: 0
     property bool _dissolving: false
     property bool _usingPageLayer: false
@@ -100,6 +108,7 @@ Item {
         if (mainFrameFallback) mainFrameFallback.stop()
         if (radiusTransition) radiusTransition.stop()
         if (overlayWindow) overlayWindow.visible = false
+        transition._restoreHostWindowAfterOverlay()
         transition._restorePageLayer()
         transition._detach(true)
         if (frozenFrame) transition._releaseSnapshot()
@@ -128,7 +137,17 @@ Item {
 
         transition._captureCollapsing = collapsing
         transition._collapsed = false
-        if (transition._hostWindow) {
+        // The in-window page layer masks inside the host window, so hwnd-level effects
+        // (DWM Mica, the native shadow) keep painting outside the mask — the mask cannot
+        // reach them. The overlay window has neither (Qt.NoFluentShadowWindowHint, no
+        // Mica), so there the QML mask is the only thing painting. Callers that need a
+        // clean periphery must force it; _hostWindow is always set for a window-hosted
+        // transition, so this branch would otherwise never be skipped.
+        // 窗口内页面层是在宿主窗口里遮罩, 于是 hwnd 级效果(DWM Mica、原生阴影)照旧画在遮罩
+        // 之外 —— 遮罩碰不到它们。覆盖窗口两者都没有(Qt.NoFluentShadowWindowHint、无 Mica),
+        // 在那里 QML 遮罩是唯一作画的东西。需要干净外围的调用方必须强制走它; 窗口内的过渡
+        // _hostWindow 恒有值, 否则这个分支永远不会被跳过。
+        if (transition._hostWindow && !transition.preferOverlayWindow) {
             return transition._beginPageLayerTransition(collapsing)
         }
         // Keep the complete page container renderable while grabToImage is pending;
@@ -167,10 +186,48 @@ Item {
         transition._syncOverlayGeometry()
         frozenFrame.source = ""
         var generation = transition._captureGeneration
+        if (transition._captureFromScreen(generation)) return true
         return transition._captureWithItem(generation, collapsing)
     }
 
+    // grabToImage only captures the QML scene graph. A window showing a DWM material does it
+    // through a transparent windowColor, so the grab has a transparent background and the
+    // overlay — which has no material of its own — renders the page see-through. A screen
+    // grab reads back what DWM already composited, material included.
+    // This is how the removed ripple close animation handled Mica (WindowCloseDissolve.qml,
+    // deleted in 2445451bc); losing it with that file is what regressed.
+    // grabToImage 只抓 QML 场景图。显示 DWM 材质的窗口是靠透明 windowColor 透出来的, 所以
+    // 抓到的背景是透明的, 而覆盖窗自己没有材质, 页面就 render 成透视的。屏幕抓图读回的是
+    // DWM 已经合成好的结果, 含材质。
+    // 被移除的水波关闭动画就是这么处理 Mica 的(WindowCloseDissolve.qml, 于 2445451bc 删除);
+    // 随那个文件一起丢掉它正是本次回归的原因。
+    function _captureFromScreen(generation) {
+        if (!transition.preferOverlayWindow) return false
+        var host = transition._hostWindow
+        var item = transition._captureItem
+        if (!host || !item) return false
+        if (typeof AcrylicHelper === "undefined" || !AcrylicHelper
+                || typeof AcrylicHelper.grabWindowFrame !== "function") return false
+        var source = AcrylicHelper.grabWindowFrame(
+            host,
+            Math.round(item.x),
+            Math.round(item.y),
+            Math.round(item.width),
+            Math.round(item.height)
+        )
+        if (!source) return false
+        if (!transition._capturePending
+                || generation !== transition._captureGeneration) return false
+        transition._grabResult = null
+        transition._usingScreenCapture = true
+        frozenFrame.source = source
+        transition._showOverlayWhenReady()
+        captureTimeout.restart()
+        return true
+    }
+
     function _captureWithItem(generation, collapsing) {
+        transition._usingScreenCapture = false
         var accepted = transition._captureItem.grabToImage(function(result) {
             if (!transition._capturePending ||
                     generation !== transition._captureGeneration) return
@@ -184,6 +241,37 @@ Item {
         }
         captureTimeout.restart()
         return true
+    }
+
+    // Hiding the source item is not enough: the host window keeps its hwnd-level DWM Mica
+    // and native shadow, which paint outside the overlay's mask and defeat the whole point
+    // of moving to an overlay. Called only after the stage-2 mask frame is confirmed on
+    // screen, so no frame has both windows invisible.
+    // 只藏源项不够: 宿主窗口仍带着 hwnd 级的 DWM Mica 和原生阴影, 它们画在覆盖窗遮罩之外,
+    // 会让搬到覆盖窗这件事完全失去意义。仅在阶段 2 遮罩帧确认上屏后调用, 故不存在两个窗口
+    // 同时不可见的帧。
+    function _hideHostWindowForOverlay() {
+        if (!transition.preferOverlayWindow) return
+        // Re-entering would save the already-zeroed opacity as the value to restore, leaving
+        // the window permanently invisible. 重入会把已归零的不透明度存成待还原值, 窗口就永久
+        // 不可见了。
+        if (transition._hostHiddenForOverlay) return
+        var host = transition._hostWindow
+        if (!host) return
+        // opacity, not visible: visible=false tears down the scene graph, which stops the
+        // animation that is still driving the overlay.
+        // 用 opacity 而非 visible: visible=false 会拆掉场景图, 而那个场景图还在驱动覆盖窗的
+        // 动画。
+        transition._hostOpacityBeforeOverlay = host.opacity
+        transition._hostHiddenForOverlay = true
+        host.opacity = Enums.opacityLevel.invisible
+    }
+
+    function _restoreHostWindowAfterOverlay() {
+        if (!transition._hostHiddenForOverlay) return
+        transition._hostHiddenForOverlay = false
+        var host = transition._hostWindow
+        if (host) host.opacity = transition._hostOpacityBeforeOverlay
     }
 
     function _syncOverlayGeometry() {
@@ -228,6 +316,7 @@ Item {
         if (transition._overlayFrameStage === 2) {
             transition._overlayFrameStage = 0
             if (transition._sourceItem) transition._sourceItem.visible = false
+            transition._hideHostWindowForOverlay()
             if (transition._captureCollapsing) transition.collapseStarted()
             else transition.expandStarted()
             radiusTransition.startPrepared()
@@ -248,6 +337,7 @@ Item {
         transition._collapseFramePending = false
         captureTimeout.stop()
         overlayWindow.visible = false
+        transition._restoreHostWindowAfterOverlay()
         var sourceItem = transition._sourceItem
         if (sourceItem) sourceItem.visible = !collapsing
         transition._restorePageLayer()
@@ -267,6 +357,7 @@ Item {
         frozenFrame.visible = false
         frozenFrame.source = ""
         transition._grabResult = null
+        transition._usingScreenCapture = false
     }
 
     function _restorePageLayer() {
@@ -466,6 +557,15 @@ Item {
                 if (status === Image.Ready) {
                     transition._showOverlayWhenReady()
                 } else if (status === Image.Error && transition._capturePending) {
+                    // A screen grab that fails to load still has the item grab left to try;
+                    // only give up on the animation once that path fails too.
+                    // 屏幕抓图加载失败时还剩下抓取项这条路可试; 只有那条也失败才放弃动画。
+                    if (transition._usingScreenCapture) {
+                        transition._usingScreenCapture = false
+                        transition._captureWithItem(
+                            transition._captureGeneration, transition._captureCollapsing)
+                        return
+                    }
                     transition._completeWithoutAnimation(
                         transition._captureCollapsing, "snapshot image load failed")
                 }
