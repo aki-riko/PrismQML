@@ -10,12 +10,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CPP_GALLERY_MAIN = ROOT / "cpp" / "gallery" / "main.cpp"
 WINDOW_HEADER = ROOT / "cpp" / "include" / "prism" / "Window.h"
+CONFIG_HEADER = ROOT / "cpp" / "include" / "prism" / "ConfigManager.h"
+WINDOW_SOURCE = ROOT / "cpp" / "src" / "Window.cpp"
 
 
 def test_cpp_gallery_restores_persisted_window_type():
     source = CPP_GALLERY_MAIN.read_text(encoding="utf-8")
     window_header = WINDOW_HEADER.read_text(encoding="utf-8")
+    config_header = CONFIG_HEADER.read_text(encoding="utf-8")
+    window_source = WINDOW_SOURCE.read_text(encoding="utf-8")
 
     assert "enum class WindowType { Split = 0, Bar = 1, Filled = 2 };" in window_header
     assert "ConfigManager::instance()->windowType()" in source
+    assert "lazyAnimationType" in config_header
+    assert '"    lazyAnimationType: %2\\n"' in window_source
     assert "app.createWindow(WindowType::Bar)" not in source

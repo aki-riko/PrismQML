@@ -19,7 +19,9 @@ _EXPECTED_INIT_STATEMENTS = (
     "super().__init__(parent)",
     "initialize_window_state(self, window_type)",
     "from ..runtime import get_config_manager",
-    "self._lazy_loading = get_config_manager().lazyLoading",
+    "config_manager = get_config_manager()",
+    "self._lazy_loading = config_manager.lazyLoading",
+    "self._lazy_animation_type = config_manager.lazyAnimationType",
     "initialize_splash_state(self)",
 )
 _EXPECTED_WINDOW_STATE = (

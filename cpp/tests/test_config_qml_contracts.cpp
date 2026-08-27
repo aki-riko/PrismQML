@@ -35,11 +35,15 @@ constexpr char kQmlBridgeSource[] = R"(
         property var manager
         function setDpi(value) { manager.setDpiScale(value) }
         function setWindow(value) { manager.setWindowType(value) }
+        function setLazyAnimation(value) { manager.setLazyAnimationType(value) }
         function setDpiOption(index) {
             manager.setDpiScale(manager.dpiScaleOptions[index])
         }
         function setWindowOption(index) {
             manager.setWindowType(manager.windowTypeOptions[index])
+        }
+        function setLazyAnimationOption(index) {
+            manager.setLazyAnimationType(manager.lazyAnimationTypeOptions[index])
         }
     }
 )";
@@ -217,10 +221,15 @@ void testOptions(Checks &checks, const QString &rootPath, QObject &bridge) {
     bool windowOk = false;
     const QVariant window = evaluateQmlValue(
         &bridge, QStringLiteral("manager.windowTypeOptions"), windowOk);
+    bool lazyAnimationOk = false;
+    const QVariant lazyAnimation = evaluateQmlValue(
+        &bridge, QStringLiteral("manager.lazyAnimationTypeOptions"), lazyAnimationOk);
     checks.check(dpiOk && dpi.toList() == dpiScaleOptions(),
                  "QML 精确读取 DPI 候选顺序");
     checks.check(windowOk && window.toList() == windowTypeOptions(),
-                  "QML 精确读取 WindowType 候选顺序");
+                   "QML 精确读取 WindowType 候选顺序");
+    checks.check(lazyAnimationOk && lazyAnimation.toList() == lazyAnimationTypeOptions(),
+                 "QML 精确读取 LazyAnimationType 候选顺序");
 }
 
 void testOptionRoundTrips(Checks &checks, const QString &rootPath,
@@ -246,6 +255,13 @@ void testOptionRoundTrips(Checks &checks, const QString &rootPath,
         checks.check(invoked && config.waitForPersistence() &&
                          config.windowType() == kValidWindowTypes[i],
                      QStringLiteral("WindowType 候选元素真实往返 %1").arg(i));
+    }
+    for (int i = 0; i < static_cast<int>(kValidLazyAnimationTypes.size()); ++i) {
+        const QString expression = QStringLiteral("setLazyAnimationOption(%1)").arg(i);
+        const bool invoked = evaluateQmlAndWait(&bridge, config, expression);
+        checks.check(invoked && config.waitForPersistence() &&
+                         config.lazyAnimationType() == kValidLazyAnimationTypes[i],
+                     QStringLiteral("LazyAnimationType 候选元素真实往返 %1").arg(i));
     }
 }
 

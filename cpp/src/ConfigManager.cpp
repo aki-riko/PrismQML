@@ -144,6 +144,10 @@ QVariantList ConfigManager::windowTypeOptions() const {
     return prism::windowTypeOptions();
 }
 
+QVariantList ConfigManager::lazyAnimationTypeOptions() const {
+    return prism::lazyAnimationTypeOptions();
+}
+
 QVariantList ConfigManager::themeOptions() const { return prism::themeOptions(); }
 QVariantList ConfigManager::skinOptions() const { return prism::skinOptions(); }
 QVariantList ConfigManager::languageOptions() const { return prism::languageOptions(); }
@@ -156,6 +160,7 @@ void ConfigManager::load() {
     detail::AppConfigState candidate{
         {
             m_state.lazyLoading,
+            m_state.lazyAnimationType,
             m_state.dwmShadow,
             m_state.micaEnabled,
             m_state.dpiScale,
@@ -180,6 +185,7 @@ void ConfigManager::load() {
     }
     m_state = State{
         candidate.window.lazyLoading,
+        candidate.window.lazyAnimationType,
         candidate.window.dwmShadow,
         candidate.window.micaEnabled,
         candidate.window.dpiScale,
@@ -195,6 +201,7 @@ QByteArray ConfigManager::serialize(const State &candidate,
                                     bool persistAppearance) {
     QJsonObject win;
     win[QStringLiteral("LazyLoading")] = candidate.lazyLoading;
+    win[QStringLiteral("LazyAnimationType")] = candidate.lazyAnimationType;
     win[QStringLiteral("DwmShadow")] = candidate.dwmShadow;
     win[QStringLiteral("MicaEnabled")] = candidate.micaEnabled;
     win[QStringLiteral("DpiScale")] = candidate.dpiScale;
@@ -226,6 +233,12 @@ bool ConfigManager::applyUpdate(State &candidate, const PendingUpdate &update) {
         const bool value = update.value.toBool();
         if (candidate.lazyLoading == value) return false;
         candidate.lazyLoading = value;
+        return true;
+    }
+    case Field::LazyAnimationType: {
+        const int value = update.value.toInt();
+        if (candidate.lazyAnimationType == value) return false;
+        candidate.lazyAnimationType = value;
         return true;
     }
     case Field::DwmShadow: {
@@ -396,6 +409,9 @@ void ConfigManager::publishCommittedField(Field field) {
     case Field::LazyLoading:
         emit lazyLoadingChanged();
         break;
+    case Field::LazyAnimationType:
+        emit lazyAnimationTypeChanged();
+        break;
     case Field::DwmShadow:
         emit dwmShadowChanged();
         break;
@@ -481,6 +497,17 @@ bool ConfigManager::waitForPersistence(int timeoutMs) {
 void ConfigManager::setLazyLoading(bool value) {
     if (!persistencePending() && m_state.lazyLoading == value) return;
     enqueueUpdate(Field::LazyLoading, value);
+}
+void ConfigManager::setLazyAnimationType(const QVariant &candidateValue) {
+    int value = 0;
+    if (!strictIntegerVariant(candidateValue, value) ||
+        !isValidLazyAnimationType(value)) {
+        qWarning() << "prism::ConfigManager 无效 lazyAnimationType:"
+                   << candidateValue;
+        return;
+    }
+    if (!persistencePending() && m_state.lazyAnimationType == value) return;
+    enqueueUpdate(Field::LazyAnimationType, value);
 }
 void ConfigManager::setDwmShadow(bool value) {
     if (!persistencePending() && m_state.dwmShadow == value) return;
