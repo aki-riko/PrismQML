@@ -13,11 +13,12 @@ from _test_process_bootstrap import configure_qml_test_process
 
 configure_qml_test_process()
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl, Slot
+from PySide6.QtCore import QEventLoop, QObject, Property, QTimer, QUrl, Slot
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtWidgets import QApplication
 
 from prismqml.python.window.fast_splash import FastSplashController
+from prismqml import configure_qml_environment, register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,7 +31,10 @@ class StartupBridge(QObject):
     def __init__(self):
         super().__init__()
         self.windows = []
-        self.splashSubtitle = "Loading..."
+
+    @Property(str, constant=True)
+    def splashSubtitle(self):
+        return "Loading..."
 
     @Slot(QObject, result=bool)
     def registerStartupWindow(self, window):
@@ -46,7 +50,9 @@ def pump(milliseconds: int) -> None:
 
 def main() -> int:
     app = QApplication(sys.argv)
+    configure_qml_environment()
     engine = QQmlEngine()
+    register_types(engine)
     engine.addImportPath(str(PKG_ROOT))
     startup_bridge = StartupBridge()
     engine.rootContext().setContextProperty("PrismQmlStartup", startup_bridge)

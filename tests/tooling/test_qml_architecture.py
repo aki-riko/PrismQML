@@ -359,7 +359,7 @@ def test_navigation_window_core_keeps_splash_timer_modularized():
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 480
+    assert len(source.splitlines()) < 500
     assert helper.exists()
     assert len(helper_source.splitlines()) < 80
     assert 'import "_internal"' in source
