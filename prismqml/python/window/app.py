@@ -25,6 +25,7 @@ from ._application_icon_runtime import (
     configure_initial_application_icon,
     initialize_application_icon_state,
 )
+from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
 
 if TYPE_CHECKING:
     from PySide6.QtQml import QQmlApplicationEngine
@@ -60,6 +61,7 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._updater = None
     owner._fast_splash = None
     owner._startup_window_registrar = None
+    owner._splash_subtitle = DEFAULT_SPLASH_SUBTITLE
     initialize_application_icon_state(owner)
 
 
@@ -86,6 +88,11 @@ def _create_qt_application(
     )
 
     owner._app, owner._owns_app = create_qt_application(argv)
+    owner._splash_subtitle = (
+        DEFAULT_SPLASH_SUBTITLE
+        if splash_subtitle is None
+        else str(splash_subtitle)
+    )
     owner._input_filter_started = True
     install_application_input_filter(owner._app)
     from .fast_splash import FastSplashController
@@ -93,7 +100,7 @@ def _create_qt_application(
     owner._fast_splash = FastSplashController(owner._app)
     owner._fast_splash.show(
         application_icon or "",
-        subtitle=splash_subtitle,
+        subtitle=owner._splash_subtitle,
         splash_width=splash_width,
         splash_height=splash_height,
     )
@@ -430,6 +437,11 @@ class App(ApplicationIconMixin):
         """获取应用名称 Get application name"""
         return QApplication.applicationName()
 
+    @property
+    def splash_subtitle(self) -> str:
+        """Return the shared default subtitle for all startup surfaces."""
+        return self._splash_subtitle
+
     @classmethod
     def setApplicationVersion(cls, version: str) -> None:
         """设置应用版本 Set application version"""
@@ -526,6 +538,9 @@ class App(ApplicationIconMixin):
         from .fluent_window import Window
 
         window = Window(window_type=window_type)
+        window._splash_subtitle = getattr(
+            self, "_splash_subtitle", DEFAULT_SPLASH_SUBTITLE
+        )
         apply_application_icon_to_window(self, window)
         self._windows.append(window)
         return window

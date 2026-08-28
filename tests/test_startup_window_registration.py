@@ -46,6 +46,19 @@ def test_qml_startup_bridge_forwards_to_public_app_api():
     assert registrar.registerStartupWindow(None) is False
 
 
+def test_qml_startup_bridge_exposes_shared_subtitle_default_and_override():
+    from prismqml.python.runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+    from prismqml.python.runtime.startup_window import StartupWindowRegistrar
+
+    default_registrar = StartupWindowRegistrar(SimpleNamespace(), None)
+    assert default_registrar.splashSubtitle == DEFAULT_SPLASH_SUBTITLE
+
+    custom_registrar = StartupWindowRegistrar(
+        SimpleNamespace(splash_subtitle="Loading..."), None
+    )
+    assert custom_registrar.splashSubtitle == "Loading..."
+
+
 def test_navigation_window_core_registers_only_pure_qml_windows():
     source = (
         ROOT / "prismqml/PrismQML/NavigationWindowCore.qml"
@@ -55,3 +68,4 @@ def test_navigation_window_core_registers_only_pure_qml_windows():
     assert "PrismQmlStartup.registerStartupWindow(window)" in source
     assert "if (_pythonPageMode" in source
     assert "_registerStartupWindow()" in source
+    assert "PrismQmlStartup.splashSubtitle" in source

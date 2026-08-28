@@ -79,6 +79,20 @@ def test_create_window_inherits_configured_application_icon(monkeypatch):
     assert app.windows == [window]
 
 
+def test_create_window_inherits_app_splash_subtitle(monkeypatch):
+    """Python windows must inherit the App-level startup subtitle."""
+    monkeypatch.setattr(
+        "prismqml.python.window.fluent_window.Window",
+        _FakeWindow,
+    )
+    app = _bare_app()
+    app._splash_subtitle = "Loading..."
+
+    window = app.create_window()
+
+    assert window._splash_subtitle == "Loading..."
+
+
 def test_application_icon_rejects_empty_source():
     """An empty source cannot silently retain a stale Qt icon. 空来源不得静默保留旧图标。"""
     app = _bare_app()

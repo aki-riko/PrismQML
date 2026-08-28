@@ -23,8 +23,10 @@ app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 window = app.create_window(WindowType.BAR)
 ```
 
-`splash_subtitle` 可在创建 `App` 时为快速启动页提供首帧副标题；不传入时保持
-默认启动文案和旧版启动时序。
+`splash_subtitle` 是应用级启动页副标题入口；创建 `App` 时传入后，FastSplash、
+纯 QML 默认窗口、Python 窗口以及内嵌 Splash 回退会共同使用该值。不传入时使用
+引擎默认启动文案和旧版启动时序；窗口级 `splashSubtitle` 或 `showSplash()` 参数
+可以显式覆盖。
 
 `App(allow_qml_file_read=True)` 默认在创建 QML 引擎前启用 Translator 的本地 i18n JSON 读取；传入 `False` 可显式关闭。普通 `import prismqml` 不会修改该环境变量。
 

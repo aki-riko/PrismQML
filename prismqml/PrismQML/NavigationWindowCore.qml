@@ -32,7 +32,10 @@ WindowsCore {
     property bool splashEnabled: true  // Enable the shared startup overlay 启用通用启动覆盖层
     property string splashIcon: ""  // Empty inherits windowIcon 空值继承窗口图标
     property string splashTitle: ""  // Empty inherits windowTitle 空值继承窗口标题
-    property string splashSubtitle: ""  // Startup status text 启动状态文本
+    property string splashSubtitle:
+        typeof PrismQmlStartup !== "undefined" && PrismQmlStartup
+            && typeof PrismQmlStartup.splashSubtitle === "string"
+            ? PrismQmlStartup.splashSubtitle : ""  // Startup status text 启动状态文本
     property int splashMinimumVisibleDuration: Enums.duration.splashMinimumVisible  // Stable display after window exposure 窗口可见后的最短稳定展示时长
     property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration  // Reveal animation length; splash stays visible throughout 揭幕动画时长, 期间启动画面持续可见
     property int splashExitAnimationType: Enums.lazyAnimation.lazy_circle  // Built-in splash exit animation 内置启动画面退场动画

@@ -40,6 +40,13 @@ def test_fast_splash_template_uses_configured_dimensions():
     assert "width: 980; height: 640" in source
 
 
+def test_fast_splash_template_uses_shared_subtitle_default_and_override():
+    from prismqml.python.runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+
+    assert DEFAULT_SPLASH_SUBTITLE in build_fast_splash_qml(False)
+    assert "Loading..." in build_fast_splash_qml(False, 1200, 800, "Loading...")
+
+
 @pytest.mark.parametrize("value", [0, -1, True, 1.5, "980"])
 def test_fast_splash_rejects_invalid_dimensions(value):
     with pytest.raises(ValueError):
@@ -59,14 +66,28 @@ def test_fast_splash_syncs_attached_window_dimensions():
     assert controller._splash.properties["height"] == 640
 
 
-def test_fast_splash_repositions_after_attached_window_resize():
+def test_fast_splash_preserves_center_after_attached_window_resize():
     controller = FastSplashController(None)
     controller._splash = _SplashSurface()
+    controller._splash.properties.update(
+        {"width": 1200, "height": 800, "x": 360, "y": 140}
+    )
     window = _WindowSurface(width=980, height=640, x=-120, y=48)
 
     controller._sync_window_size(window)
 
-    assert controller._splash.position == (-120, 48)
+    assert controller._splash.position == (470, 220)
+
+
+def test_fast_splash_aligns_main_window_to_stable_geometry():
+    controller = FastSplashController(None)
+    controller._splash = _SplashSurface()
+    controller._splash.properties.update({"x": 470, "y": 220})
+    window = _WindowSurface()
+
+    controller._align_main_window_to_splash(window)
+
+    assert window.position == (470, 220)
 
 
 @pytest.mark.parametrize(
@@ -108,6 +129,9 @@ class _SplashSurface:
     def setProperty(self, name, value):
         self.properties[name] = value
 
+    def property(self, name):
+        return self.properties.get(name)
+
     def show(self):
         self.shown = True
 
@@ -131,9 +155,13 @@ class _ApplicationSurface:
 class _WindowSurface:
     def __init__(self, **properties):
         self._properties = properties
+        self.position = None
 
     def property(self, name):
         return self._properties.get(name)
+
+    def setPosition(self, x, y):
+        self.position = (x, y)
 
 
 def test_fast_splash_waits_for_python_page_readiness():
@@ -415,11 +443,13 @@ def test_build_splash_template_values_escapes_strings():
 
 def test_build_splash_properties_supports_bare_window_builder():
     builder = SimpleNamespace(_resolve_icon_path=lambda value: value)
+    from prismqml.python.runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+
     assert build_splash_properties(builder) == {
         "splashEnabled": True,
         "splashIcon": "",
         "splashTitle": "",
-        "splashSubtitle": "",
+        "splashSubtitle": DEFAULT_SPLASH_SUBTITLE,
     }
 
 
@@ -484,6 +514,8 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "Window::createSplash" not in cpp_source
     assert "createSplash();" not in cpp_source
     assert "splashSubtitle:" in gallery_source
+    assert 'property string splashSubtitle: "{splash_subtitle}"' in fast_splash_source
+    assert "DEFAULT_SPLASH_SUBTITLE" in fast_splash_source
     assert "splashComponent.createObject" not in gallery_source
     splash_qml = fast_splash_source.split('_SPLASH_QML = """', 1)[1].split(
         '"""', 1

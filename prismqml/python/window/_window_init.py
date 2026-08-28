@@ -11,6 +11,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from ._page_prewarm import initialize_page_prewarm_state
+from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
@@ -47,4 +48,4 @@ def initialize_splash_state(owner: Any) -> None:
     owner._splash_enabled = True
     owner._splash_icon = ""
     owner._splash_title = ""
-    owner._splash_subtitle = ""
+    owner._splash_subtitle = DEFAULT_SPLASH_SUBTITLE

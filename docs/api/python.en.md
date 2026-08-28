@@ -23,9 +23,11 @@ app = App(application_icon=Path(__file__).with_name("app_icon.png"))
 window = app.create_window(WindowType.BAR)
 ```
 
-Pass `splash_subtitle` to `App` when the fast startup surface must render a
-custom subtitle on its first visible frame. Omitting it preserves the default
-startup text and legacy startup timing.
+`splash_subtitle` is the application-level startup subtitle entry point. Once
+provided to `App`, the value is shared by FastSplash, pure-QML default windows,
+Python windows, and the embedded Splash fallback. Omitting it preserves the
+engine default startup text and legacy timing; a window-level `splashSubtitle`
+or `showSplash()` argument can explicitly override it.
 
 `App(allow_qml_file_read=True)` enables local i18n JSON access for Translator before creating the QML engine; pass `False` to disable it explicitly. A plain `import prismqml` does not change this environment setting.
 

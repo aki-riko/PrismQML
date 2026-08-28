@@ -7,15 +7,20 @@
 
 from typing import Any, Callable, Dict
 
+from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+
 
 def build_splash_properties(builder: Any) -> Dict[str, Any]:
     """Build properties consumed by NavigationWindowCore. 构建窗口基类消费的属性。"""
     icon = getattr(builder, "_splash_icon", "")
+    subtitle = getattr(builder, "_splash_subtitle", DEFAULT_SPLASH_SUBTITLE)
+    if subtitle is None:
+        subtitle = ""
     return {
         "splashEnabled": bool(getattr(builder, "_splash_enabled", True)),
         "splashIcon": builder._resolve_icon_path(icon) if icon else "",
         "splashTitle": getattr(builder, "_splash_title", "") or "",
-        "splashSubtitle": getattr(builder, "_splash_subtitle", "") or "",
+        "splashSubtitle": str(subtitle),
     }
 
 

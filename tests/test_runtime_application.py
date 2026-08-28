@@ -238,7 +238,7 @@ def test_app_marks_filter_rollback_after_runtime_install(monkeypatch, stage):
         def __init__(self, application):
             calls.append(("splash_create", application))
 
-        def show(self, icon="", *, subtitle=None):
+        def show(self, icon="", *, subtitle=None, splash_width=None, splash_height=None):
             calls.append(("splash_show", icon, subtitle))
 
     def invoke(label, value=None):
@@ -278,8 +278,46 @@ def test_app_marks_filter_rollback_after_runtime_install(monkeypatch, stage):
         expected.extend(
             [
                 ("splash_create", application),
-                ("splash_show", "", None),
+                ("splash_show", "", app_module.DEFAULT_SPLASH_SUBTITLE),
             ]
         )
         expected.append("dwm")
     assert calls == expected
+
+
+def test_create_qt_application_resolves_app_splash_subtitle(monkeypatch):
+    application = object()
+    calls = []
+    owner = SimpleNamespace(
+        _app=None,
+        _owns_app=False,
+        _input_filter_started=False,
+        _dwm_filter_started=False,
+    )
+
+    class FakeFastSplashController:
+        def __init__(self, _application):
+            pass
+
+        def show(self, icon="", *, subtitle=None, splash_width=None, splash_height=None):
+            calls.append((icon, subtitle, splash_width, splash_height))
+
+    monkeypatch.setattr(
+        runtime,
+        "create_qt_application",
+        lambda argv: (application, True),
+    )
+    monkeypatch.setattr(runtime, "install_application_input_filter", lambda value: None)
+    monkeypatch.setattr(runtime, "install_application_dwm_filter", lambda: True)
+    monkeypatch.setattr(fast_splash, "FastSplashController", FakeFastSplashController)
+
+    app_module._create_qt_application(
+        owner,
+        ["prism"],
+        splash_subtitle="Loading...",
+        splash_width=1100,
+        splash_height=720,
+    )
+
+    assert owner._splash_subtitle == "Loading..."
+    assert calls == [("", "Loading...", 1100, 720)]

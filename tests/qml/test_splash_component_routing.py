@@ -30,6 +30,7 @@ class StartupBridge(QObject):
     def __init__(self):
         super().__init__()
         self.windows = []
+        self.splashSubtitle = "Loading..."
 
     @Slot(QObject, result=bool)
     def registerStartupWindow(self, window):
@@ -71,6 +72,9 @@ NavigationWindowCore {
         return 1
     if startup_bridge.windows != [default_window]:
         print("[FAIL] 默认 NavigationWindowCore 未自动注册启动窗口")
+        return 1
+    if default_window.property("splashSubtitle") != "Loading...":
+        print("[FAIL] 默认 NavigationWindowCore 未继承 App 启动副标题")
         return 1
 
     source = """

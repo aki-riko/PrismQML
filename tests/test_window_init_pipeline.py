@@ -290,7 +290,9 @@ def _assert_default_state(instance, lazy_value):
     )
     assert instance._splash_enabled is True
     assert (instance._splash_icon, instance._splash_title) == ("", "")
-    assert instance._splash_subtitle == ""
+    from prismqml.python.runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+
+    assert instance._splash_subtitle == DEFAULT_SPLASH_SUBTITLE
     assert not hasattr(instance, "_splash_instance")
     assert not hasattr(instance, "_splash_component")
 
