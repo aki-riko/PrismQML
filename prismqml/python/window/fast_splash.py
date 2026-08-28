@@ -462,7 +462,6 @@ class FastSplashController(QObject):
         if self._splash is None:
             return False
         try:
-            self._align_main_window_to_splash(main_window)
             info(
                 "FastSplash 绑定主窗口: "
                 f"hwnd={int(main_window.winId())}, "
@@ -511,7 +510,6 @@ class FastSplashController(QObject):
         """Copy existing window splash metadata into the early surface."""
         if self._splash is None:
             return
-        self._sync_window_size(main_window)
         title = (
             main_window.property("splashTitle")
             or main_window.property("windowTitle")
@@ -525,88 +523,6 @@ class FastSplashController(QObject):
         )
         self.update_metadata(title=title, icon=icon, subtitle=subtitle)
         self.mark_window_metadata_ready()
-
-    @staticmethod
-    def _read_window_dimension(main_window: QQuickWindow, name: str) -> Optional[int]:
-        try:
-            value = main_window.property(name)
-        except (AttributeError, RuntimeError, TypeError):
-            value = None
-        if value is None:
-            getter = getattr(main_window, name, None)
-            value = getter() if callable(getter) else getter
-        try:
-            value = int(value)
-        except (TypeError, ValueError):
-            return None
-        return value if value > 0 else None
-
-    @staticmethod
-    def _read_window_coordinate(main_window: QQuickWindow, name: str) -> Optional[int]:
-        """Read a window x/y coordinate, preserving valid negative positions."""
-        try:
-            value = main_window.property(name)
-        except (AttributeError, RuntimeError, TypeError):
-            value = None
-        if value is None:
-            getter = getattr(main_window, name, None)
-            value = getter() if callable(getter) else getter
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    def _sync_window_size(self, main_window: QQuickWindow) -> None:
-        """Resize around the current splash center without following unstable window x/y."""
-        if self._splash is None:
-            return
-        width = self._read_window_dimension(main_window, "width")
-        height = self._read_window_dimension(main_window, "height")
-        if width is None or height is None:
-            return
-        splash_x = self._read_window_coordinate(self._splash, "x")
-        splash_y = self._read_window_coordinate(self._splash, "y")
-        old_width = self._read_window_dimension(self._splash, "width")
-        old_height = self._read_window_dimension(self._splash, "height")
-        self._splash_size = (width, height)
-        set_width = getattr(self._splash, "setWidth", None)
-        set_height = getattr(self._splash, "setHeight", None)
-        if callable(set_width):
-            set_width(width)
-        else:
-            self._splash.setProperty("width", width)
-        if callable(set_height):
-            set_height(height)
-        else:
-            self._splash.setProperty("height", height)
-        set_position = getattr(self._splash, "setPosition", None)
-        if (
-            callable(set_position)
-            and splash_x is not None
-            and splash_y is not None
-            and old_width is not None
-            and old_height is not None
-        ):
-            set_position(
-                splash_x + (old_width - width) // 2,
-                splash_y + (old_height - height) // 2,
-            )
-        info(
-            f"FastSplash 尺寸同步: main={width}x{height}, "
-            f"splash={width}x{height}"
-        )
-
-    def _align_main_window_to_splash(self, main_window: QQuickWindow) -> None:
-        """Make the main window take over the stable fast-splash geometry."""
-        if self._splash is None:
-            return
-        x = self._read_window_coordinate(self._splash, "x")
-        y = self._read_window_coordinate(self._splash, "y")
-        if x is None or y is None:
-            return
-        set_position = getattr(main_window, "setPosition", None)
-        if callable(set_position):
-            set_position(x, y)
 
     def restore_embedded_splash(self, main_window: Optional[QQuickWindow] = None) -> bool:
         """Restore the normal QML splash after a fast-path failure or bypass."""
@@ -644,7 +560,6 @@ class FastSplashController(QObject):
             if not QMetaObject.invokeMethod(main_window, "_enableDeferredSplash"):
                 warning("FastSplash 自定义回退无法启用内嵌 Splash")
                 return self.restore_embedded_splash(main_window)
-            self._align_main_window_to_splash(main_window)
             self._show_qml_owned_window(main_window)
             self._raise_owned_splash(self._splash, main_window)
             self._embedded_handoff = True

@@ -34,12 +34,6 @@ def test_fast_splash_normalizes_initial_icon_sources():
     assert FastSplashController._qml_icon_source("D:\\icons\\app.svg") == "file:///D:/icons/app.svg"
 
 
-def test_fast_splash_template_uses_configured_dimensions():
-    source = build_fast_splash_qml(False, 980, 640)
-
-    assert "width: 980; height: 640" in source
-
-
 def test_fast_splash_template_uses_shared_subtitle_default_and_override():
     from prismqml.python.runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
 
@@ -55,47 +49,26 @@ def test_fast_splash_template_avoids_first_frame_icon_shadow_effect():
     assert "layer.effect: MultiEffect" not in source
 
 
+def test_fast_splash_does_not_take_over_attached_window_geometry():
+    source = (ROOT / "prismqml/python/window/fast_splash.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "_sync_window_size" not in source
+    assert "_align_main_window_to_splash" not in source
+    assert "main_window.setPosition" not in source
+
+
+def test_fast_splash_keeps_explicit_initial_dimensions():
+    source = build_fast_splash_qml(False, 980, 640)
+
+    assert "width: 980; height: 640" in source
+
+
 @pytest.mark.parametrize("value", [0, -1, True, 1.5, "980"])
 def test_fast_splash_rejects_invalid_dimensions(value):
     with pytest.raises(ValueError):
         FastSplashController._validate_dimension(value, "splash_width")
-
-
-def test_fast_splash_syncs_attached_window_dimensions():
-    controller = FastSplashController(None)
-    controller._splash = _SplashSurface()
-    controller._splash_size = (1200, 800)
-    window = _WindowSurface(width=980, height=640)
-
-    controller._sync_window_size(window)
-
-    assert controller._splash_size == (980, 640)
-    assert controller._splash.properties["width"] == 980
-    assert controller._splash.properties["height"] == 640
-
-
-def test_fast_splash_preserves_center_after_attached_window_resize():
-    controller = FastSplashController(None)
-    controller._splash = _SplashSurface()
-    controller._splash.properties.update(
-        {"width": 1200, "height": 800, "x": 360, "y": 140}
-    )
-    window = _WindowSurface(width=980, height=640, x=-120, y=48)
-
-    controller._sync_window_size(window)
-
-    assert controller._splash.position == (470, 220)
-
-
-def test_fast_splash_aligns_main_window_to_stable_geometry():
-    controller = FastSplashController(None)
-    controller._splash = _SplashSurface()
-    controller._splash.properties.update({"x": 470, "y": 220})
-    window = _WindowSurface()
-
-    controller._align_main_window_to_splash(window)
-
-    assert window.position == (470, 220)
 
 
 @pytest.mark.parametrize(
@@ -132,7 +105,6 @@ class _SplashSurface:
     def __init__(self):
         self.properties = {}
         self.shown = False
-        self.position = None
 
     def setProperty(self, name, value):
         self.properties[name] = value
@@ -142,9 +114,6 @@ class _SplashSurface:
 
     def show(self):
         self.shown = True
-
-    def setPosition(self, x, y):
-        self.position = (x, y)
 
 
 class _ApplicationSurface:
@@ -163,13 +132,9 @@ class _ApplicationSurface:
 class _WindowSurface:
     def __init__(self, **properties):
         self._properties = properties
-        self.position = None
 
     def property(self, name):
         return self._properties.get(name)
-
-    def setPosition(self, x, y):
-        self.position = (x, y)
 
 
 def test_fast_splash_waits_for_python_page_readiness():

@@ -288,8 +288,7 @@ class App(ApplicationIconMixin):
     ``config_path`` 可指定应用独立配置；显式路径默认启用外观持久化。
     ``persist_appearance=False`` 可让宿主自行管理主题、皮肤、语言和主题色。
     ``splash_subtitle`` 可在快速启动页首帧显示自定义副标题。
-    ``splash_width`` / ``splash_height`` 可指定快速启动页初始尺寸；绑定窗口后
-    引擎仍会以主窗口实际逻辑尺寸为准。
+    ``splash_width`` / ``splash_height`` 可指定快速启动页初始尺寸。
     """
 
     _instance: "App" = None
