@@ -46,6 +46,7 @@ Item {
         graphData: rowDelegate.model.graphData || {}
         showNode: rowDelegate.model.kind === "card"
         nodeY: rowDelegate.cardPart ? rowDelegate.cardPart.nodeY : 0
+        opacity: control._pulseOpacity
         selected: showNode && !!rowDelegate.cardPart
             && rowDelegate.cardPart.isSelected
         graphPalette: control.graphPalette
@@ -79,6 +80,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     color: control._getStatusColor(rowDelegate.model.status || "info")
                     visible: !control._graphMode
+                    opacity: control._pulseOpacity
 
                     Icon {
                         anchors.centerIn: parent
@@ -149,6 +151,7 @@ Item {
                 height: parent.height
                 color: Enums.stateColor.borderSubtle
                 visible: !control._graphMode
+                opacity: Enums.opacityLevel.medium * control._pulseOpacity
             }
 
             Card {

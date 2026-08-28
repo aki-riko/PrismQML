@@ -44,7 +44,7 @@ Column {
                 width: Enums.border.normal
                 height: parent.height - Enums.spacing.timelineHeaderHeight
                 color: Enums.accentColor
-                opacity: Enums.opacityLevel.medium
+                opacity: Enums.opacityLevel.medium * timeline._pulseOpacity
             }
 
             Column {
@@ -70,6 +70,7 @@ Column {
                             color: timeline._getStatusColor(
                                 groupItem.groupData.status || "info"
                             )
+                            opacity: timeline._pulseOpacity
 
                             Icon {
                                 anchors.centerIn: parent

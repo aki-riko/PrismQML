@@ -60,6 +60,7 @@ Window {
         virtualTimeline._flatRows.length > 1 ? virtualTimeline._flatRows[1].text : ""
     readonly property int largeVirtualFlatCount: largeVirtualTimeline._flatRows.length
     readonly property int graphFlatCount: graphTimeline._flatRows.length
+    readonly property real timelinePulseOpacity: timeline._pulseOpacity
 
     function makeItems(count) {
         var result = []
@@ -837,6 +838,20 @@ def test_timeline_time_badges_are_optional_and_keep_header_dates(timeline_scene)
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_pulse_is_shared_and_bounded(timeline_scene):
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    samples = []
+    for _ in range(10):
+        samples.append(float(window.property("timelinePulseOpacity")))
+        _pump(120)
+
+    assert min(samples) >= 0.84
+    assert max(samples) <= 1.01
+    assert max(samples) - min(samples) > 0.02, samples
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_selection_uses_render_thread_animators(timeline_scene):
     """Selection motion must survive GUI-thread result processing. 选中动效须独立于 GUI 线程。"""
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
@@ -898,6 +913,8 @@ def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
     assert "timelineGraphNodeHalo" in graph_source
     assert "timelineGraphSelectionHalo" in graph_source
     assert "paintColor: control.selected" in graph_source
+    assert "SequentialAnimation on _pulseOpacity" in timeline_source
+    assert "NumberAnimation" in timeline_source
     assert "OpacityAnimator" in virtual_row_source
     assert "ScaleAnimator" in virtual_row_source
     assert "OpacityAnimator" in graph_source

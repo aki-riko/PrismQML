@@ -17,7 +17,7 @@ import "_internal" as TimelineInternal
 // Supports grouped items with status icons and cards 支持分组项目、状态图标和卡片
 Item {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
     // Items format: [{title: "已完成", status: "success", cards: [{text: "Task1", status: "success", strikeOut: true}]}, ...]
     // status: "success", "info", "warning", "error"
@@ -49,6 +49,7 @@ Item {
     property var _flatLastCardSignatures: []
     property int _flatGroupCount: 0
     property int _lastFlatBuildGroupCount: 0
+    property real _pulseOpacity: Enums.opacityLevel.visible
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
@@ -281,9 +282,26 @@ Item {
         _syncFlat()
         _scheduleScrollBarUpdate()
     }
-    
+
     implicitWidth: 400
     implicitHeight: _usesVirtualList ? 400 : contentColumn.implicitHeight
+
+    // One shared breathing driver keeps every visible timeline row in phase.
+    // 单个共享呼吸驱动让所有可见时间线行保持同相，避免逐节点循环动画。
+    SequentialAnimation on _pulseOpacity {
+        running: control.visible && control.enabled
+        loops: Animation.Infinite
+        NumberAnimation {
+            to: Enums.opacityLevel.strong
+            duration: Enums.duration.xslow
+            easing.type: Easing.InOutSine
+        }
+        NumberAnimation {
+            to: Enums.opacityLevel.visible
+            duration: Enums.duration.xslow
+            easing.type: Easing.InOutSine
+        }
+    }
 
     // ==================== Content 内容 ====================
     // 虚拟模式实际驱动 ListView 的 ListModel(增量同步,避免整体替换导致滚动跳顶)
