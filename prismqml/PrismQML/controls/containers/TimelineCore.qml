@@ -49,7 +49,7 @@ Item {
     property var _flatLastCardSignatures: []
     property int _flatGroupCount: 0
     property int _lastFlatBuildGroupCount: 0
-    property real _pulseOpacity: Enums.opacityLevel.visible
+    property real _pulsePhase: Enums.opacityLevel.invisible
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
@@ -64,6 +64,9 @@ Item {
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
         + Math.max(1, graphLaneCount) * Enums.spacing.timelineGraphLane
+    readonly property real _pulseOpacity: Enums.opacityLevel.strong
+        + (Enums.opacityLevel.visible - Enums.opacityLevel.strong)
+            * (Enums.opacityLevel.visible - _pulsePhase)
     // ==================== Signals 信号 ====================
     signal itemClicked(int groupIndex, string title)
     signal cardClicked(int groupIndex, int cardIndex, string text)
@@ -288,7 +291,7 @@ Item {
 
     // One shared breathing driver keeps every visible timeline row in phase.
     // 单个共享呼吸驱动让所有可见时间线行保持同相，避免逐节点循环动画。
-    SequentialAnimation on _pulseOpacity {
+    SequentialAnimation on _pulsePhase {
         running: control.visible && control.enabled
         loops: Animation.Infinite
         NumberAnimation {

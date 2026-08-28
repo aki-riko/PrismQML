@@ -840,14 +840,30 @@ def test_timeline_time_badges_are_optional_and_keep_header_dates(timeline_scene)
 
 def test_timeline_pulse_is_shared_and_bounded(timeline_scene):
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: any(
+            item.objectName() == "timelineGraphNodeHalo" and item.isVisible()
+            for item in _visual_descendants(graph_timeline)
+        )
+    )
+    node_halo = next(
+        item
+        for item in _visual_descendants(graph_timeline)
+        if item.objectName() == "timelineGraphNodeHalo" and item.isVisible()
+    )
     samples = []
+    scale_samples = []
     for _ in range(10):
         samples.append(float(window.property("timelinePulseOpacity")))
+        scale_samples.append(float(node_halo.scale()))
         _pump(120)
 
     assert min(samples) >= 0.84
     assert max(samples) <= 1.01
     assert max(samples) - min(samples) > 0.02, samples
+    assert max(scale_samples) - min(scale_samples) > 0.02, scale_samples
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -913,7 +929,7 @@ def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
     assert "timelineGraphNodeHalo" in graph_source
     assert "timelineGraphSelectionHalo" in graph_source
     assert "paintColor: control.selected" in graph_source
-    assert "SequentialAnimation on _pulseOpacity" in timeline_source
+    assert "SequentialAnimation on _pulsePhase" in timeline_source
     assert "NumberAnimation" in timeline_source
     assert "OpacityAnimator" in virtual_row_source
     assert "ScaleAnimator" in virtual_row_source
