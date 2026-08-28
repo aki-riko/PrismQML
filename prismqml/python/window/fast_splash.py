@@ -54,8 +54,6 @@ _SPIN_DURATION = 1000
 _BREATHE_MIN = 0.9
 _BREATHE_MAX = 1.1
 _BREATHE_DURATION = 1200
-_ICON_SHADOW_COLOR = "#30000000"
-_ICON_SHADOW_BLUR = 0.8
 _BACKGROUND_DARK = "#202020"
 _BACKGROUND_LIGHT = "#f0f4f9"
 _ACCENT = "#ff0e5a9c"
@@ -65,7 +63,6 @@ _DEFAULT_SPLASH_HEIGHT = 800
 
 _SPLASH_QML = """
 import QtQuick
-import QtQuick.Effects
 
 Window {{
     id: win
@@ -108,13 +105,6 @@ Window {{
                 id: iconContainer
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 102; height: 102
-                layer.enabled: true
-                layer.effect: MultiEffect {{
-                    shadowEnabled: true
-                    shadowColor: "#30000000"
-                    shadowBlur: 0.8
-                    shadowVerticalOffset: 6
-                }}
 
                 Image {{
                     anchors.centerIn: parent

@@ -47,6 +47,14 @@ def test_fast_splash_template_uses_shared_subtitle_default_and_override():
     assert "Loading..." in build_fast_splash_qml(False, 1200, 800, "Loading...")
 
 
+def test_fast_splash_template_avoids_first_frame_icon_shadow_effect():
+    source = build_fast_splash_qml(False)
+
+    assert "import QtQuick.Effects" not in source
+    assert "MultiEffect" not in source
+    assert "layer.effect: MultiEffect" not in source
+
+
 @pytest.mark.parametrize("value", [0, -1, True, 1.5, "980"])
 def test_fast_splash_rejects_invalid_dimensions(value):
     with pytest.raises(ValueError):
