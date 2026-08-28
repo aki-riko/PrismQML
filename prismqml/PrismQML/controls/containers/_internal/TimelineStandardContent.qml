@@ -43,7 +43,8 @@ Column {
                 y: Enums.spacing.timelineHeaderHeight
                 width: Enums.border.normal
                 height: parent.height - Enums.spacing.timelineHeaderHeight
-                color: Enums.stateColor.borderSubtle
+                color: Enums.accentColor
+                opacity: Enums.opacityLevel.medium
             }
 
             Column {
@@ -150,6 +151,9 @@ Column {
                             property string cardTime: cardData
                                 && typeof cardData === "object"
                                 ? (cardData.time || "") : ""
+                            readonly property bool isSelected: timeline.selectedKey !== undefined
+                                && cardData && typeof cardData === "object"
+                                && cardData[timeline.selectedRole] === timeline.selectedKey
 
                             width: groupContent.width - 56
                             height: simpleCard.height
@@ -168,6 +172,21 @@ Column {
                                     timeline.cardClickedData(
                                         groupItem.index, cardItem.index, cardItem.modelData
                                     )
+                                }
+
+                                Rectangle {
+                                    objectName: "timelineCardSelectionOutline"
+                                    anchors.fill: parent
+                                    radius: simpleCard.borderRadius
+                                    color: Enums.transparent
+                                    border.width: Enums.border.normal
+                                    border.color: Enums.accentColor
+                                    opacity: cardItem.isSelected
+                                        ? Enums.opacityLevel.visible
+                                        : Enums.opacityLevel.invisible
+                                    Behavior on opacity {
+                                        OpacityAnimator { duration: Enums.duration.fast }
+                                    }
                                 }
 
                                 Row {
@@ -199,14 +218,6 @@ Column {
                                         width: parent.width - 24
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: Enums.spacing.xxs
-
-                                        Rectangle {
-                                            width: parent.width
-                                            height: Enums.border.thin
-                                            radius: height / 2
-                                            color: timeline._getStatusColor(cardItem.cardStatus)
-                                            opacity: Enums.opacityLevel.light
-                                        }
 
                                         Row {
                                             id: cardHeading

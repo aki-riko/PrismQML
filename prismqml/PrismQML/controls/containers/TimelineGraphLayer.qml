@@ -81,6 +81,8 @@ Item {
                 - ((modelData || {}).endAtNode ? 0 : terminalLength)
             readonly property real curveMiddleY: (curveStartY + curveEndY) / 2
             readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
+            readonly property color paintColor: control.selected
+                ? control.selectedColor : segmentColor
 
             function _paintCurve(ctx, pathFromX, pathToX, pathStartY,
                     pathEndY, pathMiddleY, pathColor) {
@@ -107,7 +109,7 @@ Item {
                 width: control._strokeWidth
                 height: Math.max(0, segmentItem.endY - segmentItem.startY)
                 visible: segmentItem.fromX === segmentItem.toX
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
 
             Canvas {
@@ -117,7 +119,7 @@ Item {
                 property real pathStartY: segmentItem.curveStartY
                 property real pathEndY: segmentItem.curveEndY
                 property real pathMiddleY: segmentItem.curveMiddleY
-                property color pathColor: segmentItem.segmentColor
+                property color pathColor: segmentItem.paintColor
 
                 anchors.fill: parent
                 visible: segmentItem.fromX !== segmentItem.toX
@@ -142,7 +144,7 @@ Item {
                 width: control._strokeWidth
                 height: segmentItem.curveStartY - segmentItem.startY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
 
             Rectangle {
@@ -151,9 +153,23 @@ Item {
                 width: control._strokeWidth
                 height: segmentItem.endY - segmentItem.curveEndY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
         }
+    }
+
+    Rectangle {
+        objectName: "timelineGraphNodeHalo"
+        x: control._nodeX - width / 2
+        y: control.nodeY - height / 2
+        width: (control._nodeRadius + Enums.spacing.xxs) * 2
+        height: width
+        radius: width / 2
+        visible: control.showNode
+        color: Enums.transparent
+        border.width: Enums.border.thin
+        border.color: control._colorFor((control.graphData || {}).nodeColorIndex)
+        opacity: Enums.opacityLevel.light
     }
 
     Rectangle {
@@ -163,7 +179,33 @@ Item {
         height: control._nodeRadius * 2
         radius: control._nodeRadius
         visible: control.showNode
-        color: control._colorFor((control.graphData || {}).nodeColorIndex)
+        color: control.selected ? control.selectedColor
+            : control._colorFor((control.graphData || {}).nodeColorIndex)
+    }
+
+    Rectangle {
+        objectName: "timelineGraphSelectionHalo"
+        x: control._nodeX - width / 2
+        y: control.nodeY - height / 2
+        width: (control._nodeOuterRadius + Enums.spacing.s) * 2
+        height: width
+        radius: width / 2
+        visible: control.showNode
+        color: Enums.transparent
+        border.width: Enums.border.thin
+        border.color: control.selectedColor
+        opacity: control.selected ? Enums.opacityLevel.light : Enums.opacityLevel.invisible
+        scale: control.selected ? 1 : 0.75
+        transformOrigin: Item.Center
+        Behavior on opacity {
+            OpacityAnimator { duration: Enums.duration.fast }
+        }
+        Behavior on scale {
+            ScaleAnimator {
+                duration: Enums.duration.fast
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 
     Rectangle {
@@ -175,7 +217,7 @@ Item {
         radius: width / 2
         visible: control.showNode
         color: Enums.transparent
-        border.width: control._strokeWidth
+        border.width: Enums.border.thick
         border.color: control.selectedColor
         opacity: control.selected ? 1 : 0
         scale: control.selected ? 1 : 0.7

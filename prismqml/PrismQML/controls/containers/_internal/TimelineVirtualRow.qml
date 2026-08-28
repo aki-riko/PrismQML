@@ -200,6 +200,19 @@ Item {
                     }
                 }
 
+                Rectangle {
+                    objectName: "timelineCardSelectionOutline"
+                    anchors.fill: parent
+                    radius: cardBox.borderRadius
+                    color: Enums.transparent
+                    border.width: Enums.border.normal
+                    border.color: Enums.accentColor
+                    opacity: cardPart.isSelected ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
+                    Behavior on opacity {
+                        OpacityAnimator { duration: Enums.duration.fast }
+                    }
+                }
+
                 Column {
                     id: cardCol
                     anchors.left: parent.left
@@ -207,16 +220,6 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.margins: Enums.spacing.l
                     spacing: Enums.spacing.xxs
-
-                    // Status hairline adds a quiet visual rhythm without another layer.
-                    // 状态色细线增加节奏感，但不引入额外渲染层。
-                    Rectangle {
-                        width: parent.width
-                        height: Enums.border.thin
-                        radius: height / 2
-                        color: control._getStatusColor(rowDelegate.model.status || "info")
-                        opacity: Enums.opacityLevel.light
-                    }
 
                     Row {
                         id: cardHeading

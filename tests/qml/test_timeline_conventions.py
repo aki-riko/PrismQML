@@ -866,11 +866,23 @@ def test_timeline_selection_uses_render_thread_animators(timeline_scene):
         for item in descendants
         if item.objectName() == "timelineGraphSelectionRing"
     ]
+    graph_halos = [
+        item
+        for item in descendants
+        if item.objectName() == "timelineGraphSelectionHalo"
+    ]
+    card_outlines = [
+        item
+        for item in descendants
+        if item.objectName() == "timelineCardSelectionOutline"
+    ]
 
     assert sorted(round(item.opacity(), 3) for item in card_indicators) == [0.0, 1.0]
     graph_ring_opacities = [round(item.opacity(), 3) for item in graph_rings]
     assert graph_ring_opacities.count(1.0) == 1
     assert all(opacity in (0.0, 1.0) for opacity in graph_ring_opacities)
+    assert sum(0.0 < item.opacity() < 1.0 for item in graph_halos) == 1
+    assert sorted(round(item.opacity(), 3) for item in card_outlines) == [0.0, 1.0]
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -882,6 +894,10 @@ def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
 
     assert "Behavior on height" not in timeline_source
     assert "TimelineInternal.TimelineVirtualRow" in timeline_source
+    assert "Status hairline" not in virtual_row_source
+    assert "timelineGraphNodeHalo" in graph_source
+    assert "timelineGraphSelectionHalo" in graph_source
+    assert "paintColor: control.selected" in graph_source
     assert "OpacityAnimator" in virtual_row_source
     assert "ScaleAnimator" in virtual_row_source
     assert "OpacityAnimator" in graph_source
