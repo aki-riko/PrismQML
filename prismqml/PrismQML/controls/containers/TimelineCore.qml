@@ -79,7 +79,8 @@ Item {
         var groupStatus = grp.status || "info"
         rows.push({
             "kind": "header", "groupIndex": groupIndex,
-            "title": grp.title || "", "status": groupStatus,
+            "title": grp.title || "", "dateKey": grp.dateKey || "",
+            "status": groupStatus,
             "graphData": grp.graph || {}
         })
         var cards = grp.cards || []
@@ -91,6 +92,7 @@ Item {
                 "groupStatus": groupStatus, "cardData": card,
                 "text": typeof card === "string" ? card : (cardObject ? card.text || "" : ""),
                 "description": cardObject ? card.description || "" : "",
+                "time": cardObject ? card.time || "" : "",
                 "status": cardObject ? card.status || groupStatus : groupStatus,
                 "strikeOut": cardObject ? card.strikeOut || false : false,
                 "graphData": cardObject ? card.graph || {} : {},
@@ -123,6 +125,7 @@ Item {
         return JSON.stringify({
             "title": grp.title || "",
             "status": grp.status || "info",
+            "dateKey": grp.dateKey || "",
             "graphData": grp.graph || {}
         })
     }

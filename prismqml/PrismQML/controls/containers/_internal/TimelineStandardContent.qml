@@ -86,6 +86,26 @@ Column {
                             anchors.verticalCenter: parent.verticalCenter
                             text: groupItem.groupData.title || ""
                         }
+
+                        Rectangle {
+                            visible: (groupItem.groupData.dateKey || "") !== ""
+                                && groupItem.groupData.dateKey
+                                    !== (groupItem.groupData.title || "")
+                            width: headerDate.implicitWidth + Enums.spacing.m
+                            height: headerDate.implicitHeight + Enums.spacing.xxs
+                            radius: Enums.radius.small
+                            color: Enums.stateColor.controlBgHover
+                            border.width: Enums.border.thin
+                            border.color: Enums.stateColor.borderLight
+
+                            Label {
+                                id: headerDate
+                                anchors.centerIn: parent
+                                type: Enums.label.type_caption
+                                text: groupItem.groupData.dateKey || ""
+                                color: Enums.textColor.secondary
+                            }
+                        }
                     }
 
                     MouseArea {
@@ -127,6 +147,9 @@ Column {
                             property string cardDescription: cardData
                                 && typeof cardData === "object"
                                 ? (cardData.description || "") : ""
+                            property string cardTime: cardData
+                                && typeof cardData === "object"
+                                ? (cardData.time || "") : ""
 
                             width: groupContent.width - 56
                             height: simpleCard.height
@@ -177,15 +200,53 @@ Column {
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: Enums.spacing.xxs
 
-                                        Label {
-                                            type: Enums.label.type_body
+                                        Rectangle {
                                             width: parent.width
-                                            text: cardItem.cardText
-                                            color: cardItem.hasStrikeOut
-                                                ? Enums.textColor.secondary
-                                                : Enums.textColor.primary
-                                            wrapMode: Text.Wrap
-                                            font.strikeout: cardItem.hasStrikeOut
+                                            height: Enums.border.thin
+                                            radius: height / 2
+                                            color: timeline._getStatusColor(cardItem.cardStatus)
+                                            opacity: Enums.opacityLevel.light
+                                        }
+
+                                        Row {
+                                            id: cardHeading
+                                            width: parent.width
+                                            spacing: Enums.spacing.s
+
+                                            Label {
+                                                id: cardTitle
+                                                type: Enums.label.type_body
+                                                width: cardTimeBadge.visible
+                                                    ? Math.max(0, parent.width
+                                                        - cardTimeBadge.width
+                                                        - parent.spacing)
+                                                    : parent.width
+                                                text: cardItem.cardText
+                                                color: cardItem.hasStrikeOut
+                                                    ? Enums.textColor.secondary
+                                                    : Enums.textColor.primary
+                                                wrapMode: Text.Wrap
+                                                font.strikeout: cardItem.hasStrikeOut
+                                            }
+                                            Rectangle {
+                                                id: cardTimeBadge
+                                                objectName: "timelineCardTimeBadge"
+                                                visible: cardItem.cardTime !== ""
+                                                width: timeLabel.implicitWidth + Enums.spacing.m
+                                                height: timeLabel.implicitHeight + Enums.spacing.xxs
+                                                radius: Enums.radius.small
+                                                color: Enums.stateColor.controlBgHover
+                                                border.width: Enums.border.thin
+                                                border.color: Enums.accentColor
+
+                                                Label {
+                                                    id: timeLabel
+                                                    anchors.centerIn: parent
+                                                    type: Enums.label.type_caption
+                                                    text: cardItem.cardTime
+                                                    color: Enums.accentColor
+                                                }
+                                            }
                                         }
                                         Label {
                                             type: Enums.label.type_caption

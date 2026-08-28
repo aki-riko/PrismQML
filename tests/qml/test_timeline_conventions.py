@@ -130,6 +130,7 @@ Window {
         items: [
             {
                 "title": "Plan",
+                "dateKey": "2026-08-29",
                 "status": "info",
                 "cards": [
                     { "text": "One", "description": "First", "commit": "one" },
@@ -191,6 +192,7 @@ Window {
                 "cards": [
                     {
                         "text": "Merge feature",
+                        "time": "10:42",
                         "commit": "merge",
                         "labels": [{"text": "main", "status": Enums.statusLevel.info}],
                         "graph": {
@@ -206,6 +208,7 @@ Window {
                     },
                     {
                         "text": "Feature work",
+                        "time": "09:18",
                         "commit": "feature",
                         "graph": {
                             "nodeLane": 1,
@@ -811,6 +814,29 @@ def test_timeline_graph_type_uses_virtual_rows_and_renders_graph_layers(timeline
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_time_badges_are_optional_and_keep_header_dates(timeline_scene):
+    window, timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: len(
+            [
+                item
+                for item in _visual_descendants(graph_timeline)
+                if item.objectName() == "timelineCardTimeBadge" and item.isVisible()
+            ]
+        ) == 2
+    )
+    standard_badges = [
+        item
+        for item in _visual_descendants(timeline)
+        if item.objectName() == "timelineCardTimeBadge" and item.isVisible()
+    ]
+    assert standard_badges == []
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_selection_uses_render_thread_animators(timeline_scene):
     """Selection motion must survive GUI-thread result processing. 选中动效须独立于 GUI 线程。"""
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
@@ -870,4 +896,13 @@ def test_timeline_core_source_follows_conventions():
             violation
             for violation in violations
             if violation.rule in {"QML008", "QML009"}
-        ] == []
+    ] == []
+
+
+def test_timeline_time_and_date_fields_are_forwarded_without_formatting():
+    timeline_source = SOURCE_PATH.read_text(encoding="utf-8")
+    virtual_row_source = VIRTUAL_ROW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert '"dateKey": grp.dateKey || ""' in timeline_source
+    assert '"time": cardObject ? card.time || "" : ""' in timeline_source
+    assert 'objectName: "timelineCardTimeBadge"' in virtual_row_source
