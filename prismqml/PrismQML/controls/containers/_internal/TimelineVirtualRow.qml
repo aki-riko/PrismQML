@@ -46,7 +46,6 @@ Item {
         graphData: rowDelegate.model.graphData || {}
         showNode: rowDelegate.model.kind === "card"
         nodeY: rowDelegate.cardPart ? rowDelegate.cardPart.nodeY : 0
-        pulsePhase: control._pulsePhase
         opacity: control._pulseOpacity
         selected: showNode && !!rowDelegate.cardPart
             && rowDelegate.cardPart.isSelected

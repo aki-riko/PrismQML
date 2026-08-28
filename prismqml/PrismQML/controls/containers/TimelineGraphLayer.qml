@@ -18,7 +18,6 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property var graphPalette: Enums.chartColors.extendedPalette
     property color selectedColor: Enums.accentColor
-    property real pulsePhase: Enums.opacityLevel.invisible
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _strokeWidth: Enums.border.normal
@@ -30,12 +29,6 @@ Item {
         1, Math.round(_strokeWidth * _devicePixelRatio))
     readonly property real _nodeRadius: Enums.controlSize.timelineGraphNode / 2
     readonly property real _nodeOuterRadius: _nodeRadius + _strokeWidth
-    readonly property real _pulseScale: Enums.opacityLevel.visible
-        + control.pulsePhase * Enums.spacing.xxs
-            / Math.max(1, Enums.controlSize.timelineGraphNode)
-    readonly property real _pulseHaloOpacity: Enums.opacityLevel.faint
-        + Enums.opacityLevel.light
-            * (Enums.opacityLevel.visible - control.pulsePhase)
     readonly property real _nodeX: _laneX((graphData || {}).nodeLane)
     readonly property var _segments: _normalizeSegments(graphData && graphData.segments)
 
@@ -166,21 +159,6 @@ Item {
     }
 
     Rectangle {
-        objectName: "timelineGraphNodeHalo"
-        x: control._nodeX - width / 2
-        y: control.nodeY - height / 2
-        width: (control._nodeRadius + Enums.spacing.xxs) * 2
-        height: width
-        radius: width / 2
-        visible: control.showNode
-        color: Enums.transparent
-        border.width: Enums.border.thin
-        border.color: control._colorFor((control.graphData || {}).nodeColorIndex)
-        opacity: control._pulseHaloOpacity
-        scale: control._pulseScale
-    }
-
-    Rectangle {
         x: control._nodeX - control._nodeRadius
         y: control.nodeY - control._nodeRadius
         width: control._nodeRadius * 2
@@ -189,26 +167,6 @@ Item {
         visible: control.showNode
         color: control.selected ? control.selectedColor
             : control._colorFor((control.graphData || {}).nodeColorIndex)
-    }
-
-    Rectangle {
-        objectName: "timelineGraphSelectionHalo"
-        x: control._nodeX - width / 2
-        y: control.nodeY - height / 2
-        width: (control._nodeOuterRadius + Enums.spacing.s) * 2
-        height: width
-        radius: width / 2
-        visible: control.showNode
-        color: Enums.transparent
-        border.width: Enums.border.thin
-        border.color: control.selectedColor
-        opacity: control.selected
-            ? Enums.opacityLevel.medium
-                + Enums.opacityLevel.faint
-                    * (Enums.opacityLevel.visible - control.pulsePhase)
-            : Enums.opacityLevel.invisible
-        scale: control.selected ? control._pulseScale : 0.75
-        transformOrigin: Item.Center
     }
 
     Rectangle {
