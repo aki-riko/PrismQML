@@ -25,6 +25,15 @@ function finish(window) {
         window._completePythonLoadingVisual(window._pythonPendingIndex)
         return
     }
+    // Match the QML pageSources path once both visual prerequisites already
+    // exist: start target expansion in this completion callback instead of
+    // forcing one extra loading-ring-only event-loop turn. 页面栈与遮罩均已就绪
+    // 时直接在完成回调内启动目标页展开，避免额外强制一轮只显示加载圆环的事件循环。
+    if (window._pythonLazyCollapseComplete && window._pythonLoadingOverlay
+            && !window._pythonRevealScheduled) {
+        resumeLazyReveal(window)
+        return
+    }
     window._schedulePythonLazyReveal()
 }
 

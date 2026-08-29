@@ -386,6 +386,8 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
             window, "_markPythonPageReady", Q_ARG("QVariant", 1)
         )
         assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        assert page_transition.property("active") is True
+        assert window.property("_pythonRevealScheduled") is False
         assert _wait_for(
             lambda: transition.property("collapsing") is False
             and transition.property("running") is True
