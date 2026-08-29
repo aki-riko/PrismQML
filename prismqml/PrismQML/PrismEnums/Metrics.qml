@@ -682,7 +682,7 @@ QtObject {
  // 收紧结束到 Loader 激活之间, 加载指示器的可见时间。调用方用 coverDuration 加
  // 此值推出 lazyActivationDelay, 因此改收紧时长不会再把指示器静默压到零。
  readonly property int loaderActivationHeadroom: 100
-  readonly property int revealDuration: 1000 // Target page circle expansion 目标页面圆形展开时长
+ readonly property int revealDuration: 500 // Target page circle expansion 目标页面圆形展开时长
  readonly property int splashRevealDuration: 1000 // Splash entrance reveal duration 启动画面入场揭幕时长
  readonly property real edgeSoftness: 1.5 // Circular mask antialiasing width 圆形遮罩抗锯齿宽度
  readonly property real breatheMinScale: 0.97 // Waiting ring minimum breathe scale 等待圆环最小呼吸缩放
