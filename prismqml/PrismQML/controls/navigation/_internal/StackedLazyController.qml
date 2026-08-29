@@ -103,28 +103,22 @@ Item {
             return
         }
 
-        var previousIndex = host._displayIndex
-        host.previousIndex = previousIndex
-        // Reuse Gallery's normal stacked-page transition exactly. The circle
-        // transition has already completed its collapse; starting it again here
-        // would expose a center aperture during loading-overlay exit. 复用 Gallery
-        // 的普通堆叠页面过渡。圆形过渡已经完成收紧，此处再次启动会在 loading
-        // 遮罩退场时暴露中心光圈。
-        pageTransition.stop()
-        host._pythonLazyRegularEnterTargetIndex = targetIndex
-        host._doAnimation(previousIndex, targetIndex)
+        host.previousIndex = host._displayIndex
         host._displayIndex = targetIndex
-        host.pythonLazyExpansionStarted(targetIndex)
-
-        if (!host.animationEnabled || host.animationType === Enums.animation.none) {
-            handlePythonLazyRegularEnterFinished(targetIndex)
+        // Match the pageSources path exactly: the regular enter animation keeps
+        // the minimum-radius reveal frame transparent, so the target appears as
+        // a direct expansion instead of a standalone center circle.
+        // 与 pageSources 路径完全一致：常规入场动画会让最小半径揭幕帧保持透明，
+        // 目标页因此表现为直接展开，而不是先单独显示中心圆圈。
+        if (animations.prepareEnter(targetIndex)) {
+            host._doEnterAnimation(targetIndex)
         }
+        pageTransition.expand(targetWidget)
     }
 
     function cancelPythonLazySwitch(targetIndex) {
         pageTransition.stop()
         host._updateVisibility(host._displayIndex)
-        host._pythonLazyRegularEnterTargetIndex = -1
         host._pythonLazyTransitionTargetIndex = -1
         host._pythonLazyRevealRequested = false
         host.pythonLazyTransitionFinished(targetIndex)
@@ -162,15 +156,6 @@ Item {
     function handlePythonLazyExpandFinished() {
         var targetIndex = host._pythonLazyTransitionTargetIndex
         if (targetIndex < 0) return
-        host._pythonLazyTransitionTargetIndex = -1
-        host._pythonLazyRevealRequested = false
-        host.pythonLazyTransitionFinished(targetIndex)
-    }
-
-    function handlePythonLazyRegularEnterFinished(targetIndex) {
-        if (targetIndex < 0
-                || targetIndex !== host._pythonLazyRegularEnterTargetIndex) return
-        host._pythonLazyRegularEnterTargetIndex = -1
         host._pythonLazyTransitionTargetIndex = -1
         host._pythonLazyRevealRequested = false
         host.pythonLazyTransitionFinished(targetIndex)

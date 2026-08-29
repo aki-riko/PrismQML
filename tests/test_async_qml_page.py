@@ -245,7 +245,6 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: circle_transition.property("running")
             and circle_transition.property("collapsing")
         )
-        assert page_transition.property("revealMinimumRadiusPixels") == 0
         assert window._window.property("_pythonLoading") is False
         assert window._window.findChild(QObject, "loadingOverlay") is None
         assert stack.property("_displayIndex") == 0
@@ -274,7 +273,7 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: 1 in window._pages and window._pages[1].is_ready
         )
         assert loading_seen
-        assert _pump_until(lambda: bool(animation_loading_states)), (
+        assert _pump_until(lambda: any(circle_expansion_seen)), (
             f"signals={circle_expansion_seen} "
             f"page={page_transition.property('active')}/"
             f"{page_transition.property('collapsed')}/"
@@ -290,9 +289,8 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             f"size={page_container.width()}x{page_container.height()} "
             f"loading={window._window.property('_pythonLoading')}"
         )
-        assert page_transition.property("revealMinimumRadiusPixels") == 0
-        assert not any(circle_expansion_seen), circle_expansion_seen
         assert _pump_until(lambda: loading_overlay.property("finishing"))
+        assert any(animation_loading_states), animation_loading_states
         assert _pump_until(lambda: bool(animation_finished))
         assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
         assert any(
@@ -306,7 +304,12 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             lambda: page_transition.property("active") is False
         )
         assert circle_transition.property("collapsing") is False
-        expected_phases = ["collapseStarted", "collapseFinished"]
+        expected_phases = [
+            "collapseStarted",
+            "collapseFinished",
+            "expandStarted",
+            "expandFinished",
+        ]
         assert circle_phase_signals == expected_phases
 
         for target_index in (0, 1):

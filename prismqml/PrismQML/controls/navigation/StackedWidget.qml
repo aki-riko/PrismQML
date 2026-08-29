@@ -69,7 +69,6 @@ Item {
     property int _lazyDiagnosticSequence: 0
     property int _pythonLazyTransitionTargetIndex: -1
     property bool _pythonLazyRevealRequested: false
-    property int _pythonLazyRegularEnterTargetIndex: -1
     // Python-managed windows must explicitly acknowledge page readiness.
     // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
     property bool _pythonPageMode: false
@@ -247,10 +246,6 @@ Item {
         lazyController.handlePythonLazyExpandFinished()
     }
 
-    function _handlePythonLazyRegularEnterFinished(index) {
-        lazyController.handlePythonLazyRegularEnterFinished(index)
-    }
-
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
         lazyController.handleLazyLoadingComplete(targetIdx, prevIdx)
     }
@@ -400,9 +395,6 @@ Item {
         onAnimationFinished: (idx) => {
             control.currentChanged(idx)
             control.animationFinished()
-            if (control._pythonLazyRegularEnterTargetIndex === idx) {
-                control._handlePythonLazyRegularEnterFinished(idx)
-            }
         }
     }
 
@@ -422,7 +414,6 @@ Item {
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
         animationType: control.lazyAnimationType
-        collapseToCenter: control._pythonPageMode
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()
