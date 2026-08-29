@@ -42,3 +42,14 @@ def test_timeline_modules_stay_within_architecture_limit():
     assert len(TIMELINE_CORE.read_text(encoding="utf-8").splitlines()) < 500
     assert len(VIRTUAL_ROW.read_text(encoding="utf-8").splitlines()) < 500
     assert len(STANDARD_CONTENT.read_text(encoding="utf-8").splitlines()) < 500
+
+
+def test_timeline_connectors_are_centered_on_status_nodes():
+    standard_source = STANDARD_CONTENT.read_text(encoding="utf-8")
+    virtual_source = VIRTUAL_ROW.read_text(encoding="utf-8")
+    expected_binding = "x: (Enums.controlSize.timelineIcon - width) / 2"
+
+    assert expected_binding in standard_source
+    assert expected_binding in virtual_source
+    assert "x: 7" not in standard_source
+    assert "x: 7" not in virtual_source

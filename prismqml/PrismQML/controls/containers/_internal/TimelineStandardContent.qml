@@ -39,7 +39,8 @@ Column {
 
             // Connector line 连接线（在图标下方）
             Rectangle {
-                x: 7
+                objectName: "timelineStatusConnector"
+                x: (Enums.controlSize.timelineIcon - width) / 2
                 y: Enums.spacing.timelineHeaderHeight
                 width: Enums.border.normal
                 height: parent.height - Enums.spacing.timelineHeaderHeight
@@ -63,6 +64,7 @@ Column {
 
                         // Status icon 状态图标（圆形填充）
                         Rectangle {
+                            objectName: "timelineStatusNode"
                             width: Enums.controlSize.timelineIcon
                             height: Enums.controlSize.timelineIcon
                             radius: Enums.controlSize.timelineIcon / 2

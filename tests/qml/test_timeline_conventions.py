@@ -262,6 +262,14 @@ def _visual_descendants(item):
     return descendants
 
 
+def _named_visible_descendants(item, object_name):
+    return [
+        child
+        for child in _visual_descendants(item)
+        if child.objectName() == object_name and child.isVisible()
+    ]
+
+
 def _send_wheel(window, item, delta):
     position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
     global_position = QPointF(window.x() + position.x(), window.y() + position.y())
@@ -345,6 +353,29 @@ def test_timeline_nonvirtual_header_and_card_clicks(timeline_scene):
     assert _wait_for(lambda: cards == [(0, 0, "One")])
     assert card_data[0][0:2] == (0, 0)
     assert card_data[0][2]["commit"] == "one"
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_status_connectors_share_the_node_center(timeline_scene):
+    window, timeline, virtual_timeline, warnings, windows_before = timeline_scene
+
+    for owner in (timeline, virtual_timeline):
+        nodes = _named_visible_descendants(owner, "timelineStatusNode")
+        connectors = _named_visible_descendants(owner, "timelineStatusConnector")
+        assert nodes
+        assert connectors
+        node_center = nodes[0].mapToItem(
+            owner, QPointF(nodes[0].width() / 2, 0)
+        ).x()
+        connector_centers = [
+            connector.mapToItem(
+                owner, QPointF(connector.width() / 2, 0)
+            ).x()
+            for connector in connectors
+        ]
+        assert connector_centers == pytest.approx([node_center] * len(connectors))
+
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

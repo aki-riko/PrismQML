@@ -74,6 +74,7 @@ Item {
                 spacing: Enums.spacing.m
 
                 Rectangle {
+                    objectName: "timelineStatusNode"
                     width: Enums.controlSize.timelineIcon
                     height: Enums.controlSize.timelineIcon
                     radius: Enums.controlSize.timelineIcon / 2
@@ -145,7 +146,8 @@ Item {
 
             // 左侧连接线
             Rectangle {
-                x: 7
+                objectName: "timelineStatusConnector"
+                x: (Enums.controlSize.timelineIcon - width) / 2
                 y: 0
                 width: Enums.border.normal
                 height: parent.height
