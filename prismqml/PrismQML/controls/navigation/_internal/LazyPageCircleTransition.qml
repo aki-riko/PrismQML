@@ -26,6 +26,9 @@ Item {
     readonly property Item _captureItem: _hasLoaderItem
         ? _sourceItem.item
         : _sourceItem
+    // Python page transitions collapse to the center; the regular Gallery path
+    // keeps its configured navigation-sized minimum. Python 页面过渡收紧到中心，
+    // Gallery 常规路径继续使用其配置的导航栏大小最小半径。
     readonly property real revealMinimumRadiusPixels:
         collapseToCenter && _captureCollapsing
             ? 0 : Enums.controlSize.navBarHeight / 2
