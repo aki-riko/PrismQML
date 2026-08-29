@@ -103,23 +103,22 @@ Item {
             return
         }
 
-        host.previousIndex = host._displayIndex
-        host._displayIndex = targetIndex
-        // Python lazy pages use the same direct page entrance as Gallery. The
-        // circle transition has already completed its collapse; starting it
-        // again here would expose a center aperture during loading-overlay exit.
-        // Python 懒加载页面与 Gallery 一样直接执行页面入场。圆形过渡已经完成收紧，
-        // 此处再次启动会在 loading 遮罩退场时暴露中心光圈。
+        var previousIndex = host._displayIndex
+        host.previousIndex = previousIndex
+        // Reuse Gallery's normal stacked-page transition exactly. The circle
+        // transition has already completed its collapse; starting it again here
+        // would expose a center aperture during loading-overlay exit. 复用 Gallery
+        // 的普通堆叠页面过渡。圆形过渡已经完成收紧，此处再次启动会在 loading
+        // 遮罩退场时暴露中心光圈。
         pageTransition.stop()
         host._pythonLazyRegularEnterTargetIndex = targetIndex
-        if (animations.prepareEnter(targetIndex)) {
-            host._doEnterAnimation(targetIndex)
-            host.pythonLazyExpansionStarted(targetIndex)
-            return
-        }
-
+        host._doAnimation(previousIndex, targetIndex)
+        host._displayIndex = targetIndex
         host.pythonLazyExpansionStarted(targetIndex)
-        handlePythonLazyRegularEnterFinished(targetIndex)
+
+        if (!host.animationEnabled || host.animationType === Enums.animation.none) {
+            handlePythonLazyRegularEnterFinished(targetIndex)
+        }
     }
 
     function cancelPythonLazySwitch(targetIndex) {
