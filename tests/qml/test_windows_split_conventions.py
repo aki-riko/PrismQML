@@ -377,10 +377,10 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
 
         target_page = window.findChild(QQuickItem, "pageB")
         assert target_page is not None
-        target_page.setX(32)
-        target_page.setY(80)
-        target_page.setOpacity(0.25)
-        target_page.setScale(0.8)
+        target_page.setX(0)
+        target_page.setY(0)
+        target_page.setOpacity(1)
+        target_page.setScale(1)
 
         assert QMetaObject.invokeMethod(
             window, "_markPythonPageReady", Q_ARG("QVariant", 1)
@@ -394,8 +394,8 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         )
         assert target_page.isVisible()
         assert target_page.x() == 0
-        assert target_page.y() == 0
-        assert target_page.opacity() == 1
+        assert 0 <= target_page.y() <= stack.property("popUpOffset")
+        assert 0 <= target_page.opacity() < 1
         assert target_page.scale() == 1
         assert animation_started == [True]
         assert overlay.property("loading") is True

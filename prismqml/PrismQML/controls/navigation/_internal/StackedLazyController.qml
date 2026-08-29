@@ -96,18 +96,6 @@ Item {
         return pageTransition.collapse(host.widget(host._displayIndex))
     }
 
-    function _usesCircleTransition() {
-        return pageTransition.animationType === Enums.lazyAnimation.lazy_circle
-    }
-
-    function _normalizePythonLazyTarget(targetWidget) {
-        targetWidget.visible = true
-        targetWidget.opacity = 1
-        targetWidget.x = 0
-        targetWidget.y = 0
-        targetWidget.scale = 1
-    }
-
     function startPythonLazyExpansion(targetIndex) {
         var targetWidget = host.widget(targetIndex)
         if (!targetWidget) {
@@ -117,14 +105,12 @@ Item {
 
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIndex
-        if (_usesCircleTransition()) {
-            // The circle is the lazy-page entrance. Running the regular popup/slide
-            // animation on the same layer moves its aperture away from the stack
-            // center and can hide the target frame entirely. 圆形揭幕本身就是懒加载
-            // 页入场；若同一图层再跑 popup/slide，会把光圈带离页面栈中心，甚至让
-            // 目标帧完全不可见。
-            _normalizePythonLazyTarget(targetWidget)
-        } else if (animations.prepareEnter(targetIndex)) {
+        // Match the pageSources path exactly: the regular enter animation keeps
+        // the minimum-radius reveal frame transparent, so the target appears as
+        // a direct expansion instead of a standalone center circle.
+        // 与 pageSources 路径完全一致：常规入场动画会让最小半径揭幕帧保持透明，
+        // 目标页因此表现为直接展开，而不是先单独显示中心圆圈。
+        if (animations.prepareEnter(targetIndex)) {
             host._doEnterAnimation(targetIndex)
         }
         pageTransition.expand(targetWidget)
@@ -164,17 +150,12 @@ Item {
     function handlePythonLazyExpandStarted() {
         var targetIndex = host._pythonLazyTransitionTargetIndex
         if (targetIndex < 0) return
-        if (_usesCircleTransition()) host.animationStarted()
         host.pythonLazyExpansionStarted(targetIndex)
     }
 
     function handlePythonLazyExpandFinished() {
         var targetIndex = host._pythonLazyTransitionTargetIndex
         if (targetIndex < 0) return
-        if (_usesCircleTransition()) {
-            host.currentChanged(targetIndex)
-            host.animationFinished()
-        }
         host._pythonLazyTransitionTargetIndex = -1
         host._pythonLazyRevealRequested = false
         host.pythonLazyTransitionFinished(targetIndex)
