@@ -444,9 +444,9 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
 
         setSkin(Skin.FLUENT)
         _pump()
-        assert popup.property("_panelOffset") == 8
-        assert popup.property("_outerWidth") == 196
-        assert popup.property("_outerHeight") == 136
+        assert popup.property("_panelOffset") == 20
+        assert popup.property("_outerWidth") == 220
+        assert popup.property("_outerHeight") == 160
         assert warnings == []
     finally:
         setTheme(previous_theme)

@@ -220,6 +220,7 @@ Item {
         aboutToShow()
         if (!_openRequested || isClosing) return
 
+        _shadowVisible = false
         var pickerPos = _isPickerMode
             ? _calcPickerPosition(targetControl, _pickerRowHeight) : null
         var posX = pickerPos

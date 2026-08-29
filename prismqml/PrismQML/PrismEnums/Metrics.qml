@@ -541,7 +541,9 @@ QtObject {
  readonly property QtObject popup: QtObject {
  readonly property int defaultSize: 200 // Default panel size 默认面板尺寸
  readonly property int windowPadding: 16
- readonly property int panelOffset: 8
+ // Reserve the full level8 shadow extent inside the native popup surface.
+ // 为原生弹层表面预留完整的 level8 阴影外扩范围。
+ readonly property int panelOffset: 20
  readonly property int minWidth: 64
  readonly property int minHeight: 32
  readonly property int controlGap: 2

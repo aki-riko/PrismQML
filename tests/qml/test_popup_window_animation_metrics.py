@@ -250,6 +250,43 @@ def test_popup_shadow_tracks_panel_geometry_not_animation_clip(qapp):
         _pump(1)
 
 
+def test_popup_surface_margin_contains_the_full_shadow_extent(qapp):
+    engine, component, root = _create_scene()
+    try:
+        popup = root.findChild(QQuickItem, "popup")
+        assert popup is not None
+        panel_offset = float(popup.property("_panelOffset"))
+        shadow_blur = float(popup.property("_popupShadowBlur"))
+        shadow_offset = float(popup.property("_popupShadowOffset"))
+        shadow = popup.findChild(QQuickItem, "_popupShadow")
+        material = shadow.property("material") if shadow else None
+
+        assert panel_offset >= shadow_blur + abs(shadow_offset)
+        assert shadow is not None
+        assert material is not None
+        assert shadow.x() + material.x() >= -1e-6
+        assert shadow.y() + material.y() >= -1e-6
+        assert (
+            shadow.x() + material.x() + material.width()
+            <= popup.property("_outerWidth") + 1e-6
+        )
+        assert (
+            shadow.y() + material.y() + material.height()
+            <= popup.property("_outerHeight") + 1e-6
+        )
+        assert popup.property("_outerWidth") == pytest.approx(
+            popup.property("popupWidth") + 2 * panel_offset
+        )
+        assert popup.property("_outerHeight") == pytest.approx(
+            popup.property("popupHeight") + 2 * panel_offset
+        )
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_popup_window_animation_source_uses_role_tokens():
     metrics_source = METRICS_SOURCE.read_text(encoding="utf-8")
     animation_source = ANIMATIONS_SOURCE.read_text(encoding="utf-8")
