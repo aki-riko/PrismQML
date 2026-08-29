@@ -5,16 +5,13 @@
 import QtQuick
 import QtQuick.Window
 import ".."
-
 // NativeWindowStartupHelper - Optional native startup transaction 可选原生启动事务
 Item {
     id: root
-
     // ==================== Required Props 必需属性 ====================
     required property Window targetWindow
     required property Item animationHelper
     required property bool useNativeShadow
-
     // ==================== Internal Props 内部属性 ====================
     property bool retryAttempted: false
     property bool readyPublished: false
@@ -23,21 +20,41 @@ Item {
     property bool waitingForFirstFrame: false
     property bool showAnimationStarted: false
     property int showAnimationStartCount: 0
+    property bool nativeShadowEnabled: false
+    property bool visibleFramePresented: false
+    property bool nativeHookReadyPending: false
     property int nativeHookAttemptCount: 0
-
     // ==================== Public Methods 公开方法 ====================
     function start() {
         if (nativeHookAttemptCount > 0 || delayTimer.running) return
         delayTimer.start()
     }
-
     function prepareBeforeShow() {
         if (nativeHookAttemptCount > 0) return
         delayTimer.stop()
         root._attemptNativeHook()
     }
-
     // ==================== Internal Methods 内部方法 ====================
+    function _syncNativeShadow(enabled) {
+        if (enabled) root._enableNativeShadow()
+        else root._disableNativeShadow()
+    }
+    function _enableNativeShadow() {
+        if (nativeShadowEnabled || !useNativeShadow || !targetWindow
+                || !visibleFramePresented || !targetWindow.visible
+                || targetWindow._closeInProgress
+                || typeof ShadowManager === "undefined" || !ShadowManager) return
+        targetWindow.profileTime("ShadowManager.enableShadowForWindow start")
+        var applied = ShadowManager.enableShadowForWindow(targetWindow)
+        targetWindow.profileTime("ShadowManager.enableShadowForWindow done")
+        if (applied) nativeShadowEnabled = true
+    }
+    function _disableNativeShadow() {
+        if (!nativeShadowEnabled || !targetWindow
+                || typeof ShadowManager === "undefined" || !ShadowManager) return
+        var applied = ShadowManager.disableShadowForWindow(targetWindow)
+        if (applied) nativeShadowEnabled = false
+    }
     function _armStartupVisibility() {
         if (showAnimationStarted) return
         if (firstFramePresented) {
@@ -56,6 +73,14 @@ Item {
             root._ensureStartupVisible()
             return
         }
+        if (showAnimationStarted && !visibleFramePresented) {
+            visibleFramePresented = true
+            root._enableNativeShadow()
+            if (nativeHookReadyPending) {
+                nativeHookReadyPending = false
+                root._publishNativeHookResult(true)
+            }
+        }
         if (showAnimationStarted && !animationHelper.showAnimationRunning) {
             startupPresentationReady = true
             targetWindow.profileTime("startup presentation ready")
@@ -73,18 +98,6 @@ Item {
     function _callNativeHook() {
         var nativeHookSucceeded = false
         try {
-            // A failed finalizeAttach retries through delayTimer, which can land
-            // after the close collapse has started. Re-arming the DWM shadow
-            // then paints the full window rectangle back around the shrinking
-            // circle, so skip it once the close owns the window.
-            // finalizeAttach 失败会经 delayTimer 重试, 可能落在关闭收紧开始之后。
-            // 那时重新装上 DWM 阴影会把整窗矩形又画回收紧的圆外, 故关闭接管后跳过。
-            if (useNativeShadow && !targetWindow._closeInProgress &&
-                    typeof ShadowManager !== "undefined" && ShadowManager) {
-                targetWindow.profileTime("ShadowManager.enableShadowForWindow start")
-                ShadowManager.enableShadowForWindow(targetWindow)
-                targetWindow.profileTime("ShadowManager.enableShadowForWindow done")
-            }
             if (typeof NativeWindow !== "undefined" && NativeWindow &&
                     typeof NativeWindow.finalizeAttach === "function") {
                 targetWindow.profileTime("NativeWindow.finalizeAttach start")
@@ -99,7 +112,6 @@ Item {
         }
         return nativeHookSucceeded
     }
-
     function _publishNativeHookResult(nativeHookSucceeded) {
         if (nativeHookSucceeded) {
             if (!readyPublished) {
@@ -125,9 +137,12 @@ Item {
         // Reveal only after the first complete scene frame reaches the surface.
         // 仅在完整场景首帧提交到窗口表面后才显示窗口。
         _armStartupVisibility()
+        if (nativeHookSucceeded && useNativeShadow && !visibleFramePresented) {
+            nativeHookReadyPending = true
+            return
+        }
         _publishNativeHookResult(nativeHookSucceeded)
     }
-
     visible: false
 
     Connections {

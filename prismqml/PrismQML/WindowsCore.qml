@@ -78,8 +78,9 @@ Window {
     readonly property int margin: isMaximized ? 0 : (_useNativeShadow ? 0 : (_useQmlShadow ? shadowSize : 0))
 
     // ==================== Signals 信号 ====================
-    // Fired after DWM-touching init done (shadow + native hook attached) 通知子类: DWM 相关初始化完成
-    // 子类可挂这个信号设置 Mica 等会被 SWP_FRAMECHANGED 重置的 DWM 属性
+    // Fired after the native hook is attached; the shadow is armed after the first opaque frame.
+    // 原生钩子接好后发射；阴影会在首个不透明帧后再接入。
+    // 子类可挂这个信号设置 Mica 等会被 SWP_FRAMECHANGED 重置的 DWM 属性。
     signal nativeHookReady()
     // Fired synchronously after a close request is accepted, before HWND teardown.
     // 关闭请求确认后、HWND 销毁前同步触发。
@@ -312,15 +313,7 @@ Window {
             return
         }
         if (!ShadowManager) return
-        if (_useNativeShadow) {
-            profileTime("ShadowManager.enableShadowForWindow runtime start")
-            ShadowManager.enableShadowForWindow(window)
-            profileTime("ShadowManager.enableShadowForWindow runtime done")
-        } else {
-            profileTime("ShadowManager.disableShadowForWindow runtime start")
-            ShadowManager.disableShadowForWindow(window)
-            profileTime("ShadowManager.disableShadowForWindow runtime done")
-        }
+        nativeWindowStartup._syncNativeShadow(_useNativeShadow)
     }
     onVisibilityChanged: {
         if (window.visibility !== Window.Hidden && window.visibility !== Window.Minimized) {
@@ -377,11 +370,7 @@ Window {
             if (!ShadowManager) return
             var enabled = ConfigManager.dwmShadow
             logTime("ConfigManager.dwmShadow changed: " + enabled)
-            if (enabled && window._useNativeShadow) {
-                ShadowManager.enableShadowForWindow(window)
-            } else {
-                ShadowManager.disableShadowForWindow(window)
-            }
+            nativeWindowStartup._syncNativeShadow(enabled && window._useNativeShadow)
         }
 
         target: typeof ConfigManager !== "undefined" ? ConfigManager : null
