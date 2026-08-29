@@ -8,7 +8,7 @@ import pytest
 
 from PySide6.QtCore import QObject, QPointF, Qt, QUrl
 from PySide6.QtGui import QGuiApplication, QWindow
-from PySide6.QtQuick import QQuickWindow
+from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QTest
 
@@ -221,6 +221,10 @@ def test_menu_item_click_survives_natural_opening_animation(
     assert _wait_for(lambda: popup.property("isOpen"))
     _pump(20)
     assert 0 < popup.property("_clipHeight") < popup.property("popupHeight")
+    shadow = popup.findChild(QQuickItem, "_popupShadow")
+    assert shadow is not None
+    assert popup.property("_shadowVisible") is False
+    assert shadow.property("visible") is False
 
     item = next(
         child
@@ -254,6 +258,32 @@ def test_menu_item_click_survives_natural_opening_animation(
     assert warnings == []
 
 
+@pytest.mark.parametrize("popup_mode", ["qt_window", "in_window", "native_window"])
+def test_popup_shadow_waits_for_natural_opening_animation(
+    action_menu_scene, popup_mode
+):
+    root, _window, warnings = action_menu_scene
+    menu = root.findChild(type(root), "actionMenu")
+    assert menu is not None
+    menu.setProperty("useQtPopupWindow", popup_mode == "qt_window")
+    menu.setProperty("useInWindowPopup", popup_mode == "in_window")
+
+    _invoke(root, "openMenu")
+    assert _wait_for(lambda: menu.property("isOpen"))
+    shadow = menu.findChild(QQuickItem, "_popupShadow")
+    assert shadow is not None
+    _pump(20)
+    assert menu.property("_shadowVisible") is False
+    assert shadow.property("visible") is False
+
+    assert _wait_for(lambda: menu.property("_shadowVisible"), timeout_ms=600)
+    assert shadow.property("visible") is True
+
+    _invoke(menu, "close")
+    assert _wait_for(lambda: not menu.property("isOpen"))
+    assert warnings == []
+
+
 @pytest.mark.parametrize("popup_mode", ["qt_window", "in_window"])
 def test_action_click_survives_opening_animation(
     action_menu_scene, popup_mode
@@ -270,6 +300,10 @@ def test_action_click_survives_opening_animation(
     assert _wait_for(lambda: menu.property("isOpen"))
     _pump(20)
     assert 0 < menu.property("_clipHeight") < menu.property("popupHeight")
+    shadow = menu.findChild(QQuickItem, "_popupShadow")
+    assert shadow is not None
+    assert menu.property("_shadowVisible") is False
+    assert shadow.property("visible") is False
     popup_window = action.window()
     assert popup_window is not None
     click_position = action.mapToScene(

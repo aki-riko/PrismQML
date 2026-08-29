@@ -76,6 +76,7 @@ Item {
     readonly property bool _isPopupWindowCore: true
     // Internal: animated panel clip height 内部：面板裁剪显现高度
     property real _clipHeight: 0
+    property bool _shadowVisible: false
     // Follow parent control position (sync move on scroll) 跟随父控件位置变化
     readonly property var _targetWindow: targetControl ? targetControl.Window.window : null
     readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
@@ -183,6 +184,7 @@ Item {
         popupAnimations.showAnimation.stop()
         popupAnimations.hideAnimation.stop()
         _clipHeight = 0
+        _shadowVisible = false
         popupSurface.opacity = Enums.opacityLevel.invisible
     }
     function _handleSurfaceClosed() {
@@ -338,6 +340,7 @@ Item {
         popupAnimations.showAnimation.stop()
         popupSurface.opacity = 1
         _clipHeight = popupHeight
+        _shadowVisible = true
     }
     // Force reset all state - for system tray menu reopen 强制重置所有状态（系统托盘菜单重新打开使用）
     function forceReset() {
@@ -478,5 +481,6 @@ Item {
         popupNeumorphicShadowOffset: control._popupNeumorphicShadowOffset
         popupNeumorphicShadowSpread: control._popupNeumorphicShadowSpread
         clipHeight: control._clipHeight
+        shadowVisible: control._shadowVisible
     }
 }

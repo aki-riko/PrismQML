@@ -25,6 +25,8 @@ Item {
     ParallelAnimation {
         id: showAnim
 
+        onFinished: animations.control._shadowVisible = true
+
         NumberAnimation {
             target: animations.surface
             property: "opacity"
