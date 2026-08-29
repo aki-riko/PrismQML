@@ -24,7 +24,6 @@ Item {
     property int coverEasing: Easing.InOutQuad
     property bool revealTarget: false
     property bool keepSourceHiddenOnExpand: false
-    property bool collapseToCenter: false
     // Animate in a separate clean window instead of masking inside the host. Needed when the
     // host has hwnd-level effects (DWM Mica, native shadow) that a QML mask cannot clip.
     // 在独立的干净窗口里做动画, 而不是在宿主内部遮罩。当宿主带有 QML 遮罩裁不到的 hwnd 级
@@ -211,7 +210,6 @@ Item {
             coverEasing: control.coverEasing
             revealTarget: control.revealTarget
             keepSourceHiddenOnExpand: control.keepSourceHiddenOnExpand
-            collapseToCenter: control.collapseToCenter
             preferOverlayWindow: control.preferOverlayWindow
         }
     }

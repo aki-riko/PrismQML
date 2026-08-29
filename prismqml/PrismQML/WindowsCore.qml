@@ -348,7 +348,6 @@ Window {
         anchors.fill: parent
         animationType: window.closeAnimationType
         customAnimation: window.closeAnimation
-        collapseToCenter: true
         // The main window carries DWM Mica and a native shadow, both hwnd-level and both
         // outside any QML mask's reach. Animate in the overlay window, which has neither.
         // 主窗口带着 DWM Mica 和原生阴影, 两者都是 hwnd 级、都在 QML 遮罩管不到的地方。
