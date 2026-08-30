@@ -11,7 +11,10 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from ._page_prewarm import initialize_page_prewarm_state
-from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+from ..runtime.startup_defaults import (
+    DEFAULT_SPLASH_SUBTITLE,
+    resolve_initial_window_size,
+)
 
 if TYPE_CHECKING:
     from .window_core import NavigationItem
@@ -31,8 +34,7 @@ def initialize_window_state(owner: Any, window_type: int) -> None:
     owner._pending_calls: List[tuple[str, Any]] = []
 
     owner._title = "PrismQML App"
-    owner._width = 1200
-    owner._height = 800
+    owner._width, owner._height = resolve_initial_window_size()
     owner._icon = ""
     owner._icon_colored = True
 

@@ -32,7 +32,12 @@ from ._fast_splash_lifecycle import (
     finish_reveal,
     raise_owned_splash,
 )
-from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+from ..runtime.startup_defaults import (
+    DEFAULT_SPLASH_SUBTITLE,
+    DEFAULT_WINDOW_HEIGHT,
+    DEFAULT_WINDOW_WIDTH,
+    validate_window_dimension,
+)
 
 
 # Resolved metrics stay local so the fast surface avoids early theme imports.
@@ -57,8 +62,10 @@ _BREATHE_DURATION = 1200
 _BACKGROUND_DARK = "#202020"
 _BACKGROUND_LIGHT = "#f0f4f9"
 _ACCENT = "#ff0e5a9c"
-_DEFAULT_SPLASH_WIDTH = 1200
-_DEFAULT_SPLASH_HEIGHT = 800
+# The splash opens at the host window size so the handoff keeps one geometry.
+# 启动页以宿主窗口尺寸打开，使交接过程保持同一几何。
+_DEFAULT_SPLASH_WIDTH = DEFAULT_WINDOW_WIDTH
+_DEFAULT_SPLASH_HEIGHT = DEFAULT_WINDOW_HEIGHT
 
 
 _SPLASH_QML = """
@@ -389,11 +396,7 @@ class FastSplashController(QObject):
     _application_title = staticmethod(application_title)
     _is_default_process_title = staticmethod(is_default_process_title)
 
-    @staticmethod
-    def _validate_dimension(value: int, name: str) -> int:
-        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-            raise ValueError(f"{name} must be a positive integer")
-        return value
+    _validate_dimension = staticmethod(validate_window_dimension)
 
     def update_metadata(
         self,

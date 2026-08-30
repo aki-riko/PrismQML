@@ -65,6 +65,92 @@ def test_fast_splash_keeps_explicit_initial_dimensions():
     assert "width: 980; height: 640" in source
 
 
+def _resolve_startup_sizes(monkeypatch, **kwargs):
+    """Run App size resolution with Qt startup stubbed. 打桩 Qt 启动后解析尺寸。"""
+    import prismqml.python.runtime as runtime
+    from prismqml.python.window import app as app_module
+    from prismqml.python.window import fast_splash as fast_splash_module
+
+    recorded = {}
+
+    class _RecordingController:
+        def __init__(self, _app):
+            pass
+
+        def show(self, _icon, *, subtitle, splash_width, splash_height):
+            recorded["splash_size"] = (splash_width, splash_height)
+            return True
+
+    monkeypatch.setattr(runtime, "create_qt_application", lambda _argv: (None, False))
+    monkeypatch.setattr(runtime, "install_application_input_filter", lambda _app: None)
+    monkeypatch.setattr(runtime, "install_application_dwm_filter", lambda: None)
+    monkeypatch.setattr(
+        fast_splash_module, "FastSplashController", _RecordingController
+    )
+
+    owner = SimpleNamespace()
+    app_module._create_qt_application(owner, [], **kwargs)
+    recorded["window_size"] = (owner._window_width, owner._window_height)
+    return recorded
+
+
+def test_app_window_size_drives_splash_and_window_together(monkeypatch):
+    """One App setting must size both startup surfaces. 一次设定同时决定两个表面。"""
+    sizes = _resolve_startup_sizes(monkeypatch, window_width=1150, window_height=780)
+
+    assert sizes["window_size"] == (1150, 780)
+    assert sizes["splash_size"] == (1150, 780)
+
+
+def test_app_splash_size_stays_overridable(monkeypatch):
+    """Explicit splash geometry must survive the shared default."""
+    sizes = _resolve_startup_sizes(
+        monkeypatch,
+        window_width=1150,
+        window_height=780,
+        splash_width=640,
+        splash_height=480,
+    )
+
+    assert sizes["window_size"] == (1150, 780)
+    assert sizes["splash_size"] == (640, 480)
+
+
+def test_app_window_size_defaults_to_shared_constants(monkeypatch):
+    from prismqml.python.runtime.startup_defaults import (
+        DEFAULT_WINDOW_HEIGHT,
+        DEFAULT_WINDOW_WIDTH,
+    )
+
+    sizes = _resolve_startup_sizes(monkeypatch)
+
+    assert sizes["window_size"] == (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
+    assert sizes["splash_size"] == (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT)
+
+
+@pytest.mark.parametrize("value", [0, -1, True, 1.5, "1150"])
+def test_app_rejects_invalid_window_dimensions(monkeypatch, value):
+    with pytest.raises(ValueError):
+        _resolve_startup_sizes(monkeypatch, window_width=value)
+
+
+def test_window_size_falls_back_to_defaults_without_app():
+    """A bare WindowCore must not require App. 裸 WindowCore 不应强依赖 App。"""
+    from prismqml.python.runtime.startup_defaults import (
+        DEFAULT_WINDOW_HEIGHT,
+        DEFAULT_WINDOW_WIDTH,
+    )
+    from prismqml.python.runtime.startup_defaults import (
+        resolve_initial_window_size,
+    )
+
+    assert App._instance is None
+    assert resolve_initial_window_size() == (
+        DEFAULT_WINDOW_WIDTH,
+        DEFAULT_WINDOW_HEIGHT,
+    )
+
+
 @pytest.mark.parametrize("value", [0, -1, True, 1.5, "980"])
 def test_fast_splash_rejects_invalid_dimensions(value):
     with pytest.raises(ValueError):
