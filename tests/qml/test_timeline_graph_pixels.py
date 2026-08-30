@@ -18,7 +18,6 @@ BOUNDARY_PROBE = r'''
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QPointF, QTimer, QUrl
-from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtWidgets import QApplication
@@ -195,7 +194,6 @@ def max_channel_delta(left, right):
 
 branch_failures = []
 branch_boundaries = []
-branch_stroke = QColor("#107c10").rgba()
 for current, following in zip(layer_rows, layer_rows[1:]):
     current_layer, current_row = current
     following_layer, following_row = following
@@ -259,8 +257,10 @@ for layer, boundary_y, curve_before in branch_boundaries:
         for profile in junction_profiles
         if branch_stroke_mask(profile) != interior_mask
         or any(
-            max_channel_delta(color, branch_stroke) > branch_channel_tolerance
-            for color, is_stroke in zip(profile, branch_stroke_mask(profile))
+            max_channel_delta(color, interior_color) > branch_channel_tolerance
+            for color, interior_color, is_stroke in zip(
+                profile, interior_profile, branch_stroke_mask(profile)
+            )
             if is_stroke
         )
     ]
