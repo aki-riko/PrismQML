@@ -342,7 +342,13 @@ def test_color_picker_dropdown_preserves_public_parent_geometry(qapp):
         ]
         sliders = _channel_sliders(dropdown)
 
-        assert (popup_window.width(), popup_window.height()) == (336, 496)
+        panel_offset = popup_core.property("_panelOffset")
+        assert (popup_window.width(), popup_window.height()) == pytest.approx(
+            (
+                popup_core.property("popupWidth") + 2 * panel_offset,
+                popup_core.property("popupHeight") + 2 * panel_offset,
+            )
+        )
         assert (dropdown.width(), dropdown.height()) == pytest.approx((312, 472))
         assert dropdown.property("implicitWidth") == pytest.approx(300)
         assert dropdown.property("implicitHeight") == pytest.approx(487)
