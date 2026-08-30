@@ -141,6 +141,7 @@ Item {
                 && (typeof rowDelegate.model.cardData === "object")
                 && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
             readonly property string cardTime: rowDelegate.model.time || ""
+            readonly property string cardTimePeriod: rowDelegate.model.timePeriod || ""
             readonly property real nodeY: cardBox.y + cardBox.height / 2
 
             width: rowDelegate.width
@@ -256,14 +257,15 @@ Item {
                             radius: Enums.radius.small
                             color: Enums.stateColor.controlBgHover
                             border.width: Enums.border.thin
-                            border.color: Enums.accentColor
+                            border.color: control._getTimeColor(cardPart.cardTimePeriod)
 
                             Label {
                                 id: timeLabel
+                                objectName: "timelineCardTimeLabel"
                                 anchors.centerIn: parent
                                 type: Enums.label.type_caption
                                 text: cardPart.cardTime
-                                color: Enums.accentColor
+                                color: control._getTimeColor(cardPart.cardTimePeriod)
                             }
                         }
                     }

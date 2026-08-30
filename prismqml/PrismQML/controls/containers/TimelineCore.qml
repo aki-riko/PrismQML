@@ -98,6 +98,7 @@ Item {
                 "text": typeof card === "string" ? card : (cardObject ? card.text || "" : ""),
                 "description": cardObject ? card.description || "" : "",
                 "time": cardObject ? card.time || "" : "",
+                "timePeriod": cardObject ? card.timePeriod || "" : "",
                 "status": cardObject ? card.status || groupStatus : groupStatus,
                 "strikeOut": cardObject ? card.strikeOut || false : false,
                 "graphData": cardObject ? card.graph || {} : {},
@@ -265,6 +266,12 @@ Item {
             case "error": return Enums.statusLevel.getColor("error")
             default: return Enums.accentColor  // info
         }
+    }
+
+    function _getTimeColor(period) {
+        if (period === "AM") return Enums.accentColor
+        if (period === "PM") return Enums.statusLevel.getColor("warning")
+        return Enums.accentColor
     }
 
     function _getStatusIcon(status) {

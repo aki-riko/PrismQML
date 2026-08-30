@@ -154,6 +154,9 @@ Column {
                             property string cardTime: cardData
                                 && typeof cardData === "object"
                                 ? (cardData.time || "") : ""
+                            property string cardTimePeriod: cardData
+                                && typeof cardData === "object"
+                                ? (cardData.timePeriod || "") : ""
                             readonly property bool isSelected: timeline.selectedKey !== undefined
                                 && cardData && typeof cardData === "object"
                                 && cardData[timeline.selectedRole] === timeline.selectedKey
@@ -251,14 +254,17 @@ Column {
                                                 radius: Enums.radius.small
                                                 color: Enums.stateColor.controlBgHover
                                                 border.width: Enums.border.thin
-                                                border.color: Enums.accentColor
+                                                border.color: timeline._getTimeColor(
+                                                    cardItem.cardTimePeriod)
 
                                                 Label {
                                                     id: timeLabel
+                                                    objectName: "timelineCardTimeLabel"
                                                     anchors.centerIn: parent
                                                     type: Enums.label.type_caption
                                                     text: cardItem.cardTime
-                                                    color: Enums.accentColor
+                                                    color: timeline._getTimeColor(
+                                                        cardItem.cardTimePeriod)
                                                 }
                                             }
                                         }

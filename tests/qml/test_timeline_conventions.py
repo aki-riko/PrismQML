@@ -194,6 +194,7 @@ Window {
                     {
                         "text": "Merge feature",
                         "time": "10:42",
+                        "timePeriod": "AM",
                         "commit": "merge",
                         "labels": [{"text": "main", "status": Enums.statusLevel.info}],
                         "graph": {
@@ -209,7 +210,8 @@ Window {
                     },
                     {
                         "text": "Feature work",
-                        "time": "09:18",
+                        "time": "13:18",
+                        "timePeriod": "PM",
                         "commit": "feature",
                         "graph": {
                             "nodeLane": 1,
@@ -922,6 +924,30 @@ def test_timeline_time_badges_are_optional_and_keep_header_dates(timeline_scene)
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_time_badges_use_distinct_am_pm_colors(timeline_scene):
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: len(
+            [
+                item
+                for item in _visual_descendants(graph_timeline)
+                if item.objectName() == "timelineCardTimeLabel" and item.isVisible()
+            ]
+        ) == 2
+    )
+    labels = [
+        item
+        for item in _visual_descendants(graph_timeline)
+        if item.objectName() == "timelineCardTimeLabel" and item.isVisible()
+    ]
+    colors = [item.property("color").name() for item in labels]
+    assert colors[0] != colors[1]
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_pulse_is_shared_and_bounded(timeline_scene):
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
     graph_timeline = window.findChild(QQuickItem, "graphTimeline")
@@ -1030,4 +1056,7 @@ def test_timeline_time_and_date_fields_are_forwarded_without_formatting():
 
     assert '"dateKey": grp.dateKey || ""' in timeline_source
     assert '"time": cardObject ? card.time || "" : ""' in timeline_source
+    assert '"timePeriod": cardObject ? card.timePeriod || "" : ""' in timeline_source
+    assert "function _getTimeColor(period)" in timeline_source
     assert 'objectName: "timelineCardTimeBadge"' in virtual_row_source
+    assert 'objectName: "timelineCardTimeLabel"' in virtual_row_source
