@@ -25,7 +25,12 @@ from ._application_icon_runtime import (
     configure_initial_application_icon,
     initialize_application_icon_state,
 )
-from ..runtime.startup_defaults import DEFAULT_SPLASH_SUBTITLE
+from ..runtime.startup_defaults import (
+    DEFAULT_SPLASH_SUBTITLE,
+    DEFAULT_WINDOW_HEIGHT,
+    DEFAULT_WINDOW_WIDTH,
+    validate_window_dimension,
+)
 
 if TYPE_CHECKING:
     from PySide6.QtQml import QQmlApplicationEngine
@@ -62,6 +67,8 @@ def _initialize_app_state(owner, task_shutdown_timeout_ms: Optional[int]) -> Non
     owner._fast_splash = None
     owner._startup_window_registrar = None
     owner._splash_subtitle = DEFAULT_SPLASH_SUBTITLE
+    owner._window_width = DEFAULT_WINDOW_WIDTH
+    owner._window_height = DEFAULT_WINDOW_HEIGHT
     initialize_application_icon_state(owner)
 
 
@@ -79,6 +86,8 @@ def _create_qt_application(
     splash_subtitle: Optional[str] = None,
     splash_width: Optional[int] = None,
     splash_height: Optional[int] = None,
+    window_width: Optional[int] = None,
+    window_height: Optional[int] = None,
 ) -> None:
     """Create QApplication and install global filters. 创建应用并安装全局过滤器。"""
     from ..runtime import (
@@ -93,6 +102,19 @@ def _create_qt_application(
         if splash_subtitle is None
         else str(splash_subtitle)
     )
+    # Resolve the host window size once. The splash inherits it unless the host
+    # explicitly asks for a different splash geometry, so both surfaces open at
+    # the same size without the host repeating the numbers.
+    # 宿主窗口尺寸只解析一次。除宿主显式要求不同的启动页几何外，启动页继承
+    # 该尺寸，使两个表面以相同尺寸打开，无需宿主重复填写同一组数字。
+    owner._window_width = validate_window_dimension(
+        DEFAULT_WINDOW_WIDTH if window_width is None else window_width,
+        "window_width",
+    )
+    owner._window_height = validate_window_dimension(
+        DEFAULT_WINDOW_HEIGHT if window_height is None else window_height,
+        "window_height",
+    )
     owner._input_filter_started = True
     install_application_input_filter(owner._app)
     from .fast_splash import FastSplashController
@@ -101,8 +123,12 @@ def _create_qt_application(
     owner._fast_splash.show(
         application_icon or "",
         subtitle=owner._splash_subtitle,
-        splash_width=splash_width,
-        splash_height=splash_height,
+        splash_width=(
+            owner._window_width if splash_width is None else splash_width
+        ),
+        splash_height=(
+            owner._window_height if splash_height is None else splash_height
+        ),
     )
     install_application_dwm_filter()
     owner._dwm_filter_started = True
@@ -288,7 +314,11 @@ class App(ApplicationIconMixin):
     ``config_path`` 可指定应用独立配置；显式路径默认启用外观持久化。
     ``persist_appearance=False`` 可让宿主自行管理主题、皮肤、语言和主题色。
     ``splash_subtitle`` 可在快速启动页首帧显示自定义副标题。
-    ``splash_width`` / ``splash_height`` 可指定快速启动页初始尺寸。
+    ``window_width`` / ``window_height`` 是宿主窗口尺寸的单一来源：快速启动页
+    和 ``create_window()`` 创建的窗口都以该尺寸打开，宿主无需再调用
+    ``resize()`` 对齐两者，也不会因为漏改一处而出现启动页与窗口尺寸不一致。
+    ``splash_width`` / ``splash_height`` 仅在启动页需要不同于窗口的尺寸时传入；
+    留空即继承 ``window_width`` / ``window_height``。
     """
 
     _instance: "App" = None
@@ -304,6 +334,8 @@ class App(ApplicationIconMixin):
         splash_subtitle: Optional[str] = None,
         splash_width: Optional[int] = None,
         splash_height: Optional[int] = None,
+        window_width: Optional[int] = None,
+        window_height: Optional[int] = None,
         auto_update_slot_redirect: bool = True,
         config_path: Optional[Union[str, os.PathLike]] = None,
         persist_appearance: Optional[bool] = None,
@@ -332,6 +364,8 @@ class App(ApplicationIconMixin):
                 splash_subtitle,
                 splash_width,
                 splash_height,
+                window_width,
+                window_height,
             )
             _create_qml_engine(self, config_path, persist_appearance)
             configure_initial_application_icon(
@@ -440,6 +474,11 @@ class App(ApplicationIconMixin):
     def splash_subtitle(self) -> str:
         """Return the shared default subtitle for all startup surfaces."""
         return self._splash_subtitle
+
+    @property
+    def window_size(self) -> tuple[int, int]:
+        """Return the shared host window size for all startup surfaces."""
+        return (self._window_width, self._window_height)
 
     @classmethod
     def setApplicationVersion(cls, version: str) -> None:
