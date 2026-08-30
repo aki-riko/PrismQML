@@ -119,11 +119,11 @@ Rectangle {
         return listView.count
     }
 
-    // Publish synchronous model state now, then converge on the internal ListView count.
-    // 立即发布同步模型状态，再以内部 ListView 计数收敛兜底。
+    // Publish synchronous model state now, then re-check the current model after queued bindings settle.
+    // 立即发布同步模型状态，排队绑定稳定后再次读取当前模型，避免内部视图旧计数回写。
     function _refreshItemCount() {
         root._autoItemCount = root._immediateModelItemCount()
-        Qt.callLater(function() { root._autoItemCount = listView.count })
+        Qt.callLater(function() { root._autoItemCount = root._immediateModelItemCount() })
     }
 
     // Coalesce geometry-dependent scrollbar state to avoid a binding loop.
