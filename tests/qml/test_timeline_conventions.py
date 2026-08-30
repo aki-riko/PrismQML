@@ -530,33 +530,88 @@ def test_timeline_virtual_wheel_bounces_at_both_boundaries_without_jitter(
             == pytest.approx(helper.property(boundary_name), abs=0.5)
             and not helper.property("isOvershot")
         )
+        visual_row = None
+        baseline_row_y = 0.0
+        if at_start:
+            visual_rows = [
+                item
+                for item in _visual_descendants(list_view)
+                if "TimelineVirtualRow" in item.metaObject().className()
+                and item.isVisible()
+            ]
+            assert visual_rows
+            visual_row = min(
+                visual_rows,
+                key=lambda item: item.mapToItem(list_view, QPointF(0, 0)).y(),
+            )
+            baseline_row_y = visual_row.mapToItem(list_view, QPointF(0, 0)).y()
         boundary = float(helper.property(boundary_name))
         maximum_overshoot = float(helper.property("_maxOvershoot"))
-        values = []
+        visual_offsets = []
+        position_samples = [
+            (
+                float(list_view.property("contentY")),
+                float(helper.property("minScroll")),
+                float(helper.property("maxScroll")),
+            )
+        ]
+        helper._visualOvershootOffsetChanged.connect(
+            lambda bucket=visual_offsets: bucket.append(
+                float(helper.property("_visualOvershootOffset"))
+            )
+        )
         list_view.contentYChanged.connect(
-            lambda bucket=values: bucket.append(
-                float(list_view.property("contentY")))
+            lambda bucket=position_samples: bucket.append(
+                (
+                    float(list_view.property("contentY")),
+                    float(helper.property("minScroll")),
+                    float(helper.property("maxScroll")),
+                )
+            )
         )
 
         event = _send_wheel(window, list_view, wheel_delta)
         assert event.isAccepted()
-        crossed = (lambda value: value < boundary) if at_start else (
-            lambda value: value > boundary
+        crossed = (lambda value: value > 1) if at_start else (
+            lambda value: value < -1
         )
-        assert _wait_for(lambda: any(crossed(value) for value in values))
-        assert all(abs(value - boundary) <= maximum_overshoot + 0.5 for value in values)
+        assert _wait_for(
+            lambda: any(crossed(value) for value in visual_offsets)
+        ), visual_offsets
+        if visual_row is not None:
+            shifted_row_y = visual_row.mapToItem(list_view, QPointF(0, 0)).y()
+            assert shifted_row_y > baseline_row_y + 1
+        assert all(
+            abs(value) <= maximum_overshoot + 0.5 for value in visual_offsets
+        ), visual_offsets
+        assert all(
+            minimum - 0.5 <= content_y <= maximum + 0.5
+            for content_y, minimum, maximum in position_samples
+        ), position_samples
         assert _wait_for(
             lambda: list_view.property("contentY")
             == pytest.approx(boundary, abs=0.5)
+            and helper.property("_visualOvershootOffset")
+            == pytest.approx(0, abs=0.5)
             and not helper.property("isOvershot"),
             timeout_ms=3000,
         )
-        settled_index = len(values)
+        if visual_row is not None:
+            assert visual_row.mapToItem(
+                list_view, QPointF(0, 0)
+            ).y() == pytest.approx(baseline_row_y, abs=0.5)
+        magnitudes = [abs(value) for value in visual_offsets]
+        outward = magnitudes[: magnitudes.index(max(magnitudes)) + 1]
+        assert all(
+            outward[index] + 2 >= outward[index - 1]
+            for index in range(1, len(outward))
+        ), visual_offsets
+        settled_index = len(visual_offsets)
         _pump(300)
         assert all(
-            value == pytest.approx(boundary, abs=0.5)
-            for value in values[settled_index:]
-        ), values
+            value == pytest.approx(0, abs=0.5)
+            for value in visual_offsets[settled_index:]
+        ), visual_offsets
 
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
@@ -576,15 +631,6 @@ def _virtual_viewport_and_helper(owner):
     return list_view, helper
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="Residual defect: about 1 run in 20 still yanks contentY back to the "
-    "boundary twice mid-burst and then keeps moving outward. Characterised but not "
-    "located; instrumenting the guard stops it reproducing. See "
-    "docs/claude-prismqml-timeline-scroll-regression.md. "
-    "残留缺陷：约 1/20 的运行仍在串中把 contentY 拽回边界两次后继续外移。"
-    "已定性未定位，加探针即不复现，详见交接文档。",
-)
 def test_timeline_virtual_continuous_same_direction_wheel_keeps_one_bounce(
     timeline_scene,
 ):
@@ -610,84 +656,85 @@ def test_timeline_virtual_continuous_same_direction_wheel_keeps_one_bounce(
         timeout_ms=3000,
     )
     maximum_overshoot = float(helper.property("_maxOvershoot"))
-    # Delegate re-measurement can still move minScroll during the burst, which
-    # legitimately puts a stationary position out of bounds. Record each sample's
-    # own boundary so the assertions below do not read that as a re-bounce.
-    # delegate 重新测量可能在滚轮串期间移动 minScroll，这会合法地把静止位置变成越界。
-    # 记录每个样本自身的边界，避免下面的断言把它误读成再次回弹。
     samples = []
-    list_view.contentYChanged.connect(
-        lambda: samples.append(
+
+    def capture_sample():
+        samples.append(
             (
+                round(float(helper.property("_visualOvershootOffset")), 1),
                 round(float(list_view.property("contentY")), 1),
                 round(float(helper.property("minScroll")), 1),
+                round(float(helper.property("maxScroll")), 1),
             )
         )
+
+    helper._visualOvershootOffsetChanged.connect(capture_sample)
+    list_view.contentYChanged.connect(
+        capture_sample
     )
+    content_heights = []
+    list_view.contentHeightChanged.connect(
+        lambda: content_heights.append(float(list_view.property("contentHeight")))
+    )
+    capture_sample()
 
     # Keep wheeling the same direction while the bounce is still in flight.
-    # 回弹仍在进行时持续朝同一方向滚动。
-    for _ in range(6):
+    # Force wrapped delegates to remeasure during the burst; this is the real
+    # geometry path that used to clamp contentY to zero. 回弹进行中强制换行委托
+    # 重测,覆盖此前会把 contentY 夹回零的真实几何路径。
+    burst_offsets = []
+    original_width = large_timeline.width()
+    for index in range(6):
+        if index == 2:
+            large_timeline.setWidth(original_width - 64)
         event = _send_wheel(window, list_view, 120)
         assert event.isAccepted()
         _pump(40)
+        burst_offsets.append(float(helper.property("_visualOvershootOffset")))
+    large_timeline.setWidth(original_width)
+    _pump(40)
+    burst_sample_count = len(samples)
     # Settle against the live boundary, which delegate re-measurement may have moved.
     # 与实时边界比较落位，delegate 重新测量可能已移动它。
     assert _wait_for(
         lambda: list_view.property("contentY")
         == pytest.approx(float(helper.property("minScroll")), abs=0.5)
+        and helper.property("_visualOvershootOffset")
+        == pytest.approx(0, abs=0.5)
         and not helper.property("isOvershot"),
         timeout_ms=3000,
     )
     _pump(200)
 
     assert samples
-    # The first overshoot must still be visible. 首次超出滚动必须仍然可见。
-    assert any(
-        content_y < minimum - 1 for content_y, minimum in samples
-    ), samples
-    # Overshoot must stay bounded relative to each sample's own boundary.
-    # 超出幅度相对每个样本自身的边界必须有界。
+    assert content_heights
+    # The first overshoot remains visible, but logical contentY never leaves the
+    # current ListView bounds. 首次超出仍可见,逻辑 contentY 始终留在实时合法边界内。
+    assert any(offset > 1 for offset, *_rest in samples), samples
     assert all(
-        content_y >= minimum - maximum_overshoot - 1
-        for content_y, minimum in samples
+        abs(offset) <= maximum_overshoot + 1
+        for offset, *_rest in samples
     ), samples
-    # A single outward leg, not repeated bouncing. Direction reversals while out of
-    # bounds are the jitter signature; boundary crossings are not, because a moving
-    # minScroll produces them without any re-bounce.
-    # 单条外移腿而非反复弹跳。越界期间的方向反转才是抖动特征；边界穿越不是，
-    # 因为 minScroll 移动本身就会产生穿越而并无再次回弹。
-    reversals = 0
-    previous_delta = 0.0
-    for index in range(1, len(samples)):
-        if samples[index][0] >= samples[index][1] - 0.5:
-            continue
-        delta = samples[index][0] - samples[index - 1][0]
-        if delta == 0.0:
-            continue
-        if previous_delta != 0.0 and (delta > 0) != (previous_delta > 0):
-            reversals += 1
-        previous_delta = delta
-    assert reversals == 0, samples
-    # No counter-direction yank while still moving outward. Measure raw contentY,
-    # not the distance past the boundary: minScroll moves during delegate
-    # re-measurement, so a boundary-relative distance shrinks without contentY
-    # ever being pulled back.
-    # 外移期间不得被反向拽回。用原始 contentY 而非越界距离衡量：delegate 重新测量
-    # 期间 minScroll 会移动，故越界距离会在 contentY 从未被拉回时自行缩小。
-    positions = [content_y for content_y, _minimum in samples]
-    outward = positions[: positions.index(min(positions)) + 1]
-    yanks = [
-        (index, outward[index - 1], outward[index])
-        for index in range(1, len(outward))
-        if outward[index] > outward[index - 1] + 2
-    ]
-    assert yanks == [], (yanks, samples)
+    assert all(
+        minimum - 0.5 <= content_y <= maximum + 0.5
+        for _offset, content_y, minimum, maximum in samples
+    ), samples
+    # Once the outward visual leg starts, the same wheel burst must not reset it
+    # to zero and launch it again. 同一滚轮串的视觉外移一旦开始,不得归零后重新外移。
+    active_samples = samples[:burst_sample_count]
+    first_outward = next(
+        index for index, sample in enumerate(active_samples) if sample[0] > 1
+    )
+    assert all(
+        offset > 0.5 for offset, *_rest in active_samples[first_outward:]
+    ), active_samples
+    assert all(offset > 0.5 for offset in burst_offsets), burst_offsets
     # Rest against the boundary as it stands now, not the pre-burst snapshot.
     # 与当前边界比较落位，而非滚轮前的快照。
     assert list_view.property("contentY") == pytest.approx(
         float(helper.property("minScroll")), abs=0.5
     )
+    assert helper.property("_visualOvershootOffset") == pytest.approx(0, abs=0.5)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -721,6 +768,8 @@ def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
         _pump(40)
     assert _wait_for(
         lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
+        and helper.property("_visualOvershootOffset")
+        == pytest.approx(0, abs=0.5)
         and not helper.property("isOvershot"),
         timeout_ms=3000,
     )
@@ -737,16 +786,20 @@ def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
         timeout_ms=3000,
     )
 
-    trajectory = []
-    list_view.contentYChanged.connect(
-        lambda: trajectory.append(float(list_view.property("contentY")))
+    visual_trajectory = []
+    helper._visualOvershootOffsetChanged.connect(
+        lambda: visual_trajectory.append(
+            float(helper.property("_visualOvershootOffset"))
+        )
     )
     assert _send_wheel(window, list_view, 120).isAccepted()
     assert _wait_for(
-        lambda: any(value < boundary - 1 for value in trajectory)
-    ), trajectory
+        lambda: any(value > 1 for value in visual_trajectory)
+    ), visual_trajectory
     assert _wait_for(
         lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
+        and helper.property("_visualOvershootOffset")
+        == pytest.approx(0, abs=0.5)
         and not helper.property("isOvershot"),
         timeout_ms=3000,
     )

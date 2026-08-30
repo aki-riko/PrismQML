@@ -24,6 +24,8 @@ Item {
     property bool bounceEnabled: true  // Enable overshoot bounce 启用边界回弹
     property bool handleWheel: false  // Auto handle mouse wheel 自动处理鼠标滚轮
     // ==================== Internal Props 内部属性 ====================
+    // Timeline 挂接视觉位移层后启用此内部模式,其他 Flickable 保持原生超出路径。
+    property bool _visualOvershootEnabled: false
     // Vertical state 垂直状态
     property real _targetY: 0
     property real _smoothY: 0
@@ -66,6 +68,10 @@ Item {
     readonly property real minScroll: _isVertical ? _minY : _minX
     readonly property real maxScroll: _isVertical ? _maxY : _maxX
     readonly property bool isOvershot: _isVertical ? _isOvershotV : _isOvershotH
+    readonly property real _visualOvershootOffset: !_visualOvershootEnabled ? 0
+        : (_isVertical
+            ? _visualOvershootFor(_smoothY, _minY, _maxY)
+            : _visualOvershootFor(_smoothX, _minX, _maxX))
     readonly property bool _isVertical: orientation === Qt.Vertical
     readonly property real _minY: target ? target.originY : 0
     readonly property real _minX: target ? target.originX : 0
@@ -175,6 +181,11 @@ Item {
         return _alignToPhysicalPixel(value)
     }
 
+    function _visualOvershootFor(value, minimum, maximum) {
+        var published = _publishedPosition(value, minimum, maximum)
+        return _clamp(published, minimum, maximum) - published
+    }
+
     function _restartBounceTimer(verticalAxis) {
         var timer = verticalAxis ? _bounceTimerV : _bounceTimerH
         if (!timer) {
@@ -217,8 +228,12 @@ Item {
         if (verticalOvershootGuard.consumesFrame(
                 target.contentY, _lastPublishedY, _minY, _maxY,
                 _isOvershotV, _isOutwardBounceV, _lastBounceFrameTimestampV)) return
-        target.contentY = _publishedPosition(_smoothY, _minY, _maxY)
-        _lastPublishedY = target.contentY
+        var published = _publishedPosition(_smoothY, _minY, _maxY)
+        var contentPosition = _visualOvershootEnabled
+            ? _clamp(published, _minY, _maxY) : published
+        // 赋值前记录发布意图,ListView 可能同步夹紧并重入几何信号。
+        _lastPublishedY = contentPosition
+        target.contentY = contentPosition
         if (_isOutwardBounceV) _lastBounceFrameTimestampV = Date.now()
     }
 
@@ -229,8 +244,11 @@ Item {
         if (horizontalOvershootGuard.consumesFrame(
                 target.contentX, _lastPublishedX, _minX, _maxX,
                 _isOvershotH, _isOutwardBounceH, _lastBounceFrameTimestampH)) return
-        target.contentX = _publishedPosition(_smoothX, _minX, _maxX)
-        _lastPublishedX = target.contentX
+        var published = _publishedPosition(_smoothX, _minX, _maxX)
+        var contentPosition = _visualOvershootEnabled
+            ? _clamp(published, _minX, _maxX) : published
+        _lastPublishedX = contentPosition
+        target.contentX = contentPosition
         if (_isOutwardBounceH) _lastBounceFrameTimestampH = Date.now()
     }
 

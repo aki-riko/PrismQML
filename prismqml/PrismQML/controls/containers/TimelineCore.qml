@@ -60,6 +60,7 @@ Item {
     readonly property alias _needsVirtualScrollBar: scrollViewportState.needsVertical
     readonly property alias _reserveVirtualScrollBarGutter:
         scrollViewportState.reserveVerticalGutter
+    readonly property real _visualOvershootOffset: vScrollHelper._visualOvershootOffset
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
@@ -345,6 +346,7 @@ Item {
             orientation: Qt.Vertical
             handleWheel: true
             bounceEnabled: true
+            _visualOvershootEnabled: true
         }
 
     }

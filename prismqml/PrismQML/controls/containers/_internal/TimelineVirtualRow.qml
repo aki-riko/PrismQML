@@ -34,6 +34,9 @@ Item {
     width: listView ? listView.width : 0
     height: activePart ? activePart.height : 0
     clip: !control._graphMode
+    transform: Translate {
+        y: rowDelegate.control ? rowDelegate.control._visualOvershootOffset : 0
+    }
 
     // Graph primitives stay inside each row and meet at the exact boundary.
     // 图元保持在行内并于边界精确拼接。
