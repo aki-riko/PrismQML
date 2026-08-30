@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "../../.."
 
 // StackedLazyController - Lazy page switching orchestration
 // StackedLazyController - 懒加载页面切换编排
@@ -104,6 +105,11 @@ Item {
 
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIndex
+        // Match the pageSources path exactly: the regular enter animation keeps
+        // the minimum-radius reveal frame transparent, so the target appears as
+        // a direct expansion instead of a standalone center circle.
+        // 与 pageSources 路径完全一致：常规入场动画会让最小半径揭幕帧保持透明，
+        // 目标页因此表现为直接展开，而不是先单独显示中心圆圈。
         if (animations.prepareEnter(targetIndex)) {
             host._doEnterAnimation(targetIndex)
         }

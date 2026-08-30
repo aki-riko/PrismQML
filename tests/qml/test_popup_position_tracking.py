@@ -14,6 +14,8 @@ from PySide6.QtCore import (
     QMetaObject,
     QObject,
     QPointF,
+    Property,
+    Slot,
     QTimer,
     QUrl,
 )
@@ -120,6 +122,26 @@ Window {
     }
 }
 """
+
+
+class _RecordingShadowManager(QObject):
+    def __init__(self, events):
+        super().__init__()
+        self._events = events
+
+    @Property(bool, constant=True)
+    def useNative(self):
+        return True
+
+    @Slot(QObject, result=bool)
+    def enableShadowForWindow(self, window):
+        self._events.append(("enable", window.isVisible(), window.opacity()))
+        return True
+
+    @Slot(QObject, result=bool)
+    def disableShadowForWindow(self, window):
+        self._events.append(("disable", window.isVisible(), window.opacity()))
+        return True
 ASYNC_MENU_SCENE_SOURCE = f"""
 import QtQuick
 import QtQuick.Window
@@ -202,7 +224,7 @@ def _tracker_connections(tracker: QObject) -> list[QObject]:
     ]
 
 
-def _create_scene():
+def _create_scene(shadow_manager=None):
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -210,6 +232,8 @@ def _create_scene():
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    if shadow_manager is not None:
+        engine.rootContext().setContextProperty("ShadowManager", shadow_manager)
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
@@ -360,6 +384,32 @@ def test_tip_popup_follows_target_and_closes_out_of_view_without_polling(
     assert _wait_for(lambda: not popup_window.isVisible())
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_tip_popup_attaches_native_shadow_after_reveal_animation(qapp):
+    shadow_events = []
+    shadow_manager = _RecordingShadowManager(shadow_events)
+    engine, component, window, items, warnings = _create_scene(shadow_manager)
+    try:
+        tip = items["tip"]
+        assert QMetaObject.invokeMethod(window, "showTip")
+        assert _wait_for(lambda: tip.property("_isOpen"))
+        popup_window = tip.findChildren(QWindow)[0]
+
+        _pump(20)
+        assert shadow_events == []
+        assert _wait_for(lambda: bool(shadow_events))
+
+        assert shadow_events[0][0] == "enable"
+        assert shadow_events[0][1] is True
+        assert float(shadow_events[0][2]) == pytest.approx(1.0)
+
+        assert QMetaObject.invokeMethod(tip, "close")
+        assert _wait_for(lambda: not popup_window.isVisible())
+        assert shadow_events[-1][0] == "disable"
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
 
 
 def test_tip_popup_prewarm_creates_hidden_reusable_window(popup_scene):

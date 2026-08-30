@@ -43,6 +43,7 @@ Item {
     property real _animY: 0
     property bool _isOpen: false
     property bool _prewarmed: false
+    property bool _nativeShadowEnabled: false
     property bool _popupWindowRequested: false
     property bool _arrowWindowRequested: false
     readonly property bool _hasActions: primaryButtonText !== "" || secondaryButtonText !== ""
@@ -67,6 +68,7 @@ Item {
         var arrowWindow = _arrowWindow
 
         showAnim.stop(); hideAnim.stop(); autoCloseTimer.stop()
+        _setNativeShadow(false)
         popupWindow.opacity = 0
         if (arrowWindow) arrowWindow.opacity = 0
         _isOpen = true
@@ -77,12 +79,6 @@ Item {
 
         popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()
         _prewarmed = true
-
-        Qt.callLater(function() {
-            if (control._popupWindow && ShadowManager) {
-                ShadowManager.enableShadowForWindow(control._popupWindow)
-            }
-        })
 
         if (posHelper.hasArrow && arrowWindow) {
             var arrowPos = posHelper.calculateArrowPosition(pos)
@@ -118,6 +114,14 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _setNativeShadow(enabled) {
+        if (!_popupWindow || typeof ShadowManager === "undefined" || !ShadowManager
+                || _nativeShadowEnabled === enabled) return
+        var applied = enabled
+            ? ShadowManager.enableShadowForWindow(_popupWindow)
+            : ShadowManager.disableShadowForWindow(_popupWindow)
+        if (applied) _nativeShadowEnabled = enabled
+    }
     function _prewarmWindow(window) {
         var savedX = window.x
         var savedY = window.y
@@ -144,6 +148,7 @@ Item {
 
     function _doClose() {
         _isOpen = false
+        _setNativeShadow(false)
         if (_popupWindow) _popupWindow.hide()
         if (_arrowWindow) _arrowWindow.hide()
         closed()
@@ -303,6 +308,9 @@ Item {
     // Animations 动画
     ParallelAnimation {
         id: showAnim
+        onFinished: {
+            if (control._isOpen && !hideAnim.running) control._setNativeShadow(true)
+        }
         NumberAnimation { id: opacityAnim; target: control._popupWindow; property: "opacity"; from: 0; to: 1; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
         NumberAnimation { id: slideXAnim; target: control; property: "_animX"; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }
         NumberAnimation { id: slideYAnim; target: control; property: "_animY"; duration: Enums.duration.tipShow; easing.type: Easing.OutQuad }

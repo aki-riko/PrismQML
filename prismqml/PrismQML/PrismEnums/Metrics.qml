@@ -365,7 +365,12 @@ QtObject {
  readonly property int calendarCell: 32 // Calendar day cell size 日历日期单元格尺寸
  readonly property int calendarCellHeight: 36 // Calendar cell row height 日历单元格行高
  // Timeline controls 时间线控件
- readonly property int timelineIcon: 15 // Timeline group icon size 时间线分组图标尺寸
+ // Keep (timelineIcon - timelineIconText) even so anchors.centerIn resolves to a
+ // whole-pixel gap. An odd difference makes Qt round the anchor center and offsets
+ // the glyph by half a logical pixel, which grows to 1.25px at 150% scaling.
+ // 保持 (timelineIcon - timelineIconText) 为偶数, 使 anchors.centerIn 得到整数间距。
+ // 差值为奇数时 Qt 会对锚点中心取整, 图标偏移半个逻辑像素, 在 150% 缩放下放大到 1.25px。
+ readonly property int timelineIcon: 16 // Timeline group icon size 时间线分组图标尺寸
  readonly property int timelineCardIcon: 12 // Timeline card icon size 时间线卡片图标尺寸
  readonly property int timelineIconText: 10 // Timeline icon inner text size 时间线图标内文字尺寸
  readonly property int timelineCardIconText: 8 // Timeline card icon inner text size 时间线卡片图标内文字尺寸
@@ -536,7 +541,9 @@ QtObject {
  readonly property QtObject popup: QtObject {
  readonly property int defaultSize: 200 // Default panel size 默认面板尺寸
  readonly property int windowPadding: 16
- readonly property int panelOffset: 8
+ // Reserve the full level8 shadow extent inside the native popup surface.
+ // 为原生弹层表面预留完整的 level8 阴影外扩范围。
+ readonly property int panelOffset: 20
  readonly property int minWidth: 64
  readonly property int minHeight: 32
  readonly property int controlGap: 2

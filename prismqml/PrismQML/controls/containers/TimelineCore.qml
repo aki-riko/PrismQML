@@ -17,7 +17,7 @@ import "_internal" as TimelineInternal
 // Supports grouped items with status icons and cards 支持分组项目、状态图标和卡片
 Item {
     id: control
-    
+
     // ==================== Public Props 公开属性 ====================
     // Items format: [{title: "已完成", status: "success", cards: [{text: "Task1", status: "success", strikeOut: true}]}, ...]
     // status: "success", "info", "warning", "error"
@@ -49,6 +49,7 @@ Item {
     property var _flatLastCardSignatures: []
     property int _flatGroupCount: 0
     property int _lastFlatBuildGroupCount: 0
+    property real _pulsePhase: Enums.opacityLevel.invisible
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _safeItems:
@@ -63,6 +64,9 @@ Item {
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
     readonly property real _graphWidth: Enums.spacing.timelineGraphPadding * 2
         + Math.max(1, graphLaneCount) * Enums.spacing.timelineGraphLane
+    readonly property real _pulseOpacity: Enums.opacityLevel.strong
+        + (Enums.opacityLevel.visible - Enums.opacityLevel.strong)
+            * (Enums.opacityLevel.visible - _pulsePhase)
     // ==================== Signals 信号 ====================
     signal itemClicked(int groupIndex, string title)
     signal cardClicked(int groupIndex, int cardIndex, string text)
@@ -79,7 +83,8 @@ Item {
         var groupStatus = grp.status || "info"
         rows.push({
             "kind": "header", "groupIndex": groupIndex,
-            "title": grp.title || "", "status": groupStatus,
+            "title": grp.title || "", "dateKey": grp.dateKey || "",
+            "status": groupStatus,
             "graphData": grp.graph || {}
         })
         var cards = grp.cards || []
@@ -91,6 +96,7 @@ Item {
                 "groupStatus": groupStatus, "cardData": card,
                 "text": typeof card === "string" ? card : (cardObject ? card.text || "" : ""),
                 "description": cardObject ? card.description || "" : "",
+                "time": cardObject ? card.time || "" : "",
                 "status": cardObject ? card.status || groupStatus : groupStatus,
                 "strikeOut": cardObject ? card.strikeOut || false : false,
                 "graphData": cardObject ? card.graph || {} : {},
@@ -123,6 +129,7 @@ Item {
         return JSON.stringify({
             "title": grp.title || "",
             "status": grp.status || "info",
+            "dateKey": grp.dateKey || "",
             "graphData": grp.graph || {}
         })
     }
@@ -278,9 +285,26 @@ Item {
         _syncFlat()
         _scheduleScrollBarUpdate()
     }
-    
+
     implicitWidth: 400
     implicitHeight: _usesVirtualList ? 400 : contentColumn.implicitHeight
+
+    // One shared breathing driver keeps every visible timeline row in phase.
+    // 单个共享呼吸驱动让所有可见时间线行保持同相，避免逐节点循环动画。
+    SequentialAnimation on _pulsePhase {
+        running: control.visible && control.enabled
+        loops: Animation.Infinite
+        NumberAnimation {
+            to: Enums.opacityLevel.strong
+            duration: Enums.duration.xslow
+            easing.type: Easing.InOutSine
+        }
+        NumberAnimation {
+            to: Enums.opacityLevel.visible
+            duration: Enums.duration.xslow
+            easing.type: Easing.InOutSine
+        }
+    }
 
     // ==================== Content 内容 ====================
     // 虚拟模式实际驱动 ListView 的 ListModel(增量同步,避免整体替换导致滚动跳顶)

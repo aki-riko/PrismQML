@@ -333,6 +333,12 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         transition = stack.findChild(QObject, "qmlPageCircleTransition")
         assert page_transition is not None
         assert transition is not None
+        animation_started = []
+        animation_finished = []
+        current_changes = []
+        stack.animationStarted.connect(lambda: animation_started.append(True))
+        stack.animationFinished.connect(lambda: animation_finished.append(True))
+        stack.currentChanged.connect(current_changes.append)
 
         window.setProperty("loadingText", "Loading overlay probe")
         assert QMetaObject.invokeMethod(
@@ -369,14 +375,29 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert page_transition.property("collapsed") is True
         assert transition.property("running") is False
 
+        target_page = window.findChild(QQuickItem, "pageB")
+        assert target_page is not None
+        target_page.setX(0)
+        target_page.setY(0)
+        target_page.setOpacity(1)
+        target_page.setScale(1)
+
         assert QMetaObject.invokeMethod(
             window, "_markPythonPageReady", Q_ARG("QVariant", 1)
         )
         assert QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        assert page_transition.property("active") is True
+        assert window.property("_pythonRevealScheduled") is False
         assert _wait_for(
             lambda: transition.property("collapsing") is False
             and transition.property("running") is True
         )
+        assert target_page.isVisible()
+        assert target_page.x() == 0
+        assert 0 <= target_page.y() <= stack.property("popUpOffset")
+        assert 0 <= target_page.opacity() < 1
+        assert target_page.scale() == 1
+        assert animation_started == [True]
         assert overlay.property("loading") is True
         assert _wait_for(lambda: overlay.property("finishing") is True)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -385,6 +406,8 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: window.findChild(QQuickItem, "loadingOverlay") is None
         )
+        assert _wait_for(lambda: animation_finished == [True])
+        assert current_changes == [1]
         assert not [
             child
             for child in loader.findChildren(QObject)

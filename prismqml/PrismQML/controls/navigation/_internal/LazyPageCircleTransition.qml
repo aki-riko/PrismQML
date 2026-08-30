@@ -26,9 +26,13 @@ Item {
     readonly property Item _captureItem: _hasLoaderItem
         ? _sourceItem.item
         : _sourceItem
-    readonly property real revealMinimumRadiusPixels:
-        collapseToCenter && _captureCollapsing
-            ? 0 : Enums.controlSize.navBarHeight / 2
+    // The aperture always closes completely, in both directions. A non-zero floor
+    // parks a visible window into the page whenever a phase waits on a frame swap,
+    // and the expand phase does exactly that while the freshly built target page
+    // renders its first frame.
+    // 光圈在两个方向上都必须完全闭合。非零地板会在任一阶段等待帧交换时留下一个可见的
+    // 页面窗口，而揭幕阶段正是在等刚构建的目标页出首帧。
+    readonly property real revealMinimumRadiusPixels: 0
     readonly property real revealMaximumRadiusPixels:
         Math.sqrt(width * width + height * height) * 0.5
         + Enums.lazyLoadingTransitionMetrics.edgeSoftness * 2
@@ -48,7 +52,6 @@ Item {
     // Keep external reveal sources hidden after expansion so the next window can show through.
     // 外部窗口揭幕后保持源项隐藏, 让后方窗口直接透出。
     property bool keepSourceHiddenOnExpand: false
-    property bool collapseToCenter: false
     // Force the overlay window even when hosted in one; see _beginTransition.
     // 即使身处窗口内也强制走覆盖窗口; 见 _beginTransition。
     property bool preferOverlayWindow: false

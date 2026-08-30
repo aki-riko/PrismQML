@@ -39,11 +39,13 @@ Column {
 
             // Connector line 连接线（在图标下方）
             Rectangle {
-                x: 7
+                objectName: "timelineStatusConnector"
+                x: (Enums.controlSize.timelineIcon - width) / 2
                 y: Enums.spacing.timelineHeaderHeight
                 width: Enums.border.normal
                 height: parent.height - Enums.spacing.timelineHeaderHeight
-                color: Enums.stateColor.borderSubtle
+                color: Enums.accentColor
+                opacity: Enums.opacityLevel.medium * timeline._pulseOpacity
             }
 
             Column {
@@ -62,6 +64,7 @@ Column {
 
                         // Status icon 状态图标（圆形填充）
                         Rectangle {
+                            objectName: "timelineStatusNode"
                             width: Enums.controlSize.timelineIcon
                             height: Enums.controlSize.timelineIcon
                             radius: Enums.controlSize.timelineIcon / 2
@@ -69,6 +72,7 @@ Column {
                             color: timeline._getStatusColor(
                                 groupItem.groupData.status || "info"
                             )
+                            opacity: timeline._pulseOpacity
 
                             Icon {
                                 anchors.centerIn: parent
@@ -85,6 +89,26 @@ Column {
                             type: Enums.label.type_body_strong
                             anchors.verticalCenter: parent.verticalCenter
                             text: groupItem.groupData.title || ""
+                        }
+
+                        Rectangle {
+                            visible: (groupItem.groupData.dateKey || "") !== ""
+                                && groupItem.groupData.dateKey
+                                    !== (groupItem.groupData.title || "")
+                            width: headerDate.implicitWidth + Enums.spacing.m
+                            height: headerDate.implicitHeight + Enums.spacing.xxs
+                            radius: Enums.radius.small
+                            color: Enums.stateColor.controlBgHover
+                            border.width: Enums.border.thin
+                            border.color: Enums.stateColor.borderLight
+
+                            Label {
+                                id: headerDate
+                                anchors.centerIn: parent
+                                type: Enums.label.type_caption
+                                text: groupItem.groupData.dateKey || ""
+                                color: Enums.textColor.secondary
+                            }
                         }
                     }
 
@@ -127,6 +151,12 @@ Column {
                             property string cardDescription: cardData
                                 && typeof cardData === "object"
                                 ? (cardData.description || "") : ""
+                            property string cardTime: cardData
+                                && typeof cardData === "object"
+                                ? (cardData.time || "") : ""
+                            readonly property bool isSelected: timeline.selectedKey !== undefined
+                                && cardData && typeof cardData === "object"
+                                && cardData[timeline.selectedRole] === timeline.selectedKey
 
                             width: groupContent.width - 56
                             height: simpleCard.height
@@ -145,6 +175,21 @@ Column {
                                     timeline.cardClickedData(
                                         groupItem.index, cardItem.index, cardItem.modelData
                                     )
+                                }
+
+                                Rectangle {
+                                    objectName: "timelineCardSelectionOutline"
+                                    anchors.fill: parent
+                                    radius: simpleCard.borderRadius
+                                    color: Enums.transparent
+                                    border.width: Enums.border.normal
+                                    border.color: Enums.accentColor
+                                    opacity: cardItem.isSelected
+                                        ? Enums.opacityLevel.visible
+                                        : Enums.opacityLevel.invisible
+                                    Behavior on opacity {
+                                        OpacityAnimator { duration: Enums.duration.fast }
+                                    }
                                 }
 
                                 Row {
@@ -177,15 +222,45 @@ Column {
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: Enums.spacing.xxs
 
-                                        Label {
-                                            type: Enums.label.type_body
+                                        Row {
+                                            id: cardHeading
                                             width: parent.width
-                                            text: cardItem.cardText
-                                            color: cardItem.hasStrikeOut
-                                                ? Enums.textColor.secondary
-                                                : Enums.textColor.primary
-                                            wrapMode: Text.Wrap
-                                            font.strikeout: cardItem.hasStrikeOut
+                                            spacing: Enums.spacing.s
+
+                                            Label {
+                                                id: cardTitle
+                                                type: Enums.label.type_body
+                                                width: cardTimeBadge.visible
+                                                    ? Math.max(0, parent.width
+                                                        - cardTimeBadge.width
+                                                        - parent.spacing)
+                                                    : parent.width
+                                                text: cardItem.cardText
+                                                color: cardItem.hasStrikeOut
+                                                    ? Enums.textColor.secondary
+                                                    : Enums.textColor.primary
+                                                wrapMode: Text.Wrap
+                                                font.strikeout: cardItem.hasStrikeOut
+                                            }
+                                            Rectangle {
+                                                id: cardTimeBadge
+                                                objectName: "timelineCardTimeBadge"
+                                                visible: cardItem.cardTime !== ""
+                                                width: timeLabel.implicitWidth + Enums.spacing.m
+                                                height: timeLabel.implicitHeight + Enums.spacing.xxs
+                                                radius: Enums.radius.small
+                                                color: Enums.stateColor.controlBgHover
+                                                border.width: Enums.border.thin
+                                                border.color: Enums.accentColor
+
+                                                Label {
+                                                    id: timeLabel
+                                                    anchors.centerIn: parent
+                                                    type: Enums.label.type_caption
+                                                    text: cardItem.cardTime
+                                                    color: Enums.accentColor
+                                                }
+                                            }
                                         }
                                         Label {
                                             type: Enums.label.type_caption

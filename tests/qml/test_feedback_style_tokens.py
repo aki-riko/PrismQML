@@ -563,7 +563,14 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "coverEasing: control.coverEasing" in page_transition_source
     assert "onFinished: transition._handleRadiusFinished()" in lazy_transition_source
     assert "property bool _collapseFramePending: false" in lazy_transition_source
-    assert "property bool collapseToCenter: false" in lazy_transition_source
+    # The aperture must close completely in both directions. A non-zero floor parks
+    # a visible page window whenever a phase waits on a frame swap.
+    # 光圈两个方向都必须完全闭合。非零地板会在阶段等待帧交换时留下可见页面窗口。
+    assert "collapseToCenter" not in lazy_transition_source
+    assert (
+        "readonly property real revealMinimumRadiusPixels: 0"
+        in lazy_transition_source
+    )
     assert "minimumRadiusPixels: transition.revealMinimumRadiusPixels" in lazy_transition_source
     assert "function _handleCollapseFrameEnd()" in lazy_transition_source
     assert "onAfterFrameEnd: transition._handleCollapseFrameEnd()" in lazy_transition_source

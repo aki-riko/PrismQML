@@ -13,6 +13,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QObject,
+    Property,
     QTimer,
     QUrl,
     Slot,
@@ -104,6 +105,26 @@ class _MissingDetachNativeWindow(QObject):
         return True
 
 
+class _FakeShadowManager(QObject):
+    def __init__(self, events):
+        super().__init__()
+        self._events = events
+
+    @Property(bool, constant=True)
+    def useNative(self):
+        return True
+
+    @Slot(QObject, result=bool)
+    def enableShadowForWindow(self, window):
+        self._events.append(("enable", window.isVisible(), window.opacity()))
+        return True
+
+    @Slot(QObject, result=bool)
+    def disableShadowForWindow(self, window):
+        self._events.append(("disable", window.isVisible(), window.opacity()))
+        return True
+
+
 def _file_snapshot(path):
     if not path.exists():
         return None
@@ -164,6 +185,25 @@ WindowsCore {
 }
 """,
         QUrl("inline:p7h-native-window-startup.qml"),
+    )
+    _wait_component(component)
+    instance = component.create(engine.rootContext())
+    assert instance is not None, [error.toString() for error in component.errors()]
+    return component, instance
+
+
+def _create_native_shadow_window(engine):
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""import PrismQML
+WindowsCore {
+    visible: false
+    shadowMode: Enums.windowShadow.mode_native
+    width: 480
+    height: 320
+}
+""",
+        QUrl("inline:p7h-native-shadow-order.qml"),
     )
     _wait_component(component)
     instance = component.create(engine.rootContext())
@@ -344,6 +384,31 @@ def test_prepare_before_show_finishes_native_hook_synchronously(monkeypatch, qap
         assert fake.finalize_calls == 1
         assert instance.property("readyCount") == 1
         assert instance.property("_showAnimationStartCount") == 0
+    finally:
+        _delete_deferred(instance)
+        component = None
+        _delete_deferred(engine)
+
+
+def test_native_shadow_waits_until_visible_content_is_presented(monkeypatch, qapp):
+    native_window = _FakeNativeWindow([True])
+    engine = _create_engine(monkeypatch, native_window, [])
+    shadow_events = []
+    shadow_manager = _FakeShadowManager(shadow_events)
+    engine.rootContext().setContextProperty("ShadowManager", shadow_manager)
+    component = instance = None
+    try:
+        component, instance = _create_native_shadow_window(engine)
+
+        assert QMetaObject.invokeMethod(instance, "prepareBeforeShow")
+        assert shadow_events == []
+
+        instance.show()
+        _wait_until(lambda: bool(shadow_events), QML_LOAD_TIMEOUT_MS)
+
+        assert shadow_events[0][0] == "enable"
+        assert shadow_events[0][1] is True
+        assert float(shadow_events[0][2]) == pytest.approx(1.0)
     finally:
         _delete_deferred(instance)
         component = None

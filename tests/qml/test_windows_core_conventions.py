@@ -979,7 +979,9 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     assert 'objectName: "windowClosePageTransition"' in windows_core_source
     assert "animationType: window.closeAnimationType" in windows_core_source
     assert "customAnimation: window.closeAnimation" in windows_core_source
-    assert "collapseToCenter: true" in windows_core_source
+    # The aperture closes to the center unconditionally now, so the exit must not
+    # pin an opt-in for it. 光圈现在无条件收紧到中心, 因此退场不得再钉死开关。
+    assert "collapseToCenter" not in windows_core_source
     # The collapse pacing is shared with page switch, so the exit must inherit
     # the facade default rather than pin its own duration or easing. Measured on
     # a real display, both sites produce identical pacing.

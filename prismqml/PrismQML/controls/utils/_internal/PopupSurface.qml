@@ -27,6 +27,7 @@ Item {
     required property real popupNeumorphicShadowOffset
     required property real popupNeumorphicShadowSpread
     required property real clipHeight
+    required property bool shadowVisible
     property Item _interactionHost: null
 
     default property alias popupContent: contentContainer.data
@@ -53,7 +54,7 @@ Item {
         blur: surface.popupShadowBlur
         offset.x: 0
         offset.y: surface.popupShadowOffset
-        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+        visible: surface.shadowVisible && Enums.usesSoftElevation && !Enums.isNeumorphism
     }
 
     NeumorphicShadow {
@@ -68,7 +69,7 @@ Item {
         y: clipContainer.y + (surface.popupHeight - height) / 2
         width: popupPanel.width
         height: popupPanel.height
-        visible: Enums.isNeumorphism
+        visible: surface.shadowVisible && Enums.isNeumorphism
     }
 
     // Neobrutalism hard shadow; popup geometry stays explicit.
@@ -76,7 +77,7 @@ Item {
     Rectangle {
         objectName: "_popupNeoShadow"
         z: Enums.zIndex.background
-        visible: Enums.isNeobrutalism
+        visible: surface.shadowVisible && Enums.isNeobrutalism
         x: clipContainer.x + Enums.neo.shadowOffset
         y: clipContainer.y + (surface.popupHeight - height) / 2 + Enums.neo.shadowOffset
         width: popupPanel.width

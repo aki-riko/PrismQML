@@ -238,6 +238,25 @@ def test_tip_popup_source_follows_member_and_section_conventions():
     ] == []
 
 
+def test_tip_popup_shadow_is_attached_after_the_window_is_revealed():
+    source = TIP_POPUP_SOURCE.read_text(encoding="utf-8")
+    show_block = source.split("function show()", 1)[1].split(
+        "function prewarm()", 1
+    )[0]
+    animation_block = source.split("id: showAnim", 1)[1].split(
+        "ParallelAnimation {", 1
+    )[0]
+
+    assert show_block.index("_setNativeShadow(false)") < show_block.index(
+        "popupWindow.show()"
+    )
+    assert "ShadowManager.enableShadowForWindow" not in show_block
+    assert "_setNativeShadow(true)" in animation_block
+    assert "_setNativeShadow(false)" in source.split(
+        "function _doClose()", 1
+    )[1].split("function _applyTrackedPosition", 1)[0]
+
+
 def test_tip_popup_auto_close_timer_source_follows_conventions():
     source = TIP_POPUP_TIMER_SOURCE.read_text(encoding="utf-8")
     path = PurePosixPath(TIP_POPUP_TIMER_SOURCE.relative_to(ROOT).as_posix())

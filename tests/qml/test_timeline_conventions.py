@@ -60,6 +60,7 @@ Window {
         virtualTimeline._flatRows.length > 1 ? virtualTimeline._flatRows[1].text : ""
     readonly property int largeVirtualFlatCount: largeVirtualTimeline._flatRows.length
     readonly property int graphFlatCount: graphTimeline._flatRows.length
+    readonly property real timelinePulseOpacity: timeline._pulseOpacity
 
     function makeItems(count) {
         var result = []
@@ -130,6 +131,7 @@ Window {
         items: [
             {
                 "title": "Plan",
+                "dateKey": "2026-08-29",
                 "status": "info",
                 "cards": [
                     { "text": "One", "description": "First", "commit": "one" },
@@ -191,6 +193,7 @@ Window {
                 "cards": [
                     {
                         "text": "Merge feature",
+                        "time": "10:42",
                         "commit": "merge",
                         "labels": [{"text": "main", "status": Enums.statusLevel.info}],
                         "graph": {
@@ -206,6 +209,7 @@ Window {
                     },
                     {
                         "text": "Feature work",
+                        "time": "09:18",
                         "commit": "feature",
                         "graph": {
                             "nodeLane": 1,
@@ -256,6 +260,14 @@ def _visual_descendants(item):
         descendants.append(child)
         descendants.extend(_visual_descendants(child))
     return descendants
+
+
+def _named_visible_descendants(item, object_name):
+    return [
+        child
+        for child in _visual_descendants(item)
+        if child.objectName() == object_name and child.isVisible()
+    ]
 
 
 def _send_wheel(window, item, delta):
@@ -341,6 +353,29 @@ def test_timeline_nonvirtual_header_and_card_clicks(timeline_scene):
     assert _wait_for(lambda: cards == [(0, 0, "One")])
     assert card_data[0][0:2] == (0, 0)
     assert card_data[0][2]["commit"] == "one"
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_status_connectors_share_the_node_center(timeline_scene):
+    window, timeline, virtual_timeline, warnings, windows_before = timeline_scene
+
+    for owner in (timeline, virtual_timeline):
+        nodes = _named_visible_descendants(owner, "timelineStatusNode")
+        connectors = _named_visible_descendants(owner, "timelineStatusConnector")
+        assert nodes
+        assert connectors
+        node_center = nodes[0].mapToItem(
+            owner, QPointF(nodes[0].width() / 2, 0)
+        ).x()
+        connector_centers = [
+            connector.mapToItem(
+                owner, QPointF(connector.width() / 2, 0)
+            ).x()
+            for connector in connectors
+        ]
+        assert connector_centers == pytest.approx([node_center] * len(connectors))
+
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -811,6 +846,57 @@ def test_timeline_graph_type_uses_virtual_rows_and_renders_graph_layers(timeline
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_timeline_time_badges_are_optional_and_keep_header_dates(timeline_scene):
+    window, timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: len(
+            [
+                item
+                for item in _visual_descendants(graph_timeline)
+                if item.objectName() == "timelineCardTimeBadge" and item.isVisible()
+            ]
+        ) == 2
+    )
+    standard_badges = [
+        item
+        for item in _visual_descendants(timeline)
+        if item.objectName() == "timelineCardTimeBadge" and item.isVisible()
+    ]
+    assert standard_badges == []
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_timeline_pulse_is_shared_and_bounded(timeline_scene):
+    window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    graph_timeline = window.findChild(QQuickItem, "graphTimeline")
+    assert graph_timeline is not None
+    assert _wait_for(
+        lambda: any(
+            item.objectName() == "timelineGraphLayer" and item.isVisible()
+            for item in _visual_descendants(graph_timeline)
+        )
+    )
+    graph_layer = next(
+        item
+        for item in _visual_descendants(graph_timeline)
+        if item.objectName() == "timelineGraphLayer" and item.isVisible()
+    )
+    samples = []
+    for _ in range(10):
+        samples.append(float(window.property("timelinePulseOpacity")))
+        assert graph_layer.opacity() == pytest.approx(samples[-1], abs=0.001)
+        _pump(120)
+
+    assert min(samples) >= 0.84
+    assert max(samples) <= 1.01
+    assert max(samples) - min(samples) > 0.02, samples
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_timeline_selection_uses_render_thread_animators(timeline_scene):
     """Selection motion must survive GUI-thread result processing. 选中动效须独立于 GUI 线程。"""
     window, _timeline, _virtual_timeline, warnings, windows_before = timeline_scene
@@ -840,11 +926,17 @@ def test_timeline_selection_uses_render_thread_animators(timeline_scene):
         for item in descendants
         if item.objectName() == "timelineGraphSelectionRing"
     ]
+    card_outlines = [
+        item
+        for item in descendants
+        if item.objectName() == "timelineCardSelectionOutline"
+    ]
 
     assert sorted(round(item.opacity(), 3) for item in card_indicators) == [0.0, 1.0]
     graph_ring_opacities = [round(item.opacity(), 3) for item in graph_rings]
     assert graph_ring_opacities.count(1.0) == 1
     assert all(opacity in (0.0, 1.0) for opacity in graph_ring_opacities)
+    assert sorted(round(item.opacity(), 3) for item in card_outlines) == [0.0, 1.0]
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
@@ -856,6 +948,12 @@ def test_timeline_selection_animation_does_not_change_geometry_on_gui_thread():
 
     assert "Behavior on height" not in timeline_source
     assert "TimelineInternal.TimelineVirtualRow" in timeline_source
+    assert "Status hairline" not in virtual_row_source
+    assert "timelineGraphNodeHalo" not in graph_source
+    assert "timelineGraphSelectionHalo" not in graph_source
+    assert "paintColor: control.selected" in graph_source
+    assert "SequentialAnimation on _pulsePhase" in timeline_source
+    assert "NumberAnimation" in timeline_source
     assert "OpacityAnimator" in virtual_row_source
     assert "ScaleAnimator" in virtual_row_source
     assert "OpacityAnimator" in graph_source
@@ -870,4 +968,13 @@ def test_timeline_core_source_follows_conventions():
             violation
             for violation in violations
             if violation.rule in {"QML008", "QML009"}
-        ] == []
+    ] == []
+
+
+def test_timeline_time_and_date_fields_are_forwarded_without_formatting():
+    timeline_source = SOURCE_PATH.read_text(encoding="utf-8")
+    virtual_row_source = VIRTUAL_ROW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert '"dateKey": grp.dateKey || ""' in timeline_source
+    assert '"time": cardObject ? card.time || "" : ""' in timeline_source
+    assert 'objectName: "timelineCardTimeBadge"' in virtual_row_source

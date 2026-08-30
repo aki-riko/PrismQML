@@ -46,6 +46,7 @@ Item {
         graphData: rowDelegate.model.graphData || {}
         showNode: rowDelegate.model.kind === "card"
         nodeY: rowDelegate.cardPart ? rowDelegate.cardPart.nodeY : 0
+        opacity: control._pulseOpacity
         selected: showNode && !!rowDelegate.cardPart
             && rowDelegate.cardPart.isSelected
         graphPalette: control.graphPalette
@@ -73,12 +74,14 @@ Item {
                 spacing: Enums.spacing.m
 
                 Rectangle {
+                    objectName: "timelineStatusNode"
                     width: Enums.controlSize.timelineIcon
                     height: Enums.controlSize.timelineIcon
                     radius: Enums.controlSize.timelineIcon / 2
                     anchors.verticalCenter: parent.verticalCenter
                     color: control._getStatusColor(rowDelegate.model.status || "info")
                     visible: !control._graphMode
+                    opacity: control._pulseOpacity
 
                     Icon {
                         anchors.centerIn: parent
@@ -89,9 +92,29 @@ Item {
                 }
 
                 Label {
+                    id: headerTitle
                     type: Enums.label.type_body_strong
                     anchors.verticalCenter: parent.verticalCenter
                     text: rowDelegate.model.title || ""
+                }
+
+                Rectangle {
+                    visible: (rowDelegate.model.dateKey || "") !== ""
+                        && rowDelegate.model.dateKey !== rowDelegate.model.title
+                    width: headerDate.implicitWidth + Enums.spacing.m
+                    height: headerDate.implicitHeight + Enums.spacing.xxs
+                    radius: Enums.radius.small
+                    color: Enums.stateColor.controlBgHover
+                    border.width: Enums.border.thin
+                    border.color: Enums.stateColor.borderLight
+
+                    Label {
+                        id: headerDate
+                        anchors.centerIn: parent
+                        type: Enums.label.type_caption
+                        text: rowDelegate.model.dateKey || ""
+                        color: Enums.textColor.secondary
+                    }
                 }
             }
         }
@@ -114,6 +137,7 @@ Item {
                 && !!rowDelegate.model.cardData
                 && (typeof rowDelegate.model.cardData === "object")
                 && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
+            readonly property string cardTime: rowDelegate.model.time || ""
             readonly property real nodeY: cardBox.y + cardBox.height / 2
 
             width: rowDelegate.width
@@ -122,12 +146,14 @@ Item {
 
             // 左侧连接线
             Rectangle {
-                x: 7
+                objectName: "timelineStatusConnector"
+                x: (Enums.controlSize.timelineIcon - width) / 2
                 y: 0
                 width: Enums.border.normal
                 height: parent.height
                 color: Enums.stateColor.borderSubtle
                 visible: !control._graphMode
+                opacity: Enums.opacityLevel.medium * control._pulseOpacity
             }
 
             Card {
@@ -179,6 +205,19 @@ Item {
                     }
                 }
 
+                Rectangle {
+                    objectName: "timelineCardSelectionOutline"
+                    anchors.fill: parent
+                    radius: cardBox.borderRadius
+                    color: Enums.transparent
+                    border.width: Enums.border.normal
+                    border.color: Enums.accentColor
+                    opacity: cardPart.isSelected ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
+                    Behavior on opacity {
+                        OpacityAnimator { duration: Enums.duration.fast }
+                    }
+                }
+
                 Column {
                     id: cardCol
                     anchors.left: parent.left
@@ -187,15 +226,45 @@ Item {
                     anchors.margins: Enums.spacing.l
                     spacing: Enums.spacing.xxs
 
-                    Label {
-                        type: Enums.label.type_body
+                    Row {
+                        id: cardHeading
                         width: parent.width
-                        text: rowDelegate.model.text || ""
-                        color: (rowDelegate.model.strikeOut || false)
-                            ? Enums.textColor.secondary : Enums.textColor.primary
-                        wrapMode: Text.Wrap
-                        font.strikeout: rowDelegate.model.strikeOut || false
+                        spacing: Enums.spacing.s
+
+                        Label {
+                            id: cardTitle
+                            type: Enums.label.type_body
+                            width: cardTimeBadge.visible
+                                ? Math.max(0, parent.width - cardTimeBadge.width - parent.spacing)
+                                : parent.width
+                            text: rowDelegate.model.text || ""
+                            color: (rowDelegate.model.strikeOut || false)
+                                ? Enums.textColor.secondary : Enums.textColor.primary
+                            wrapMode: Text.Wrap
+                            font.strikeout: rowDelegate.model.strikeOut || false
+                        }
+
+                        Rectangle {
+                            id: cardTimeBadge
+                            objectName: "timelineCardTimeBadge"
+                            visible: cardPart.cardTime !== ""
+                            width: timeLabel.implicitWidth + Enums.spacing.m
+                            height: timeLabel.implicitHeight + Enums.spacing.xxs
+                            radius: Enums.radius.small
+                            color: Enums.stateColor.controlBgHover
+                            border.width: Enums.border.thin
+                            border.color: Enums.accentColor
+
+                            Label {
+                                id: timeLabel
+                                anchors.centerIn: parent
+                                type: Enums.label.type_caption
+                                text: cardPart.cardTime
+                                color: Enums.accentColor
+                            }
+                        }
                     }
+
                     TimelineGraphLabels {
                         width: parent.width
                         visible: control._graphMode

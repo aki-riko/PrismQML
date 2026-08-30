@@ -81,6 +81,8 @@ Item {
                 - ((modelData || {}).endAtNode ? 0 : terminalLength)
             readonly property real curveMiddleY: (curveStartY + curveEndY) / 2
             readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
+            readonly property color paintColor: control.selected
+                ? control.selectedColor : segmentColor
 
             function _paintCurve(ctx, pathFromX, pathToX, pathStartY,
                     pathEndY, pathMiddleY, pathColor) {
@@ -107,7 +109,7 @@ Item {
                 width: control._strokeWidth
                 height: Math.max(0, segmentItem.endY - segmentItem.startY)
                 visible: segmentItem.fromX === segmentItem.toX
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
 
             Canvas {
@@ -117,7 +119,7 @@ Item {
                 property real pathStartY: segmentItem.curveStartY
                 property real pathEndY: segmentItem.curveEndY
                 property real pathMiddleY: segmentItem.curveMiddleY
-                property color pathColor: segmentItem.segmentColor
+                property color pathColor: segmentItem.paintColor
 
                 anchors.fill: parent
                 visible: segmentItem.fromX !== segmentItem.toX
@@ -142,7 +144,7 @@ Item {
                 width: control._strokeWidth
                 height: segmentItem.curveStartY - segmentItem.startY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
 
             Rectangle {
@@ -151,7 +153,7 @@ Item {
                 width: control._strokeWidth
                 height: segmentItem.endY - segmentItem.curveEndY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
-                color: segmentItem.segmentColor
+                color: segmentItem.paintColor
             }
         }
     }
@@ -163,7 +165,8 @@ Item {
         height: control._nodeRadius * 2
         radius: control._nodeRadius
         visible: control.showNode
-        color: control._colorFor((control.graphData || {}).nodeColorIndex)
+        color: control.selected ? control.selectedColor
+            : control._colorFor((control.graphData || {}).nodeColorIndex)
     }
 
     Rectangle {
@@ -175,7 +178,7 @@ Item {
         radius: width / 2
         visible: control.showNode
         color: Enums.transparent
-        border.width: control._strokeWidth
+        border.width: Enums.border.thick
         border.color: control.selectedColor
         opacity: control.selected ? 1 : 0
         scale: control.selected ? 1 : 0.7
