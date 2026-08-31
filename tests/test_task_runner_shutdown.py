@@ -80,6 +80,52 @@ print("TASK_BOUNDED_SHUTDOWN_OK", flush=True)
 '''
 
 
+_DESTROYED_HANDLE_SCRIPT = r'''
+from scripts.test_process import prepare_automated_test_process
+
+prepare_automated_test_process()
+
+import shiboken6
+import threading
+from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer
+from prismqml import current_task, global_task_pool, run_in_pool
+from prismqml.python.core import task_runner as task_runner_module
+
+app = QCoreApplication([])
+started = threading.Event()
+release = threading.Event()
+
+def work():
+    started.set()
+    release.wait(3)
+    current_task().report_progress("late")
+    return 41
+
+handle = run_in_pool(work)
+control = handle._control
+events = handle._events
+if not started.wait(3):
+    raise SystemExit(4)
+shiboken6.delete(handle)
+active = task_runner_module._active_handles()
+if len(active) != 1 or shiboken6.isValid(active[0]):
+    raise SystemExit(5)
+release.set()
+if not control.wait_for_backend(3000):
+    raise SystemExit(6)
+if task_runner_module._active_handles():
+    raise SystemExit(7)
+if not global_task_pool().waitForDone(3000):
+    raise SystemExit(8)
+loop = QEventLoop()
+QTimer.singleShot(50, loop.quit)
+loop.exec()
+if shiboken6.isValid(events):
+    raise SystemExit(9)
+print("TASK_DESTROYED_HANDLE_OK", flush=True)
+'''
+
+
 def _run_bounded_app_shutdown_probe():
     """Run a non-cooperative App shutdown in isolation. 隔离运行非协作任务退出。"""
     environment = os.environ.copy()
@@ -110,6 +156,36 @@ def _run_bounded_app_shutdown_probe():
     )
 
 
+def _run_destroyed_handle_probe():
+    """Run completion after owner destruction in isolation. 隔离验证句柄先销毁。"""
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(REPO_ROOT) + os.pathsep + environment.get(
+        "PYTHONPATH", ""
+    )
+    return subprocess.run(
+        [
+            sys.executable,
+            str(TEST_PROCESS),
+            "--qt-platform",
+            "offscreen",
+            "--timeout",
+            "30",
+            "--",
+            sys.executable,
+            "-c",
+            _DESTROYED_HANDLE_SCRIPT,
+        ],
+        cwd=REPO_ROOT,
+        env=environment,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        timeout=40,
+        check=False,
+    )
+
+
 def test_app_bounded_shutdown_preserves_runtime_until_retry() -> None:
     """App timeout must not destroy Qt under a live task. App 超时不得销毁活任务下的 Qt。"""
     completed = _run_bounded_app_shutdown_probe()
@@ -118,6 +194,17 @@ def test_app_bounded_shutdown_preserves_runtime_until_retry() -> None:
     assert "TASK_SHUTDOWN_TIMEOUT=1" in output
     assert "TASK_BOUNDED_SHUTDOWN_OK" in output
     assert "QThread: Destroyed while thread" not in output
+    if sys.platform == "win32":
+        assert "visible_windows=0 / job_active_processes=0" in output
+
+
+def test_pool_completion_survives_public_handle_destruction() -> None:
+    """A destroyed handle must not break worker signal cleanup. 句柄销毁不得破坏后台收尾。"""
+    completed = _run_destroyed_handle_probe()
+    output = completed.stdout + completed.stderr
+    assert completed.returncode == 0, output
+    assert "TASK_DESTROYED_HANDLE_OK" in output
+    assert "Signal source has been deleted" not in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in output
 

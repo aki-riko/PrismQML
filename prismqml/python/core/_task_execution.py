@@ -9,10 +9,33 @@ from contextvars import ContextVar
 import threading
 from typing import Any, Callable, Dict, Optional, Tuple
 
+import shiboken6
 from PySide6.QtCore import QObject, Signal
 
 from ._task_failures import build_task_failure, log_task_failure
+from .logger import debug
 from ._task_types import TaskCancelledError, TaskState, _TaskOutcome
+
+
+def _emit_task_signal(source: QObject, signal_name: str, *args: Any) -> bool:
+    """Emit a task signal while tolerating owner teardown. 任务所有者销毁时安全发信号。"""
+    if not shiboken6.isValid(source):
+        debug(
+            f"Skip task signal {signal_name}: signal source is already deleted",
+            tag="TaskRunner",
+        )
+        return False
+    try:
+        getattr(source, signal_name).emit(*args)
+    except RuntimeError:
+        if shiboken6.isValid(source):
+            raise
+        debug(
+            f"Skip task signal {signal_name}: signal source was deleted during emit",
+            tag="TaskRunner",
+        )
+        return False
+    return True
 
 
 class _TaskControl:
@@ -23,6 +46,8 @@ class _TaskControl:
         self._cancel_requested = False
         self._outcome = None
         self._backend_stopped = threading.Event()
+        self._backend_stop_callbacks = []
+        self._backend_stop_marked = False
 
     @property
     def cancel_requested(self) -> bool:
@@ -48,7 +73,21 @@ class _TaskControl:
             return self._outcome
 
     def mark_backend_stopped(self) -> None:
+        with self._lock:
+            self._backend_stop_marked = True
+            callbacks = tuple(self._backend_stop_callbacks)
+            self._backend_stop_callbacks.clear()
+        for callback in callbacks:
+            callback()
         self._backend_stopped.set()
+
+    def run_when_backend_stops(self, callback: Callable[[], None]) -> None:
+        """Run cleanup after native work stops. 原生任务停止后执行清理。"""
+        with self._lock:
+            if not self._backend_stop_marked:
+                self._backend_stop_callbacks.append(callback)
+                return
+        callback()
 
     def wait_for_backend(self, timeout_ms: Optional[int]) -> bool:
         timeout = None if timeout_ms is None else timeout_ms / 1000
@@ -124,7 +163,7 @@ class _TaskExecution:
         if self._context.cancel_requested:
             self._settle(TaskState.CANCELLED, None)
             return
-        self._events.started.emit()
+        _emit_task_signal(self._events, "started")
         token = _CURRENT_TASK.set(self._context)
         try:
             result = self._function(*self._args, **self._kwargs)
@@ -151,4 +190,9 @@ class _TaskExecution:
 
     def _settle(self, state: TaskState, payload: Any) -> None:
         if self._context._settle(state, payload):
-            self._events.settled.emit(state, payload)
+            _emit_task_signal(self._events, "settled", state, payload)
+
+    def release_events_later(self) -> None:
+        """Delete the event bridge on its Qt thread. 在事件桥所属 Qt 线程销毁。"""
+        if shiboken6.isValid(self._events):
+            self._events.deleteLater()

@@ -25,6 +25,7 @@ from ._task_execution import (
     _TaskControl,
     _TaskEvents,
     _TaskExecution,
+    _emit_task_signal,
     TaskContext,
     current_task,
 )
@@ -68,9 +69,22 @@ class TaskHandle(QObject):
         self._backend_lock = threading.RLock()
         self._backend_stopped = False
         self._backend_release_scheduled = False
-        self._events = _TaskEvents(self)
-        self._context = TaskContext(control, self._events.progress.emit)
+        # Keep the bridge alive until the backend drops it, even if the public
+        # handle is destroyed while work is still running.
+        # 句柄提前销毁时仍由后端持有桥，直到后台工作真正结束。
+        self._events = _TaskEvents(QCoreApplication.instance())
+        events = self._events
+        self._context = TaskContext(
+            control,
+            lambda value: _emit_task_signal(events, "progress", value),
+        )
         self._connect_events()
+        handle_id = id(self)
+        self.destroyed.connect(
+            lambda _object=None: control.run_when_backend_stops(
+                lambda: _release_handle_id(handle_id)
+            )
+        )
 
     @property
     def state(self) -> TaskState:
@@ -214,8 +228,12 @@ def _retain_handle(handle: TaskHandle) -> None:
 
 
 def _release_handle(handle: TaskHandle) -> None:
+    _release_handle_id(id(handle))
+
+
+def _release_handle_id(handle_id: int) -> None:
     with _ACTIVE_HANDLES_LOCK:
-        _ACTIVE_HANDLES.pop(id(handle), None)
+        _ACTIVE_HANDLES.pop(handle_id, None)
 
 
 def _active_handles() -> Tuple[TaskHandle, ...]:
@@ -273,12 +291,14 @@ def _start_pool_backend(
         if options.submit_policy is PoolSubmitPolicy.REQUIRE_AVAILABLE:
             if backend.try_start():
                 return
+            execution.release_events_later()
             handle._discard_unstarted_backend()
             raise TaskRejectedError("No QThreadPool worker thread is available")
         backend.start(options.priority)
     except TaskRejectedError:
         raise
     except Exception as caught:
+        execution.release_events_later()
         handle._discard_unstarted_backend()
         exception(
             f"QThreadPool task submission failed: {type(caught).__name__}: {caught}"
@@ -294,6 +314,7 @@ def _start_thread_backend(handle: TaskHandle, execution: _TaskExecution) -> None
         handle._backend = backend
         backend.start()
     except Exception as caught:
+        execution.release_events_later()
         handle._discard_unstarted_backend()
         exception(f"QThread task startup failed: {type(caught).__name__}: {caught}")
         raise

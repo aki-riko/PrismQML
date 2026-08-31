@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from PySide6.QtCore import QObject, QRunnable, QThread, Qt, Signal, Slot
 
+from ._task_execution import _emit_task_signal
 from ._task_pool import TaskThreadPool
 
 
@@ -53,9 +54,12 @@ class _PoolRunnable(QRunnable):
             execution.run()
         finally:
             try:
-                events.backend_stopped.emit()
+                _emit_task_signal(events, "backend_stopped")
             finally:
-                control.mark_backend_stopped()
+                try:
+                    control.mark_backend_stopped()
+                finally:
+                    execution.release_events_later()
 
     def request_cancel(self) -> None:
         """Remove queued work when possible, otherwise stay cooperative. 优先移除排队任务。"""
@@ -79,9 +83,12 @@ class _PoolRunnable(QRunnable):
             control.request_cancel()
         execution.cancel_before_start()
         try:
-            events.backend_stopped.emit()
+            _emit_task_signal(events, "backend_stopped")
         finally:
-            control.mark_backend_stopped()
+            try:
+                control.mark_backend_stopped()
+            finally:
+                execution.release_events_later()
 
     def wait(self, timeout_ms: Optional[int]) -> bool:
         """Wait until the pool callable has returned. 等待线程池任务返回。"""
@@ -110,7 +117,10 @@ class _TaskWorker(QObject):
         try:
             self._execution.run()
         finally:
-            self.finished.emit()
+            try:
+                self._execution.release_events_later()
+            finally:
+                self.finished.emit()
 
 
 class _ThreadBackend:
