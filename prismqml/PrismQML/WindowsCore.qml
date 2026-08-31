@@ -28,6 +28,12 @@ Window {
     property int titleBarHeight: Enums.window.titleBarHeight
     property int captionButtonHeight: Enums.window.captionButtonHeight
     readonly property int captionButtonWidth: Enums.window.captionButtonWidth
+    // Optional host-defined action placed immediately before system buttons.
+    // 可选宿主动作，固定放在系统按钮之前。
+    property bool captionActionVisible: false
+    property string captionActionIcon: ""
+    property string captionActionToolTip: ""
+    property bool captionActionEnabled: true
     property int titleBarLeftMargin: Enums.window.titleBarLeftMargin
     property string windowTitle: ""
     property int windowRadius: Enums.surfaceRadius(Enums.radius.large)
@@ -74,6 +80,9 @@ Window {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isLeftLayout: titleBarPosition === Enums.windowType.title_bar_left
+    readonly property bool _captionActionActive: captionActionVisible && captionActionIcon !== ""
+    readonly property int _captionControlsWidth:
+        captionButtonWidth * (3 + (_captionActionActive ? 1 : 0))
     readonly property bool isMaximized: window.visibility === Window.Maximized
     readonly property int margin: isMaximized ? 0 : (_useNativeShadow ? 0 : (_useQmlShadow ? shadowSize : 0))
 
@@ -85,6 +94,9 @@ Window {
     // Fired synchronously after a close request is accepted, before HWND teardown.
     // 关闭请求确认后、HWND 销毁前同步触发。
     signal nativeCloseAccepted()
+    // Fired when the optional host-defined caption action is activated.
+    // 可选宿主标题栏动作被点击时发射。
+    signal captionActionTriggered()
     // Fired before a user/system close request is accepted. Handlers may set
     // closeRequestAccepted to false to keep the window alive.
     signal closeRequested()

@@ -37,6 +37,12 @@ def initialize_window_state(owner: Any, window_type: int) -> None:
     owner._width, owner._height = resolve_initial_window_size()
     owner._icon = ""
     owner._icon_colored = True
+    # Optional generic title-bar action. 可选通用标题栏动作。
+    owner._caption_action_visible = False
+    owner._caption_action_icon = ""
+    owner._caption_action_tool_tip = ""
+    owner._caption_action_enabled = True
+    owner._caption_action_callback = None
 
     owner._nav_items: List["NavigationItem"] = []
     owner._bottom_nav_items: List["NavigationItem"] = []

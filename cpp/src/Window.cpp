@@ -32,6 +32,11 @@ void NavBridge::onBottomItemClicked(int index) {
         m_owner->handleBottomItemClicked(index);
 }
 
+void NavBridge::onCaptionActionTriggered() {
+    if (m_owner)
+        m_owner->handleCaptionActionTriggered();
+}
+
 Window::Window(QQmlEngine *engine, const QString &importPath, WindowType type)
     : m_engine(engine), m_importPath(importPath), m_type(type) {}
 
@@ -129,12 +134,21 @@ void Window::onBottomItemClicked(std::function<void(int)> cb) {
     m_onBottomItemClicked = std::move(cb);
 }
 
+void Window::onCaptionActionTriggered(std::function<void()> cb) {
+    m_onCaptionActionTriggered = std::move(cb);
+}
+
 // NavBridge 转发的 QML bottomItemClicked 信号: 触发用户注册的回调。
 // QML 传的 index 是底部数组内的局部索引(0-based within bottomNavigationItems),
 // 转成全局索引(顶部项数 + 局部)再回调, 与 addPage 返回值坐标系一致, 供用户比对。
 void Window::handleBottomItemClicked(int localIndex) {
     if (m_onBottomItemClicked)
         m_onBottomItemClicked(m_navItems.size() + localIndex);
+}
+
+void Window::handleCaptionActionTriggered() {
+    if (m_onCaptionActionTriggered)
+        m_onCaptionActionTriggered();
 }
 
 // 把导航项拼成 QML 数组字面量。底部项额外带 selectable 字段(镜像 Python:
@@ -187,6 +201,24 @@ void Window::setWindowIcon(const QString &iconUrl, bool colored) {
     // 图标, 不只依赖 QML onWindowIconChanged 回调那一条路。
     if (!iconUrl.isEmpty())
         WindowHelper::instance()->setAppIcon(iconUrl);
+}
+
+void Window::setCaptionAction(const QString &icon, const QString &toolTip,
+                              bool enabled, bool visible) {
+    m_captionActionIcon = icon;
+    m_captionActionToolTip = toolTip;
+    m_captionActionEnabled = enabled;
+    m_captionActionVisible = visible && !icon.isEmpty();
+    if (m_root) {
+        m_root->setProperty("captionActionVisible", m_captionActionVisible);
+        m_root->setProperty("captionActionIcon", m_captionActionIcon);
+        m_root->setProperty("captionActionToolTip", m_captionActionToolTip);
+        m_root->setProperty("captionActionEnabled", m_captionActionEnabled);
+    }
+}
+
+void Window::clearCaptionAction() {
+    setCaptionAction(QString(), QString(), true, false);
 }
 
 void Window::resize(int width, int height) {
@@ -300,8 +332,19 @@ void Window::build() {
         qmlTextExpression(m_splashTitle, m_splashTitleTranslated),
         qmlTextExpression(m_splashSubtitle, m_splashSubtitleTranslated)
     );
+    const QString captionActionQml = QStringLiteral(
+        "    captionActionVisible: %1\n"
+        "    captionActionIcon: \"%2\"\n"
+        "    captionActionToolTip: \"%3\"\n"
+        "    captionActionEnabled: %4\n"
+    ).arg(
+        m_captionActionVisible ? QStringLiteral("true") : QStringLiteral("false"),
+        escapeQml(m_captionActionIcon),
+        escapeQml(m_captionActionToolTip),
+        m_captionActionEnabled ? QStringLiteral("true") : QStringLiteral("false")
+    );
     const QString extraQml =
-        iconQml + lazyLoadingQml + micaQml + shadowQml + splashQml;
+        iconQml + captionActionQml + lazyLoadingQml + micaQml + shadowQml + splashQml;
 
     const QString qml = QStringLiteral(
         "import QtQuick\n"
@@ -353,6 +396,9 @@ void Window::build() {
     // 底部导航项点击(含纯功能项 selectable=false) -> 用户回调
     QObject::connect(m_root, SIGNAL(bottomItemClicked(int)),
                      m_navBridge, SLOT(onBottomItemClicked(int)));
+    // 通用标题栏动作点击 -> 宿主回调
+    QObject::connect(m_root, SIGNAL(captionActionTriggered()),
+                     m_navBridge, SLOT(onCaptionActionTriggered()));
     // 返回键/关闭请求 -> NavBridge::onClosing (移动端返回键弹栈)
     QObject::connect(m_root, SIGNAL(closing(QQuickCloseEvent*)),
                      m_navBridge, SLOT(onClosing(QQuickCloseEvent*)));

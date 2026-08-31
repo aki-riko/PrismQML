@@ -60,6 +60,12 @@ int main(int argc, char *argv[]) {
         if (!iconUrl.isEmpty())
             w.setWindowIcon(iconUrl, /*colored=*/true);
     }
+    // Demonstrate the engine-level generic caption action with an AI icon.
+    // 用 AI 图标展示引擎级通用标题栏动作能力。
+    w.setCaptionAction(QStringLiteral("Bot"), QStringLiteral("AI"));
+    w.onCaptionActionTriggered([]() {
+        qInfo() << "GALLERY_CAPTION_ACTION_TRIGGERED";
+    });
     w.resize(1200, 800);
 
     // 启动画面(标题/图标回退到窗口配置)

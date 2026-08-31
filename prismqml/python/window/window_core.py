@@ -35,7 +35,7 @@
 """
 
 from enum import IntEnum
-from typing import Optional, List, Dict, Any, Type, Union
+from typing import Optional, List, Dict, Any, Type, Union, Callable
 from PySide6.QtCore import QObject, Signal, Slot, Property, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -270,6 +270,45 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         self._set_window_property("windowIcon", icon)
         self._set_window_property("windowIconColored", colored)
         self._update_fast_splash_metadata(icon=icon)
+
+    def set_caption_action(
+        self,
+        icon: str,
+        tool_tip: str = "",
+        enabled: bool = True,
+        visible: bool = True,
+    ) -> None:
+        """Configure the optional generic title-bar action. 配置可选通用标题栏动作。
+
+        The engine owns placement and presentation; the host owns the action
+        meaning and callback. 引擎只负责位置与呈现，宿主负责动作含义与回调。
+        """
+        if not isinstance(icon, str):
+            raise TypeError("caption action icon must be a string")
+        if not isinstance(tool_tip, str):
+            raise TypeError("caption action tool_tip must be a string")
+        self._caption_action_icon = icon
+        self._caption_action_tool_tip = tool_tip
+        self._caption_action_enabled = bool(enabled)
+        self._caption_action_visible = bool(visible) and bool(icon)
+        self._set_window_property(
+            "captionActionVisible", self._caption_action_visible
+        )
+        self._set_window_property("captionActionIcon", icon)
+        self._set_window_property("captionActionToolTip", tool_tip)
+        self._set_window_property("captionActionEnabled", self._caption_action_enabled)
+
+    def clear_caption_action(self) -> None:
+        """Hide and reset the optional title-bar action. 隐藏并重置可选标题栏动作。"""
+        self.set_caption_action("", "", enabled=True, visible=False)
+
+    def on_caption_action_triggered(
+        self, callback: Optional[Callable[[], None]]
+    ) -> None:
+        """Register the host callback for the caption action. 注册标题栏动作回调。"""
+        if callback is not None and not callable(callback):
+            raise TypeError("caption action callback must be callable or None")
+        self._caption_action_callback = callback
 
     def windowIcon(self) -> QIcon:
         """获取窗口图标
@@ -533,6 +572,28 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
                 self._window.currentPageChanged.connect(self._on_nav_changed)
             except AttributeError as e:
                 warning(f"导航信号连接失败: {e}")
+
+            # Generic title-bar actions are bridged without assigning a
+            # feature-specific meaning inside the engine.
+            try:
+                self._window.captionActionTriggered.connect(
+                    self._on_caption_action_triggered
+                )
+            except AttributeError as e:
+                warning(f"标题栏动作信号连接失败: {e}")
+
+    def _on_caption_action_triggered(self):
+        """Dispatch the optional host callback after a title-bar click."""
+        callback = self._caption_action_callback
+        if callback is None:
+            return
+        try:
+            callback()
+        except Exception as exc:
+            exception(
+                "WindowCore caption action callback failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
 
     def _on_close_requested(self):
         """Bridge QML closeRequested to the QWidget-compatible closeEvent hook."""

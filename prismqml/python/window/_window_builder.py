@@ -42,6 +42,10 @@ ${qml_component} {
     windowTitle: "${window_title}"
     windowIcon: "${window_icon}"
     windowIconColored: ${window_icon_colored}
+    captionActionVisible: ${caption_action_visible}
+    captionActionIcon: "${caption_action_icon}"
+    captionActionToolTip: "${caption_action_tool_tip}"
+    captionActionEnabled: ${caption_action_enabled}
     splashEnabled: ${splash_enabled}
     splashIcon: "${splash_icon}"
     splashTitle: "${splash_title}"
@@ -214,6 +218,16 @@ class WindowBuilderMixin:
             "windowTitle": self._title,
             "windowIcon": window_icon_qml,
             "windowIconColored": self._icon_colored,
+            "captionActionVisible": bool(
+                getattr(self, "_caption_action_visible", False)
+            ),
+            "captionActionIcon": getattr(self, "_caption_action_icon", ""),
+            "captionActionToolTip": getattr(
+                self, "_caption_action_tool_tip", ""
+            ),
+            "captionActionEnabled": bool(
+                getattr(self, "_caption_action_enabled", True)
+            ),
             "startupProfilingVerbose": startup_profile_verbose,
             "lazyLoading": bool(self._lazy_loading),
             "_pythonPageMode": True,
@@ -390,6 +404,22 @@ class WindowBuilderMixin:
             window_title=esc(self._title),
             window_icon=esc(window_icon_qml),
             window_icon_colored="true" if self._icon_colored else "false",
+            caption_action_visible=(
+                "true"
+                if bool(getattr(self, "_caption_action_visible", False))
+                else "false"
+            ),
+            caption_action_icon=esc(
+                getattr(self, "_caption_action_icon", "")
+            ),
+            caption_action_tool_tip=esc(
+                getattr(self, "_caption_action_tool_tip", "")
+            ),
+            caption_action_enabled=(
+                "true"
+                if bool(getattr(self, "_caption_action_enabled", True))
+                else "false"
+            ),
             startup_profiling_verbose="true" if startup_profile_verbose else "false",
             lazy_loading="true" if self._lazy_loading else "false",
             mica_enabled="true" if mica_enabled else "false",

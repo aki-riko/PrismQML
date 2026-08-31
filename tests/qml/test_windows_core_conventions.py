@@ -74,6 +74,7 @@ WINDOW_LEAF_PATHS = [
         "ResizeArea.qml",
         "WindowIcon.qml",
         "CaptionButton.qml",
+        "TitleBarActionButton.qml",
         "ContentFrame.qml",
         "WindowsCoreFrame.qml",
     )
@@ -501,6 +502,81 @@ def test_windows_core_right_title_chrome_is_layout_scoped(monkeypatch, qapp):
         )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+@pytest.mark.parametrize("initial_left_layout", [False, True])
+def test_windows_core_generic_caption_action_uses_system_button_slot(
+    monkeypatch, qapp, initial_left_layout
+):
+    """The host-defined action stays immediately before system buttons.
+
+    宿主定义的通用动作必须固定在系统按钮之前,且点击只发通用信号。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    (
+        engine,
+        component,
+        window,
+        _content,
+        _left_probe,
+        warnings,
+        _startup_events,
+    ) = _create_scene(monkeypatch, initial_left_layout=initial_left_layout)
+    try:
+        window.setProperty("captionActionIcon", "Bot")
+        window.setProperty("captionActionToolTip", "AI")
+        window.setProperty("captionActionVisible", True)
+        window.setProperty("captionActionEnabled", True)
+        _pump()
+
+        row_name = "captionButtonsRight" if initial_left_layout else "captionButtonsTop"
+        row = window.findChild(QQuickItem, row_name)
+        action = window.findChild(QQuickItem, "captionActionButton")
+        assert row is not None and action is not None
+        assert action.property("icon") == "Bot"
+        assert action.property("toolTipText") == "AI"
+        assert action.property("actionEnabled") is True
+        assert action.isVisible()
+        assert action.width() == pytest.approx(window.property("captionButtonWidth"))
+        assert action.x() == pytest.approx(0)
+        assert row.width() == pytest.approx(window.property("_captionControlsWidth"))
+
+        trigger_count = []
+        window.captionActionTriggered.connect(lambda: trigger_count.append(True))
+        center = action.mapToItem(
+            window.contentItem(),
+            QPointF(action.width() / 2, action.height() / 2),
+        )
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            QPoint(round(center.x()), round(center.y())),
+        )
+        assert _wait_for(lambda: len(trigger_count) == 1)
+
+        window.setProperty("captionActionEnabled", False)
+        _pump()
+        assert action.property("actionEnabled") is False
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            QPoint(round(center.x()), round(center.y())),
+        )
+        _pump()
+        assert len(trigger_count) == 1
+
+        window.setProperty("captionActionVisible", False)
+        _pump()
+        assert not action.isVisible()
+        assert row.width() == pytest.approx(
+            window.property("captionButtonWidth") * 3
+        )
+        assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []

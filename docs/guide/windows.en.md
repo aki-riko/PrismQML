@@ -41,6 +41,37 @@ window.show()
 - **System tray** — see [System Tray](tray.md)
 - **Splash screen** — `SplashScreen` auto-fades once the first frame is ready (mounted by default)
 
+## Generic Caption Action
+
+A window can optionally place one generic action button immediately to the left of
+the minimize, maximize, and close buttons. The engine owns placement, theme
+styling, hit testing, and the signal; the host owns the meaning (for example AI,
+help, or feedback):
+
+```python
+window.set_caption_action("Bot", "AI")
+window.on_caption_action_triggered(open_ai_assistant)
+```
+
+```cpp
+window.setCaptionAction(QStringLiteral("Bot"), QStringLiteral("AI"));
+window.onCaptionActionTriggered(openAiAssistant);
+```
+
+The same capability is available to pure-QML windows:
+
+```qml
+Fluent.Windows {
+    captionActionVisible: true
+    captionActionIcon: "Bot"
+    captionActionToolTip: "AI"
+    onCaptionActionTriggered: openAiAssistant()
+}
+```
+
+Leave `captionActionVisible: false` (the default) when no action is needed; the
+system buttons keep their original geometry without an empty reserved slot.
+
 ## Splash screen
 
 `NavigationWindowCore` owns creation, window coverage, and first-page-ready

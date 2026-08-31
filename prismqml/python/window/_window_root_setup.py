@@ -80,6 +80,16 @@ def _remove_redundant_pending_props(builder, window_icon_qml, mica_enabled) -> N
         "windowTitle": builder._title,
         "windowIcon": window_icon_qml,
         "windowIconColored": builder._icon_colored,
+        "captionActionVisible": bool(
+            getattr(builder, "_caption_action_visible", False)
+        ),
+        "captionActionIcon": getattr(builder, "_caption_action_icon", ""),
+        "captionActionToolTip": getattr(
+            builder, "_caption_action_tool_tip", ""
+        ),
+        "captionActionEnabled": bool(
+            getattr(builder, "_caption_action_enabled", True)
+        ),
         "micaEnabled": mica_enabled,
     }
     for key, initial_value in initial_props.items():

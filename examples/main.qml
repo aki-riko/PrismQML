@@ -26,6 +26,12 @@ QtObject {
     readonly property string windowTitle: "PrismQML Gallery"
     readonly property string windowIcon: "qrc:/app_icon.svg"
     readonly property bool windowIconColored: true  // Use colored icon 使用彩色图标
+    // Gallery only presents the generic engine capability with an AI-shaped icon.
+    // Gallery 仅用 AI 图标呈现引擎通用能力，动作语义仍由宿主决定。
+    readonly property bool captionActionVisible: true
+    readonly property string captionActionIcon: "Bot"
+    readonly property string captionActionToolTip: "AI"
+    readonly property bool captionActionEnabled: true
     readonly property int shadowMode: (ConfigManager && ConfigManager.dwmShadow) ? Fluent.Enums.windowShadow.mode_native : Fluent.Enums.windowShadow.mode_none
     readonly property bool micaEnabled: ConfigManager ? ConfigManager.micaEnabled : false
     readonly property bool lazyLoading: _startupLazyLoading
@@ -35,6 +41,10 @@ QtObject {
     // 图标路径解析函数
     function iconPath(name) {
         return Qt.resolvedUrl("../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
+    }
+
+    function handleCaptionAction() {
+        console.log("GALLERY_CAPTION_ACTION_TRIGGERED")
     }
     
     // 导航项配置
@@ -113,6 +123,10 @@ QtObject {
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
+            captionActionVisible: root.captionActionVisible
+            captionActionIcon: root.captionActionIcon
+            captionActionToolTip: root.captionActionToolTip
+            captionActionEnabled: root.captionActionEnabled
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
@@ -127,6 +141,7 @@ QtObject {
                     console.log("Avatar clicked")
                 }
             }
+            onCaptionActionTriggered: root.handleCaptionAction()
         }
     }
     
@@ -138,6 +153,10 @@ QtObject {
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
+            captionActionVisible: root.captionActionVisible
+            captionActionIcon: root.captionActionIcon
+            captionActionToolTip: root.captionActionToolTip
+            captionActionEnabled: root.captionActionEnabled
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
@@ -149,6 +168,7 @@ QtObject {
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }
+            onCaptionActionTriggered: root.handleCaptionAction()
         }
     }
     
@@ -160,6 +180,10 @@ QtObject {
             windowTitle: root.windowTitle
             windowIcon: root.windowIcon
             windowIconColored: root.windowIconColored
+            captionActionVisible: root.captionActionVisible
+            captionActionIcon: root.captionActionIcon
+            captionActionToolTip: root.captionActionToolTip
+            captionActionEnabled: root.captionActionEnabled
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
@@ -171,6 +195,7 @@ QtObject {
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }
+            onCaptionActionTriggered: root.handleCaptionAction()
         }
     }
     

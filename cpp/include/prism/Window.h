@@ -28,6 +28,7 @@ public:
 public slots:
     void onChanged(int index);
     void onBottomItemClicked(int index);  // 底部导航项点击(含纯功能项) -> 用户回调
+    void onCaptionActionTriggered();  // 通用标题栏动作 -> 用户回调
     void onClosing(QQuickCloseEvent *event);  // 返回键/关闭请求 -> goBack 或退出
 private:
     Window *m_owner;
@@ -52,6 +53,11 @@ public:
     // setWindowIcon - 设置标题栏 app 图标 (镜像 Python windowIcon 属性)
     // iconUrl: 图标路径(qrc:/file:/磁盘路径或图标名); colored: true=彩色图标跳过着色叠加。
     void setWindowIcon(const QString &iconUrl, bool colored = true);
+    // setCaptionAction - 配置系统按钮左侧的通用标题栏动作。
+    // 引擎只负责位置与样式，动作语义由宿主通过回调决定；icon 为空时隐藏。
+    void setCaptionAction(const QString &icon, const QString &toolTip = QString(),
+                          bool enabled = true, bool visible = true);
+    void clearCaptionAction();
     void resize(int width, int height);
 
     // addPage - 添加页面 (镜像 Python addPage)
@@ -78,6 +84,8 @@ public:
     // 纯功能项(selectable=false, 如 User 头像)点击时触发, 参数为该项的索引;
     // 可选页面项点击也会触发(切页由框架处理, 回调用于额外响应)。
     void onBottomItemClicked(std::function<void(int)> cb);
+    // onCaptionActionTriggered - 通用标题栏动作点击回调。
+    void onCaptionActionTriggered(std::function<void()> cb);
 
     void show();
     void navigateTo(int index);
@@ -109,6 +117,10 @@ private:
     bool m_titleTranslated = false;
     QString m_windowIcon;
     bool m_windowIconColored = true;
+    QString m_captionActionIcon;
+    QString m_captionActionToolTip;
+    bool m_captionActionEnabled = true;
+    bool m_captionActionVisible = false;
     int m_width = 1000;
     int m_height = 700;
     QList<NavItem> m_navItems;          // 顶部导航
@@ -124,9 +136,11 @@ private:
     bool m_splashTitleTranslated = false;
     bool m_splashSubtitleTranslated = false;
     std::function<void(int)> m_onBottomItemClicked;  // 底部项点击回调
+    std::function<void()> m_onCaptionActionTriggered;  // 标题栏动作回调
 
     void build();
     void handleBottomItemClicked(int localIndex);  // NavBridge 转发的底部项点击(局部索引→全局)
+    void handleCaptionActionTriggered();  // NavBridge 转发的通用标题栏动作
     void ensurePageCreated(int index);
     QQuickItem *findChildByName(const QString &name) const;
     void onCurrentPageChanged(int index);

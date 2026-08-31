@@ -88,11 +88,24 @@ Item {
                         Row {
                             id: captionButtonsTop
 
+                            objectName: "captionButtonsTop"
                             anchors.right: parent.right
                             anchors.top: parent.top
                             spacing: Enums.spacing.none
                             visible: !control._isLeftLayout
                             z: Enums.zIndex.controlsAbove  // Keep buttons above drag area 将按钮保持在拖动区域之上
+
+                            TitleBarActionButton {
+                                objectName: "captionActionButton"
+                                targetWindow: control
+                                icon: control.captionActionIcon
+                                toolTipText: control.captionActionToolTip
+                                actionEnabled: control.captionActionEnabled
+                                buttonWidth: control.captionButtonWidth
+                                buttonHeight: control.captionButtonHeight
+                                visible: control._captionActionActive
+                                onClicked: control.captionActionTriggered()
+                            }
 
                             CaptionButton {
                                 targetWindow: control
@@ -124,7 +137,7 @@ Item {
                         WindowDragHandle {
                             objectName: "topTitleBarDragArea"
                             anchors.fill: parent
-                            anchors.rightMargin: control.captionButtonWidth * 3
+                            anchors.rightMargin: control._captionControlsWidth
                             enableDrag: !control.isMaximized
                             enableDoubleClickMaximize: true
                             visible: !control._isLeftLayout
@@ -249,7 +262,7 @@ Item {
                             control.leftPanelWidth, Enums.window.navPanelMinWidth
                         ) + Enums.border.thin
                         anchors.right: parent.right
-                        anchors.rightMargin: control.captionButtonWidth * 3
+                        anchors.rightMargin: control._captionControlsWidth
                         anchors.top: parent.top
                         height: control.titleBarHeight
                         enableDrag: !control.isMaximized
@@ -264,10 +277,22 @@ Item {
                         objectName: "captionButtonsRight"
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        width: control.captionButtonWidth * 3
+                        width: control._captionControlsWidth
                         height: control.captionButtonHeight
                         spacing: Enums.spacing.none
                         z: Enums.zIndex.controlsAbove
+
+                        TitleBarActionButton {
+                            objectName: "captionActionButton"
+                            targetWindow: control
+                            icon: control.captionActionIcon
+                            toolTipText: control.captionActionToolTip
+                            actionEnabled: control.captionActionEnabled
+                            buttonWidth: control.captionButtonWidth
+                            buttonHeight: control.captionButtonHeight
+                            visible: control._captionActionActive
+                            onClicked: control.captionActionTriggered()
+                        }
 
                         CaptionButton {
                             targetWindow: control

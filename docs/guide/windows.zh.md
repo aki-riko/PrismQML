@@ -40,6 +40,34 @@ window.show()
 - **系统托盘** — 见 [系统托盘](tray.md)
 - **启动画面** — `SplashScreen` 首屏就绪后自动淡出（默认挂载）
 
+## 标题栏通用动作
+
+窗口可以在最小化、最大化、关闭按钮左侧放置一个可选的通用动作按钮。引擎只负责
+标题栏位置、主题样式、命中区域和信号，动作含义由宿主决定（例如 AI、帮助或反馈）：
+
+```python
+window.set_caption_action("Bot", "AI")
+window.on_caption_action_triggered(open_ai_assistant)
+```
+
+```cpp
+window.setCaptionAction(QStringLiteral("Bot"), QStringLiteral("AI"));
+window.onCaptionActionTriggered(openAiAssistant);
+```
+
+也可以直接在 QML 窗口上配置：
+
+```qml
+Fluent.Windows {
+    captionActionVisible: true
+    captionActionIcon: "Bot"
+    captionActionToolTip: "AI"
+    onCaptionActionTriggered: openAiAssistant()
+}
+```
+
+不需要动作时保持默认的 `captionActionVisible: false` 即可，不会为系统按钮额外预留空白。
+
 ## 启动画面
 
 启动画面由 `NavigationWindowCore` 统一创建、覆盖窗口并等待首页就绪；窗口可见后

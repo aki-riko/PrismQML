@@ -19,3 +19,13 @@ def test_cpp_gallery_restores_persisted_window_type():
     assert "enum class WindowType { Split = 0, Bar = 1, Filled = 2 };" in window_header
     assert "ConfigManager::instance()->windowType()" in source
     assert "app.createWindow(WindowType::Bar)" not in source
+
+
+def test_cpp_gallery_presents_generic_caption_action_without_owning_semantics():
+    source = CPP_GALLERY_MAIN.read_text(encoding="utf-8")
+    window_header = WINDOW_HEADER.read_text(encoding="utf-8")
+
+    assert "setCaptionAction(QStringLiteral(\"Bot\")" in source
+    assert "onCaptionActionTriggered([]()" in source
+    assert "void setCaptionAction(" in window_header
+    assert "void onCaptionActionTriggered(std::function<void()> cb);" in window_header
