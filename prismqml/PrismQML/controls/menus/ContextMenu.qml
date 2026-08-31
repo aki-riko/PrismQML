@@ -17,6 +17,7 @@ MenuCore {
     // ==================== Public Props 公开属性 ====================
     property bool autoBindRightClick: true  // Auto-bind right-click to parent 自动绑定右键
     property Item target: null              // Optional target control 可选目标控件
+    property int pointerGap: Enums.spacing.xs  // Gap from pointer to visible panel 可见面板与指针的间距
     
     // ==================== Internal Props 内部属性 ====================
     property Item _mouseArea: null
@@ -51,9 +52,12 @@ MenuCore {
         return isOpen || isClosing
     }
     
-    // Execute action 执行菜单
+    // Show the visible panel below and to the right of the pointer 在指针右下方显示可见面板
     function exec(x, y, parentItem) {
-        popup(x, y, parentItem || parent)
+        popup(
+            x + pointerGap - _panelOffset,
+            y + pointerGap - _panelOffset,
+            parentItem || parent)
     }
 
     Component.onCompleted: {
@@ -83,7 +87,7 @@ MenuCore {
             anchors.fill: parent
             acceptedButtons: Qt.RightButton
             onClicked: (mouse) => {
-                control.popup(mouse.x, mouse.y, parent)
+                control.exec(mouse.x, mouse.y, parent)
             }
         }
     }

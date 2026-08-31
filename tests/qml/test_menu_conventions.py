@@ -353,6 +353,41 @@ def test_context_menu_native_window_closes_on_escape(menu_scene):
     assert warnings == []
 
 
+def test_context_menu_right_click_opens_below_and_right_of_pointer(menu_scene):
+    window, items, warnings, windows_before = menu_scene
+    context_menu = items["contextMenu"]
+    context_target = window.findChild(QQuickItem, "contextTarget")
+    assert context_target is not None
+    local_position = QPointF(
+        context_target.width() / 2,
+        context_target.height() / 2,
+    )
+    scene_position = context_target.mapToScene(local_position).toPoint()
+    global_position = context_target.mapToGlobal(
+        local_position.x(), local_position.y()
+    )
+
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.RightButton,
+        pos=scene_position,
+    )
+    assert _wait_for(lambda: len(_new_visible_windows(windows_before, window)) == 1)
+    popup_window = _new_visible_windows(windows_before, window)[0]
+    panel_offset = context_menu.property("_panelOffset")
+    pointer_gap = context_menu.property("pointerGap")
+
+    assert popup_window.x() + panel_offset == pytest.approx(
+        global_position.x() + pointer_gap
+    )
+    assert popup_window.y() + panel_offset == pytest.approx(
+        global_position.y() + pointer_gap
+    )
+    assert QMetaObject.invokeMethod(window, "hideContext")
+    assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    assert warnings == []
+
+
 @pytest.fixture
 def menu_scene(qapp):
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
