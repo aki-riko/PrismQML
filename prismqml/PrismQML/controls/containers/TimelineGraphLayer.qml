@@ -27,6 +27,7 @@ Item {
         1, DpiManager.devicePixelRatio || 1)
     readonly property int _strokePixelCount: Math.max(
         1, Math.round(_strokeWidth * _devicePixelRatio))
+    readonly property real _boundaryInset: Enums.border.thin
     readonly property real _nodeRadius: Enums.controlSize.timelineGraphNode / 2
     readonly property real _nodeOuterRadius: _nodeRadius + _strokeWidth
     readonly property real _nodeX: _laneX((graphData || {}).nodeLane)
@@ -80,6 +81,11 @@ Item {
             readonly property real curveEndY: endY
                 - ((modelData || {}).endAtNode ? 0 : terminalLength)
             readonly property real curveMiddleY: (curveStartY + curveEndY) / 2
+            readonly property real verticalStartY: segmentItem.startY === 0
+                ? -control._boundaryInset + Enums.scroll.boundary_epsilon
+                : segmentItem.startY
+            readonly property real verticalEndY: segmentItem.endY === segmentItem.height
+                ? segmentItem.height - control._boundaryInset : segmentItem.endY
             readonly property color segmentColor: control._colorFor((modelData || {}).colorIndex)
             readonly property color paintColor: control.selected
                 ? control.selectedColor : segmentColor
@@ -105,9 +111,9 @@ Item {
             // 场景图矩形在虚拟行边界精确拼接，避免 Canvas 纹理重复混合。
             Rectangle {
                 x: segmentItem.fromX - control._strokeWidth / 2
-                y: segmentItem.startY
+                y: segmentItem.verticalStartY
                 width: control._strokeWidth
-                height: Math.max(0, segmentItem.endY - segmentItem.startY)
+                height: Math.max(0, segmentItem.verticalEndY - segmentItem.verticalStartY)
                 visible: segmentItem.fromX === segmentItem.toX
                 color: segmentItem.paintColor
             }
@@ -140,9 +146,9 @@ Item {
 
             Rectangle {
                 x: segmentItem.fromX - control._halfStrokeWidth
-                y: segmentItem.startY
+                y: segmentItem.verticalStartY
                 width: control._strokeWidth
-                height: segmentItem.curveStartY - segmentItem.startY
+                height: segmentItem.curveStartY - segmentItem.verticalStartY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
                 color: segmentItem.paintColor
             }
@@ -151,7 +157,7 @@ Item {
                 x: segmentItem.toX - control._halfStrokeWidth
                 y: segmentItem.curveEndY
                 width: control._strokeWidth
-                height: segmentItem.endY - segmentItem.curveEndY
+                height: segmentItem.verticalEndY - segmentItem.curveEndY
                 visible: segmentItem.fromX !== segmentItem.toX && height > 0
                 color: segmentItem.paintColor
             }
