@@ -163,6 +163,16 @@ def test_gallery_navigation_order_matches_page_sources():
     assert page_names == expected_page_names + ["SettingsPage.qml"]
 
 
+def test_gallery_presents_generic_caption_action_from_window_layer():
+    source = GALLERY_QML.read_text(encoding="utf-8")
+
+    assert 'readonly property bool captionActionVisible: true' in source
+    assert 'readonly property string captionActionIcon: "Bot"' in source
+    assert 'readonly property string captionActionToolTip: "AI"' in source
+    assert "onCaptionActionTriggered: root.handleCaptionAction()" in source
+    assert "setCaptionAction" not in source
+
+
 def test_gallery_settings_keep_window_and_application_order():
     source = GALLERY_SETTINGS_PAGE.read_text(encoding="utf-8")
     ordered_tokens = [

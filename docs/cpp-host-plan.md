@@ -196,6 +196,7 @@ C++ 宿主一旦做出，**本身即覆盖所有 Qt 支持的平台**。"全平�
 | `app.quit/exit/clipboard/screens/...` | 直接用 `QGuiApplication`/`qApp` | **Qt 已有，免实现** |
 | `window.setWindowTitle(str)` | `window.setWindowTitle(QString)` | |
 | `window.resize(w,h)` | `window.resize(int,int)` | |
+| `window.set_caption_action(icon, tool_tip, enabled=True, visible=True)` + `window.on_caption_action_triggered(callback)` | `window.setCaptionAction(icon, toolTip, enabled=true, visible=true)` + `window.onCaptionActionTriggered(callback)` | 可选通用标题栏动作，位于最小化/最大化/关闭按钮左侧；动作语义由宿主决定 |
 | `window.addPage(interface, icon, text, position="top", selectedIcon="", selectable=True)` | `window.addPage(PageFactory, QString icon, QString text, Position=Top, QString selectedIcon={}, bool selectable=true)` | ⚠️ Python 的 `interface` 可传「类（懒加载）或实例」；C++ 无鸭子类型 → 用 `std::function<QObject*()>` 工厂 或 `QQmlComponent*` 对等懒加载 |
 | `window.show/showNormal/showMinimized/showMaximized` | 同名 | |
 | `window.showSplash(icon,title,subtitle)` | 同名 | |
