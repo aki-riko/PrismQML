@@ -249,9 +249,22 @@ Item {
         id: tabTapHandler
 
         enabled: tabItem._tabEnabled
+        acceptedButtons: Qt.LeftButton
         onTapped: {
             host.currentIndex = index
             host.tabClicked(index)
+        }
+    }
+
+    TapHandler {
+        enabled: tabItem._tabEnabled && host.contextMenuEnabled
+        acceptedButtons: Qt.RightButton
+        gesturePolicy: TapHandler.ReleaseWithinBounds
+        onTapped: function(eventPoint) {
+            var hostPosition = tabItem.mapToItem(
+                host, eventPoint.position.x, eventPoint.position.y)
+            host.tabContextMenuRequested(
+                index, Qt.point(hostPosition.x, hostPosition.y))
         }
     }
 

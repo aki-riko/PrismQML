@@ -21,6 +21,7 @@ Widget {
     property alias scrollable: tabBar.scrollable
     property alias showAddButton: tabBar.showAddButton
     property alias detailsEnabled: tabBar.detailsEnabled
+    property alias contextMenuEnabled: tabBar.contextMenuEnabled
     property alias tabBarHeight: tabBar.tabBarHeight
     property alias tabContentVerticalPadding: tabBar.tabContentVerticalPadding
     property alias tabWidth: tabBar.tabWidth
@@ -47,6 +48,7 @@ Widget {
     signal tabClosed(int index)
     signal tabAddClicked()
     signal tabDoubleClicked(int index)
+    signal tabContextMenuRequested(int index, point position)
     signal tabsReordered(int from, int to)
 
     // ==================== Public Methods 公开方法 ====================
@@ -89,12 +91,13 @@ Widget {
     }
 
     Connections {
-        target: tabBar
-
         function onTabClicked(index) { control.tabClicked(index) }
         function onTabClosed(index) { control.tabClosed(index) }
         function onTabAddClicked() { control.tabAddClicked() }
         function onTabDoubleClicked(index) { control.tabDoubleClicked(index) }
+        function onTabContextMenuRequested(index, position) { control.tabContextMenuRequested(index, position) }
         function onTabsReordered(from, to) { control.tabsReordered(from, to) }
+
+        target: tabBar
     }
 }

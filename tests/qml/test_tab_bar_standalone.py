@@ -9,9 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl, QObject
+from PySide6.QtCore import QEventLoop, QPointF, QTimer, QUrl, QObject, Qt
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
+from PySide6.QtTest import QTest
 
 from prismqml import register_types
 
@@ -35,6 +36,7 @@ Window {
         width: 720
         height: 60
         detailsEnabled: true
+        contextMenuEnabled: true
         tabBarHeight: Enums.controlSize.tableHeaderHeight + Enums.spacing.xl
         tabContentVerticalPadding: Enums.spacing.m
         tabWidth: 180
@@ -154,6 +156,35 @@ def test_tab_bar_is_usable_without_content_pages(tab_bar_scene):
     assert not bar.findChild(QObject, "tabContentPages")
 
 
+def test_tab_bar_reports_right_click_without_selecting_tab(tab_bar_scene):
+    _engine, _component, window = tab_bar_scene
+    bar = window.findChild(QObject, "tabBar")
+    delegates = sorted(_delegates(bar), key=lambda item: item.x())
+    requests = []
+    bar.tabContextMenuRequested.connect(
+        lambda index, position: requests.append((index, position))
+    )
+
+    window.show()
+    _pump(50)
+    click_position = delegates[0].mapToScene(
+        QPointF(delegates[0].width() / 2, delegates[0].height() / 2)
+    ).toPoint()
+    QTest.mouseClick(window, Qt.MouseButton.RightButton, pos=click_position)
+    _pump()
+
+    assert len(requests) == 1
+    assert requests[0][0] == 0
+    assert requests[0][1].x() == pytest.approx(click_position.x())
+    assert requests[0][1].y() == pytest.approx(click_position.y())
+    assert bar.property("currentIndex") == 1
+
+    bar.setProperty("contextMenuEnabled", False)
+    QTest.mouseClick(window, Qt.MouseButton.RightButton, pos=click_position)
+    _pump()
+    assert len(requests) == 1
+
+
 def test_tab_widget_composes_tab_bar_and_keeps_public_contract():
     tab_widget = (
         ROOT / "prismqml" / "PrismQML" / "controls" / "navigation" / "TabWidget.qml"
@@ -172,3 +203,7 @@ def test_tab_widget_composes_tab_bar_and_keeps_public_contract():
     assert "TabEdgeAutoScroll {" in tab_bar
     assert "property alias addButtonItem" in tab_bar
     assert "property bool detailsEnabled" in tab_bar
+    assert "property bool contextMenuEnabled" in tab_bar
+    assert "signal tabContextMenuRequested" in tab_bar
+    assert "property alias contextMenuEnabled" in tab_widget
+    assert "signal tabContextMenuRequested" in tab_widget

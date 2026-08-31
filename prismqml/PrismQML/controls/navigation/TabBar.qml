@@ -29,6 +29,7 @@ Widget {
     property bool scrollable: false  // Reserved compatibility flag 兼容保留属性
     property bool showAddButton: false  // Show add button 显示添加按钮
     property bool detailsEnabled: false  // Show subtitle/badge rows 显示副标题和状态
+    property bool contextMenuEnabled: false  // Report tab right-clicks 报告标签右键请求
     property int tabBarHeight: Enums.controlSize.tableHeaderHeight
     property int tabContentVerticalPadding: Enums.spacing.xs  // Vertical breathing room around detailed tab content 详细标签内容上下留白
     property int tabWidth: 0  // Fixed width; zero keeps content sizing 固定宽度，零值按内容计算
@@ -68,6 +69,7 @@ Widget {
     signal tabClosed(int index)  // Tab close requested 标签关闭请求
     signal tabAddClicked()  // Add button clicked 添加按钮点击
     signal tabDoubleClicked(int index)  // Tab double clicked 标签双击
+    signal tabContextMenuRequested(int index, point position)  // Tab context menu request 标签上下文菜单请求
     signal tabsReordered(int from, int to)  // Tabs reordered via drag 拖拽重排
 
     // ==================== Public Methods 公开方法 ====================
