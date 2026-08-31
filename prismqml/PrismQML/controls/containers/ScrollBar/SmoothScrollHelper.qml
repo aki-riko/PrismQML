@@ -24,7 +24,8 @@ Item {
     property bool bounceEnabled: true  // Enable overshoot bounce 启用边界回弹
     property bool handleWheel: false  // Auto handle mouse wheel 自动处理鼠标滚轮
     // ==================== Internal Props 内部属性 ====================
-    // Timeline 挂接视觉位移层后启用此内部模式,其他 Flickable 保持原生超出路径。
+    // Timeline enables the visual overshoot layer; other Flickables keep native overshoot.
+    // Timeline 启用视觉超出位移层；其他 Flickable 保持原生超出路径。
     property bool _visualOvershootEnabled: false
     // Vertical state 垂直状态
     property real _targetY: 0
@@ -231,7 +232,8 @@ Item {
         var published = _publishedPosition(_smoothY, _minY, _maxY)
         var contentPosition = _visualOvershootEnabled
             ? _clamp(published, _minY, _maxY) : published
-        // 赋值前记录发布意图,ListView 可能同步夹紧并重入几何信号。
+        // Record the intended position before assignment; ListView may clamp synchronously
+        // and re-enter geometry signals. 赋值前记录发布意图；ListView 可能同步夹紧并重入几何信号。
         _lastPublishedY = contentPosition
         target.contentY = contentPosition
         if (_isOutwardBounceV) _lastBounceFrameTimestampV = Date.now()
