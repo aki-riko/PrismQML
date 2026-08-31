@@ -21,6 +21,8 @@ Widget {
     property alias scrollable: tabBar.scrollable
     property alias showAddButton: tabBar.showAddButton
     property alias detailsEnabled: tabBar.detailsEnabled
+    property alias tabBarHeight: tabBar.tabBarHeight
+    property alias tabContentVerticalPadding: tabBar.tabContentVerticalPadding
     property alias tabWidth: tabBar.tabWidth
     property alias minimumTabWidth: tabBar.minimumTabWidth
     property alias maximumTabWidth: tabBar.maximumTabWidth

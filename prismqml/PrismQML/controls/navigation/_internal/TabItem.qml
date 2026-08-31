@@ -155,6 +155,7 @@ Item {
 
     Column {
         id: detailContent
+        objectName: "tabItemDetailContent"
 
         visible: tabItem._hasDetails
         width: host.tabWidth > 0
@@ -163,7 +164,7 @@ Item {
             : implicitWidth
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
-        spacing: Enums.spacing.xxs
+        spacing: Enums.spacing.s
 
         Row {
             id: detailTitleRow
@@ -210,6 +211,7 @@ Item {
 
         Label {
             id: detailSubtitle
+            objectName: "tabItemDetailSubtitle"
 
             width: detailContent.width
             type: Enums.label.type_caption

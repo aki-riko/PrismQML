@@ -29,6 +29,8 @@ Widget {
     property bool scrollable: false  // Reserved compatibility flag 兼容保留属性
     property bool showAddButton: false  // Show add button 显示添加按钮
     property bool detailsEnabled: false  // Show subtitle/badge rows 显示副标题和状态
+    property int tabBarHeight: Enums.controlSize.tableHeaderHeight
+    property int tabContentVerticalPadding: Enums.spacing.xs  // Vertical breathing room around detailed tab content 详细标签内容上下留白
     property int tabWidth: 0  // Fixed width; zero keeps content sizing 固定宽度，零值按内容计算
     property int minimumTabWidth: Enums.controlSize.segmentedMinWidth
     property int maximumTabWidth: 0  // Zero means unlimited 零值表示不限制
@@ -40,8 +42,13 @@ Widget {
         : (typeof tabs.length === "number" ? tabs : [])
 
     // ==================== Internal Props 内部属性 ====================
-    readonly property int _tabHeight: Enums.controlSize.inputHeightLarge - Enums.spacing.xs
-    readonly property int _tabBarHeight: Enums.controlSize.tableHeaderHeight
+    readonly property int _tabHeight: detailsEnabled
+        ? Math.max(
+            Enums.controlSize.inputHeightLarge - Enums.spacing.xs,
+            _tabBarHeight - Math.max(0, tabContentVerticalPadding) * 2)
+        : Enums.controlSize.inputHeightLarge - Enums.spacing.xs
+    readonly property int _tabBarHeight: Math.max(
+        Enums.controlSize.tableHeaderHeight, tabBarHeight)
     readonly property int _selectedTabRadius: Enums.surfaceRadius(Enums.radius.card)
     readonly property real _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)

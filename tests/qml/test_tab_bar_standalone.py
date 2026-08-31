@@ -26,15 +26,17 @@ import PrismQML
 
 Window {
     width: 760
-    height: 120
+    height: 140
     visible: false
 
     TabBar {
         id: bar
         objectName: "tabBar"
         width: 720
-        height: 44
+        height: 60
         detailsEnabled: true
+        tabBarHeight: Enums.controlSize.tableHeaderHeight + Enums.spacing.xl
+        tabContentVerticalPadding: Enums.spacing.m
         tabWidth: 180
         minimumTabWidth: 130
         maximumTabWidth: 220
@@ -129,10 +131,20 @@ def test_tab_bar_is_usable_without_content_pages(tab_bar_scene):
     assert bar is not None
     assert bar.property("count") is None
     assert bar.property("currentIndex") == 1
+    assert bar.property("_tabBarHeight") == 60
+    assert bar.property("_tabHeight") == 44
     assert bar.metaObject().indexOfProperty("addButtonItem") >= 0
     assert bar.findChild(QObject, "tabBarAddButton") is not None
     assert len(_delegates(bar)) == 2
     assert all(delegate.width() == pytest.approx(180) for delegate in _delegates(bar))
+    inset = (bar.property("_tabBarHeight") - bar.property("_tabHeight")) / 2
+    for delegate in _delegates(bar):
+        mapped = delegate.mapToItem(bar, 0, 0)
+        assert mapped.y() == pytest.approx(inset)
+        assert delegate.height() == pytest.approx(bar.property("_tabHeight"))
+        detail = delegate.findChild(QObject, "tabItemDetailContent")
+        assert detail is not None
+        assert detail.property("spacing") == pytest.approx(6)
     assert all(delegate.property("_hasDetails") is True for delegate in _delegates(bar))
     icons = [
         item for delegate in _delegates(bar) for item in _descendants(delegate)
