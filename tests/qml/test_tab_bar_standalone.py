@@ -144,7 +144,7 @@ def test_tab_bar_is_usable_without_content_pages(tab_bar_scene):
         assert delegate.height() == pytest.approx(bar.property("_tabHeight"))
         detail = delegate.findChild(QObject, "tabItemDetailContent")
         assert detail is not None
-        assert detail.property("spacing") == pytest.approx(6)
+        assert detail.property("spacing") == pytest.approx(2)
     assert all(delegate.property("_hasDetails") is True for delegate in _delegates(bar))
     icons = [
         item for delegate in _delegates(bar) for item in _descendants(delegate)

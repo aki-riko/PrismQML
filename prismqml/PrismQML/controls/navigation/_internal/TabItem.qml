@@ -164,7 +164,7 @@ Item {
             : implicitWidth
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
-        spacing: Enums.spacing.s
+        spacing: Enums.spacing.xxs
 
         Row {
             id: detailTitleRow
