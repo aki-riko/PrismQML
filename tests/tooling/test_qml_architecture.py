@@ -1089,26 +1089,35 @@ def test_tab_widget_keeps_content_pages_modularized():
 
 def test_tab_widget_keeps_tab_delegate_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    tab_bar = _source("prismqml/PrismQML/controls/navigation/TabBar.qml")
     helper = _source("prismqml/PrismQML/controls/navigation/_internal/TabItem.qml")
 
     assert len(entry.read_text(encoding="utf-8").splitlines()) < 500
+    tab_bar_source = tab_bar.read_text(encoding="utf-8")
+    assert tab_bar.exists()
+    assert len(tab_bar_source.splitlines()) < 500
     assert helper.exists()
     assert len(helper.read_text(encoding="utf-8").splitlines()) < 500
-    assert "TabItem {" in entry.read_text(encoding="utf-8")
+    assert "TabBar {" in entry.read_text(encoding="utf-8")
+    assert "TabItem {" in tab_bar_source
 
 
 def test_tab_widget_keeps_edge_auto_scroll_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    tab_bar = _source("prismqml/PrismQML/controls/navigation/TabBar.qml")
     helper = _source(
         "prismqml/PrismQML/controls/navigation/_internal/TabEdgeAutoScroll.qml"
     )
     source = entry.read_text(encoding="utf-8")
+    tab_bar_source = tab_bar.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 450
+    assert tab_bar.exists()
+    assert len(tab_bar_source.splitlines()) < 500
     assert helper.exists()
     assert len(helper_source.splitlines()) < 100
-    assert "TabEdgeAutoScroll {" in source
+    assert "TabEdgeAutoScroll {" in tab_bar_source
     assert "FrameAnimation {" in helper_source
     assert "required property Item host" in helper_source
     assert "required property Flickable tabFlickable" in helper_source
@@ -1116,25 +1125,29 @@ def test_tab_widget_keeps_edge_auto_scroll_modularized():
     assert "host._dragPointerRowX" in helper_source
     assert "frameTime" in helper_source
     assert "onTriggered:" in helper_source
-    assert "var edgeMargin = 40" not in source
-    assert "var step = 480 * frameTime" not in source
-    assert "id: _edgeAutoScrollTimer" in source
-    assert "host: control" in source
-    assert "tabFlickable: tabFlickable" in source
+    assert "var edgeMargin = 40" not in tab_bar_source
+    assert "var step = 480 * frameTime" not in tab_bar_source
+    assert "id: _edgeAutoScrollTimer" in tab_bar_source
+    assert "host: control" in tab_bar_source
+    assert "tabFlickable: tabFlickable" in tab_bar_source
 
 
 def test_tab_widget_keeps_indicator_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/TabWidget.qml")
+    tab_bar = _source("prismqml/PrismQML/controls/navigation/TabBar.qml")
     helper = _source(
         "prismqml/PrismQML/controls/navigation/_internal/TabIndicator.qml"
     )
     source = entry.read_text(encoding="utf-8")
+    tab_bar_source = tab_bar.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 300
+    assert tab_bar.exists()
+    assert len(tab_bar_source.splitlines()) < 500
     assert helper.exists()
     assert len(helper_source.splitlines()) < 250
-    assert "TabIndicator {" in source
+    assert "TabIndicator {" in tab_bar_source
     assert "Item {" in helper_source
     for required_property in (
         "required property Item host",
@@ -1151,21 +1164,21 @@ def test_tab_widget_keeps_indicator_modularized():
         "tabRepeater: tabRepeater",
         "tabRow: tabRow",
     ):
-        assert binding in source
+        assert binding in tab_bar_source
     assert "function _scheduleSync(animate)" in helper_source
     assert "function syncIndicator(animate)" in helper_source
     assert "SlidingIndicatorAnimation {" in helper_source
     assert "RectangularShadow {" in helper_source
     assert "NeumorphicShadow {" in helper_source
     assert "NeoShadow {" in helper_source
-    assert "id: slidingIndicator" in source
+    assert "id: slidingIndicator" in tab_bar_source
     for marker in (
         "property int _currentTabKey:",
         "function _scheduleSync(animate)",
         "SlidingIndicatorAnimation {",
         "id: indicatorBg",
     ):
-        assert marker not in source
+        assert marker not in tab_bar_source
 
 
 def test_bar_chart_keeps_single_series_delegate_modularized():

@@ -10,6 +10,7 @@ import "../../data"
 
 // TabItem - Tab bar delegate with interaction and drag behavior
 // TabItem - 带交互与拖拽行为的标签栏委托
+pragma ComponentBehavior: Bound
 Item {
     id: tabItem
 
@@ -21,6 +22,29 @@ Item {
     required property var modelData
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property var _tabData: modelData && typeof modelData === "object" ? modelData : ({})
+    readonly property string _title: {
+        if (modelData && typeof modelData === "object") return String(modelData.title || "")
+        return String(modelData || "")
+    }
+    readonly property string _subtitle: String(_tabData.subtitle || "")
+    readonly property string _badgeText: _tabData.badgeText === undefined
+        ? "" : String(_tabData.badgeText)
+    readonly property int _badgeLevel: _tabData.badgeLevel === undefined
+        ? Enums.statusLevel.info : Number(_tabData.badgeLevel)
+    readonly property color _badgeColor: Enums.statusLevel.getColorByLevel(_badgeLevel)
+    readonly property bool _hasDetails: !!host.detailsEnabled &&
+        (_subtitle !== "" || _badgeText !== "")
+    readonly property bool _tabEnabled: host.interactionEnabled && _tabData.enabled !== false
+    readonly property bool _tabClosable: host.closable &&
+        _tabData.closeEnabled !== false && host.tabCloseEnabled(index, modelData)
+    readonly property real _contentImplicitWidth: _hasDetails
+        ? detailContent.implicitWidth : compactContent.implicitWidth
+    readonly property real _automaticWidth: Math.max(
+        host.minimumTabWidth,
+        _contentImplicitWidth + Enums.spacing.xl * 2 +
+        (_tabClosable ? Enums.spacing.xxl : 0))
+
     property bool selected: index === host.currentIndex
     property bool hovered: tabHoverHandler.hovered
     property bool pressed: tabTapHandler.pressed
@@ -44,10 +68,12 @@ Item {
     }
 
     // ==================== Size 尺寸 ====================
-    // Width adapts to content 宽度根据内容自适应
-    width: Math.max(Enums.controlSize.segmentedMinWidth,
-                    tabContent.implicitWidth + Enums.spacing.xl * 2
-                    + (host.closable ? Enums.spacing.xxl : 0))
+    width: {
+        var value = host.tabWidth > 0 ? host.tabWidth : _automaticWidth
+        if (host.maximumTabWidth > 0)
+            value = Math.min(host.maximumTabWidth, value)
+        return Math.max(host.minimumTabWidth, value)
+    }
     height: host._tabHeight
 
     transform: Translate {
@@ -61,10 +87,9 @@ Item {
         }
     }
     z: isDragSource ? Enums.zIndex.controlsAbove : Enums.zIndex.base
-    opacity: 1.0
+    opacity: _tabEnabled ? Enums.opacityLevel.visible : Enums.opacityLevel.disabled
 
     // ==================== Content 内容 ====================
-    // Background (non-selected state) 背景（非选中状态）
     Rectangle {
         id: tabBg
 
@@ -73,8 +98,6 @@ Item {
         anchors.bottomMargin: Enums.border.thin
         radius: host._selectedTabRadius
         color: {
-            // Dragged tabs use a distinct surface to avoid selected-state ghosting.
-            // 拖拽源使用独立表面，避免与选中态重叠产生视觉残影。
             if (tabItem.isDragSource) return Enums.stateColor.tabDragSource
             if (tabItem.selected) return Enums.transparent
             if (tabItem.pressed) return Enums.stateColor.tabPressed
@@ -91,18 +114,19 @@ Item {
     }
 
     Row {
-        id: tabContent
+        id: compactContent
 
+        visible: !tabItem._hasDetails
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: host.closable ? -Enums.spacing.l : 0
+        anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
         spacing: Enums.spacing.s
 
-        Label {
-            id: tabIcon
+        Icon {
+            id: compactIcon
 
-            type: Enums.label.type_body
-            text: modelData && modelData.icon ? modelData.icon : ""
-            visible: text !== ""
+            icon: tabItem._tabData.icon ? tabItem._tabData.icon : ""
+            iconSize: Enums.iconSize.m
+            visible: icon !== ""
             anchors.verticalCenter: parent.verticalCenter
             opacity: tabItem.selected
                      ? Enums.opacityLevel.visible
@@ -114,10 +138,10 @@ Item {
         }
 
         Label {
-            id: tabText
+            id: compactText
 
             type: Enums.label.type_caption
-            text: modelData ? (modelData.title || modelData) : ""
+            text: tabItem._title
             color: Enums.foregroundColor
             anchors.verticalCenter: parent.verticalCenter
             opacity: tabItem.selected
@@ -126,6 +150,74 @@ Item {
                                      : Enums.opacityLevel.secondary)
 
             Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
+        }
+    }
+
+    Column {
+        id: detailContent
+
+        visible: tabItem._hasDetails
+        width: host.tabWidth > 0
+            ? Math.max(0, tabItem.width - Enums.spacing.xl * 2 -
+                       (tabItem._tabClosable ? Enums.spacing.xxl : 0))
+            : implicitWidth
+        anchors.centerIn: parent
+        anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
+        spacing: Enums.spacing.xxs
+
+        Row {
+            id: detailTitleRow
+
+            width: detailContent.width
+            spacing: Enums.spacing.xs
+
+            Icon {
+                id: detailIcon
+
+                icon: tabItem._tabData.icon ? tabItem._tabData.icon : ""
+                iconSize: Enums.iconSize.s
+                visible: icon !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                color: tabItem.selected ? Enums.accentColor : Enums.foregroundColor
+            }
+
+            Label {
+                id: detailTitle
+
+                width: Math.max(0, detailTitleRow.width -
+                       (detailIcon.visible ? detailIcon.width : 0) -
+                       (detailBadge.visible ? detailBadge.width : 0) -
+                       (detailIcon.visible ? Enums.spacing.xs : 0) -
+                       (detailBadge.visible ? Enums.spacing.xs : 0))
+                type: Enums.label.type_caption
+                text: tabItem._title
+                color: Enums.foregroundColor
+                font.bold: tabItem.selected
+                elide: Text.ElideRight
+                wrapMode: Text.NoWrap
+            }
+
+            Label {
+                id: detailBadge
+
+                type: Enums.label.type_caption
+                text: tabItem._badgeText
+                visible: text !== ""
+                customTextColor: tabItem._badgeColor
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
+        Label {
+            id: detailSubtitle
+
+            width: detailContent.width
+            type: Enums.label.type_caption
+            text: tabItem._subtitle
+            visible: text !== ""
+            color: Enums.textColor.secondary
+            elide: Text.ElideRight
+            wrapMode: Text.NoWrap
         }
     }
 
@@ -138,7 +230,8 @@ Item {
         size: Enums.iconSize.xxl
         iconSizeValue: Enums.iconSize.tiny
         normalIconColor: Enums.secondaryForeground
-        visible: host.closable && (tabItem.selected || tabItem.hovered)
+        visible: tabItem._tabClosable && (tabItem.selected || tabItem.hovered)
+        enabled: tabItem._tabEnabled
         z: Enums.zIndex.header
         onClicked: host.tabClosed(index)
     }
@@ -146,12 +239,14 @@ Item {
     HoverHandler {
         id: tabHoverHandler
 
+        enabled: tabItem._tabEnabled
         cursorShape: Qt.PointingHandCursor
     }
 
     TapHandler {
         id: tabTapHandler
 
+        enabled: tabItem._tabEnabled
         onTapped: {
             host.currentIndex = index
             host.tabClicked(index)
@@ -163,7 +258,7 @@ Item {
 
         property real _pressRowX: 0
 
-        enabled: host.movable
+        enabled: tabItem._tabEnabled && host.movable
         target: null
         xAxis.enabled: true
         yAxis.enabled: false
@@ -173,8 +268,6 @@ Item {
             if (active) {
                 host._dragSourceIndex = index
                 host._dragVisualIndex = index
-                // pressPosition is local while the tab transform is zero.
-                // transform 为零时 pressPosition 可直接映射到标签行。
                 var point = tabItem.mapToItem(
                     rowContainer, centroid.pressPosition.x, centroid.pressPosition.y)
                 _pressRowX = point.x
@@ -205,9 +298,8 @@ Item {
             var newVisual = Math.max(
                 0, Math.min((host._safeTabs || []).length - 1,
                             Math.floor(sourceCenterRowX / widthValue)))
-            if (newVisual !== host._dragVisualIndex) {
+            if (newVisual !== host._dragVisualIndex)
                 host._dragVisualIndex = newVisual
-            }
         }
     }
 

@@ -3,6 +3,7 @@ MenuBar MenuBar.qml
 Paginator Paginator.qml
 Pivot Pivot.qml
 SegmentedControl SegmentedControl.qml
+TabBar TabBar.qml
 TabWidget TabWidget.qml
 Breadcrumb Breadcrumb.qml
 StackedWidget StackedWidget.qml
