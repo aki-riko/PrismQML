@@ -6,6 +6,7 @@ import QtQuick
 import ".."
 import "../controls/icons"
 import "_internal"
+import "_internal/NavigationLayout.js" as NavigationLayout
 
 // NavigationView - Fluent Design expandable sidebar navigation (Window style)
 // Horizontal layout (icon+text), supports expand/collapse
@@ -191,20 +192,34 @@ NavigationPanelCore {
         // See the note in NavigationBar: no pressDelay needed.
         interactive: control.dragScrollEnabled
 
-        Column {
+        Item {
             id: topLayout
             width: control.isCompact ? control.compactButtonWidth : topFlickable.width
-            spacing: Enums.controlSize.navItemSpacing
+            height: NavigationLayout.contentHeight(
+                control._safeModel,
+                Enums.controlSize.navItemHeight,
+                Enums.controlSize.navItemSpacing)
 
             Repeater {
                 id: topRep
                 model: control._safeModel
 
                 delegate: NavigationViewItem {
-                    width: parent.width
+                    readonly property bool itemVisible: !modelData || modelData.visible !== false
+
+                    visible: itemVisible
+                    width: itemVisible ? parent.width : 0
+                    // Explicit coordinates keep visible items contiguous around hidden entries.
+                    // 显式坐标让隐藏项前后的可见项保持连续。
+                    height: itemVisible ? implicitHeight : 0
+                    y: NavigationLayout.itemY(
+                        control._safeModel,
+                        index,
+                        Enums.controlSize.navItemHeight,
+                        Enums.controlSize.navItemSpacing)
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
-                    selected: index === control.currentIndex
+                    selected: itemVisible && index === control.currentIndex
                     compact: control.isCompact
                     opacity: scrollFade.opacityAt(y, height)
 
@@ -233,25 +248,38 @@ NavigationPanelCore {
     }
     
     // Bottom fixed items 底部固定项
-    Column {
+    Item {
         id: bottomLayout
+        height: NavigationLayout.contentHeight(
+            control._safeBottomItems,
+            Enums.controlSize.navItemHeight,
+            Enums.controlSize.navItemSpacing)
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.bottomMargin: Enums.controlSize.navPanelPaddingV
         anchors.leftMargin: Enums.controlSize.navPanelPaddingH
         width: control.isCompact ? control.compactButtonWidth : (parent.width - Enums.controlSize.navPanelPaddingH * 2)
-        spacing: Enums.controlSize.navItemSpacing
         
         Repeater {
             id: bottomRep
             model: control._safeBottomItems
             
             delegate: NavigationViewItem {
-                width: parent.width
+                readonly property bool itemVisible: !modelData || modelData.visible !== false
+
+                visible: itemVisible
+                width: itemVisible ? parent.width : 0
+                height: itemVisible ? implicitHeight : 0
+                y: NavigationLayout.itemY(
+                    control._safeBottomItems,
+                    index,
+                    Enums.controlSize.navItemHeight,
+                    Enums.controlSize.navItemSpacing)
                 text: modelData ? (modelData.text || "") : ""
                 icon: modelData ? (modelData.icon || "") : ""
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 selected: {
+                    if (!itemVisible) return false
                     var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false

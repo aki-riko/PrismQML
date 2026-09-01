@@ -108,12 +108,14 @@ def _assert_rich_models(root, temp_dir):
     assert len(navigation_items) == 1
     assert navigation_items[0]["text"] == 'Top "one"'
     assert navigation_items[0]["icon"].endswith("/Home.svg")
+    assert navigation_items[0]["visible"] is True
     assert bottom_items == [
         {
             "text": "Bottom",
             "icon": bottom_icon,
             "key": "page_1",
             "selectable": True,
+            "visible": True,
         }
     ]
 

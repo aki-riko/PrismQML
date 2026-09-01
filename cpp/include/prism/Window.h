@@ -63,14 +63,15 @@ public:
     // addPage - 添加页面 (镜像 Python addPage)
     // pageQmlUrl: 页面 QML 文件路径(本地路径或 qrc/file url); 空则为纯功能导航项。
     // selectable: false=纯功能项(点击只触发回调不切页, 如底部 User 头像)。
+    // visible: false=保留页面索引但不在导航呈现层显示。
     // 返回页面索引。必须在 show() 之前调用。
     int addPage(const QString &pageQmlUrl, const QString &icon,
                 const QString &text, NavPosition position = NavPosition::Top,
-                bool selectable = true);
+                bool selectable = true, bool visible = true);
     int addTranslatedPage(const QString &pageQmlUrl, const QString &icon,
                           const QString &translationKey,
                           NavPosition position = NavPosition::Top,
-                          bool selectable = true);
+                          bool selectable = true, bool visible = true);
 
     // setSplash - 配置启动画面 (镜像 Python setSplash)。show() 前调用。
     // 默认开启, icon/title 空则回退 windowIcon/windowTitle。enabled=false 禁用。
@@ -107,6 +108,7 @@ private:
         bool translated = false;
         NavPosition position;
         bool selectable = true;  // false=纯功能项(不切换页面, 如User头像), 仅触发回调
+        bool visible = true;    // false=保留页面索引但不在导航呈现层显示
     };
 
     QQmlEngine *m_engine;

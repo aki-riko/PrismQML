@@ -34,6 +34,14 @@ window.addPage(SettingsPage, "Settings", "Settings")
 window.show()
 ```
 
+Set `visible=False` to keep a page route without presenting an item in the
+navigation bar. Its page index and programmatic `navigateTo()` target stay
+unchanged:
+
+```python
+window.addPage(HiddenPage, "Page", "Hidden page", position="bottom", visible=False)
+```
+
 ## Window features
 
 - **Lazy loading** — page content loads on first switch, speeding up startup

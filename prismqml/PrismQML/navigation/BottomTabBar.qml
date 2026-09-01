@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "_internal/NavigationLayout.js" as NavigationLayout
 
 // BottomTabBar - 移动端/窄屏底部 Tab 导航 (横向均分)
 // 与桌面 NavigationBar(左侧竖直)互补: WindowsBar 据 PlatformInfo.isCompact 二选一。
@@ -20,6 +21,7 @@ Rectangle {
     readonly property var _safeModel:
         model === null || model === undefined ? []
         : (typeof model.length === "number" ? model : [])
+    readonly property int _visibleItemCount: Math.max(1, NavigationLayout.visibleCount(_safeModel))
 
     // Touch target height: defensive PlatformInfo read, default uses metrics 触摸目标高度：防御式读 PlatformInfo，默认使用度量常量
     readonly property int barHeight:
@@ -56,17 +58,21 @@ Rectangle {
             model: control._safeModel
 
             delegate: Item {
-                width: control.width / Math.max(1, rep.count)
-                height: control.height
+                readonly property bool itemVisible: !modelData || modelData.visible !== false
+
+                visible: itemVisible
+                width: itemVisible ? control.width / control._visibleItemCount : 0
+                height: itemVisible ? control.height : 0
 
                 NavigationBarItem {
                     objectName: "bottomNavigationItem_" + text
                     anchors.fill: parent
+                    visible: itemVisible
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
                     selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
                     badgeCount: modelData ? (modelData.badgeCount || 0) : 0
-                    selected: index === control.currentIndex
+                    selected: itemVisible && index === control.currentIndex
                     onClicked: control.itemClicked(index)
                 }
             }

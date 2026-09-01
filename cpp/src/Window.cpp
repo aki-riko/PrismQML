@@ -77,12 +77,13 @@ QString Window::qmlComponentName(WindowType type) {
 
 // addPage - 添加导航项 + 页面 (镜像 Python addPage), 必须在 show() 前
 int Window::addPage(const QString &pageQmlUrl, const QString &icon,
-                    const QString &text, NavPosition position, bool selectable) {
+                    const QString &text, NavPosition position, bool selectable,
+                    bool visible) {
     if (m_built) {
         qWarning() << "prism::Window: addPage 必须在 show() 之前调用";
         return -1;
     }
-    NavItem item{pageQmlUrl, icon, text, false, position, selectable};
+    NavItem item{pageQmlUrl, icon, text, false, position, selectable, visible};
     if (position == NavPosition::Bottom)
         m_bottomNavItems.append(item);
     else
@@ -92,12 +93,13 @@ int Window::addPage(const QString &pageQmlUrl, const QString &icon,
 
 int Window::addTranslatedPage(const QString &pageQmlUrl, const QString &icon,
                               const QString &translationKey,
-                              NavPosition position, bool selectable) {
+                              NavPosition position, bool selectable,
+                              bool visible) {
     if (m_built) {
         qWarning() << "prism::Window: addTranslatedPage 必须在 show() 之前调用";
         return -1;
     }
-    NavItem item{pageQmlUrl, icon, translationKey, true, position, selectable};
+    NavItem item{pageQmlUrl, icon, translationKey, true, position, selectable, visible};
     if (position == NavPosition::Bottom)
         m_bottomNavItems.append(item);
     else
@@ -152,7 +154,8 @@ void Window::handleCaptionActionTriggered() {
 }
 
 // 把导航项拼成 QML 数组字面量。底部项额外带 selectable 字段(镜像 Python:
-// 底部项 selectable 控制是否切页, false=纯功能项如 User 头像)。
+// 底部项 selectable 控制是否切页, false=纯功能项如 User 头像); visible 保留
+// 页面索引但控制导航呈现层是否显示。
 QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset, bool isBottom) const {
     QStringList parts;
     for (int i = 0; i < items.size(); ++i) {
@@ -161,14 +164,16 @@ QString Window::navItemsJson(const QList<NavItem> &items, int indexOffset, bool 
             ? QStringLiteral("Translator.tr(\"%1\", Translator._v)").arg(escapeQml(it.text))
             : QStringLiteral("\"%1\"").arg(escapeQml(it.text));
         if (isBottom) {
-            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\", \"selectable\": %4 }")
+            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\", \"selectable\": %4, \"visible\": %5 }")
                          .arg(textQml, escapeQml(it.icon))
                          .arg(indexOffset + i)
-                         .arg(it.selectable ? QStringLiteral("true") : QStringLiteral("false"));
+                         .arg(it.selectable ? QStringLiteral("true") : QStringLiteral("false"))
+                         .arg(it.visible ? QStringLiteral("true") : QStringLiteral("false"));
         } else {
-            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\" }")
+            parts << QStringLiteral("{ \"text\": %1, \"icon\": \"%2\", \"key\": \"page_%3\", \"visible\": %4 }")
                          .arg(textQml, escapeQml(it.icon))
-                         .arg(indexOffset + i);
+                         .arg(indexOffset + i)
+                         .arg(it.visible ? QStringLiteral("true") : QStringLiteral("false"));
         }
     }
     return parts.join(QStringLiteral(", "));

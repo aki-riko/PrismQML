@@ -186,6 +186,7 @@ class WindowBuilderMixin:
             {
                 "text": item.text,
                 "icon": self._resolve_icon_path(item.icon),
+                "visible": bool(getattr(item, "visible", True)),
             }
             for item in self._nav_items
         ]
@@ -199,6 +200,7 @@ class WindowBuilderMixin:
                 "icon": self._resolve_icon_path(item.icon),
                 "key": f"page_{nav_count + index}",
                 "selectable": bool(getattr(item, "selectable", True)),
+                "visible": bool(getattr(item, "visible", True)),
             }
             for index, item in enumerate(self._bottom_nav_items)
         ]
@@ -218,16 +220,10 @@ class WindowBuilderMixin:
             "windowTitle": self._title,
             "windowIcon": window_icon_qml,
             "windowIconColored": self._icon_colored,
-            "captionActionVisible": bool(
-                getattr(self, "_caption_action_visible", False)
-            ),
+            "captionActionVisible": bool(getattr(self, "_caption_action_visible", False)),
             "captionActionIcon": getattr(self, "_caption_action_icon", ""),
-            "captionActionToolTip": getattr(
-                self, "_caption_action_tool_tip", ""
-            ),
-            "captionActionEnabled": bool(
-                getattr(self, "_caption_action_enabled", True)
-            ),
+            "captionActionToolTip": getattr(self, "_caption_action_tool_tip", ""),
+            "captionActionEnabled": bool(getattr(self, "_caption_action_enabled", True)),
             "startupProfilingVerbose": startup_profile_verbose,
             "lazyLoading": bool(self._lazy_loading),
             "_pythonPageMode": True,
@@ -351,7 +347,7 @@ class WindowBuilderMixin:
         esc = self._escape_qml
         return ", ".join(
             [
-                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}" }}'
+                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}", "visible": {"true" if getattr(item, "visible", True) else "false"} }}'
                 for item in self._nav_items
             ]
         )
@@ -362,7 +358,7 @@ class WindowBuilderMixin:
         nav_count = len(self._nav_items)
         return ", ".join(
             [
-                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}", "key": "page_{nav_count + i}", "selectable": {"true" if getattr(item, "selectable", True) else "false"} }}'
+                f'{{ "text": "{esc(item.text)}", "icon": "{esc(self._resolve_icon_path(item.icon))}", "key": "page_{nav_count + i}", "selectable": {"true" if getattr(item, "selectable", True) else "false"}, "visible": {"true" if getattr(item, "visible", True) else "false"} }}'
                 for i, item in enumerate(self._bottom_nav_items)
             ]
         )

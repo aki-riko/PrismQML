@@ -5,6 +5,7 @@
 import QtQuick
 import ".."
 import "_internal"
+import "_internal/NavigationLayout.js" as NavigationLayout
 
 // NavigationBar - Fluent Design navigation bar (compact-nav window style) 导航栏
 // Fixed width 72px, vertical layout (icon top, text bottom) 固定宽度垂直布局
@@ -95,20 +96,34 @@ NavigationPanelCore {
         // adding one would only cost every click a delay.
         interactive: control.dragScrollEnabled
         
-        Column {
+        Item {
             id: topLayout
+            width: Enums.controlSize.navBarItemWidth
+            height: NavigationLayout.contentHeight(
+                control._safeModel,
+                Enums.controlSize.navBarItemHeight,
+                Enums.spacing.none)
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: Enums.spacing.none
             
             Repeater {
                 id: topRep
                 model: control._safeModel
                 
                 delegate: NavigationBarItem {
+                    readonly property bool itemVisible: !modelData || modelData.visible !== false
+
+                    visible: itemVisible
+                    width: itemVisible ? implicitWidth : 0
+                    height: itemVisible ? implicitHeight : 0
+                    y: NavigationLayout.itemY(
+                        control._safeModel,
+                        index,
+                        Enums.controlSize.navBarItemHeight,
+                        Enums.spacing.none)
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
                     selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
-                    selected: index === control.currentIndex
+                    selected: itemVisible && index === control.currentIndex
                     opacity: scrollFade.opacityAt(y, height)
 
                     onClicked: control._onItemClicked(index, false)
@@ -139,12 +154,16 @@ NavigationPanelCore {
     // 注: 原 bottomCover 遮盖矩形已移除 — 指示器现由 NavigationPanelCore 的
     // indicatorClip 裁剪容器按 indicatorClipBottom 裁掉溢出部分, 不再依赖颜色遮盖
     // (Mica 模式下遮盖矩形透明遮不住指示器)。
-    Column {
+    Item {
         id: bottomLayout
+        width: Enums.controlSize.navBarItemWidth
+        height: NavigationLayout.contentHeight(
+            control._safeBottomItems,
+            Enums.controlSize.navBarItemHeight,
+            Enums.spacing.none)
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottomMargin: Enums.spacing.xs
-        spacing: Enums.spacing.none
         z: Enums.zIndex.controls + 1  // Above cover and indicator 高于遮盖层和指示器
         
         Repeater {
@@ -152,11 +171,22 @@ NavigationPanelCore {
             model: control._safeBottomItems
             
             delegate: NavigationBarItem {
+                readonly property bool itemVisible: !modelData || modelData.visible !== false
+
+                visible: itemVisible
+                width: itemVisible ? implicitWidth : 0
+                height: itemVisible ? implicitHeight : 0
+                y: NavigationLayout.itemY(
+                    control._safeBottomItems,
+                    index,
+                    Enums.controlSize.navBarItemHeight,
+                    Enums.spacing.none)
                 text: modelData ? (modelData.text || "") : ""
                 icon: modelData ? (modelData.icon || "") : ""
                 selectedIcon: modelData ? (modelData.selectedIcon || "") : ""
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 selected: {
+                    if (!itemVisible) return false
                     var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false

@@ -33,6 +33,13 @@ window.addPage(SettingsPage, "Settings", "设置")
 window.show()
 ```
 
+需要保留页面路由、但不在导航栏呈现时，把 `visible` 设为 `False`。页面索引和编程式
+`navigateTo()` 不会改变：
+
+```python
+window.addPage(HiddenPage, "Page", "隐藏页面", position="bottom", visible=False)
+```
+
 ## 窗口特性
 
 - **懒加载** — 页面内容延迟到首次切换时加载，加快启动

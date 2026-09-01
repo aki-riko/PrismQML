@@ -67,6 +67,7 @@ def test_add_page_preserves_source_classification_and_metadata(manager, kind):
         "Source page",
         selectedIcon="selected-icon",
         selectable=False,
+        visible=False,
     )
 
     assert index == 0
@@ -77,6 +78,7 @@ def test_add_page_preserves_source_classification_and_metadata(manager, kind):
     assert item.icon == "source-icon"
     assert item.selected_icon == "selected-icon"
     assert item.selectable is False
+    assert item.visible is False
     _assert_source_slot(item, kind, interface)
 
 
@@ -94,6 +96,7 @@ def test_add_page_keeps_top_bottom_lists_and_local_indexes(manager):
     ]
     assert manager._nav_items[0].selected_icon == ""
     assert manager._nav_items[0].selectable is True
+    assert manager._nav_items[0].visible is True
 
 
 @pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])

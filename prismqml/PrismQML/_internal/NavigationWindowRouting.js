@@ -83,7 +83,7 @@ function syncSelection(window, pageIndex, navPanel, pageSources) {
         navPanel._currentKey = String(item.key)
     }
     if (navPanel["_bottomItemActive"] !== undefined) {
-        navPanel._bottomItemActive = true
+        navPanel._bottomItemActive = item.visible !== false
     }
     if (typeof navPanel.updateIndicatorForBottomItem === "function") {
         navPanel.updateIndicatorForBottomItem(item.key)

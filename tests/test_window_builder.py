@@ -427,7 +427,7 @@ def test_generated_qml_helpers_render_navigation_contract():
     builder._resolve_icon_path = lambda name: f"icon://{name}"
     builder._nav_items = [
         SimpleNamespace(text='Top "one"', icon="home"),
-        SimpleNamespace(text="Top two", icon="settings"),
+        SimpleNamespace(text="Top two", icon="settings", visible=False),
     ]
     builder._bottom_nav_items = [
         SimpleNamespace(text="Default", icon="info"),
@@ -438,14 +438,14 @@ def test_generated_qml_helpers_render_navigation_contract():
     bottom = builder._render_bottom_items_qml()
 
     assert top == (
-        '{ "text": "Top \\"one\\"", "icon": "icon://home" }, '
-        '{ "text": "Top two", "icon": "icon://settings" }'
+        '{ "text": "Top \\"one\\"", "icon": "icon://home", "visible": true }, '
+        '{ "text": "Top two", "icon": "icon://settings", "visible": false }'
     )
     assert bottom == (
         '{ "text": "Default", "icon": "icon://info", '
-        '"key": "page_2", "selectable": true }, '
+        '"key": "page_2", "selectable": true, "visible": true }, '
         '{ "text": "Action", "icon": "icon://run", '
-        '"key": "page_3", "selectable": false }'
+        '"key": "page_3", "selectable": false, "visible": true }'
     )
 
 

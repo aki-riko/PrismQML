@@ -66,6 +66,9 @@ Item {
     // 临时屏蔽 onCurrentIndexChanged 的动画路径(底部 item 点击时由
     // NavigationWindowCore 设 true,避免用页面索引(非导航项索引)算错指示器位置)
     property bool _skipIndicatorAnimation: false
+    // Hide the shared indicator when the selected page has no visible nav item.
+    // 当前页面没有可见导航项时隐藏共享选中指示器。
+    property bool _indicatorVisible: true
     
     // Delay indicator animation until the target page is ready 指示器动画延迟到目标页就绪后执行
     property bool delayIndicatorAnimation: false
@@ -104,6 +107,12 @@ Item {
     signal currentItemChanged(string key)
     
     // ==================== Internal Methods 内部方法 ====================
+    // Return whether a model item participates in the navigation presentation.
+    // 判断模型项是否参与导航呈现。
+    function _isNavigationItemVisible(item) {
+        return !!item && item.visible !== false
+    }
+
     // Update indicator position in real-time (no animation) 实时更新指示器位置（无动画）
     function _updateIndicatorPositionRealtime() {
         var item
@@ -112,7 +121,11 @@ Item {
         } else {
             item = _getItemAt(currentIndex)
         }
-        if (!item) return
+        control._indicatorVisible = control._isNavigationItemVisible(item)
+        if (!control._indicatorVisible) {
+            navIndicator.stopAnimation()
+            return
+        }
         var rect = _computeIndicatorRect(item)
         navIndicator.setGeometry(rect)
     }
@@ -151,7 +164,7 @@ Item {
         })
     }
 
-    function addItem(key, icon, text, onClick, selectable, selectedIcon, position) {
+    function addItem(key, icon, text, onClick, selectable, selectedIcon, position, visible) {
         var pos = position || "top"
         var item = {
             "key": key,
@@ -159,6 +172,7 @@ Item {
             "text": text || "",
             "selectedIcon": selectedIcon || icon || "",
             "selectable": selectable !== false,
+            "visible": visible !== false,
             "onClick": onClick
         }
 
@@ -254,7 +268,11 @@ Item {
     // Update indicator for bottom page item by key 通过key更新底部页面项的指示器
     function updateIndicatorForBottomItem(key) {
         var item = _getBottomItemByKey(key)
-        if (!item) return
+        control._indicatorVisible = control._isNavigationItemVisible(item)
+        if (!control._indicatorVisible) {
+            navIndicator.stopAnimation()
+            return
+        }
 
         var endRect = _computeIndicatorRect(item)
         var bottomIndex = _getBottomIndexByKey(key)
@@ -266,7 +284,7 @@ Item {
             prevItem = _getItemAt(_prevIndex)
         }
 
-        if (prevItem && _prevIndex !== targetIndex) {
+        if (prevItem && control._isNavigationItemVisible(prevItem) && _prevIndex !== targetIndex) {
             var startRect = _computeIndicatorRect(prevItem)
             if (navIndicator.startAnimation) {
                 navIndicator.startAnimation(startRect, endRect)
@@ -299,7 +317,11 @@ Item {
         if (control._currentKey !== "") return
 
         var newItem = _getItemAt(currentIndex)
-        if (!newItem) return
+        control._indicatorVisible = control._isNavigationItemVisible(newItem)
+        if (!control._indicatorVisible) {
+            navIndicator.stopAnimation()
+            return
+        }
 
         var endRect = _computeIndicatorRect(newItem)
 
@@ -311,7 +333,7 @@ Item {
 
 
         var prevItem = _getItemAt(_prevIndex)
-        if (prevItem) {
+        if (prevItem && control._isNavigationItemVisible(prevItem)) {
             var startRect = _computeIndicatorRect(prevItem)
             if (navIndicator.startAnimation) {
                 navIndicator.startAnimation(startRect, endRect)
@@ -353,7 +375,11 @@ Item {
             item = _getItemAt(currentIndex)
             _prevIndex = currentIndex
         }
-        if (!item) return
+        control._indicatorVisible = control._isNavigationItemVisible(item)
+        if (!control._indicatorVisible) {
+            navIndicator.stopAnimation()
+            return
+        }
         var rect = _computeIndicatorRect(item)
         navIndicator.setGeometry(rect)
     }
@@ -445,7 +471,7 @@ Item {
             animationEnabled: control.indicatorAnimationEnabled
             // Outlined skins use the selected paper block instead of a second accent strip.
             // 描边皮肤使用选中纸面块，不再叠加第二条强调指示线。
-            visible: !Enums.hasOutlinedSurfaces
+            visible: !Enums.hasOutlinedSurfaces && control._indicatorVisible
             // Track the selected item's scroll fade; the indicator sits outside
             // the viewport, so without this it stays crisp against faded items.
             // 跟随选中项的滚动渐隐；指示器在视口之外，否则会在渐隐项旁保持清晰。

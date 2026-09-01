@@ -6,6 +6,7 @@ import QtQuick
 import ".."
 import "../controls/navigation/_internal"
 import "_internal"
+import "_internal/NavigationLayout.js" as NavigationLayout
 
 // ToggleNavigationBar - Navigation bar with toggle buttons 切换按钮导航栏
 // Mutually exclusive selection with sliding indicator 互斥选中带滑动指示器
@@ -40,6 +41,9 @@ Item {
     property var _bottomPageIndexMap: ({})
     property bool _skipIndicatorAnimation: false
     property int _refreshTrigger: 0
+    // Hide the shared indicator when the selected page has no visible nav item.
+    // 当前页面没有可见导航项时隐藏共享选中指示器。
+    property bool _indicatorVisible: true
     
     // Track if indicator is controlled by bottom page item
     property bool _bottomItemActive: false
@@ -92,11 +96,14 @@ Item {
     }
 
     function _updateIndicator(animate) {
+        var item = _getItemAt(currentIndex)
+        control._indicatorVisible = !!item && (!item.modelData || item.modelData.visible !== false)
+        if (!control._indicatorVisible) {
+            slidingIndicator.stopAnimation()
+            return
+        }
         // Skip if bottom item is active (indicator controlled by updateIndicatorForBottomItem) 如果底部项激活则跳过（指示器由 updateIndicatorForBottomItem 控制）
         if (_bottomItemActive) return
-
-        var item = _getItemAt(currentIndex)
-        if (!item) return
         // Map item position to control coordinate 映射到control坐标系
         var mappedPos = item.mapToItem(control, 0, 0)
         _applyIndicator(mappedPos.y, item.height, animate)
@@ -110,6 +117,12 @@ Item {
             for (var i = 0; i < _safeBottomItems.length; i++) {
                 if (_safeBottomItems[i] && _safeBottomItems[i].key === key) {
                     var item = bottomRep.itemAt(i)
+                    control._indicatorVisible = !!item && (!item.modelData || item.modelData.visible !== false)
+                    if (!control._indicatorVisible) {
+                        _bottomItemActive = false
+                        slidingIndicator.stopAnimation()
+                        return
+                    }
                     if (item) {
                         var mappedPos = item.mapToItem(control, 0, 0)
                         _bottomItemActive = true  // Mark bottom item as active 标记底部项激活
@@ -159,6 +172,7 @@ Item {
         z: Enums.zIndex.content  // Below bottom cover 低于底部遮盖层
         radius: Enums.radius.small
         visible: (control._safeModel.length + control._safeBottomItems.length) > 0
+            && control._indicatorVisible
         // Keep the capsule in lockstep with the item it marks 胶囊与所标记的项锁步渐隐
         opacity: control._selectedItemFade
     }
@@ -196,10 +210,13 @@ Item {
         // The delegates use TapHandler, which cooperates with Flickable natively.
         interactive: control.dragScrollEnabled
         
-        Column {
+        Item {
             id: topLayout
             width: parent.width
-            spacing: Enums.spacing.xs
+            height: NavigationLayout.contentHeight(
+                control._safeModel,
+                Enums.controlSize.buttonHeight,
+                Enums.spacing.xs)
             
             Repeater {
                 id: topRep
@@ -215,12 +232,22 @@ Item {
 
                     // 供 objectName 定位与外部读取 For lookup and external reads
                     readonly property string itemText: text
+                    readonly property bool itemVisible: !modelData || modelData.visible !== false
 
+                    visible: itemVisible
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
-                    selected: index === control.currentIndex
+                    selected: itemVisible && index === control.currentIndex
 
-                    width: control.fillWidth ? topLayout.width : contentWidth
+                    width: itemVisible
+                        ? (control.fillWidth ? topLayout.width : contentWidth)
+                        : 0
+                    height: itemVisible ? Enums.controlSize.buttonHeight : 0
+                    y: NavigationLayout.itemY(
+                        control._safeModel,
+                        index,
+                        Enums.controlSize.buttonHeight,
+                        Enums.spacing.xs)
                     opacity: scrollFade.opacityAt(y, height)
 
                     onClicked: {
@@ -263,8 +290,12 @@ Item {
         z: Enums.zIndex.controls  // Above indicator 高于指示器
     }
     
-    Column {
+    Item {
         id: bottomLayout
+        height: NavigationLayout.contentHeight(
+            control._safeBottomItems,
+            Enums.controlSize.buttonHeight,
+            Enums.spacing.xs)
         z: Enums.zIndex.controls + 1  // Above cover and indicator 高于遮盖层和指示器
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -272,7 +303,6 @@ Item {
         anchors.bottomMargin: Enums.spacing.xs
         anchors.leftMargin: Enums.spacing.xs
         anchors.rightMargin: Enums.spacing.xs
-        spacing: Enums.spacing.xs
         
         Repeater {
             id: bottomRep
@@ -290,13 +320,24 @@ Item {
                 // 供 objectName 定位与外部读取 For lookup and external reads
                 readonly property string itemText: text
                 readonly property bool itemSelectable: !modelData || modelData.selectable !== false
+                readonly property bool itemVisible: !modelData || modelData.visible !== false
 
+                visible: itemVisible
                 text: modelData ? (modelData.text || "") : ""
                 icon: modelData ? (modelData.icon || "") : ""
-                width: control.fillWidth ? bottomLayout.width : contentWidth
+                width: itemVisible
+                    ? (control.fillWidth ? bottomLayout.width : contentWidth)
+                    : 0
+                height: itemVisible ? Enums.controlSize.buttonHeight : 0
+                y: NavigationLayout.itemY(
+                    control._safeBottomItems,
+                    index,
+                    Enums.controlSize.buttonHeight,
+                    Enums.spacing.xs)
 
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 selected: {
+                    if (!itemVisible) return false
                     var item = control._safeBottomItems[index]
                     var hasKey = item && item.key !== undefined
                     var isSelectable = item && item.selectable !== false

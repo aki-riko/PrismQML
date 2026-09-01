@@ -403,9 +403,10 @@ int main(int argc, char *argv[]) {
         CHECK(getConfigManager() == ConfigManager::instance(), "getConfigManager==instance");
         // NavigationItem 构造
         NavigationItem nav(QStringLiteral("首页"), QStringLiteral("Home"),
-                           QStringLiteral("qrc:/pages/Home.qml"));
+                           QStringLiteral("qrc:/pages/Home.qml"), false);
         CHECK(nav.text == QStringLiteral("首页") && nav.icon == QStringLiteral("Home")
-              && nav.pageQmlUrl.endsWith(QStringLiteral("Home.qml")),
+              && nav.pageQmlUrl.endsWith(QStringLiteral("Home.qml"))
+              && !nav.visible,
               "NavigationItem 构造正确");
     }
 

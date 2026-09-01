@@ -79,16 +79,19 @@ class NavigationItem:
         text: str,
         icon: str = "",
         page_class: Optional[Type] = None,
+        visible: bool = True,
     ):
         """
         Args:
             text: 导航项文本
             icon: 图标名称（Icon）
             page_class: 页面类（需要接受parent参数）
+            visible: 是否在导航呈现层显示
         """
         self.text = text
         self.icon = icon
         self.page_class = page_class
+        self.visible = bool(visible)
         self.page_getter = None
         self._page_instance = None
 
@@ -449,6 +452,7 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         position: str = "top",
         selectedIcon: str = "",
         selectable: bool = True,
+        visible: bool = True,
     ) -> int:
         """添加页面或功能项并返回所选导航列表中的局部索引。
 
@@ -458,14 +462,13 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
             text: 导航项文本
             position: "top" 或 "bottom"
             selectedIcon: 选中态图标
-            selectable: 是否允许选中
-
-        Returns:
-            top 或 bottom 列表内的局部索引
+            selectable: 是否允许选中；visible: 是否在导航呈现层显示
+        Returns: top 或 bottom 列表内的局部索引
         """
         item = _make_navigation_item(interface, icon, text)
         item.selected_icon = selectedIcon
         item.selectable = selectable
+        item.visible = bool(visible)
         items = self._bottom_nav_items if position == "bottom" else self._nav_items
         items.append(item)
         return len(items) - 1

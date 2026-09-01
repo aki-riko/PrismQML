@@ -72,10 +72,12 @@ struct NavigationItem {
     QString icon;
     QString pageQmlUrl;                   // 页面 QML (空=纯功能项)
     std::function<void()> onActivated;    // 功能项回调 (可选)
+    bool visible = true;                  // false=保留页面索引但不在导航呈现层显示
 
     NavigationItem() = default;
-    NavigationItem(const QString &t, const QString &i, const QString &url = QString())
-        : text(t), icon(i), pageQmlUrl(url) {}
+    NavigationItem(const QString &t, const QString &i, const QString &url = QString(),
+                   bool isVisible = true)
+        : text(t), icon(i), pageQmlUrl(url), visible(isVisible) {}
 };
 
 }  // namespace prism

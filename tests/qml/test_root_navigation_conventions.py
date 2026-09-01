@@ -140,6 +140,104 @@ Window {
     }
 }
 """
+HIDDEN_ITEMS_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+import "../../prismqml/PrismQML/navigation"
+
+Window {
+    width: 1200
+    height: 520
+    visible: true
+
+    NavigationView {
+        id: hiddenView
+        objectName: "hiddenView"
+        width: 300
+        height: parent.height
+        isExpanded: true
+        showReturnButton: false
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "view-home", "text": "View Home" },
+            { "key": "view-hidden", "text": "View Hidden", "visible": false },
+            { "key": "view-settings", "text": "View Settings" }
+        ]
+        bottomItems: [
+            { "key": "view-account", "text": "View Account", "selectable": true },
+            { "key": "view-hidden-bottom", "text": "View Hidden Bottom", "selectable": true, "visible": false },
+            { "key": "view-about", "text": "View About", "selectable": true }
+        ]
+        _bottomPageIndexMap: ({
+            "view-account": 3,
+            "view-hidden-bottom": 4,
+            "view-about": 5
+        })
+    }
+
+    NavigationBar {
+        id: hiddenBar
+        objectName: "hiddenBar"
+        x: 340
+        width: implicitWidth
+        height: parent.height
+        indicatorAnimationEnabled: false
+        model: [
+            { "key": "bar-home", "text": "Bar Home" },
+            { "key": "bar-hidden", "text": "Bar Hidden", "visible": false },
+            { "key": "bar-settings", "text": "Bar Settings" }
+        ]
+        bottomItems: [
+            { "key": "bar-account", "text": "Bar Account", "selectable": true },
+            { "key": "bar-hidden-bottom", "text": "Bar Hidden Bottom", "selectable": true, "visible": false },
+            { "key": "bar-about", "text": "Bar About", "selectable": true }
+        ]
+        _bottomPageIndexMap: ({
+            "bar-account": 3,
+            "bar-hidden-bottom": 4,
+            "bar-about": 5
+        })
+    }
+
+    ToggleNavigationBar {
+        id: hiddenToggle
+        objectName: "hiddenToggle"
+        x: 460
+        y: 20
+        width: 300
+        height: 360
+        model: [
+            { "key": "toggle-home", "text": "Toggle Home" },
+            { "key": "toggle-hidden", "text": "Toggle Hidden", "visible": false },
+            { "key": "toggle-settings", "text": "Toggle Settings" }
+        ]
+        bottomItems: [
+            { "key": "toggle-account", "text": "Toggle Account", "selectable": true },
+            { "key": "toggle-hidden-bottom", "text": "Toggle Hidden Bottom", "selectable": true, "visible": false },
+            { "key": "toggle-about", "text": "Toggle About", "selectable": true }
+        ]
+        _bottomPageIndexMap: ({
+            "toggle-account": 3,
+            "toggle-hidden-bottom": 4,
+            "toggle-about": 5
+        })
+    }
+
+    BottomTabBar {
+        id: hiddenTabs
+        objectName: "hiddenTabs"
+        x: 800
+        y: 20
+        width: 360
+        model: [
+            { "key": "tab-home", "text": "Tab Home" },
+            { "key": "tab-hidden", "text": "Tab Hidden", "visible": false },
+            { "key": "tab-about", "text": "Tab About" }
+        ]
+    }
+}
+"""
 SCROLL_FADE_SOURCE = """
 import QtQuick
 import QtQuick.Window
@@ -419,6 +517,24 @@ def _create_scene():
     return engine, component, window, items, warnings
 
 
+def _create_hidden_items_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(HIDDEN_ITEMS_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [error.toString() for error in component.errors()]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    names = ("hiddenView", "hiddenBar", "hiddenToggle", "hiddenTabs")
+    items = {name: window.findChild(QQuickItem, name) for name in names}
+    assert all(items.values())
+    _pump(100)
+    return engine, component, window, items, warnings
+
+
 def _create_scroll_fade_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -693,6 +809,78 @@ def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
     assert toggle_visual.height() > 0
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_hidden_navigation_items_keep_indices_without_sidebar_artifacts(qapp):
+    """隐藏项保留路由索引, 但不占呈现尺寸或选中指示器。"""
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, items, warnings = _create_hidden_items_scene()
+    try:
+        for host_name, delegate_name in (
+            ("hiddenView", "NavigationViewItem"),
+            ("hiddenBar", "NavigationBarItem"),
+            ("hiddenToggle", "ToggleNavigationBarItem"),
+        ):
+            host = items[host_name]
+            hidden_top = _item_with_text(host, delegate_name, host_name.replace("hidden", "").title() + " Hidden")
+            assert hidden_top.property("itemVisible") is False
+            assert hidden_top.isVisible() is False
+            assert hidden_top.width() == 0
+            assert hidden_top.height() <= 0
+            visible_top = _item_with_text(host, delegate_name, host_name.replace("hidden", "").title() + " Settings")
+            assert visible_top.isVisible() is True
+            assert visible_top.y() == pytest.approx(hidden_top.y())
+
+            model = host.property("model")
+            model = model.toVariant() if hasattr(model, "toVariant") else model
+            assert len(model) == 3
+
+            indicator = _component_items(host, "SlidingIndicator")[0]
+            if host_name == "hiddenToggle":
+                host.updateIndicatorForBottomItem("toggle-account")
+                _pump(60)
+                assert indicator.isVisible() is True
+            host.setProperty("currentIndex", 1)
+            _pump(60)
+            assert indicator.isVisible() is False
+
+            host.setProperty("currentIndex", 4)
+            _pump(60)
+            hidden_bottom_text = host_name.replace("hidden", "").title() + " Hidden Bottom"
+            hidden_bottom = _item_with_text(host, delegate_name, hidden_bottom_text)
+            assert hidden_bottom.property("itemVisible") is False
+            assert hidden_bottom.width() == 0
+            assert hidden_bottom.height() <= 0
+            assert indicator.isVisible() is False
+            visible_bottom = _item_with_text(host, delegate_name, host_name.replace("hidden", "").title() + " About")
+            assert visible_bottom.y() == pytest.approx(hidden_bottom.y())
+
+            host.setProperty("currentIndex", 2)
+            _pump(60)
+            assert indicator.isVisible() is True
+
+        tabs = items["hiddenTabs"]
+        assert tabs.property("_visibleItemCount") == 2
+        tab_items = sorted(
+            _component_items(tabs, "NavigationBarItem"),
+            key=lambda item: item.property("text"),
+        )
+        assert [item.property("text") for item in tab_items] == [
+            "Tab About",
+            "Tab Hidden",
+            "Tab Home",
+        ]
+        assert [item.width() for item in tab_items] == [180, 0, 180]
+        assert all(item.isVisible() for item in tab_items if item.property("text") != "Tab Hidden")
+        assert not next(item for item in tab_items if item.property("text") == "Tab Hidden").isVisible()
+
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_navigation_indicator_waits_until_lazy_page_is_ready(navigation_scene):

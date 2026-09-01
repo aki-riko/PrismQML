@@ -302,7 +302,7 @@ WindowsCore {
         return Translator.language
     }
 
-    function addPage(page, icon, text, selectedIcon, position, parent, isTransparent) {
+    function addPage(page, icon, text, selectedIcon, position, parent, isTransparent, visible) {
         var pos = position || "top"
         var navItem = {
             "icon": icon || "",
@@ -310,7 +310,8 @@ WindowsCore {
             "selectedIcon": selectedIcon || icon || "",
             "key": text || ("page_" + _safeNavigationItems.length),
             "parentKey": parent || "",
-            "isTransparent": isTransparent || false
+            "isTransparent": isTransparent || false,
+            "visible": visible !== false
         }
 
         if (pos === "bottom") {

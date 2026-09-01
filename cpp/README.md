@@ -111,6 +111,9 @@ int main(int argc, char **argv) {
     w.addPage("pages/SettingsPage.qml", "Settings", "设置", NavPosition::Bottom);
     // 纯功能项(点击只触发回调不切页, 如底部头像): selectable=false
     w.addPage("", "Person", "用户", NavPosition::Bottom, /*selectable=*/false);
+    // 隐藏项仍保留页面索引, 但不在导航栏呈现: visible=false
+    w.addPage("pages/HiddenPage.qml", "Page", "隐藏页面", NavPosition::Bottom,
+              /*selectable=*/true, /*visible=*/false);
     w.show();
     return app.exec();
 }
