@@ -249,12 +249,12 @@ def test_ci_automated_test_commands_use_process_runner():
         (
             Path(".github/workflows/build-all.yml"),
             "$env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS",
-            1200,
+            2400,
         ),
         (
             Path(".github/workflows/release.yml"),
             "$PRISM_FULL_PYTEST_TIMEOUT_SECONDS",
-            720,
+            2400,
         ),
     ),
 )
