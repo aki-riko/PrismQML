@@ -158,6 +158,14 @@ Item {
         if (targetIndex < 0) return
         host._pythonLazyTransitionTargetIndex = -1
         host._pythonLazyRevealRequested = false
+        // The expansion restores its own source page on finish. When navigation
+        // already moved on, that page is no longer the displayed one, so reassert
+        // the displayed page instead of leaving both visible.
+        // 揭幕结束时会自行恢复其源页可见性。若导航期间已切走，该页不再是当前显示页，
+        // 因此重新校正显示页，避免两页同时可见。
+        if (targetIndex !== host._displayIndex) {
+            host._updateVisibility(host._displayIndex)
+        }
         host.pythonLazyTransitionFinished(targetIndex)
     }
 

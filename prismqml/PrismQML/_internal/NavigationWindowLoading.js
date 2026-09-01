@@ -70,6 +70,14 @@ function resumeLazyReveal(window) {
     if (window.stackedWidget && index >= 0
             && window.stackedWidget._completePythonLazySwitch) {
         if (window.stackedWidget._completePythonLazySwitch(index)) return
+        // The pending target was abandoned mid-flight, so its reveal is refused.
+        // The collapse already hid the visible page, and nothing else owns the
+        // masked transition, so restore the displayed page before finishing.
+        // 挂起目标已在中途被放弃，因此揭幕被拒绝。收紧阶段已经隐藏了可见页，
+        // 且没有其他持有者会复位遮罩，故先恢复当前显示页再收尾。
+        if (window.stackedWidget._cancelPythonLazySwitch) {
+            window.stackedWidget._cancelPythonLazySwitch(index)
+        }
     }
     window._completePythonLoadingVisual(index)
 }
