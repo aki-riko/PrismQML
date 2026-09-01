@@ -31,7 +31,7 @@ T1 = 用户看到第一张有效启动画面
 
 ## 2. 当前基线
 
-当前 FastSplash 在 [prismqml/python/window/fast_splash.py](../prismqml/python/window/fast_splash.py) 中通过运行时内联 QML 创建：
+当前 FastSplash 在 `prismqml/python/window/fast_splash.py` 中通过运行时内联 QML 创建：
 
 ```text
 QQmlEngine()
