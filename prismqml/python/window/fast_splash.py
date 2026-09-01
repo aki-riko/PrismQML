@@ -231,8 +231,11 @@ PageTransition {{
     objectName: "fastStartupReveal"
     anchors.fill: parent
     revealTarget: true
-    revealDuration: 400
-    revealEasing: Easing.Linear
+    // revealDuration and revealEasing intentionally unset: inherit the shared
+    // lazy switch exit pacing from PageTransition instead of pinning private
+    // values here, so the splash exit and the page switch exit stay identical.
+    // 故意不设时长与缓动两个属性, 改为继承 PageTransition 的共用懒加载退场节奏,
+    // 不在此另立私有值, 使启动画面退场与页面切换退场完全一致。
     keepSourceHiddenOnExpand: true
     property Item revealTargetItem: null
     signal revealDone()
@@ -701,7 +704,11 @@ class FastSplashController(QObject):
             transition.setProperty("revealTargetItem", root_item)
             self._splash.setProperty("revealTransition", transition)
             transition.revealDone.connect(self._finish_reveal)
-            info("FastSplash 开始 400ms 线性圆环揭幕")
+            info(
+                "FastSplash 开始圆环揭幕: "
+                f"{transition.property('revealDuration')}ms / "
+                f"easing={transition.property('revealEasing')}"
+            )
             if not QMetaObject.invokeMethod(transition, "go"):
                 warning("FastSplash 揭幕启动失败")
                 self.restore_embedded_splash()

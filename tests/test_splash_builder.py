@@ -557,7 +557,13 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1
     )[0]
-    assert "revealDuration: 400" in reveal_qml
+    # FastSplash is the default startup surface, so its exit must inherit the
+    # shared lazy switch exit duration rather than pin a private value.
+    # FastSplash 是默认启动表面, 其退场必须继承共用懒加载退场时长, 不得另立私有值。
+    assert "revealDuration:" not in reveal_qml
+    assert "revealEasing:" not in reveal_qml
+    assert "400" not in reveal_qml
+    assert "Easing.Linear" not in reveal_qml
     assert "transition.revealDone()" in reveal_qml
     assert "keepSourceHiddenOnExpand: true" in reveal_qml
     assert "PageTransition {" in reveal_qml
