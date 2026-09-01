@@ -395,7 +395,7 @@ Item {
             }
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_a626aad412b751f1", Fluent.Translator._v)
-                description: "TabWidget"
+                description: "TabBar / TabWidget"
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     Row {
@@ -417,15 +417,56 @@ Item {
                                 onCurrentChanged: (index) => apiStatus.text = Fluent.Translator.tr("gallery_b63e5b2e2fde167a") + index
                             }
                         }
+                        // TabBar 独立标签栏：只渲染标签，页面内容由调用方承载
+                        ComponentCard {
+                            label: "TabBar"
+                            Column {
+                                spacing: Fluent.Enums.spacing.m
+                                TabBar {
+                                    id: standaloneTabBar
+                                    width: 320
+                                    closable: true
+                                    movable: true
+                                    showAddButton: true
+                                    tabs: [
+                                        {title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: ""},
+                                        {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: ""},
+                                        {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: ""}
+                                    ]
+                                    onTabClosed: (index) => { removeTab(index); apiStatus.text = Fluent.Translator.tr("gallery_2ef467443bfc1d59") + index }
+                                    onTabAddClicked: { addTab(Fluent.Translator.tr("gallery_7b545b05f46129d5", Fluent.Translator._v) + (count() + 1), ""); apiStatus.text = Fluent.Translator.tr("gallery_d58198f696132ad1", Fluent.Translator._v) }
+                                    onCurrentChanged: (index) => apiStatus.text = Fluent.Translator.tr("gallery_b63e5b2e2fde167a") + index
+                                    onTabsReordered: (from, to) => {
+                                        var reordered = tabs.slice()
+                                        reordered.splice(to, 0, reordered.splice(from, 1)[0])
+                                        tabs = reordered
+                                    }
+                                }
+                                Rectangle {
+                                    width: standaloneTabBar.width
+                                    height: 60
+                                    radius: Fluent.Enums.radius.small
+                                    color: Fluent.Enums.cardColor
+                                    border.width: Fluent.Enums.border.thin
+                                    border.color: Fluent.Enums.borderColor
+                                    Fluent.Label {
+                                        anchors.centerIn: parent
+                                        type: Fluent.Enums.label.type_caption
+                                        text: standaloneTabBar.tabText(standaloneTabBar.currentIndex)
+                                        color: Fluent.Enums.textColor.secondary
+                                    }
+                                }
+                            }
+                        }
                     }
                     // API演示
                     Row {
                         spacing: Fluent.Enums.spacing.m
-                        Button { text: Fluent.Translator.tr("gallery_795cbff909c46891", Fluent.Translator._v); onClicked: { defaultTabWidget.addTab(Fluent.Translator.tr("gallery_de92c86f4334f894", Fluent.Translator._v), "", tab4Content); apiStatus.text = Fluent.Translator.tr("gallery_d9823a8fc15af97a", Fluent.Translator._v) } }
-                        Button { text: Fluent.Translator.tr("gallery_0c8a8bcb43c7e759", Fluent.Translator._v); onClicked: { defaultTabWidget.removeTab(defaultTabWidget.currentIndex); apiStatus.text = Fluent.Translator.tr("gallery_de23e1d3bdb33279", Fluent.Translator._v) } }
-                        Button { text: Fluent.Translator.tr("gallery_304bb8616c79fb9c", Fluent.Translator._v); onClicked: { defaultTabWidget.setTabText(defaultTabWidget.currentIndex, Fluent.Translator.tr("gallery_682d211b7142758a", Fluent.Translator._v)); apiStatus.text = Fluent.Translator.tr("gallery_b2fce17b9e453cf0", Fluent.Translator._v) } }
-                        Button { text: Fluent.Translator.tr("gallery_1b590914091ca145", Fluent.Translator._v); onClicked: { defaultTabWidget.clear(); apiStatus.text = Fluent.Translator.tr("gallery_ca775625638ee91c", Fluent.Translator._v) } }
-                        Button { text: Fluent.Translator.tr("gallery_cb5d682bac3d1a2d", Fluent.Translator._v); onClicked: { defaultTabWidget.tabs = [{title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: "", content: tab1Content}, {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: "", content: tab2Content}, {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: "", content: tab3Content}]; apiStatus.text = Fluent.Translator.tr("gallery_d2cd2e209c5fe4eb", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_795cbff909c46891", Fluent.Translator._v); onClicked: { defaultTabWidget.addTab(Fluent.Translator.tr("gallery_de92c86f4334f894", Fluent.Translator._v), "", tab4Content); standaloneTabBar.addTab(Fluent.Translator.tr("gallery_de92c86f4334f894", Fluent.Translator._v), ""); apiStatus.text = Fluent.Translator.tr("gallery_d9823a8fc15af97a", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_0c8a8bcb43c7e759", Fluent.Translator._v); onClicked: { defaultTabWidget.removeTab(defaultTabWidget.currentIndex); standaloneTabBar.removeTab(standaloneTabBar.currentIndex); apiStatus.text = Fluent.Translator.tr("gallery_de23e1d3bdb33279", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_304bb8616c79fb9c", Fluent.Translator._v); onClicked: { defaultTabWidget.setTabText(defaultTabWidget.currentIndex, Fluent.Translator.tr("gallery_682d211b7142758a", Fluent.Translator._v)); standaloneTabBar.setTabText(standaloneTabBar.currentIndex, Fluent.Translator.tr("gallery_682d211b7142758a", Fluent.Translator._v)); apiStatus.text = Fluent.Translator.tr("gallery_b2fce17b9e453cf0", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_1b590914091ca145", Fluent.Translator._v); onClicked: { defaultTabWidget.clear(); standaloneTabBar.clear(); apiStatus.text = Fluent.Translator.tr("gallery_ca775625638ee91c", Fluent.Translator._v) } }
+                        Button { text: Fluent.Translator.tr("gallery_cb5d682bac3d1a2d", Fluent.Translator._v); onClicked: { defaultTabWidget.tabs = [{title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: "", content: tab1Content}, {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: "", content: tab2Content}, {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: "", content: tab3Content}]; standaloneTabBar.tabs = [{title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: ""}, {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: ""}, {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: ""}]; standaloneTabBar.currentIndex = 0; apiStatus.text = Fluent.Translator.tr("gallery_d2cd2e209c5fe4eb", Fluent.Translator._v) } }
                         Text { id: apiStatus; text: Fluent.Translator.tr("gallery_d79826f94092ff35", Fluent.Translator._v); color: Fluent.Enums.textColor.secondary; font.pixelSize: Fluent.Enums.typography.caption; anchors.verticalCenter: parent.verticalCenter }
                     }
                 }
