@@ -8,7 +8,12 @@ on:
   workflow_dispatch:  # 允许手动触发(只构建不发布)
 
 env:
-  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "720"
+  # Hosted runners need well over 20 minutes for the complete protected suite;
+  # 720s and 1200s were both killed with exit 124. Keep this aligned with
+  # build-all.yml so a tag push cannot fail a gate that build-all passes.
+  # 托管 runner 跑完整受保护套件远超 20 分钟; 720 秒与 1200 秒均被 124 杀掉。
+  # 与 build-all.yml 保持一致, 避免 tag 推送卡在 build-all 能过的门禁上。
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "2400"
 
 jobs:
   quality_gate:

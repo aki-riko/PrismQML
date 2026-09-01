@@ -15,7 +15,7 @@
 自动测试必须经 `scripts/test_process.py` 启动，不得直接启动原生失败夹具：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 480 -- .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 1800 -- .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py
 ctest --test-dir .artifacts\cpp\desktop -L headless --interactive-debug-mode 0 --output-on-failure --no-tests=error
 ```
