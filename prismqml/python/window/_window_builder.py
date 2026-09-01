@@ -20,6 +20,7 @@ from ._generated_qml_cache import (
     write_generated_qml,
 )
 from ..runtime import prepare_window_engine
+from ._caption_action_builder import build_caption_action_template_values
 from ._splash_builder import build_splash_properties, build_splash_template_values
 from ._window_root_setup import finish_window_startup
 from ._window_startup import (
@@ -391,31 +392,14 @@ class WindowBuilderMixin:
         pages_qml: str,
     ) -> str:
         """Render the generated root-window QML. 渲染生成的根窗口 QML。"""
-        esc = self._escape_qml
         return _WINDOW_QML_TEMPLATE.substitute(
             qml_dir=qml_dir.as_posix(),
             qml_component=qml_component,
             width=self._width,
             height=self._height,
-            window_title=esc(self._title),
-            window_icon=esc(window_icon_qml),
+            window_title=self._escape_qml(self._title),
+            window_icon=self._escape_qml(window_icon_qml),
             window_icon_colored="true" if self._icon_colored else "false",
-            caption_action_visible=(
-                "true"
-                if bool(getattr(self, "_caption_action_visible", False))
-                else "false"
-            ),
-            caption_action_icon=esc(
-                getattr(self, "_caption_action_icon", "")
-            ),
-            caption_action_tool_tip=esc(
-                getattr(self, "_caption_action_tool_tip", "")
-            ),
-            caption_action_enabled=(
-                "true"
-                if bool(getattr(self, "_caption_action_enabled", True))
-                else "false"
-            ),
             startup_profiling_verbose="true" if startup_profile_verbose else "false",
             lazy_loading="true" if self._lazy_loading else "false",
             mica_enabled="true" if mica_enabled else "false",
@@ -423,7 +407,8 @@ class WindowBuilderMixin:
             bottom_items=bottom_items_qml,
             pages=pages_qml,
             indent="    ",
-            **build_splash_template_values(self, esc),
+            **build_caption_action_template_values(self, self._escape_qml),
+            **build_splash_template_values(self, self._escape_qml),
         )
 
     def _resolve_window_qml_state(self, icon_dir: Path, get_config_manager):
