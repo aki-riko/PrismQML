@@ -271,12 +271,24 @@ Item {
                     }
 
                     TimelineGraphLabels {
+                        // labels must not lean on the sibling `visible` binding:
+                        // the two re-evaluate independently, so a recycled row
+                        // whose cardData just became undefined can still carry a
+                        // stale `visible === true` and dereference undefined.
+                        // labels 不能依赖兄弟绑定 `visible`: 二者独立重算, 被回收
+                        // 的行在 cardData 刚变 undefined 时仍可能带着残留的
+                        // `visible === true`, 从而解引用 undefined。
+                        readonly property var _rowLabels: {
+                            const cardData = rowDelegate.model.cardData
+                            if (!cardData || !cardData.labels) {
+                                return []
+                            }
+                            return cardData.labels
+                        }
+
                         width: parent.width
-                        visible: control._graphMode
-                            && !!rowDelegate.model.cardData
-                            && !!rowDelegate.model.cardData.labels
-                            && rowDelegate.model.cardData.labels.length > 0
-                        labels: visible ? rowDelegate.model.cardData.labels : []
+                        visible: control._graphMode && _rowLabels.length > 0
+                        labels: _rowLabels
                     }
                     Label {
                         type: Enums.label.type_caption
