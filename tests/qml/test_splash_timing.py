@@ -334,7 +334,7 @@ NavigationWindowCore {
     splashRevealDuration: 137
     readonly property var splashProbe: win._splashInstance
     readonly property int defaultReveal:
-        Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+        Enums.lazyLoadingTransitionMetrics.revealDuration
     property int transitionReveal: -1
     property string transitionError: ""
 

@@ -36,8 +36,9 @@ Rectangle {
     property string title: ""                        // App title 应用标题
     property string subtitle: ""                     // Subtitle or loading text 副标题或加载文字
     property bool showProgress: true                 // Show progress ring 显示进度环
-    // Reveal animation length on finish(). 调用 finish() 后的揭幕动画时长。
-    property int revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+    // Reveal animation length on finish(), shared with the lazy switch exit.
+    // 调用 finish() 后的揭幕动画时长, 与懒加载切换退场共用。
+    property int revealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
     property int exitAnimationType: Enums.lazyAnimation.lazy_circle
     property Component exitAnimation: null
 

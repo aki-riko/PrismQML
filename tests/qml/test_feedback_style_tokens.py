@@ -70,7 +70,7 @@ Item {
     readonly property int iconXl: Enums.iconSize.xl
     readonly property int splashBreatheDuration: Enums.duration.splashBreathe
     readonly property int splashProgressSpinDuration: Enums.duration.splashProgressSpin
-    readonly property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration
+    readonly property int splashRevealDuration: Enums.lazyLoadingTransitionMetrics.revealDuration
     readonly property int splashProgressStyle: Enums.progress.indeterminate_style_orbit_dot
     readonly property int splashProgressDotSize: Enums.splashScreenMetrics.progressDotSize
     readonly property int splashProgressDotRadius: Enums.splashScreenMetrics.progressDotRadius
@@ -512,7 +512,13 @@ def test_feedback_sources_use_shared_style_tokens():
     assert "customAnimation: control.exitAnimation" in splash_source
     assert "property int exitAnimationType: Enums.lazyAnimation.lazy_circle" in splash_source
     assert "property Component exitAnimation: null" in splash_source
-    assert "revealDuration: Enums.lazyLoadingTransitionMetrics.splashRevealDuration" in splash_source
+    # The splash exit must reuse the lazy switch exit duration, not a private
+    # splash-only token. 启动画面退场必须复用懒加载切换退场时长, 不得再有专属 token。
+    assert (
+        "property int revealDuration: "
+        "Enums.lazyLoadingTransitionMetrics.revealDuration" in splash_source
+    )
+    assert "splashRevealDuration" not in splash_source
     assert "revealTarget: true" in splash_source
     assert lazy_transition_source.count(
         "revealTarget: transition.revealTarget"
