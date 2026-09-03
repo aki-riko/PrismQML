@@ -8,11 +8,14 @@
 使用方式:
     from prismqml.python.core import SingleInstance
 
-    # 方式1: 上下文管理器
+    # 方式1: 上下文管理器（__exit__ 自动 unlock）
     with SingleInstance("MyApp") as instance:
-        if not instance.is_running:
+        if instance.try_lock():
             # 启动应用
             app.exec()
+        else:
+            # Application already running 应用已在运行
+            pass
 
     # 方式2: 手动管理
     instance = SingleInstance("MyApp")

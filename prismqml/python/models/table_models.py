@@ -16,7 +16,7 @@ class TableListModel(QAbstractListModel):
     
     用法:
         model = TableListModel()
-        model.setData([{"name": "商品1", "count": 10, "price": "¥9.99"}, ...])
+        model.setModelData([{"name": "商品1", "count": 10, "price": "¥9.99"}, ...])
         table_widget.setModel(model)
     """
     
