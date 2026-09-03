@@ -29,8 +29,9 @@ See [Automatic Update Integration](auto-update.md) for the complete Python/QML w
 
 ## Manifest
 
-Copy the [example manifest](examples/prismqml-installer.json) to the application repository root. Each application must explicitly declare seven core fields:
+Copy the [example manifest](examples/prismqml-installer.json) to the application repository root. Each application must explicitly declare eight core fields (including `schema`, which must be `1`):
 
+- `schema`: the manifest format version, currently `1`;
 - `app_id`: a permanently stable canonical UUID without braces;
 - `name`, `publisher`, and `executable`;
 - `aumid`: the AppUserModelID used by Windows shortcuts and notifications;

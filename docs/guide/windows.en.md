@@ -29,7 +29,7 @@ window's `setWindowIcon()` only when that window needs an explicit override.
 ## Adding navigation pages
 
 ```python
-window.addPage(HomePage, "Home", "Home")        # QML component, icon name, title
+window.addPage(HomePage, "Home", "Home")        # QML component, icon name, nav text
 window.addPage(SettingsPage, "Settings", "Settings")
 window.show()
 ```
@@ -48,6 +48,63 @@ window.addPage(HiddenPage, "Page", "Hidden page", position="bottom", visible=Fal
 - **Mica effect** — Windows 11 translucent background (auto-disabled under non-Fluent skins to preserve their surface model)
 - **System tray** — see [System Tray](tray.md)
 - **Splash screen** — `SplashScreen` auto-fades once the first frame is ready (mounted by default)
+
+## Mica and Acrylic
+
+### Mica
+
+Fluent.Windows applies the Windows 11 Mica backdrop automatically when all of
+the following hold — no manual DWM API calls required:
+
+- The `Window.MicaEnabled` setting is on (off by default)
+- Windows 11 with Build ≥ 22621 (minimum for `DWMWA_SYSTEMBACKDROP_TYPE`)
+- The current skin allows Mica (see the tip at the bottom of this page)
+
+```python
+from prismqml.python.config import getConfigManager
+
+getConfigManager().setMicaEnabled(True)   # set before creating windows
+```
+
+To target any `QWindow` directly, use `MicaManager`:
+
+| Member | Description |
+|--------|-------------|
+| `isMicaSupported` | Whether the DWM Mica backdrop is supported |
+| `setMicaEffect(window, enabled, dark=False)` | Enable / disable Mica; returns `True` on success |
+| `updateDarkMode(dark)` | Update dark mode for the current window |
+| `setWindowCorner(window, rounded)` | Adjust corner preference without touching the Mica state |
+
+```python
+from prismqml import get_mica_manager
+
+mica = get_mica_manager()
+if not mica.setMicaEffect(window, True, dark=True):
+    pass  # unsupported here; the window keeps its plain opaque background
+```
+
+On non-Windows, non-Win11, or older builds `isMicaSupported` is `False` and
+`setMicaEffect()` simply returns `False` — no platform branching needed.
+
+### Acrylic
+
+Acrylic does not rely on a system backdrop: `AcrylicHelper` captures the
+screen region relative to the window, blurs it, and serves it to a QML
+`Image` through `image://acrylic`:
+
+```python
+from prismqml import get_acrylic_helper
+
+helper = get_acrylic_helper()
+helper.blurRadius = 60                             # range 1–100, default 100
+url = helper.grabAndBlur(window, 0, 0, 300, 200)   # → "image://acrylic/<id>"
+```
+
+- The `imageReady(str)` signal carries the latest image URL;
+  `grabWindowFrame(window, x, y, width, height)` captures the exact visible
+  window pixels without blur
+- The `image://acrylic` image provider is registered automatically by
+  `App` / `register_types()`
 
 ## Generic Caption Action
 

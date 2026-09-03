@@ -6,6 +6,45 @@ PrismQML is a multi-skin UI engine built on PySide6 + QML, **evolved from
 FluentQML** from a single Fluent Design component library into an engine for
 Fluent, Neobrutalism, Vintage Ticket, and Neumorphism.
 
+## Key features
+
+- **Multi-skin engine**: one `setSkin()` call switches between Fluent,
+  Neobrutalism, Vintage Ticket and Neumorphism — all with light & dark themes
+- **Token-driven**: colors, geometry and shadows are all theme tokens; skins
+  and controls stay decoupled, so adding a skin barely touches control code
+- **Pure QML rendering**: all control rendering happens in QML — no
+  frame-rate cap, smooth animations
+- **Native PySide6**: create windows, register types and write business logic
+  straight from Python — no C++ needed for application UIs
+- **180+ QML types**: buttons, inputs, cards, dialogs, tables, charts,
+  navigation and more
+- **Complete desktop capabilities**: config persistence, reactive state,
+  system tray, Mica effect and auto update out of the box
+- **Cross-platform**: Windows, macOS and Linux
+
+## Four design languages
+
+PrismQML ships four complete design languages. The same control code reskins
+as a whole without modification, and every skin supports light & dark themes:
+
+- **Fluent**: rounded corners, soft shadows, blue accent
+- **Neobrutalism**: thick borders, hard shadows, orange accent
+- **Vintage Ticket**: warm paper, old-ink foreground, hairline rules and stamp
+  semantic colors
+- **Neumorphism**: same-color surfaces, dual soft shadows, embossed
+  interactions
+
+See the [skin system](guide/skins.md) for the token structure and
+customization of each skin.
+
+## Project info
+
+- **Author**: aki-riko
+- **License**: MIT
+- **Origin**: a multi-skin engine evolved from FluentQML
+- **GitHub**: [github.com/aki-riko/PrismQML](https://github.com/aki-riko/PrismQML)
+- **Docs**: [aki-riko.github.io/PrismQML](https://aki-riko.github.io/PrismQML/)
+
 ## Migrating from FluentQML
 
 If you're using the old FluentQML (PyPI package `fqml`, import name `fluentqml`), to migrate to PrismQML:

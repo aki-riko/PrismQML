@@ -1,11 +1,11 @@
 # 菜单
 
-## Menu 右键/下拉菜单
+## ContextMenu 右键/下拉菜单
 
 ```qml
 import PrismQML as Fluent
 
-Fluent.Menu {
+Fluent.ContextMenu {
     // 菜单项
 }
 ```
@@ -18,4 +18,4 @@ Fluent.Menu {
 
 ## 皮肤适配
 
-菜单项选中/hover 高亮随皮肤适配；菜单弹层载体（PopupWindow）在 neo 下粗黑边 + 硬阴影。
+菜单项选中/hover 高亮随皮肤适配；菜单弹层载体（PopupWindowCore）在 neo 下粗黑边 + 硬阴影。

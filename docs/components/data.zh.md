@@ -12,7 +12,7 @@ Fluent.TableWidget {
 }
 ```
 
-高性能表格底层有 Rust 加速（`prismqml_rs`，SQLite 分页），见 [SqlListModel]。
+高性能表格底层有 Rust 加速（`prismqml_rs`，SQLite 分页），见 [SqlListModel](../api/python.md)。
 
 ## ListView / ListWidget 列表
 

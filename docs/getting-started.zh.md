@@ -1,12 +1,6 @@
 # 快速开始
 
-## 安装
-
-```bash
-pip install prismqml
-```
-
-PrismQML 要求 Python 3.9+ 与 PySide6 6.9+（Qt 6.9+）；PySide6 会自动安装。分发名与导入名一致：装好后 `from prismqml import ...`。
+先完成[安装](install.md)，然后几行代码跑起第一个窗口。
 
 ## 第一个窗口
 
@@ -22,7 +16,7 @@ window.show()
 app.exec()
 ```
 
-通过 `window.addPage(PageClass, icon, title)` 可继续添加应用自己的页面类、页面
+通过 `window.addPage(PageClass, icon, text)` 可继续添加应用自己的页面类、页面
 工厂或页面实例；需要异步孵化 QML 对象树时使用 `AsyncQmlPage`。完整导航用法见
 [窗口指南](guide/windows.md)。
 

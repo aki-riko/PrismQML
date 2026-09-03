@@ -1,11 +1,11 @@
 # Menus
 
-## Menu (context / dropdown)
+## ContextMenu (context / dropdown)
 
 ```qml
 import PrismQML as Fluent
 
-Fluent.Menu {
+Fluent.ContextMenu {
     // menu items
 }
 ```
@@ -18,4 +18,4 @@ Top menu bar (File / Edit / View, etc.).
 
 ## Skin adaptation
 
-Menu item selected/hover highlights adapt to the skin; the menu popup backing (PopupWindow) gets a thick black border + hard shadow under neo.
+Menu item selected/hover highlights adapt to the skin; the menu popup backing (PopupWindowCore) gets a thick black border + hard shadow under neo.

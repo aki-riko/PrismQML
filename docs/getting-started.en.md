@@ -1,12 +1,6 @@
 # Getting Started
 
-## Installation
-
-```bash
-pip install prismqml
-```
-
-PrismQML requires Python 3.9+ and PySide6 6.9+ (Qt 6.9+); PySide6 is installed automatically. Distribution name matches import name: after installing, use `from prismqml import ...`.
+Complete the [installation](install.md) first, then bring up your first window in a few lines of code.
 
 ## Your first window
 
@@ -23,7 +17,7 @@ app.exec()
 ```
 
 Add application page classes, factories, or instances with
-`window.addPage(PageClass, icon, title)`. Use `AsyncQmlPage` when the QML object
+`window.addPage(PageClass, icon, text)`. Use `AsyncQmlPage` when the QML object
 tree should be incubated asynchronously. See the [window guide](guide/windows.md)
 for complete navigation examples.
 

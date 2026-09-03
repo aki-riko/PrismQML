@@ -29,8 +29,9 @@
 
 ## 清单
 
-复制 [示例清单](examples/prismqml-installer.json) 到应用仓库根目录。七个核心字段必须由应用明确声明：
+复制 [示例清单](examples/prismqml-installer.json) 到应用仓库根目录。八个核心字段（含 `schema`，其值必须为 `1`）必须由应用明确声明：
 
+- `schema`：清单格式版本，当前必须为 `1`；
 - `app_id`：永久固定的规范 UUID，不带花括号；
 - `name`、`publisher`、`executable`；
 - `aumid`：Windows 快捷方式与通知使用的 AppUserModelID；

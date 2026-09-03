@@ -8,6 +8,8 @@ copyright: Copyright &copy; 2026 aki-riko · MIT License
 
 theme:
   name: material
+  logo: assets/prism-logo.svg
+  favicon: assets/prism-logo.svg
   language: zh
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -25,7 +27,6 @@ theme:
         icon: material/weather-sunny
         name: 切换到浅色
   features:
-    - navigation.tabs
     - navigation.sections
     - navigation.top
     - navigation.footer
@@ -34,6 +35,9 @@ theme:
     - content.code.copy
     - content.code.annotate
     - toc.follow
+
+extra_css:
+  - stylesheets/kaleidos.css
 
 markdown_extensions:
   - admonition
@@ -46,6 +50,9 @@ markdown_extensions:
       alternate_style: true
   - attr_list
   - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
 
@@ -65,6 +72,8 @@ plugins:
 
 nav:
   - 首页: index.md
+  - 简介: about.md
+  - 安装: install.md
   - 快速开始: getting-started.md
   - 指南:
       - 皮肤系统: guide/skins.md
@@ -72,23 +81,36 @@ nav:
       - 窗口: guide/windows.md
       - 配置系统: guide/config.md
       - 状态管理: guide/state.md
+      - 数据模型: guide/models.md
+      - 后台任务: guide/tasks.md
+      - 系统服务: guide/providers.md
       - 系统托盘: guide/tray.md
       - 自动更新: auto-update.md
       - Windows 安装器: windows-installer.md
-  - 控件:
+  - 组件:
       - 总览: components/index.md
-      - 按钮: components/buttons.md
-      - 输入: components/inputs.md
-      - 卡片: components/cards.md
-      - 数据: components/data.md
-      - 反馈: components/feedback.md
-      - 弹层: components/dialogs.md
-      - 导航: components/navigation.md
-      - 容器: components/containers.md
-      - 图表: components/charts.md
-      - 图标: components/icons.md
-      - 菜单: components/menus.md
-      - 标签: components/badges.md
-      - 特效: components/effects.md
+      - 速查表: components/list.md
+      - 基本输入:
+          - 按钮: components/buttons.md
+          - 输入: components/inputs.md
+      - 数据视图:
+          - 数据: components/data.md
+      - 卡片与容器:
+          - 卡片: components/cards.md
+          - 容器: components/containers.md
+      - 状态与反馈:
+          - 反馈: components/feedback.md
+          - 标签: components/badges.md
+      - 对话框与菜单:
+          - 弹层: components/dialogs.md
+          - 菜单: components/menus.md
+      - 导航:
+          - 导航: components/navigation.md
+      - 图表:
+          - 图表: components/charts.md
+      - 特效:
+          - 特效: components/effects.md
+  - 图标: components/icons.md
   - API: api/python.md
-  - 关于: about.md
+extra:
+  generator: false

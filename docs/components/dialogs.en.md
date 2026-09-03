@@ -2,14 +2,15 @@
 
 Dialogs, flyouts, and popup windows.
 
-## Dialog
+## MessageBox
 
 ```qml
 import PrismQML as Fluent
 
-Fluent.Dialog {
+Fluent.MessageBox {
     title: "Confirm"
-    // content + action buttons
+    content: "Are you sure you want to continue?"
+    // Built-in confirm/cancel buttons, customizable via confirmText / cancelText
 }
 ```
 
@@ -18,19 +19,19 @@ Fluent.Dialog {
 | Control | Description |
 |---------|-------------|
 | `OverlayDialogCore` | Full-screen mask base without a built-in body; advanced overlays can declare custom content directly inside it |
-| `DialogBox` | Standard dialog (title + content + action area) |
+| `DialogBoxCore` | Customizable dialog base class (footer / body content assembled by subclasses) |
 | `MaskedDialog` | Modal dialog with a mask |
 | `FlyoutSheet` | Flyout panel |
 | `ProgressDialog` | Progress dialog |
 | `ConfirmDialog` | Confirm dialog (supports messageAlignment) |
-| `PopupWindow` | Generic popup (backing for menus/dropdowns/tooltips) |
+| `PopupWindowCore` | Generic popup (backing for menus/dropdowns/tooltips) |
 
 `OverlayDialogCore` owns the mask, event blocking, open/close animation state, and overlay-target reparenting. Derived controls should only restore their layout through the internal `_prepareOpen()` hook instead of duplicating the `open()` lifecycle.
 
 ## Desktop notifications
 
 ```python
-from prismqml import showDesktopNotification
+from prismqml.python.runtime.notification import showDesktopNotification
 showDesktopNotification(title="Reminder", message="You have a new message")
 ```
 

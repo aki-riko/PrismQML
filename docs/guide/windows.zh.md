@@ -28,7 +28,7 @@ window = app.create_window(WindowType.BAR)     # 紧凑侧边导航
 ## 添加导航页面
 
 ```python
-window.addPage(HomePage, "Home", "首页")        # QML 组件, 图标名, 标题
+window.addPage(HomePage, "Home", "首页")        # QML 组件, 图标名, 导航文本
 window.addPage(SettingsPage, "Settings", "设置")
 window.show()
 ```
@@ -46,6 +46,60 @@ window.addPage(HiddenPage, "Page", "隐藏页面", position="bottom", visible=Fa
 - **云母效果（Mica）** — Windows 11 半透明背景（非 Fluent 皮肤下自动关闭，以保持各自表面范式）
 - **系统托盘** — 见 [系统托盘](tray.md)
 - **启动画面** — `SplashScreen` 首屏就绪后自动淡出（默认挂载）
+
+## Mica 与 Acrylic
+
+### Mica（云母）
+
+Fluent.Windows 在同时满足以下条件时自动应用 Windows 11 云母背板，无需手动调用
+DWM API：
+
+- 配置项 `Window.MicaEnabled` 已开启（默认关闭）
+- Windows 11 且 Build ≥ 22621（`DWMWA_SYSTEMBACKDROP_TYPE` 最低支持版本）
+- 当前皮肤允许 Mica（见页面底部提示）
+
+```python
+from prismqml.python.config import getConfigManager
+
+getConfigManager().setMicaEnabled(True)   # 创建窗口前设置
+```
+
+需要对接任意 `QWindow` 时可直接使用 `MicaManager`：
+
+| 成员 | 说明 |
+|------|------|
+| `isMicaSupported` | 是否支持 DWM 云母背板 |
+| `setMicaEffect(window, enabled, dark=False)` | 应用 / 关闭云母，成功返回 `True` |
+| `updateDarkMode(dark)` | 更新当前窗口的深色模式 |
+| `setWindowCorner(window, rounded)` | 调整圆角偏好，不改变 Mica 状态 |
+
+```python
+from prismqml import get_mica_manager
+
+mica = get_mica_manager()
+if not mica.setMicaEffect(window, True, dark=True):
+    pass  # 当前平台不支持，窗口保持普通不透明背景
+```
+
+非 Windows、非 Win11 或 Build 过低时 `isMicaSupported` 为 `False`，
+`setMicaEffect()` 直接返回 `False`，无需平台分支处理。
+
+### Acrylic（亚克力）
+
+Acrylic 不依赖系统背板：`AcrylicHelper` 截取窗口相对坐标的屏幕区域，模糊后通过
+`image://acrylic` 提供给 QML `Image`：
+
+```python
+from prismqml import get_acrylic_helper
+
+helper = get_acrylic_helper()
+helper.blurRadius = 60                             # 取值 1–100，默认 100
+url = helper.grabAndBlur(window, 0, 0, 300, 200)   # → "image://acrylic/<id>"
+```
+
+- `imageReady(str)` 信号携带最新图片 URL；`grabWindowFrame(window, x, y, width, height)`
+  可原样截取可见窗口像素（不模糊）
+- `App` / `register_types()` 已自动注册 `image://acrylic` 图片提供器
 
 ## 标题栏通用动作
 

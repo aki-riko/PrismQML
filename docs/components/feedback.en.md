@@ -16,7 +16,7 @@ Fluent.ProgressRing { value: 75 }     // progress ring
 ## Toast
 
 ```python
-from prismqml import showDesktopSuccess, showDesktopError
+from prismqml.python.runtime.notification import showDesktopSuccess, showDesktopError
 
 showDesktopSuccess("Done")
 showDesktopError("Something went wrong")
@@ -69,7 +69,7 @@ values such as `customContent`:
 
 ```python
 from PySide6.QtCore import Qt
-from prismqml import showDesktopSuccess
+from prismqml.python.runtime.notification import showDesktopSuccess
 
 showDesktopSuccess(
     "Export complete",

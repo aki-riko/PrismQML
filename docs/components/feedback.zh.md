@@ -16,7 +16,7 @@ Fluent.ProgressRing { value: 75 }     // 进度环
 ## Toast 轻提示
 
 ```python
-from prismqml import showDesktopSuccess, showDesktopError
+from prismqml.python.runtime.notification import showDesktopSuccess, showDesktopError
 
 showDesktopSuccess("操作成功")
 showDesktopError("出错了")
@@ -64,7 +64,7 @@ Python helper 也支持同一组可序列化选项（QML `Component` 类型的 `
 
 ```python
 from PySide6.QtCore import Qt
-from prismqml import showDesktopSuccess
+from prismqml.python.runtime.notification import showDesktopSuccess
 
 showDesktopSuccess(
     "导出成功",
