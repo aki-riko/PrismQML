@@ -2,6 +2,8 @@
 
 Complete the [installation](install.md) first, then bring up your first window in a few lines of code.
 
+Runtime requirements: Python 3.9+ and PySide6 6.9+ (Qt 6.9+).
+
 ## Your first window
 
 ```python
