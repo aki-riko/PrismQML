@@ -36,6 +36,15 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property var _yAxisLabelTexts: _buildYAxisLabels()
     readonly property var _categoryLabelTexts: _buildCategoryLabels()
+    readonly property real _minimumTooltipLabelWidth: 50
+    readonly property real _tooltipLabelWidth: {
+        var widest = root._minimumTooltipLabelWidth
+        var labels = ["Max", "Q3", "Median", "Q1", "Min"]
+        for (var i = 0; i < labels.length; i++) {
+            widest = Math.max(widest, tooltipFontMetrics.advanceWidth(labels[i]))
+        }
+        return widest
+    }
     readonly property real effectiveYAxisLabelWidth: {
         if (yAxisLabelWidth > 0) return yAxisLabelWidth
         return ChartAxisLayout.boundedAxisWidth(
@@ -292,7 +301,8 @@ Item {
                         type: Enums.label.type_caption
                         text: modelData.key
                         color: Enums.textColor.secondary
-                        width: 50
+                        width: root._tooltipLabelWidth
+                        elide: Text.ElideRight
                     }
                     Label {
                         type: Enums.label.type_caption
@@ -302,5 +312,11 @@ Item {
                 }
             }
         }
+    }
+
+    FontMetrics {
+        id: tooltipFontMetrics
+        font.family: Enums.fontFamily
+        font.pixelSize: Enums.typography.caption
     }
 }

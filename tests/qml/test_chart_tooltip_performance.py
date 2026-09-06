@@ -4,6 +4,9 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Chart tooltip lifecycle performance regressions. 图表提示框生命周期性能回归。"""
 
+from PySide6.QtCore import QObject
+from PySide6.QtQml import QQmlEngine, QQmlExpression
+
 from test_chart_runtime_performance import (
     _object_tree,
     _pump,
@@ -27,6 +30,21 @@ def _assert_single_tooltip(chart, expected_type):
     assert len(tooltips) == 1
     assert tooltips[0].metaObject().className().startswith(expected_type)
     return tooltips[0]
+
+
+def _repeater_item(repeater, index):
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(repeater),
+        repeater,
+        f"itemAt({index})",
+    )
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    if isinstance(result, tuple):
+        result, is_undefined = result
+        assert not is_undefined
+    assert isinstance(result, QObject)
+    return result
 
 
 def test_xy_chart_instantiates_only_the_active_tooltip(chart_scene):
@@ -102,6 +120,87 @@ def test_xy_chart_instantiates_only_the_active_tooltip(chart_scene):
     chart.setProperty("series", None)
     _pump(20)
     assert _tooltips(chart) == []
+    assert warnings == []
+
+
+def test_multi_tooltip_expands_long_series_name_without_overlapping_value(
+    chart_scene,
+):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("lineType"))
+    chart.setProperty("chartData", [{"label": "2026-07-10", "value": 1}])
+    chart.setProperty(
+        "series",
+        [{"name": "单品价格走势", "values": [1], "color": "#008000"}],
+    )
+    formatter = QQmlExpression(
+        QQmlEngine.contextForObject(chart),
+        chart,
+        "valueFormatter = function(value) { return '30砖 9899金 95银 99文' }",
+    )
+    formatter.evaluate()
+    assert not formatter.hasError(), formatter.error().toString()
+    chart.setProperty("_hoveredPointIndex", 0)
+    _pump(50)
+
+    tooltip = _assert_single_tooltip(chart, "ChartMultiTooltip")
+    repeater = next(
+        item
+        for item in tooltip.findChildren(QObject)
+        if item.metaObject().className() == "QQuickRepeater"
+    )
+    row = _repeater_item(repeater, 0)
+    labels = [
+        item
+        for item in row.findChildren(QObject)
+        if item.metaObject().indexOfProperty("text") >= 0
+    ]
+    name_label = next(item for item in labels if item.property("text") == "单品价格走势")
+    value_label = next(
+        item for item in labels if item.property("text") == "30砖 9899金 95银 99文"
+    )
+
+    assert name_label.property("width") >= name_label.property("implicitWidth")
+    assert value_label.property("x") >= (
+        name_label.property("x") + name_label.property("width")
+    )
+    assert warnings == []
+
+
+def test_boxplot_tooltip_expands_metric_name_column_without_overlapping_value(
+    chart_scene,
+):
+    chart, warnings = chart_scene
+    chart.setProperty("animated", False)
+    chart.setProperty("chartType", chart.property("boxplotType"))
+    chart.setProperty(
+        "boxplotData",
+        [{"label": "2026-07-10", "min": 1, "q1": 2, "median": 3, "q3": 4, "max": 5}],
+    )
+    chart.setProperty("_hoveredBoxplotIndex", 0)
+    _pump(50)
+
+    tooltip = chart.findChild(QObject, "boxplotTooltip")
+    assert tooltip is not None
+    repeater = next(
+        item
+        for item in tooltip.findChildren(QObject)
+        if item.metaObject().className() == "QQuickRepeater"
+    )
+    row = _repeater_item(repeater, 2)
+    labels = [
+        item
+        for item in row.findChildren(QObject)
+        if item.metaObject().indexOfProperty("text") >= 0
+    ]
+    name_label = next(item for item in labels if item.property("text") == "Median")
+    value_label = next(item for item in labels if item.property("text") == "3")
+
+    assert name_label.property("width") >= name_label.property("implicitWidth")
+    assert value_label.property("x") >= (
+        name_label.property("x") + name_label.property("width")
+    )
     assert warnings == []
 
 

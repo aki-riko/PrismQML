@@ -25,6 +25,21 @@ ShadowedRectangle {
     readonly property color _tooltipBackground: Enums.cardColor
     readonly property color _tooltipBorderColor: Enums.stateColor.border
     readonly property int _tooltipRadius: Enums.surfaceRadius(Enums.radius.medium)
+    readonly property real _minimumLabelColumnWidth: 60
+    readonly property real _labelColumnWidth: {
+        var widest = root._minimumLabelColumnWidth
+        var items = root.seriesData && typeof root.seriesData.length === "number"
+                    ? root.seriesData : []
+        for (var i = 0; i < items.length; i++) {
+            var name = items[i] && items[i].name ? String(items[i].name) : ""
+            widest = Math.max(widest, labelFontMetrics.advanceWidth(name))
+        }
+        if (root.showTotal) {
+            Translator._v
+            widest = Math.max(widest, labelFontMetrics.advanceWidth(Translator.tr("total")))
+        }
+        return widest
+    }
     
     // ==================== Size 尺寸 ====================
     width: Math.max(contentColumn.width + Enums.spacing.l, 80)
@@ -80,7 +95,8 @@ ShadowedRectangle {
                     type: Enums.label.type_caption
                     text: modelData.name || ""
                     color: Enums.textColor.secondary
-                    width: 60
+                    width: root._labelColumnWidth
+                    elide: Text.ElideRight
                 }
                 Label {
                     type: Enums.label.type_caption
@@ -109,7 +125,8 @@ ShadowedRectangle {
                 type: Enums.label.type_caption
                 text: { Translator._v; return Translator.tr("total") }
                 color: Enums.textColor.secondary
-                width: 60
+                width: root._labelColumnWidth
+                elide: Text.ElideRight
             }
             Label {
                 type: Enums.label.type_caption
@@ -122,5 +139,11 @@ ShadowedRectangle {
                 font.weight: Font.DemiBold
             }
         }
+    }
+
+    FontMetrics {
+        id: labelFontMetrics
+        font.family: Enums.fontFamily
+        font.pixelSize: Enums.typography.caption
     }
 }
