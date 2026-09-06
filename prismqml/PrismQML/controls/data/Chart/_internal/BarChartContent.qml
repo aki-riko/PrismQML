@@ -423,7 +423,7 @@ Item {
             BarChartBar {
                 chart: root
                 horizontal: false
-                onBarHovered: root.barHovered(index)
+                onBarHovered: (hoveredIndex) => root.barHovered(hoveredIndex)
                 onBarClicked: (clickedIndex, data) => root.barClicked(clickedIndex, data)
             }
         }
@@ -441,7 +441,7 @@ Item {
             BarChartBar {
                 chart: root
                 horizontal: true
-                onBarHovered: root.barHovered(index)
+                onBarHovered: (hoveredIndex) => root.barHovered(hoveredIndex)
                 onBarClicked: (clickedIndex, data) => root.barClicked(clickedIndex, data)
             }
         }

@@ -340,10 +340,15 @@ def test_multi_series_real_hover_click_and_markers(bar_chart_scene):
 
 
 def test_bar_chart_content_source_follows_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(SOURCE_PATH.read_text(encoding="utf-8"), path)
+    violations = scan_source_text(source, path)
     assert [
         violation
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+    assert "onBarHovered: root.barHovered(index)" not in source
+    assert source.count(
+        "onBarHovered: (hoveredIndex) => root.barHovered(hoveredIndex)"
+    ) == 2
