@@ -29,7 +29,9 @@ SCENE_URL = QUrl.fromLocalFile(
 # TableWidgetContent adds one visual owner; frame-synchronized scrolling removes one.
 # The scroll area carries two overshoot guards and one bounds reconciler.
 # 滚动区域带两个超出门闸与一个边界校正器。
-EXPECTED_NORMAL_OBJECTS = 930
+# TableHeader now owns a title row, sort affordance and click area per column.
+# 表头现在每列包含标题行、排序图标和点击区域。
+EXPECTED_NORMAL_OBJECTS = 963
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

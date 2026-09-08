@@ -42,6 +42,7 @@ PROCESS_FORCE_KILL_WAIT_SECONDS = 5
 PROCESS_GROUP_POLL_INTERVAL_SECONDS = 0.05
 ARTIFACT_ROOT_ENV = "PRISM_ARTIFACT_ROOT"
 PYTHON_CACHE_PREFIX_ENV = "PYTHONPYCACHEPREFIX"
+TEMP_DIRECTORY_ENV_NAMES = ("TEMP", "TMP")
 AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
 AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
 TEST_CONFIG_FILE_ENV = "PRISMQML_CONFIG_FILE"
@@ -62,6 +63,14 @@ def _configure_python_cache() -> None:
     cache_path = _artifact_root() / "python" / "pycache"
     os.environ[PYTHON_CACHE_PREFIX_ENV] = str(cache_path)
     sys.pycache_prefix = str(cache_path)
+
+
+def _configure_temp_directory() -> None:
+    """Keep child temporary files under the repository artifact root."""
+    temp_path = _artifact_root() / "python" / "tmp"
+    temp_path.mkdir(parents=True, exist_ok=True)
+    for name in TEMP_DIRECTORY_ENV_NAMES:
+        os.environ[name] = str(temp_path)
 
 
 # Configure before importing repository helper modules. 在导入仓库辅助模块前配置缓存。
@@ -201,6 +210,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
     _configure_python_cache()
+    _configure_temp_directory()
     _configure_qml_disk_cache()
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
