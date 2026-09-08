@@ -5,6 +5,7 @@
 import "../../../../"
 import "../../../containers/Separator"
 import "../../../data"
+import "../../../icons"
 import QtQuick
 
 // TableHeader - Header renderer for TableWidget 表格头部渲染器
@@ -26,6 +27,8 @@ Row {
 
             // ==================== Readonly State 只读状态 ====================
             readonly property bool hovered: headerHoverArea.containsMouse
+            readonly property bool sortable: root.table.sortingEnabled && !!columnData.role
+            readonly property bool sorted: root.table.sortColumn === index
 
             width: root.table._columnPixelWidths[index] || 60
             height: parent.height
@@ -37,12 +40,35 @@ Row {
                 acceptedButtons: Qt.NoButton
             }
 
-            Label {
+            Row {
                 anchors.centerIn: parent
-                type: Enums.label.type_caption
-                text: headerItem.columnData.text || ""
-                font.bold: true
-                color: root.table.secondaryColor
+                spacing: Enums.spacing.xs
+
+                Label {
+                    type: Enums.label.type_caption
+                    text: headerItem.columnData.text || ""
+                    font.bold: true
+                    color: root.table.secondaryColor
+                }
+
+                Icon {
+                    visible: headerItem.sortable
+                    icon: headerItem.sorted
+                        ? (root.table.sortOrder === 0 ? "ArrowSortUp" : "ArrowSortDown")
+                        : "ArrowSort"
+                    iconSize: Enums.typography.caption
+                    color: root.table.secondaryColor
+                }
+            }
+
+            MouseArea {
+                id: sortArea
+
+                anchors.fill: parent
+                enabled: headerItem.sortable
+                hoverEnabled: true
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: root.table.toggleSort(index)
             }
 
             Item {

@@ -205,13 +205,18 @@ function sortItems(table, column, order) {
     data.sort(function(left, right) {
         var leftValue = (left || {})[role]
         var rightValue = (right || {})[role]
-        var leftText = String(
-            leftValue === null || leftValue === undefined ? "" : leftValue
-        )
-        var rightText = String(
-            rightValue === null || rightValue === undefined ? "" : rightValue
-        )
-        var comparison = leftText.localeCompare(rightText)
+        var leftMissing = leftValue === null || leftValue === undefined
+        var rightMissing = rightValue === null || rightValue === undefined
+        if (leftMissing || rightMissing) {
+            if (leftMissing && rightMissing) return 0
+            return leftMissing ? 1 : -1
+        }
+        var comparison
+        if (typeof leftValue === "number" && typeof rightValue === "number") {
+            comparison = leftValue === rightValue ? 0 : (leftValue < rightValue ? -1 : 1)
+        } else {
+            comparison = String(leftValue).localeCompare(String(rightValue))
+        }
         return order === 1 ? -comparison : comparison
     })
     table.tableData = data

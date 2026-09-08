@@ -11,13 +11,16 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QPoint,
     QObject,
     QTimer,
+    Qt,
     QtMsgType,
     QUrl,
     qInstallMessageHandler,
 )
 from PySide6.QtGui import QWindow
+from PySide6.QtTest import QTest
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -38,6 +41,7 @@ TableWidget {
 
     width: 360
     height: 240
+    sortingEnabled: true
 
     function seedItems() {
         columns = [
@@ -101,6 +105,7 @@ Window {
 
         objectName: "table"
         anchors.fill: parent
+        sortingEnabled: true
 
         function seedItems() {
             columns = [
@@ -354,10 +359,25 @@ def test_table_widget_sort_remove_and_falsy_values_preserve_rows(qapp):
         assert [
             _variant(table.getRow(row))["name"] for row in range(3)
         ] == ["Alpha", "Beta", "Gamma"]
+        assert table.property("sortColumn") == 0
+        assert table.property("sortOrder") == 0
         assert table.property("currentRow") == 1
         assert _variant(table.property("selectedRows")) == [1, 2]
         assert table.betaWidgetRow() == 1
         assert table.alphaWidgetRow() == 0
+
+        table.toggleSort(1)
+        assert [
+            _variant(table.getRow(row))["quantity"] for row in range(3)
+        ] == [0, 1, 2]
+        assert table.property("sortColumn") == 1
+        assert table.property("sortOrder") == 0
+        table.toggleSort(1)
+        assert [
+            _variant(table.getRow(row))["quantity"] for row in range(3)
+        ] == [2, 1, 0]
+        assert table.property("sortOrder") == 1
+        table.sortItems(0, 0)
 
         table.removeRow(0)
         assert [
@@ -425,6 +445,18 @@ def test_table_widget_row_labels_render_column_roles(qapp):
         messages.clear()
         table.seedItems()
         _pump(1000)
+
+        QTest.mouseClick(
+            host,
+            Qt.MouseButton.LeftButton,
+            pos=QPoint(80, 22),
+        )
+        _pump(100)
+        assert [
+            _variant(table.getRow(row))["name"] for row in range(3)
+        ] == ["Alpha", "Beta", "Gamma"]
+        assert table.property("sortColumn") == 0
+        assert table.property("sortOrder") == 0
 
         rendered_texts = []
         visual_items = _visual_items(table)

@@ -45,6 +45,8 @@ DataWidgetCore {
     property bool showGrid: false
     property bool alternatingRowColors: true
     property bool sortingEnabled: false
+    property int sortColumn: -1
+    property int sortOrder: 0  // 0=ascending, 1=descending
     property bool borderVisible: true
 
     // Edit 编辑
@@ -93,6 +95,7 @@ DataWidgetCore {
     signal cellDoubleClicked(int row, int column)
     signal currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
     signal itemSelectionChanged()
+    signal sortChanged(int column, int order)
     signal customContextMenuRequested(point pos)  // 右键菜单信号 Context menu signal
 
     // ==================== Internal Methods 内部方法 ====================
@@ -294,13 +297,26 @@ DataWidgetCore {
     }
 
     function currentItem() { return item(currentRow, currentColumn >= 0 ? currentColumn : 0) }
-
     // ==================== Sorting API 排序 API ====================
     function sortItems(column, order) {
         TableDataController.sortItems(root, column, order)
+        if (column >= 0 && column < (_safeColumns || []).length) {
+            sortColumn = column
+            sortOrder = order === 1 ? 1 : 0
+            sortChanged(column, sortOrder)
+        }
+    }
+    function toggleSort(column) {
+        if (!sortingEnabled || column < 0 || column >= (_safeColumns || []).length) return
+        var columnData = _safeColumns[column] || ({})
+        if (!columnData.role) return
+        var nextOrder = sortColumn === column && sortOrder === 0 ? 1 : 0
+        sortItems(column, nextOrder)
     }
 
     // Scroll API 滚动 API
+    function columnWidth(index) { return index >= 0 && index < _columnPixelWidths.length ? _columnPixelWidths[index] : 0 }
+
     function scrollToTop() { listView.positionViewAtBeginning() }
     function scrollToBottom() { listView.positionViewAtEnd() }
     function scrollToRow(row) {

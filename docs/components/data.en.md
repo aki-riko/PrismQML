@@ -9,8 +9,12 @@ import PrismQML as Fluent
 
 Fluent.TableWidget {
     // column definitions + model data
+    sortingEnabled: true       // columns with a role become sortable
 }
 ```
+
+When `sortingEnabled` is enabled, columns with a `role` can be sorted by clicking their headers.
+Use `toggleSort(column)` or the compatible `sortItems(column, order)` API for programmatic sorting.
 
 The high-performance table has a Rust backend (`prismqml_rs`, SQLite paging) for acceleration.
 

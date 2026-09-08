@@ -9,8 +9,12 @@ import PrismQML as Fluent
 
 Fluent.TableWidget {
     // 列定义 + model 数据
+    sortingEnabled: true       // 配置 role 的列可点击表头排序
 }
 ```
+
+启用 `sortingEnabled` 后，带有 `role` 的列支持点击表头在升序/降序之间切换；也可以通过
+`toggleSort(column)` 或兼容的 `sortItems(column, order)` 程序控制排序。
 
 高性能表格底层有 Rust 加速（`prismqml_rs`，SQLite 分页），见 [SqlListModel](../api/python.md)。
 
