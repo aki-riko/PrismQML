@@ -52,7 +52,7 @@ Row {
                 }
 
                 Icon {
-                    visible: headerItem.sortable
+                    visible: headerItem.sortable && headerItem.sorted
                     icon: headerItem.sorted
                         ? (root.table.sortOrder === 0 ? "ArrowSortUp" : "ArrowSortDown")
                         : "ArrowSort"

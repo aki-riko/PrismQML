@@ -446,6 +446,13 @@ def test_table_widget_row_labels_render_column_roles(qapp):
         table.seedItems()
         _pump(1000)
 
+        sort_indicators = [
+            item for item in _visual_items(table)
+            if item.metaObject().indexOfProperty("icon") >= 0
+        ]
+        assert len(sort_indicators) == 2
+        assert [indicator.property("visible") for indicator in sort_indicators] == [False, False]
+
         QTest.mouseClick(
             host,
             Qt.MouseButton.LeftButton,
@@ -457,6 +464,20 @@ def test_table_widget_row_labels_render_column_roles(qapp):
         ] == ["Alpha", "Beta", "Gamma"]
         assert table.property("sortColumn") == 0
         assert table.property("sortOrder") == 0
+        visible_indicators = [indicator for indicator in sort_indicators if indicator.property("visible")]
+        assert len(visible_indicators) == 1
+        assert visible_indicators[0].property("icon") == "ArrowSortUp"
+
+        QTest.mouseClick(
+            host,
+            Qt.MouseButton.LeftButton,
+            pos=QPoint(80, 22),
+        )
+        _pump(100)
+        assert table.property("sortOrder") == 1
+        visible_indicators = [indicator for indicator in sort_indicators if indicator.property("visible")]
+        assert len(visible_indicators) == 1
+        assert visible_indicators[0].property("icon") == "ArrowSortDown"
 
         rendered_texts = []
         visual_items = _visual_items(table)
