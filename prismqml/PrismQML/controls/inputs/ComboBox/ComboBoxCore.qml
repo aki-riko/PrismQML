@@ -76,25 +76,29 @@ Widget {
             id: menuDelegateItem
 
             property var _comboControl: ListView.view ? ListView.view.parentControl : null
+            // Keep the ListView delegate index available throughout signal delivery.
+            // 在信号投递期间保留 ListView 委托索引，避免运行时作用域丢失。
+            property int _delegateIndex: index
 
             text: {
                 if (modelData === undefined || modelData === null) return ""
                 if (typeof modelData === "object") return modelData.text || modelData.toString()
                 return modelData.toString()
             }
-            icon: _comboControl ? _comboControl.itemIcon(index) : ""
-            selected: _comboControl && index === _comboControl.currentIndex
-            itemEnabled: _comboControl ? _comboControl.isItemEnabled(index) : true
+            icon: _comboControl ? _comboControl.itemIcon(_delegateIndex) : ""
+            selected: _comboControl && _delegateIndex === _comboControl.currentIndex
+            itemEnabled: _comboControl ? _comboControl.isItemEnabled(_delegateIndex) : true
             height: _comboControl ? _comboControl.popupItemHeight : Enums.comboBoxMetrics.itemHeight
             onClicked: {
                 if (!_comboControl) return
                 var oldIndex = _comboControl.currentIndex
                 var oldText = _comboControl.currentText
-                _comboControl.currentIndex = index
-                _comboControl.currentText = _comboControl._getItemText(index)
-                _comboControl.activated(index)
+                var clickedIndex = _delegateIndex
+                _comboControl.currentIndex = clickedIndex
+                _comboControl.currentText = _comboControl._getItemText(clickedIndex)
+                _comboControl.activated(clickedIndex)
                 _comboControl.textActivated(_comboControl.currentText)
-                if (oldIndex !== index) _comboControl.indexChanged(index)
+                if (oldIndex !== clickedIndex) _comboControl.indexChanged(clickedIndex)
                 if (oldText !== _comboControl.currentText) _comboControl.textChanged(_comboControl.currentText)
                 _comboControl.indexUpdated()
                 _comboControl.closePopup()
