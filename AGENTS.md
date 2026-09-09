@@ -496,6 +496,7 @@ property string icon: ""   // Icon text (emoji or char) 图标文本
 
 - 所有 Git 提交信息（含标题和正文）必须使用中文。
 - `pyproject.toml` 与 `prismqml/__init__.py` 的版本必须同步；默认只递增第四位构建号，前三位变更必须由维护者明确决定。
+- 修复 BUG 时应尽量保持现有 API、交互和运行时行为不变；若确需修改 API 或既有行为，必须在变更说明中写明影响并提升版本号。版本号按语义化版本判断：不兼容的 API/行为变更提升主版本号（MAJOR），向后兼容的 API 能力新增提升次版本号（MINOR），仅修复且不改变 API/行为提升修订版本号（PATCH）；本项目四段版本号中的前三段依次对应 `MAJOR.MINOR.PATCH`，第四段仅作为构建号递增。前三段的提升仍须由维护者明确决定，并同步更新 `pyproject.toml` 与 `prismqml/__init__.py`。
 - `prism` 是 GitHub/CI/PyPI 远程，`origin` 是无发布 CI 的自建 Gitea；发布提交和 tag 必须显式推送 `prism`。
 - 发布前必须通过 `RELEASING.md` 中的零交互测试、QML probe 与 headless CTest 门禁；不得把人工可视测试混入自动门禁。
 - 正式包只能由 `.github/workflows/release.yml` 的 tag 流程发布；本地产物不得手工上传为正式版本。
