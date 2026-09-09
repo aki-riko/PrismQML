@@ -174,7 +174,8 @@ Item {
         _traceLazyStage("stacked.loader_activate.begin", index)
         if (_loaders[index] && !_loaders[index].active) {
             if (_useSourceMode) {
-                _loaders[index].source = _safePageSources[index] || ""
+                _loaders[index].setSource(
+                    _safePageSources[index] || "", _pagePropertiesFor(index))
             }
             _loaders[index].active = true
         }
