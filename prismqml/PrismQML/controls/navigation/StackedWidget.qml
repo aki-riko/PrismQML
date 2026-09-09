@@ -95,12 +95,10 @@ Item {
         }
         return directPages.children[_displayIndex]
     }
-
     function _getCurrentItem() {
         var widgetItem = currentWidget
         return _useSourceMode && widgetItem ? widgetItem.item : widgetItem
     }
-
     function _pagePropertiesFor(index) {
         if (index < 0 || index >= _safePageProperties.length) return ({})
         var value = _safePageProperties[index]
@@ -159,7 +157,6 @@ Item {
         if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
     }
-
     function _markPythonPageReady(index) {
         if (!_pythonPageMode || index < 0) return
         if (_pythonReadyIndexes.indexOf(index) < 0) {
@@ -169,7 +166,6 @@ Item {
         }
         pageLoaded(index)
     }
-
     function _activateLoader(index) {
         _traceLazyStage("stacked.loader_activate.begin", index)
         if (_loaders[index] && !_loaders[index].active) {
@@ -181,7 +177,6 @@ Item {
         }
         _traceLazyStage("stacked.loader_activate.done", index)
     }
-
     function _lazyHelperInitialProperties() {
         return {
             "loaders": control._loaders,
@@ -197,7 +192,6 @@ Item {
             "pageTransition": pageCircleTransition
         }
     }
-
     function _ensureLazyHelperLoaded(reason) {
         if (!control.lazyLoading || !control._useSourceMode ||
                 lazyHelperLoader.item || lazyHelperLoader.status !== Loader.Null) return
@@ -210,17 +204,19 @@ Item {
         _traceLazyStage("stacked.helper_load.done", currentIndex,
                         "reason=" + reason, lazyHelperLoader)
     }
-
     function _preloadLazyHelperWhenReady(reason) {
         lazyController.preloadLazyHelperWhenReady(reason)
     }
-
     function _cancelPendingLazySwitch(reason) {
         return lazyController.cancelPendingLazySwitch(reason)
     }
 
     function _showLazyLoadingAndSwitch(index) {
         lazyController.showLazyLoadingAndSwitch(index)
+    }
+
+    function _showInitialLoading(index) {
+        lazyController.showInitialLoading(index)
     }
 
     function _flushPendingLazySwitch() {
@@ -326,6 +322,9 @@ Item {
                     ", lazyLoading=" + lazyLoading +
                     ", sourceMode=" + _useSourceMode)
         _preloadLazyHelperWhenReady("completed")
+        if (lazyLoading && _useSourceMode && !_isPageLoaded(_displayIndex)) {
+            _pendingLazySwitchIndex = _displayIndex
+        }
     }
     Component.onDestruction: _destroying = true
 
@@ -338,6 +337,9 @@ Item {
         }
     }
     onPageLoaded: (index) => {
+        if (index === _displayIndex && _pendingLazySwitchIndex === index) {
+            _pendingLazySwitchIndex = -1
+        }
         if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
         if (!lazyLoading && index === eagerActivationHelper.requestedIndex &&
                 index !== _displayIndex && index === currentIndex) {

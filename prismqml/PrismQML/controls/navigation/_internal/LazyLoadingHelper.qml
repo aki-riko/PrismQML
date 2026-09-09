@@ -33,6 +33,7 @@ Item {
     property int _observedLoaderStatus: Loader.Null
     property bool _waitIndicatorFinished: false
     property bool _targetExpansionFinished: false
+    property bool _initialLoading: false
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
@@ -120,6 +121,13 @@ Item {
     function _completePageRender(targetIdx) {
         if (targetIdx !== pendingTargetIndex) return
 
+        if (_initialLoading) {
+            _initialLoading = false
+            _targetExpansionFinished = true
+            loadingOverlay.finish()
+            return
+        }
+
         _trace("helper.page_render.begin", targetIdx)
         var prevIdx = internalLastIndex
         internalLastIndex = targetIdx
@@ -182,6 +190,7 @@ Item {
         _observedLoaderStatus = Loader.Null
         _waitIndicatorFinished = false
         _targetExpansionFinished = false
+        _initialLoading = false
         loadingOverlay.visible = false
         loadingOverlay.opacity = 0
         loadingOverlay.y = 0
@@ -212,6 +221,20 @@ Item {
         var currentLoader = loaders[helper.currentVisibleIndex]
         pageTransition.collapse(currentLoader)
         _trace("helper.show.done", targetIdx)
+    }
+
+    function showInitialLoading(targetIdx) {
+        cancelPendingLoad()
+        pendingTargetIndex = targetIdx
+        isLoadingSwitching = true
+        _initialLoading = true
+        _waitIndicatorFinished = false
+        _targetExpansionFinished = false
+        loadingOverlay.start()
+        loadingOverlay.y = 0
+        loadingOverlay.opacity = 1
+        _trace("helper.initial_loading.start", targetIdx)
+        _startLoaderPollingTimer(targetIdx)
     }
 
     function _completeLoadingCollapse() {

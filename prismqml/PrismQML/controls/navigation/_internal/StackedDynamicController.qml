@@ -32,10 +32,8 @@ Item {
     function pop() {
         if (!host.dynamicStack || host._dynamicDepth <= 1) return false
         var targetDepth = host._dynamicDepth - 1
-        host._dynamicDepth = targetDepth
         host._pendingTrimDepth = targetDepth
         host.currentIndex = targetDepth - 1
-        if (host.currentIndex === host._displayIndex) trimPendingPages()
         return true
     }
 
@@ -43,10 +41,8 @@ Item {
         if (!host.dynamicStack || host._dynamicDepth <= 1) return false
         var normalizedDepth = Math.max(1, Math.min(Number(targetDepth), host._dynamicDepth))
         if (normalizedDepth >= host._dynamicDepth) return false
-        host._dynamicDepth = normalizedDepth
         host._pendingTrimDepth = normalizedDepth
         host.currentIndex = normalizedDepth - 1
-        if (host.currentIndex === host._displayIndex) trimPendingPages()
         return true
     }
 

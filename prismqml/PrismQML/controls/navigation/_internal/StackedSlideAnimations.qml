@@ -12,13 +12,24 @@ QtObject {
     property Item _oldWidget: null
     property Item _newWidget: null
     property bool _enterOnly: false
+    property real _oldZ: 0
+    property real _newZ: 0
+    property bool _zCaptured: false
     readonly property bool running: transitionGroup.running || enterAnimation.running
+
+    function _restoreZOrder() {
+        if (!_zCaptured) return
+        if (_oldWidget) _oldWidget.z = _oldZ
+        if (_newWidget) _newWidget.z = _newZ
+        _zCaptured = false
+    }
     readonly property ParallelAnimation transitionGroup: ParallelAnimation {
         onFinished: {
             if (backend._oldWidget) {
                 backend._oldWidget.visible = false
                 backend._oldWidget.x = 0
             }
+            backend._restoreZOrder()
             backend.finished()
         }
 
@@ -40,6 +51,7 @@ QtObject {
     function stopAllAnimations() {
         transitionGroup.stop()
         enterAnimation.stop()
+        _restoreZOrder()
         if (_oldWidget) {
             _oldWidget.x = 0
             _oldWidget.visible = false
@@ -52,6 +64,10 @@ QtObject {
         _oldWidget = widget(oldIndex)
         _newWidget = widget(newIndex)
         if (!_oldWidget || !_newWidget) return
+        _oldZ = _oldWidget.z
+        _newZ = _newWidget.z
+        _zCaptured = true
+        _newWidget.z = _oldZ + 1
         _oldWidget.visible = true
         _oldWidget.opacity = 1
         _oldWidget.x = 0

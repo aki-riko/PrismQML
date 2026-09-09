@@ -30,6 +30,11 @@ Loader {
             "", lazyHelperLoader)
         host._configureLazyHelper(item)
         host.profileTime("lazyHelper loaded")
+        if (host._pendingLazySwitchIndex === host._displayIndex
+                && !host._isPageLoaded(host._displayIndex)) {
+            host._showInitialLoading(host._displayIndex)
+            host._pendingLazySwitchIndex = -1
+        }
         host._flushPendingLazySwitch()
         host._traceLazyStage(
             "stacked.helper_loader.loaded.done", host.currentIndex,

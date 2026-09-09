@@ -48,6 +48,7 @@ Item {
                 break
             case Enums.animation.slide:
             case Enums.animation.card:
+            case Enums.animation.slide_fade:
                 newWidget.x = control.width
                 newWidget.opacity = 1
                 break
@@ -73,10 +74,18 @@ Item {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide))
         if (backend) backend.transition(oldIndex, newIndex, isBack)
     }
+    function slideFadeTransition(oldIndex, newIndex, isBack) {
+        var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
+        if (backend) backend.transition(oldIndex, newIndex, isBack)
+    }
     function enterSlideOnly(newIndex) {
         var backend = _ensureBackend(
                     _sourceForType(control.animationType === Enums.animation.card ?
                                        Enums.animation.card : Enums.animation.slide))
+        if (backend) backend.enterOnly(newIndex)
+    }
+    function enterSlideFadeOnly(newIndex) {
+        var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
         if (backend) backend.enterOnly(newIndex)
     }
     function popUpTransition(oldIndex, newIndex) {
@@ -131,6 +140,8 @@ Item {
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.slide:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
+            case Enums.animation.slide_fade:
+                return Qt.resolvedUrl("StackedSlideFadeAnimations.qml")
             case Enums.animation.card:
                 return Qt.resolvedUrl("StackedCardAnimations.qml")
             case Enums.animation.zoom:

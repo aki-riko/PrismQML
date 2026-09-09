@@ -18,7 +18,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function preloadLazyHelperWhenReady(reason) {
-        if (!host.lazyLoading || !host._isPageLoaded(host._displayIndex)) return
+        if (!host.lazyLoading || !host._useSourceMode) return
         host._ensureLazyHelperLoaded(reason)
     }
 
@@ -50,6 +50,12 @@ Item {
             return
         }
         flushPendingLazySwitch()
+    }
+
+    function showInitialLoading(index) {
+        if (!lazyHelperLoader.item || host._isPageLoaded(index)) return
+        var helper = lazyHelperLoader.item
+        helper.showInitialLoading(index)
     }
 
     function flushPendingLazySwitch() {

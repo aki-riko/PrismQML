@@ -16,7 +16,7 @@ COMPONENT_READY_TIMEOUT_MS = 2_000
 COMPONENT_READY_POLL_MS = 10
 
 
-def _build_slide_stack(engine: QQmlApplicationEngine):
+def _build_slide_stack(engine: QQmlApplicationEngine, animation_type: str = "slide"):
     component = QQmlComponent(engine)
     component.setData(
         b"""
@@ -32,14 +32,14 @@ Item {
         objectName: "slideStack"
         width: parent.width
         height: parent.height
-        animationType: Enums.animation.slide
+        animationType: Enums.animation.{animation_type}
         animationDuration: Enums.duration.fast
 
         Rectangle { objectName: "page0" }
         Rectangle { objectName: "page1" }
     }
 }
-""",
+""".replace(b"{animation_type}", animation_type.encode("ascii")),
         QUrl("inline:stacked-widget-slide-direction"),
     )
     elapsed = QElapsedTimer()
@@ -94,3 +94,41 @@ def test_slide_direction_follows_index_order(qapp):
     component.deleteLater()
     engine.deleteLater()
     qapp.processEvents()
+
+
+def test_slide_fade_puts_incoming_page_above_outgoing_on_back(qapp):
+    """返回时目标页必须盖在旧页上，避免动态栈页面重影。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root = _build_slide_stack(engine, "slide_fade")
+    stack = root.findChild(QObject, "slideStack")
+    page0 = root.findChild(QObject, "page0")
+    page1 = root.findChild(QObject, "page1")
+
+    assert stack is not None and page0 is not None and page1 is not None
+    try:
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        assert finished.wait(ANIMATION_TIMEOUT_MS)
+
+        z_during_back = []
+
+        def capture_z_order():
+            z_during_back.append((float(page0.property("z")), float(page1.property("z"))))
+
+        stack.animationStarted.connect(capture_z_order)
+        try:
+            finished = QSignalSpy(stack.animationFinished)
+            assert stack.setProperty("currentIndex", 0)
+            assert z_during_back and z_during_back[0][0] > z_during_back[0][1]
+            assert finished.wait(ANIMATION_TIMEOUT_MS)
+        finally:
+            stack.animationStarted.disconnect(capture_z_order)
+
+        assert float(page0.property("z")) == 0
+        assert float(page1.property("z")) == 0
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        qapp.processEvents()

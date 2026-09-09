@@ -151,6 +151,7 @@ Item {{
         assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-second"
 
         assert QMetaObject.invokeMethod(root, "popCurrent")
+        assert _evaluate(root, "stack.depth") == 2
         _pump(700)
         assert _evaluate(root, "stack.depth") == 1
         assert _evaluate(root, "stack.currentIndex") == 0

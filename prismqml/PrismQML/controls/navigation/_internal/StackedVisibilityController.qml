@@ -39,6 +39,9 @@ Item {
         case Enums.animation.slide:
             animations.slideTransition(oldIndex, newIndex, isBack)
             break
+        case Enums.animation.slide_fade:
+            animations.slideFadeTransition(oldIndex, newIndex, isBack)
+            break
         case Enums.animation.card:
             animations.cardTransition(oldIndex, newIndex, isBack)
             break
@@ -77,6 +80,9 @@ Item {
         case Enums.animation.slide:
         case Enums.animation.card:
             animations.enterSlideOnly(newIndex)
+            break
+        case Enums.animation.slide_fade:
+            animations.enterSlideFadeOnly(newIndex)
             break
         default:
             animations.enterFadeOnly(newIndex)
