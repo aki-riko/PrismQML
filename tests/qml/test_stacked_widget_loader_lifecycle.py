@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine, QQmlExpression
 
 from prismqml import register_types
@@ -80,6 +80,81 @@ Item {{
         _pump(60)
         assert _evaluate(root, "stack._loaders.length") == 2
         assert not any("Cannot assign to non-existent property" in warning for warning in warnings), warnings
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_dynamic_stack_push_pop_preserves_lazy_loading_and_initial_properties(qapp, tmp_path):
+    page_urls = []
+    for index in range(2):
+        page = tmp_path / f"dynamic_page_{index}.qml"
+        page.write_text(
+            'import QtQuick\n'
+            'Item {\n'
+            '    property string marker: "unset"\n'
+            '    objectName: "dynamic-" + marker\n'
+            '}\n',
+            encoding="utf-8",
+        )
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    width: 400
+    height: 240
+
+    function pushSecond() {{
+        stack.push("{page_urls[1]}", {{ marker: "second" }})
+    }}
+
+    function popCurrent() {{
+        stack.pop()
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "dynamicStack"
+        anchors.fill: parent
+        lazyLoading: true
+        dynamicStack: true
+        pageSources: ["{page_urls[0]}"]
+        pageProperties: [{{ marker: "first" }}]
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        _pump(700)
+        stack = root.findChild(QObject, "dynamicStack")
+        assert stack is not None
+        assert _evaluate(root, "stack.depth") == 1
+        assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-first"
+
+        assert QMetaObject.invokeMethod(root, "pushSecond")
+        _pump(1000)
+        assert _evaluate(root, "stack.depth") == 2
+        assert _evaluate(root, "stack.currentIndex") == 1
+        assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-second"
+
+        assert QMetaObject.invokeMethod(root, "popCurrent")
+        _pump(700)
+        assert _evaluate(root, "stack.depth") == 1
+        assert _evaluate(root, "stack.currentIndex") == 0
+        assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-first"
     finally:
         root.deleteLater()
         component.deleteLater()

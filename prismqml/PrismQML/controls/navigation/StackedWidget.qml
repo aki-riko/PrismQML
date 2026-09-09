@@ -26,19 +26,17 @@ Item {
     property real cardScale: Enums.opacityLevel.heavy
     property real cardOpacity: Enums.opacityLevel.heavy
     property int popUpOffset: Enums.controlSize.popUpOffset
-    
     // QML lazy-loading props for pure QML usage 纯QML使用的懒加载属性
     property bool lazyLoading: false
     property var pageSources: []  // QML file paths QML文件路径列表
+    property var pageProperties: []
+    property bool dynamicStack: false
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
     property real _startupProfileLast: _startupProfileStart
-    readonly property bool _startupProfilingVerboseActive:
-        (typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose)
-    readonly property bool _asynchronousPageLoaderEnabled:
-        typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" ||
-        PrismQmlAsynchronousPageLoaderEnabled
+    readonly property bool _startupProfilingVerboseActive: typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose
+    readonly property bool _asynchronousPageLoaderEnabled: typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" || PrismQmlAsynchronousPageLoaderEnabled
     property var _isPageLoadFailedFunc: function(index) {
         if (!lazyLoading || !_useSourceMode) return false
         return _loaders[index] && _loaders[index].status === Loader.Error
@@ -51,18 +49,25 @@ Item {
         }
         return String(loader.source)
     }
-    
     readonly property var _safePageSources:
         pageSources === null || pageSources === undefined ? []
         : (typeof pageSources.length === "number" ? pageSources : [])
+    readonly property var _safePageProperties:
+        pageProperties === null || pageProperties === undefined ? []
+        : (typeof pageProperties.length === "number" ? pageProperties : [])
     readonly property bool _useSourceMode: _safePageSources.length > 0
     property int count: _useSourceMode ? _safePageSources.length : directPages.children.length
-
+    property int _dynamicDepth: -1
+    property int _pendingTrimDepth: -1
+    readonly property int depth: dynamicStack && _dynamicDepth >= 0
+        ? _dynamicDepth : count
     // ==================== Internal Props 内部属性 ====================
     property bool _destroying: false
     default property alias content: directPages.children
     property Item containerItem: directPages
     property Item currentWidget: _getCurrentWidget()
+    readonly property var currentItem: _getCurrentItem()
+    readonly property bool busy: lazyHelperLoader.item ? lazyHelperLoader.item.isLoadingSwitching : false
     property int previousIndex: 0
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1
@@ -73,7 +78,6 @@ Item {
     // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
     property bool _pythonPageMode: false
     property var _pythonReadyIndexes: []
-
     // ==================== Signals 信号 ====================
     signal currentChanged(int index)
     signal animationFinished()
@@ -91,6 +95,17 @@ Item {
         }
         return directPages.children[_displayIndex]
     }
+
+    function _getCurrentItem() {
+        var widgetItem = currentWidget
+        return _useSourceMode && widgetItem ? widgetItem.item : widgetItem
+    }
+
+    function _pagePropertiesFor(index) {
+        if (index < 0 || index >= _safePageProperties.length) return ({})
+        var value = _safePageProperties[index]
+        return value && typeof value === "object" ? value : ({})
+    }
     function profileTime(msg) {
         if (!_startupProfilingVerboseActive) return
         var now = Date.now()
@@ -99,7 +114,6 @@ Item {
                     Math.round(now - _startupProfileStart) + "ms")
         _startupProfileLast = now
     }
-
     function _loaderDiagnosticSnapshot(index, loaderOverride) {
         var loader = loaderOverride ||
                 (index >= 0 && index < _loaders.length ? _loaders[index] : null)
@@ -122,7 +136,6 @@ Item {
                 " targetSource=\"" + targetSource + "\"" +
                 " currentSource=\"" + currentSource + "\""
     }
-
     function _traceLazyStage(stage, index, details, loaderOverride) {
         if (!_startupProfilingVerboseActive) return
         _lazyDiagnosticSequence += 1
@@ -135,7 +148,6 @@ Item {
                     " pending=" + _pendingLazySwitchIndex + " " +
                     _loaderDiagnosticSnapshot(index, loaderOverride) + detailText)
     }
-
     // ==================== Internal Methods 内部方法 ====================
     function _isPageLoaded(index) {
         if (_pythonPageMode) {
@@ -266,6 +278,7 @@ Item {
     function _updateVisibility(newIndex) {
         visibilityController.updateVisibility(newIndex)
     }
+
     // Get current index 获取当前索引
     function getCurrentIndex() {
         return currentIndex
@@ -276,53 +289,38 @@ Item {
         if (index < 0 || index >= count || index === currentIndex) return
         currentIndex = index
     }
-
     function setCurrentWidget(w) {
-        for (var i = 0; i < count; i++) {
-            var item = widget(i)
-            if (item === w) {
-                setCurrentIndex(i)
-                return
-            }
-        }
+        return pageApi.setCurrentWidget(w)
     }
 
     function widget(index) {
-        if (index < 0 || index >= count) return null
-        if (_useSourceMode) {
-            return _loaders[index] || null
-        }
-        return directPages.children[index]
+        return pageApi.widget(index)
     }
-
     function next() {
-        if (currentIndex < count - 1) setCurrentIndex(currentIndex + 1)
+        return pageApi.next()
     }
-
     function previous() {
-        if (currentIndex > 0) setCurrentIndex(currentIndex - 1)
+        return pageApi.previous()
     }
-
     function indexOf(item) {
-        if (_useSourceMode) {
-            for (var i = 0; i < _loaders.length; i++) {
-                if (_loaders[i] && _loaders[i].item === item) return i
-            }
-        } else {
-            for (var j = 0; j < directPages.children.length; j++) {
-                if (directPages.children[j] === item) return j
-            }
-        }
-        return -1
+        return pageApi.indexOf(item)
     }
-
     function itemAt(index) {
-        return widget(index)
+        return pageApi.itemAt(index)
     }
-
+    function push(source, properties) {
+        return dynamicController.push(source, properties)
+    }
+    function pop() {
+        return dynamicController.pop()
+    }
+    function popTo(targetDepth) {
+        return dynamicController.popTo(targetDepth)
+    }
     clip: true
 
     Component.onCompleted: {
+        if (dynamicStack && _dynamicDepth < 0) _dynamicDepth = count
         profileTime("Component.onCompleted count=" + count +
                     ", lazyLoading=" + lazyLoading +
                     ", sourceMode=" + _useSourceMode)
@@ -393,6 +391,7 @@ Item {
         cardScale: control.cardScale
         cardOpacity: control.cardOpacity
         onAnimationFinished: (idx) => {
+            dynamicController.trimPendingPages()
             control.currentChanged(idx)
             control.animationFinished()
         }
@@ -430,6 +429,16 @@ Item {
         anchors.fill: parent
         host: control
         eagerHelper: eagerActivationHelper
+    }
+
+    StackedDynamicController {
+        id: dynamicController
+        host: control
+    }
+
+    StackedPageApi {
+        id: pageApi
+        host: control
     }
     
     // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器

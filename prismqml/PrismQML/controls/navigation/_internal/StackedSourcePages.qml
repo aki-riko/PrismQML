@@ -30,21 +30,40 @@ Item {
             property bool _loadOnce: false
             property int pageIndex: index
 
+            function _syncSource() {
+                var nextSource = sourceContainer.host._safePageSources[index] || ""
+                var nextProperties = sourceContainer.host._pagePropertiesFor(index)
+                if (!nextSource) {
+                    sourceLoader.source = ""
+                    return
+                }
+                if (sourceLoader.source.toString() !== String(nextSource)) {
+                    sourceLoader.setSource(nextSource, nextProperties)
+                    return
+                }
+                if (sourceLoader.item) {
+                    var keys = Object.keys(nextProperties)
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i]
+                        if (key in sourceLoader.item) sourceLoader.item[key] = nextProperties[key]
+                    }
+                }
+            }
+
             width: sourceContainer.width
             height: sourceContainer.height
             // Latch loading with _loadOnce instead of active to avoid self-reference.
             // 使用独立 _loadOnce 锁存加载状态，避免 active 自引用导致全量加载。
             onActiveChanged: {
-                if (active) _loadOnce = true
+                if (active) {
+                    _loadOnce = true
+                    sourceLoader._syncSource()
+                }
                 sourceContainer.host._traceLazyStage(
                     "stacked.source_loader.active_changed", index, "", sourceLoader)
             }
             onStatusChanged: sourceContainer.host._traceLazyStage(
                 "stacked.source_loader.status_changed", index, "", sourceLoader)
-            source: sourceContainer.host.lazyLoading
-                    ? (index === sourceContainer.host._displayIndex || _loadOnce
-                       ? (sourceContainer.host._safePageSources[index] || "") : "")
-                    : (sourceContainer.host._safePageSources[index] || "")
             active: sourceContainer.host.lazyLoading
                     ? (index === sourceContainer.host._displayIndex || _loadOnce)
                     : (index === sourceContainer.host._displayIndex ||
@@ -64,6 +83,7 @@ Item {
                 loaders[index] = sourceLoader
                 sourceContainer.host._loaders = loaders
                 sourceContainer.host.profileTime("sourceLoader registered index=" + index)
+                if (sourceLoader.active) sourceLoader._syncSource()
             }
             Component.onDestruction: {
                 if (!sourceContainer.host || sourceContainer.host._destroying) return
@@ -86,6 +106,12 @@ Item {
                 sourceContainer.host.profileTime("sourceLoader onLoaded index=" + index)
                 sourceContainer.host._traceLazyStage(
                     "stacked.source_loader.loaded.done", index, "", sourceLoader)
+            }
+
+            Connections {
+                target: sourceContainer.host
+                function onPageSourcesChanged() { sourceLoader._syncSource() }
+                function onPagePropertiesChanged() { sourceLoader._syncSource() }
             }
         }
     }
