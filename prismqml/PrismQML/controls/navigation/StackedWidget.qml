@@ -8,7 +8,7 @@ import "_internal"
 
 // StackedWidget - Unified stacked page switch component 统一堆叠页面组件
 // Supports: Multiple animations 支持多种动画
-// Animation types: None/Opacity/PopUp/PopDown/Slide/Card/Zoom 动画类型
+// Animation types: None/Opacity/PopUp/PopDown/Slide/SlideFade/Card/Zoom 动画类型
 // Note: Lazy loading is handled by Python side, QML only provides animation 注意：懒加载由 Python 侧处理，QML 只提供动画能力
 Item {
     id: control

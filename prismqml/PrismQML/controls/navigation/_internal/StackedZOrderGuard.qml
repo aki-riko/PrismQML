@@ -13,7 +13,7 @@ QtObject {
     property real _originalZ: 0
     property bool _captured: false
 
-    // ==================== Public Methods 公开方法 ====================
+    // ==================== Internal Methods 内部方法 ====================
     function capture(oldWidget, newWidget) {
         restore()
         if (!oldWidget || !newWidget) return false
