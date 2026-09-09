@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """StackedWidget 左右滑动方向运行时回归测试。"""
 
+import pytest
 from PySide6.QtCore import QElapsedTimer, QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QSignalSpy, QTest
@@ -35,8 +36,14 @@ Item {
         animationType: Enums.animation.{animation_type}
         animationDuration: Enums.duration.fast
 
-        Rectangle { objectName: "page0" }
-        Rectangle { objectName: "page1" }
+        Rectangle {
+            objectName: "page0"
+            z: 0
+        }
+        Rectangle {
+            objectName: "page1"
+            z: 1
+        }
     }
 }
 """.replace(b"{animation_type}", animation_type.encode("ascii")),
@@ -96,11 +103,14 @@ def test_slide_direction_follows_index_order(qapp):
     qapp.processEvents()
 
 
-def test_slide_fade_puts_incoming_page_above_outgoing_on_back(qapp):
-    """返回时目标页必须盖在旧页上，避免动态栈页面重影。"""
+@pytest.mark.parametrize("animation_type", ("slide", "slide_fade"))
+def test_slide_variants_put_incoming_page_above_outgoing_on_back(
+    qapp, animation_type
+):
+    """两种滑动动画返回时都必须让目标页盖在旧页上。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root = _build_slide_stack(engine, "slide_fade")
+    component, root = _build_slide_stack(engine, animation_type)
     stack = root.findChild(QObject, "slideStack")
     page0 = root.findChild(QObject, "page0")
     page1 = root.findChild(QObject, "page1")
@@ -126,7 +136,7 @@ def test_slide_fade_puts_incoming_page_above_outgoing_on_back(qapp):
             stack.animationStarted.disconnect(capture_z_order)
 
         assert float(page0.property("z")) == 0
-        assert float(page1.property("z")) == 0
+        assert float(page1.property("z")) == 1
     finally:
         root.deleteLater()
         component.deleteLater()

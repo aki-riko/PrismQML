@@ -3723,6 +3723,7 @@ def test_stacked_animations_monolith_stays_deleted():
         "StackedFadeAnimations.qml",
         "StackedPopAnimations.qml",
         "StackedSlideAnimations.qml",
+        "StackedSlideFadeAnimations.qml",
         "StackedCardAnimations.qml",
         "StackedZoomAnimations.qml",
     ):
@@ -3744,6 +3745,48 @@ def test_stacked_animations_monolith_stays_deleted():
             "StackedPopUpAnimations.qml",
             "StackedPopDownAnimations.qml",
         }
+
+
+def test_stacked_slide_z_order_has_one_shared_owner():
+    """slide 与 slide_fade 共用同一份 z 顺序保护逻辑。
+
+    Both slide backends temporarily raise the incoming page during a transition.
+    The capture/restore state must stay in one helper so fixes cannot drift.
+    """
+    internal = _source("prismqml/PrismQML/controls/navigation/_internal")
+    guard = internal / "StackedZOrderGuard.qml"
+    assert guard.exists()
+    guard_source = guard.read_text(encoding="utf-8")
+    assert "function capture(" in guard_source
+    assert "function restore()" in guard_source
+    assert "property bool _captured: false" in guard_source
+    assert "newWidget.z = oldWidget.z + 1" in guard_source
+
+    consumers = (
+        internal / "StackedSlideAnimations.qml",
+        internal / "StackedSlideFadeAnimations.qml",
+    )
+    for path in consumers:
+        source = path.read_text(encoding="utf-8")
+        assert 'import "." as NavigationInternal' in source
+        assert (
+            "readonly property QtObject zOrderGuard: "
+            "NavigationInternal.StackedZOrderGuard {}"
+        ) in source
+        assert "zOrderGuard.capture(_oldWidget, _newWidget)" in source
+        assert "zOrderGuard.restore()" in source
+        assert "_zCaptured" not in source
+        assert "function _restoreZOrder()" not in source
+        assert "_oldZ = _oldWidget.z" not in source
+
+    owners = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in QML_ROOT.rglob("*.qml")
+        if "newWidget.z = oldWidget.z + 1" in path.read_text(encoding="utf-8")
+    )
+    assert owners == [
+        "prismqml/PrismQML/controls/navigation/_internal/StackedZOrderGuard.qml"
+    ]
 
 
 def test_viewport_detection_has_exactly_one_owner():

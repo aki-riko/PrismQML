@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "." as NavigationInternal
 
 // StackedSlideFadeAnimations - Slide and fade transition backend 滑动淡入淡出切页后端
 QtObject {
@@ -12,9 +13,7 @@ QtObject {
     property Item _oldWidget: null
     property Item _newWidget: null
     property bool _enterOnly: false
-    property real _oldZ: 0
-    property real _newZ: 0
-    property bool _zCaptured: false
+    readonly property QtObject zOrderGuard: NavigationInternal.StackedZOrderGuard {}
     readonly property bool running: transitionGroup.running || enterAnimation.running
 
     readonly property ParallelAnimation transitionGroup: ParallelAnimation {
@@ -24,7 +23,7 @@ QtObject {
                 backend._oldWidget.x = 0
                 backend._oldWidget.opacity = 1
             }
-            backend._restoreZOrder()
+            backend.zOrderGuard.restore()
             backend.finished()
         }
 
@@ -43,19 +42,12 @@ QtObject {
 
     signal finished()
 
-    function _restoreZOrder() {
-        if (!_zCaptured) return
-        if (_oldWidget) _oldWidget.z = _oldZ
-        if (_newWidget) _newWidget.z = _newZ
-        _zCaptured = false
-    }
-
     function widget(index) { return host.widget(index) }
 
     function stopAllAnimations() {
         transitionGroup.stop()
         enterAnimation.stop()
-        _restoreZOrder()
+        zOrderGuard.restore()
         if (_oldWidget) {
             _oldWidget.visible = false
             _oldWidget.x = 0
@@ -74,15 +66,7 @@ QtObject {
         _newWidget = widget(newIndex)
         if (!_oldWidget || !_newWidget) return
 
-        // The dynamic stack creates later pages above earlier pages by default.
-        // On a back navigation that would leave the outgoing L3 above the incoming
-        // L2, so both pages get composited as a ghosted overlay.  Always put the
-        // incoming page above the outgoing page for the duration of the transition,
-        // then restore caller-owned z values when the animation settles.
-        _oldZ = _oldWidget.z
-        _newZ = _newWidget.z
-        _zCaptured = true
-        _newWidget.z = _oldZ + 1
+        zOrderGuard.capture(_oldWidget, _newWidget)
 
         var direction = isBack ? -1 : 1
         _oldWidget.visible = true
