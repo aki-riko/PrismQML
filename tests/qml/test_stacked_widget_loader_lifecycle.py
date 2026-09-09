@@ -159,3 +159,40 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+
+
+def test_source_mode_current_widget_is_null_until_loader_is_registered(qapp, tmp_path):
+    page = tmp_path / "initial_page.qml"
+    page.write_text("import QtQuick\nItem {}\n", encoding="utf-8")
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(lambda errors: warnings.extend(error.toString() for error in errors))
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    source = f"""
+import QtQuick
+import PrismQML
+Item {{
+    StackedWidget {{
+        id: stack
+        width: 200
+        height: 120
+        lazyLoading: true
+        pageSources: ["{QUrl.fromLocalFile(str(page)).toString()}"]
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        _pump(700)
+        assert not any("Unable to assign [undefined] to QQuickItem" in warning for warning in warnings), warnings
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()

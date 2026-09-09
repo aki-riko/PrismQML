@@ -90,8 +90,8 @@ Item {
 
     function _getCurrentWidget() {
         if (_displayIndex < 0 || _displayIndex >= count) return null
-        if (_useSourceMode && _loaders[_displayIndex]) {
-            return _loaders[_displayIndex]
+        if (_useSourceMode) {
+            return _loaders[_displayIndex] || null
         }
         return directPages.children[_displayIndex]
     }
