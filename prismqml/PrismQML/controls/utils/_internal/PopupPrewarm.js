@@ -15,6 +15,25 @@ function prewarm(control, prewarmTimer) {
     prewarmTimer.start()
 }
 
+// Settle a queued prewarm synchronously before a press is handled.
+// 在按下事件被处理之前，就地结算排队中的预热。
+// The queued prewarm is a 0 ms timer, so input events win that race and a fast
+// hover-then-click pays native surface creation plus the first show inside the
+// click callback; settling it while the button is still down keeps the released
+// click on the warm path.
+// 预热排的是 0ms 定时器，会被输入事件抢先：快速 hover→点击会把建原生表面与首次
+// show 的成本落在点击回调里；在按键仍按下时结算，抬起后的点击即走暖路径。
+// Only the native surface path settles here; the Qt popup path would open and
+// close an in-window surface and steal the focus of that same press.
+// 这里只对原生表面路径生效；Qt 弹层模式会开关一次页内弹层并抢走这次按下的焦点。
+function flushQueuedPrewarm(control, inlinePopup, prewarmTimer, qt, ownerWindow) {
+    if (control._usesControlsPopup || control._prewarmed
+            || control.isOpen || control.isClosing) return
+    prewarm(control, prewarmTimer)
+    if (control._prewarmScheduled)
+        doPrewarm(control, inlinePopup, prewarmTimer, qt, ownerWindow)
+}
+
 function finishQtPopupPrewarm(control, inlinePopup, ownerWindow) {
     var focusItem = control._prewarmFocusItem
     control._prewarmingQtPopup = false
