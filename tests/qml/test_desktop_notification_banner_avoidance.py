@@ -48,13 +48,36 @@ Window {
     readonly property real devicePixelRatio: screen ? screen.devicePixelRatio : 1
 
     property var notification: null
+    property var standalone: null
 
     function createAt(position) {
         notification = NotificationManager.desktop.success("标题", "消息", 0, position)
         return notification !== null
     }
 
-    function closeAll() { NotificationManager.closeAllDesktopNotifications() }
+    function createStandalone(position) {
+        standalone = standaloneComponent.createObject(null, {
+            "position": position,
+            "duration": 0
+        })
+        if (!standalone) return false
+        standalone.show()
+        return true
+    }
+
+    function closeAll() {
+        NotificationManager.closeAllDesktopNotifications()
+        if (standalone) {
+            standalone.hide()
+            standalone.destroy()
+            standalone = null
+        }
+    }
+
+    Component {
+        id: standaloneComponent
+        DesktopNotification {}
+    }
 }
 """
 
@@ -200,6 +223,38 @@ def test_banner_reservation_of_other_edge_does_not_move_notification(qapp):
         baseline = _overlay(root).y()
 
         guard.set_reservations(BANNER_WINDOW_HEIGHT, 0)
+        QTest.qWait(700)
+        assert _overlay(root).y() == baseline
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_standalone_desktop_notification_avoids_banner(qapp):
+    """Standalone DesktopNotification must reserve banner space too.
+
+    独立桌面通知组件（DesktopNotification）也必须避让系统横幅。
+    """
+    guard = _FakeBannerGuard()
+    engine, component, root = _create_scene(guard)
+    try:
+        assert root.createStandalone(POSITION_BOTTOM_RIGHT)
+        assert _wait_until(lambda: _overlay(root) is not None), [
+            (window.title(), window.isVisible(), window.width(), window.height())
+            for window in QGuiApplication.allWindows()
+        ]
+        QTest.qWait(500)
+        baseline = _overlay(root).y()
+
+        guard.set_reservations(0, BANNER_WINDOW_HEIGHT)
+        QTest.qWait(700)
+        lifted = _overlay(root).y()
+
+        expected = _expected_inset(root)
+        assert baseline - lifted == pytest.approx(expected, abs=2), (
+            "baseline=%s lifted=%s expected=%s" % (baseline, lifted, expected)
+        )
+
+        guard.set_reservations(0, 0)
         QTest.qWait(700)
         assert _overlay(root).y() == baseline
     finally:

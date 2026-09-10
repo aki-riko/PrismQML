@@ -51,6 +51,8 @@ Window {
             default: return "Info"
         }
     }
+    // Reserve space for system notification banners 保留系统通知横幅占用的空间
+    readonly property NotificationInternal.DesktopBannerReservation _bannerReservation: NotificationInternal.DesktopBannerReservation { targetWindow: control }
     // ==================== Signals 信号 ====================
     signal closed()
     signal clicked()
@@ -88,6 +90,7 @@ Window {
         target: control
         position: control.position
         desktopMode: true
+        stackOffset: control._bannerReservation.inset
         onHideFinished: {
             control.visible = false
             control.closed()

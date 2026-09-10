@@ -30,16 +30,9 @@ Window {
     readonly property DesktopBannerReservation _bannerReservation: DesktopBannerReservation {
         targetWindow: control
     }
-    // Reserved space depends on which edge this notification is anchored to
-    // 保留空间取决于本通知锚定在哪条边缘
-    readonly property real _bannerOffset: {
-        if (Enums.notification.isBottom(position)) return _bannerReservation.bottomInset
-        if (Enums.notification.isTop(position)) return _bannerReservation.topInset
-        return 0
-    }
     // Folded into the animator stack offset so the shared animator stays untouched
     // 并入动画器的堆叠偏移，使共享动画器保持原样
-    readonly property real _animatorOffset: stackOffset + _bannerOffset
+    readonly property real _animatorOffset: stackOffset + _bannerReservation.inset
     
     // ==================== Signals 信号 ====================
     signal closed()
