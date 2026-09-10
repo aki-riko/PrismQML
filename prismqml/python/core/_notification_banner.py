@@ -52,12 +52,19 @@ _SAMPLE_INSET_Y = (40, 120, 200)
 # 保留高度上限，按显示器工作区高度的比例钳制，避免通知堆叠时把窗口顶出屏幕。
 MAX_RESERVATION_RATIO = 0.6
 
-_MONITOR_ENUMPROC = ctypes.WINFUNCTYPE(
-    wintypes.BOOL,
-    wintypes.HANDLE,
-    wintypes.HDC,
-    ctypes.POINTER(wintypes.RECT),
-    wintypes.LPARAM,
+# ctypes.WINFUNCTYPE exists only on Windows, so the callback type must not be
+# built at import time on other platforms.
+# ctypes.WINFUNCTYPE 仅存在于 Windows，其他平台不得在导入期构造该回调类型。
+_MONITOR_ENUMPROC = (
+    ctypes.WINFUNCTYPE(
+        wintypes.BOOL,
+        wintypes.HANDLE,
+        wintypes.HDC,
+        ctypes.POINTER(wintypes.RECT),
+        wintypes.LPARAM,
+    )
+    if sys.platform == "win32"
+    else None
 )
 
 

@@ -11,12 +11,18 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
+
 from prismqml.python.core import _notification_banner as banner
 from prismqml.python.core import notification_banner_guard as guard_module
 from prismqml.python.core.notification_banner_guard import (
     NotificationBannerGuard,
     get_notification_banner_guard,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 # Work area of the 4K reference display the measurements below come from.
 # 下方测量数据所在 4K 参考显示器的工作区。
@@ -85,6 +91,32 @@ def test_banner_probe_degrades_without_win32_api(monkeypatch):
     monkeypatch.setattr(banner, "_api", lambda: None)
     assert banner.notification_banner_reservations() == (0, 0)
     assert banner.notification_banner_handles() == []
+
+
+def test_module_imports_without_ctypes_winfunctype():
+    """Import must not require ctypes.WINFUNCTYPE, which exists only on Windows.
+
+    ctypes.WINFUNCTYPE 仅存在于 Windows；在 Linux 上导入本模块不得依赖它，
+    否则 runtime 导入链会在非 Windows 平台直接失败。
+    """
+    script = (
+        "import ctypes, sys\n"
+        "del ctypes.WINFUNCTYPE\n"
+        "sys.platform = 'linux'\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        "import prismqml.python.core._notification_banner as module\n"
+        "assert module._MONITOR_ENUMPROC is None\n"
+        "assert module.notification_banner_reservations() == (0, 0)\n"
+        "assert module.notification_banner_handles() == []\n"
+        "assert module.clamp_reservation(228, 2088) == 228\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
 
 
 def test_guard_is_a_process_singleton(qapp):
