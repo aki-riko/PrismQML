@@ -126,11 +126,19 @@ def register_window_context(
 
 def register_support_context(context: QQmlContext) -> None:
     """Register shadow and window helpers. 注册阴影与窗口辅助对象。"""
-    from .window_services import getShadowManager, get_window_helper
+    from .window_services import (
+        get_notification_banner_guard,
+        getShadowManager,
+        get_window_helper,
+    )
 
     register_context_properties(
         context,
-        (("ShadowManager", getShadowManager), ("WindowHelper", get_window_helper)),
+        (
+            ("ShadowManager", getShadowManager),
+            ("WindowHelper", get_window_helper),
+            ("NotificationBannerGuard", get_notification_banner_guard),
+        ),
     )
 
 
@@ -143,6 +151,7 @@ def register_window_engine_context(
 ) -> None:
     """Register the reduced window startup contract. 注册精简窗口启动上下文合同。"""
     from ..core.incubation import asynchronous_page_loader_enabled
+    from .window_services import get_notification_banner_guard
 
     ThemeManager, getShadowManager, get_config_manager = core_managers
     get_mica_manager, get_native_window_hook, get_clipboard_helper = (
@@ -157,6 +166,7 @@ def register_window_engine_context(
             ("ConfigManager", get_config_manager),
             ("MicaManager", get_mica_manager),
             ("ClipboardHelper", get_clipboard_helper),
+            ("NotificationBannerGuard", get_notification_banner_guard),
             (
                 "PrismQmlStartupProfileVerbose",
                 lambda: startup_profile_verbose,

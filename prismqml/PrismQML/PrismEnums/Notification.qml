@@ -47,6 +47,8 @@ QtObject {
         readonly property int stackGapLarge: 25   // InfoBar stack gap InfoBar堆叠间距
         readonly property int maxVisible: 5       // Max visible notifications 最大可见通知数
         readonly property int longMessageThreshold: 60 // Vertical layout threshold 垂直布局长度阈值
+        readonly property int bannerGap: 8         // Gap to system notification banners 与系统通知横幅的间距
+        readonly property int bannerWindowInset: 30 // Transparent margin above the banner card 横幅卡片上方的透明边距
     }
     
     // ==================== Position Constants 位置常量 ====================

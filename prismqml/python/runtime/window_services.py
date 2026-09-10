@@ -46,3 +46,12 @@ def get_clipboard_helper():
     from ..providers.clipboard import get_clipboard_helper as _get_clipboard_helper
 
     return _get_clipboard_helper()
+
+
+def get_notification_banner_guard():
+    """Return the runtime-owned banner guard. 获取 runtime 持有的通知横幅守卫。"""
+    from ..core.notification_banner_guard import (
+        get_notification_banner_guard as _get_banner_guard,
+    )
+
+    return _get_banner_guard()

@@ -38,6 +38,7 @@ __all__ = [
     "register_fast_splash_context",
     "getShadowManager",
     "get_window_helper",
+    "get_notification_banner_guard",
     "get_mica_manager",
     "get_acrylic_helper",
     "get_native_window_hook",
@@ -118,6 +119,10 @@ _LAZY_EXPORTS = {
     "get_acrylic_helper": (".window_services", "get_acrylic_helper"),
     "get_native_window_hook": (".window_services", "get_native_window_hook"),
     "get_clipboard_helper": (".window_services", "get_clipboard_helper"),
+    "get_notification_banner_guard": (
+        ".window_services",
+        "get_notification_banner_guard",
+    ),
     "NotificationPosition": (".notification", "Position"),
     "NotificationSeverity": (".notification", "Severity"),
     "showDesktopNotification": (".notification", "showDesktopNotification"),
