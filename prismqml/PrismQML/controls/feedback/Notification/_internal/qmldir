@@ -3,5 +3,6 @@ module _internal
 NotificationStackManager NotificationStackManager.qml
 NotificationItemLifecycle NotificationItemLifecycle.qml
 NotificationOverlayLifecycle NotificationOverlayLifecycle.qml
+DesktopBannerReservation DesktopBannerReservation.qml
 WindowOutsideGeometry WindowOutsideGeometry.qml
 WindowOutsideOverlay WindowOutsideOverlay.qml

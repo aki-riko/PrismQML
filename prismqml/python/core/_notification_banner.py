@@ -11,6 +11,10 @@ band 1（ZBID_DESKTOP），且普通进程无法提升自身 band（CreateWindow
 SetWindowBand 对 band >= 2 一律返回 ERROR_ACCESS_DENIED），因此自绘的桌面
 通知无法压在系统横幅之上，只能读取其占用高度后避让。
 
+横幅默认出现在工作区右下角并紧贴边缘，但任务栏位置、RTL 镜像或多显示器
+配置都可能把它移到别的角落，因此本模块在**四个角**采样，并按横幅实际
+贴靠的上/下边缘分别上报保留高度。
+
 本模块保持纯 Win32：只返回物理像素高度，不做任何 Qt 换算。
 """
 
@@ -26,12 +30,16 @@ from .logger import debug
 # Window band used by Action Center and toast banners. 系统通知横幅所用层带。
 ZBID_IMMERSIVE_NOTIFICATION = 4
 
+# Work-area edges a banner can be anchored to. 横幅可贴靠的工作区边缘。
+EDGE_TOP = 0
+EDGE_BOTTOM = 1
+
 _GA_ROOT = 2
 _MONITOR_DEFAULTTONEAREST = 2
 
-# Bottom-right sampling offsets in physical pixels. 右下角采样偏移（物理像素）。
-_SAMPLE_INSET_X = (40, 140, 260, 400, 540)
-_SAMPLE_INSET_Y = (40, 100, 160, 210)
+# Corner sampling offsets in physical pixels. 四角采样偏移（物理像素）。
+_SAMPLE_INSET_X = (40, 200, 360, 520)
+_SAMPLE_INSET_Y = (40, 120, 200)
 
 # Reservation ceiling as a ratio of the monitor work area height.
 # 保留高度上限，按显示器工作区高度的比例钳制，避免通知堆叠时把窗口顶出屏幕。
@@ -125,7 +133,11 @@ def _collect_monitor(_monitor, _hdc, rect_pointer, _lparam) -> bool:
 
 
 def _sample_points() -> List[Tuple[int, int]]:
-    """Return bottom-right sampling points for every monitor. 返回每个显示器右下角采样点。"""
+    """Return sampling points at all four corners of every monitor.
+
+    返回每个显示器四个角的采样点。横幅默认在右下角，但任务栏位置、RTL 镜像
+    或显示器配置都可能把它移到别的角落，因此四角都要覆盖。
+    """
     api = _api()
     if api is None:
         return []
@@ -135,10 +147,10 @@ def _sample_points() -> List[Tuple[int, int]]:
     for left, top, right, bottom in _MONITOR_RECTS:
         for inset_y in _SAMPLE_INSET_Y:
             for inset_x in _SAMPLE_INSET_X:
-                x = right - inset_x
-                y = bottom - inset_y
-                if x > left and y > top:
-                    points.append((x, y))
+                for x in (right - inset_x, left + inset_x):
+                    for y in (bottom - inset_y, top + inset_y):
+                        if left < x < right and top < y < bottom:
+                            points.append((x, y))
     return points
 
 
@@ -169,29 +181,45 @@ def notification_banner_handles() -> List[int]:
     return handles
 
 
+def banner_edge_and_height(
+    rect: Tuple[int, int, int, int],
+    work: Tuple[int, int, int, int],
+) -> Tuple[int, int]:
+    """Classify one banner rect against a work area. 按工作区判定横幅贴靠的边缘与占用高度。
+
+    取横幅较窄的一侧间隙判定贴靠边：贴近底部时占用高度从工作区底边量到
+    横幅顶边，贴近顶部时从工作区顶边量到横幅底边。
+    """
+    left, top, right, bottom = rect
+    work_left, work_top, work_right, work_bottom = work
+    gap_top = top - work_top
+    gap_bottom = work_bottom - bottom
+    if gap_bottom <= gap_top:
+        return EDGE_BOTTOM, work_bottom - top
+    return EDGE_TOP, bottom - work_top
+
+
 def clamp_reservation(reserved: int, work_height: int) -> int:
     """Clamp one reservation to the allowed ratio. 按允许比例钳制保留高度。
 
-    通知堆叠时横幅可以占掉半个屏幕，钳制可避免把底部锚定窗口顶出屏幕。
+    通知堆叠时横幅可以占掉半个屏幕，钳制可避免把边缘锚定窗口顶出屏幕。
     """
     if reserved <= 0 or work_height <= 0:
         return 0
     return min(reserved, int(work_height * MAX_RESERVATION_RATIO))
 
 
-def notification_banner_reservation() -> int:
-    """Return the physical height reserved at the work-area bottom.
+def notification_banner_reservations() -> Tuple[int, int]:
+    """Return (top, bottom) reserved physical heights. 返回 (顶部, 底部) 保留高度。
 
-    返回工作区底部被系统通知横幅占用的物理像素高度；无横幅时返回 0。
-
-    只使用横幅矩形顶边与该显示器工作区底边之差，不涉及任何绝对坐标，
-    因此调用方无需关心屏幕原点或多屏排列。
+    两者都是物理像素；对应边缘没有横幅时为 0。只使用横幅矩形与工作区边缘
+    之间的距离，不涉及屏幕原点，因此调用方无需关心多屏排列。
     """
     api = _api()
     if api is None:
-        return 0
-    reserved = 0
-    work_height = 0
+        return 0, 0
+    reserved = {EDGE_TOP: 0, EDGE_BOTTOM: 0}
+    work_height = {EDGE_TOP: 0, EDGE_BOTTOM: 0}
     for hwnd in notification_banner_handles():
         rect = wintypes.RECT()
         if not api.get_window_rect(hwnd, ctypes.byref(rect)):
@@ -203,8 +231,19 @@ def notification_banner_reservation() -> int:
         info.cbSize = ctypes.sizeof(_MONITORINFO)
         if not api.get_monitor_info(monitor, ctypes.byref(info)):
             continue
-        occupied = int(info.rcWork.bottom) - int(rect.top)
-        if occupied > reserved:
-            reserved = occupied
-            work_height = int(info.rcWork.bottom) - int(info.rcWork.top)
-    return clamp_reservation(reserved, work_height)
+        edge, height = banner_edge_and_height(
+            (rect.left, rect.top, rect.right, rect.bottom),
+            (
+                info.rcWork.left,
+                info.rcWork.top,
+                info.rcWork.right,
+                info.rcWork.bottom,
+            ),
+        )
+        if height > reserved[edge]:
+            reserved[edge] = height
+            work_height[edge] = int(info.rcWork.bottom) - int(info.rcWork.top)
+    return (
+        clamp_reservation(reserved[EDGE_TOP], work_height[EDGE_TOP]),
+        clamp_reservation(reserved[EDGE_BOTTOM], work_height[EDGE_BOTTOM]),
+    )

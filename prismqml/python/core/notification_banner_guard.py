@@ -5,8 +5,8 @@
 
 """Notification banner guard exposed to QML. 暴露给 QML 的通知横幅避让守卫。
 
-QML 读取 reservedHeight（物理像素），除以所在屏幕的 devicePixelRatio 即得
-逻辑像素避让量。轮询只在至少一个桌面通知在屏幕上时才运行。
+QML 读取 topReservedHeight / bottomReservedHeight（物理像素），除以所在屏幕的
+devicePixelRatio 即得逻辑像素避让量。轮询只在至少一个桌面通知在屏幕上时才运行。
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
-from ._notification_banner import notification_banner_reservation
+from ._notification_banner import notification_banner_reservations
 from .logger import debug, exception
 
 # Poll interval while desktop notifications are on screen. 桌面通知在场时的轮询间隔。
@@ -24,15 +24,15 @@ _POLL_INTERVAL_MS = 250
 
 
 class NotificationBannerGuard(QObject):
-    """Track the height reserved by Windows notification banners. 跟踪系统通知横幅占用高度。
+    """Track the space reserved by Windows notification banners. 跟踪系统通知横幅占用空间。
 
     QML 用法 In QML:
-        NotificationBannerGuard.reservedHeight / screen.devicePixelRatio
+        NotificationBannerGuard.bottomReservedHeight / screen.devicePixelRatio
     """
 
     _instance: Optional["NotificationBannerGuard"] = None
 
-    reservedHeightChanged = Signal()
+    reservationsChanged = Signal()
 
     def __new__(cls, parent: Optional[QObject] = None):
         if cls._instance is None:
@@ -44,19 +44,25 @@ class NotificationBannerGuard(QObject):
         if self._initialized:
             return
         super().__init__(parent)
-        self._reserved_height = 0
+        self._top_reserved = 0
+        self._bottom_reserved = 0
         self._watchers = 0
         self._timer = QTimer(self)
         self._timer.setInterval(_POLL_INTERVAL_MS)
         self._timer.timeout.connect(self._refresh)
         self._initialized = True
 
-    @Property(int, notify=reservedHeightChanged)
-    def reservedHeight(self) -> int:
-        """Physical pixel height reserved by system notification banners. 系统通知横幅占用的物理像素高度。"""
-        return self._reserved_height
+    @Property(int, notify=reservationsChanged)
+    def topReservedHeight(self) -> int:
+        """Physical pixels reserved at the work-area top. 工作区顶部被占用的物理像素。"""
+        return self._top_reserved
 
-    @Property(int, notify=reservedHeightChanged)
+    @Property(int, notify=reservationsChanged)
+    def bottomReservedHeight(self) -> int:
+        """Physical pixels reserved at the work-area bottom. 工作区底部被占用的物理像素。"""
+        return self._bottom_reserved
+
+    @Property(int, notify=reservationsChanged)
     def watcherCount(self) -> int:
         """Number of desktop notifications holding a watch. 持有监视的桌面通知数量。"""
         return self._watchers
@@ -76,31 +82,32 @@ class NotificationBannerGuard(QObject):
             self._watchers -= 1
         if self._watchers == 0:
             self._timer.stop()
-            self._publish(0)
+            self._publish(0, 0)
 
     @Slot()
     def refresh(self) -> None:
-        """Re-read the reservation immediately. 立即重新读取保留高度。"""
+        """Re-read the reservations immediately. 立即重新读取保留高度。"""
         self._refresh()
 
     def _refresh(self) -> None:
-        """Read and publish the current reservation. 读取并发布当前保留高度。"""
+        """Read and publish the current reservations. 读取并发布当前保留高度。"""
         try:
-            reserved = notification_banner_reservation()
+            top_reserved, bottom_reserved = notification_banner_reservations()
         except (OSError, ctypes.ArgumentError) as exc:
             debug(f"通知横幅保留高度读取失败: {exc}")
             return
         except Exception as exc:
             exception(f"通知横幅保留高度未知错误: {type(exc).__name__}: {exc}")
             return
-        self._publish(reserved)
+        self._publish(top_reserved, bottom_reserved)
 
-    def _publish(self, reserved: int) -> None:
-        """Publish one reservation value when it changed. 仅在变化时发布保留高度。"""
-        if reserved == self._reserved_height:
+    def _publish(self, top_reserved: int, bottom_reserved: int) -> None:
+        """Publish reservation values when they changed. 仅在变化时发布保留高度。"""
+        if (top_reserved, bottom_reserved) == (self._top_reserved, self._bottom_reserved):
             return
-        self._reserved_height = reserved
-        self.reservedHeightChanged.emit()
+        self._top_reserved = top_reserved
+        self._bottom_reserved = bottom_reserved
+        self.reservationsChanged.emit()
 
 
 def get_notification_banner_guard() -> NotificationBannerGuard:

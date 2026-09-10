@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
+import "_internal"
 import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
 import QtQuick  // 置于库import后:去前缀后保原生类型不被覆盖
 
@@ -26,38 +27,26 @@ Window {
     readonly property real _stackBottomInset: _notificationStackInset("_stackBottomInset")
 
     // ==================== Internal Props 内部属性 ====================
-    // Windows notification banners sit in a higher window band (4) than any ordinary topmost
-    // window (1) and cannot be covered, so bottom-anchored desktop notifications reserve the
-    // height those banners occupy.
-    // Windows通知横幅位于比普通topmost窗口更高的窗口层带(4)且无法被压过，
-    // 因此底部锚定的桌面通知保留这些横幅占用的高度。
-    readonly property var _bannerGuard: (typeof NotificationBannerGuard !== "undefined" && NotificationBannerGuard)
-        ? NotificationBannerGuard : null
-    readonly property real _bannerInset: {  // Reserved bottom space in logical pixels 底部保留高度（逻辑像素）
-        if (!_bannerGuard || _bannerGuard.reservedHeight <= 0) return 0
-        var ratio = screen ? screen.devicePixelRatio : 1
-        if (ratio <= 0) ratio = 1
-        // The banner window rect carries a transparent margin above the visual card
-        // (measured 30 DIP: 228px window = 107px card + 30px top + 15px bottom at 150%),
-        // so that margin must be subtracted before reserving space.
-        // 横幅窗口矩形在卡片上方含透明边距（150%缩放下实测：窗口228px = 卡片107 + 上30 + 下15），
-        // 保留空间前必须扣除该边距。
-        var occupied = _bannerGuard.reservedHeight / ratio
-            - Enums.notification.layout.bannerWindowInset
-        return occupied > 0 ? occupied + Enums.notification.layout.bannerGap : 0
+    readonly property DesktopBannerReservation _bannerReservation: DesktopBannerReservation {
+        targetWindow: control
+    }
+    // Reserved space depends on which edge this notification is anchored to
+    // 保留空间取决于本通知锚定在哪条边缘
+    readonly property real _bannerOffset: {
+        if (Enums.notification.isBottom(position)) return _bannerReservation.bottomInset
+        if (Enums.notification.isTop(position)) return _bannerReservation.topInset
+        return 0
     }
     // Folded into the animator stack offset so the shared animator stays untouched
     // 并入动画器的堆叠偏移，使共享动画器保持原样
-    readonly property real _animatorOffset: stackOffset
-        + (Enums.notification.isBottom(position) ? _bannerInset : 0)
-    property bool _bannerWatching: false
+    readonly property real _animatorOffset: stackOffset + _bannerOffset
     
     // ==================== Signals 信号 ====================
     signal closed()
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
-        _acquireBannerWatch()
+        _bannerReservation.acquire()
         animator.show()
     }
 
@@ -77,21 +66,6 @@ Window {
         return _contentInset + inset
     }
 
-    // ==================== Internal Methods 内部方法 ====================
-    // Watch banner presence only while a desktop notification is on screen
-    // 仅在桌面通知显示期间监视系统通知横幅
-    function _acquireBannerWatch() {
-        if (_bannerWatching || !_bannerGuard) return
-        _bannerWatching = true
-        _bannerGuard.acquire()
-    }
-
-    function _releaseBannerWatch() {
-        if (!_bannerWatching || !_bannerGuard) return
-        _bannerWatching = false
-        _bannerGuard.release()
-    }
-
     // Window settings 窗口设置
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     visible: false
@@ -109,7 +83,7 @@ Window {
         desktopMode: true  // Use screen coordinates 使用屏幕坐标
         stackOffset: control._animatorOffset
         onHideFinished: {
-            control._releaseBannerWatch()
+            control._bannerReservation.release()
             control.visible = false
             control.closed()
         }
@@ -122,11 +96,11 @@ Window {
         anchors.fill: parent
     }
 
-    // Re-anchor when the reserved banner height changes 通知横幅保留高度变化时重新定位
+    // Re-anchor when the reserved banner space changes 通知横幅保留空间变化时重新定位
     Connections {
-        function onReservedHeightChanged() { control.updatePosition() }
+        function onReservationsChanged() { control.updatePosition() }
 
-        target: control._bannerGuard
+        target: control._bannerReservation
         ignoreUnknownSignals: true
     }
 
@@ -138,5 +112,5 @@ Window {
         ignoreUnknownSignals: true
     }
 
-    Component.onDestruction: _releaseBannerWatch()
+    Component.onDestruction: _bannerReservation.release()
 }
