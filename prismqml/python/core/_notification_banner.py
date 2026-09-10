@@ -15,6 +15,13 @@ SetWindowBand 对 band >= 2 一律返回 ERROR_ACCESS_DENIED），因此自绘�
 配置都可能把它移到别的角落，因此本模块在**四个角**采样，并按横幅实际
 贴靠的上/下边缘分别上报保留高度。
 
+四角覆盖的依据：Windows 11 正在重新引入任务栏位置切换（Microsoft 发布说明
+Build 26100.9267 起："You can now choose whether the taskbar appears at the
+bottom, top, left, or right side of your screen"），而任务栏置于四边时横幅
+与其同位。在尚未启用该功能的版本上实测（Windows 10 IoT Enterprise LTSC 2024
+/ 26100.9168）：改写 StuckRects3 的 Settings[12] 并重启 shell 后，任务栏仍
+固定在底部，横幅只出现在右下角。
+
 本模块保持纯 Win32：只返回物理像素高度，不做任何 Qt 换算。
 """
 
