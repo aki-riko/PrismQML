@@ -306,8 +306,8 @@ class ShadowManager(QObject):
 
 class DwmSyncFilter(QAbstractNativeEventFilter):
     """
-    原生事件过滤器 - 在WM_SIZING/WM_SIZE时调用DwmFlush
-    Native event filter - calls DwmFlush during WM_SIZING/WM_SIZE
+    原生事件过滤器 - 在交互式移动/缩放循环内调用DwmFlush
+    Native event filter - calls DwmFlush inside the interactive move/size loop
 
     这是解决无边框窗口resize撕裂的关键
     """
@@ -351,6 +351,23 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
                 # DWM API not available 无法加载DWM API
                 debug(f"DWM API 不可用,跳过同步过滤器: {exc}")
 
+    def _needs_dwm_flush(self, message: int) -> bool:
+        """Decide whether one native message needs a synchronous DWM sync.
+
+        Only the interactive move/size loop can tear a frameless window, and only
+        that loop produces WM_SIZING/WM_MOVING. A bare WM_SIZE (programmatic
+        resize, popup surface construction and its first show, page switches) has
+        no tearing risk but paid one full DwmFlush — a synchronous wait for the
+        compositor — on every occurrence.
+
+        只有交互式移动/缩放循环会让无边框窗口撕裂，也只有该循环会产生
+        WM_SIZING/WM_MOVING；裸 WM_SIZE（程序化改尺寸、弹层建窗与首次显示、
+        切页）没有撕裂风险，却每次都付出一次等合成器完成的 DwmFlush。
+        """
+        if message in (self.WM_SIZING, self.WM_MOVING):
+            return True
+        return message == self.WM_SIZE and self._in_resize
+
     def nativeEventFilter(self, eventType: QByteArray, message: int) -> tuple:
         """
         过滤Windows原生消息
@@ -364,13 +381,12 @@ class DwmSyncFilter(QAbstractNativeEventFilter):
             MSG = self._get_msg_class()
             msg = MSG.from_address(int(message))
 
-            # 在resize/sizing时调用DwmFlush
-            if msg.message in (self.WM_SIZING, self.WM_SIZE, self.WM_MOVING):
-                self._dwmapi.DwmFlush()
-            elif msg.message == self.WM_ENTERSIZEMOVE:
+            if msg.message == self.WM_ENTERSIZEMOVE:
                 self._in_resize = True
             elif msg.message == self.WM_EXITSIZEMOVE:
                 self._in_resize = False
+            elif self._needs_dwm_flush(msg.message):
+                self._dwmapi.DwmFlush()
 
         except (OSError, ctypes.ArgumentError) as exc:
             # Invalid message structure 无效消息结构

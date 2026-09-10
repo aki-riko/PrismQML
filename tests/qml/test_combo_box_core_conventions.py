@@ -174,6 +174,18 @@ def _local_point(window: QQuickWindow, item: QQuickItem, x: float, y: float):
     return QPoint(round(point.x()), round(point.y()))
 
 
+def _move_pointer_away(window: QQuickWindow) -> None:
+    """Park the pointer off every control so the next scene starts unhovered.
+
+    把指针移到控件之外，否则下一场沿用同一坐标时 containsMouse 不变化，
+    悬停预热不会触发。
+    """
+    QTest.mouseMove(
+        window, QPoint(round(window.width() - 12), round(window.height() - 12))
+    )
+    _pump()
+
+
 def _popup_rows(popup_window: QQuickWindow) -> list[QQuickItem]:
     rows = [
         item
@@ -396,6 +408,75 @@ def test_combo_box_core_hover_prewarms_hidden_popup_content(qapp):
             window, QPoint(round(window.width() - 12), round(window.height() - 12))
         )
         _pump()
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_core_press_settles_queued_prewarm_before_click(qapp):
+    """A press settles a queued prewarm so the released click can open warm.
+
+    按下时就地结算排队中的预热，使抬起后的点击走暖路径，而不是在点击回调里
+    新建原生表面。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        popup = _popup_core(combo)
+        click_point = _local_point(
+            window, combo, combo.width() - 12, combo.height() / 2
+        )
+        # 只排队、不给 0ms 定时器机会，模拟「快速 hover→点击」
+        assert QMetaObject.invokeMethod(popup, "prewarm")
+        assert popup.property("_prewarmScheduled")
+        assert not popup.property("_prewarmed")
+
+        QTest.mousePress(window, Qt.MouseButton.LeftButton, pos=click_point)
+
+        assert popup.property("_prewarmed")
+        assert not popup.property("_prewarmScheduled")
+        # 按下只结算预热，不得顺手把弹层打开
+        assert not combo.property("isOpen")
+        assert not popup.property("isOpen")
+        assert _new_visible_windows(windows_before, window) == []
+        assert warnings == []
+
+        # 真实点击仍必须能打开：结算预热不得破坏打开链路
+        QTest.mouseRelease(window, Qt.MouseButton.LeftButton, pos=click_point)
+        _open_popup(window, combo, windows_before)
+    finally:
+        _move_pointer_away(window)
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_core_immediate_click_after_prewarm_request_opens_warm(qapp):
+    """A click that arrives right after a prewarm request still opens the popup.
+
+    预热请求之后紧接着的点击必须照常打开弹层（暖路径），不得被结算流程吞掉。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        popup = _popup_core(combo)
+        click_point = _local_point(
+            window, combo, combo.width() - 12, combo.height() / 2
+        )
+        assert QMetaObject.invokeMethod(popup, "prewarm")
+        assert popup.property("_prewarmScheduled")
+        assert not popup.property("_prewarmed")
+
+        QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=click_point)
+
+        assert _wait_for(lambda: combo.property("isOpen"))
+        assert _wait_for(lambda: popup.property("isOpen"))
+        assert popup.property("_prewarmed")
+        assert not popup.property("_prewarmScheduled")
+        assert len(_new_visible_windows(windows_before, window)) == 1
+        assert warnings == []
+    finally:
+        _move_pointer_away(window)
         _dispose_scene(engine, component, window, combo, editable)
         assert _new_visible_windows(windows_before) == []
 

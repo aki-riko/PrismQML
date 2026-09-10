@@ -206,6 +206,14 @@ Item {
                 if (comboPopup.prewarm) comboPopup.prewarm()
             }
         }
+        // Settle the queued prewarm while the button is still down, so the
+        // released click opens warm instead of building the native surface
+        // inside the click callback.
+        // 按键仍按下时就地结算排队中的预热，抬起后的点击即走暖路径，而不是在点击
+        // 回调里新建原生表面。
+        onPressed: {
+            if (comboPopup.flushQueuedPrewarm) comboPopup.flushQueuedPrewarm()
+        }
         onClicked: {
             if (comboControl.isOpen && !comboPopup.isClosing) {
                 comboControl.closePopup()

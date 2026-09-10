@@ -42,14 +42,35 @@ def _raising_flush(error):
     return fail
 
 
-def _filter_with_flush(flush):
+def _filter_with_flush(flush, message=None):
     event_filter = shadow.DwmSyncFilter()
+    flush_message = event_filter.WM_SIZING if message is None else message
     message_class = SimpleNamespace(
-        from_address=lambda _address: SimpleNamespace(message=event_filter.WM_SIZE)
+        from_address=lambda _address: SimpleNamespace(message=flush_message)
     )
     event_filter._get_msg_class = lambda: message_class
     event_filter._dwmapi = SimpleNamespace(DwmFlush=flush)
     return event_filter
+
+
+def _scripted_filter(messages):
+    """Play one fixed native message sequence and record every flush. 播放固定消息序列并记录每次 flush。"""
+    flushes = []
+    pending = iter(messages)
+    event_filter = shadow.DwmSyncFilter()
+    message_class = SimpleNamespace(
+        from_address=lambda _address: SimpleNamespace(message=next(pending))
+    )
+    event_filter._get_msg_class = lambda: message_class
+    event_filter._dwmapi = SimpleNamespace(
+        DwmFlush=lambda: flushes.append(len(flushes))
+    )
+
+    def play():
+        for _ in messages:
+            assert event_filter.nativeEventFilter(QByteArray(), 0) == (False, 0)
+
+    return event_filter, flushes, play
 
 
 def _native_shadow_manager(monkeypatch):
@@ -152,6 +173,39 @@ def test_native_event_filter_does_not_swallow_process_control(error_type):
 
     with pytest.raises(error_type, match="stop"):
         event_filter.nativeEventFilter(QByteArray(), 1)
+
+
+def test_bare_wm_size_does_not_flush_synchronously():
+    """Programmatic resize and popup window construction must not wait for DWM.
+
+    程序化改尺寸与弹层建窗不得同步等待 DWM 合成，否则每次弹层打开都要多花
+    一次等垂直同步的时间。
+    """
+    event_filter, flushes, play = _scripted_filter(
+        [shadow.DwmSyncFilter.WM_SIZE] * 3
+    )
+    play()
+
+    assert flushes == []
+
+
+def test_interactive_loop_keeps_flushing_while_resizing():
+    """The interactive resize loop keeps the anti-tearing DwmFlush. 交互式缩放循环保留防撕裂 DwmFlush。"""
+    event_filter, flushes, play = _scripted_filter(
+        [
+            shadow.DwmSyncFilter.WM_ENTERSIZEMOVE,
+            shadow.DwmSyncFilter.WM_SIZE,
+            shadow.DwmSyncFilter.WM_SIZING,
+            shadow.DwmSyncFilter.WM_MOVING,
+            shadow.DwmSyncFilter.WM_EXITSIZEMOVE,
+            shadow.DwmSyncFilter.WM_SIZE,
+            shadow.DwmSyncFilter.WM_SIZING,
+        ]
+    )
+    play()
+
+    # 循环内 3 次(WM_SIZE/WM_SIZING/WM_MOVING) + 循环外 WM_SIZING 1 次
+    assert len(flushes) == 4
 
 
 def test_install_failure_logs_traceback_state_and_allows_retry(monkeypatch):
