@@ -101,7 +101,8 @@ def test_module_imports_without_ctypes_winfunctype():
     """
     script = (
         "import ctypes, sys\n"
-        "del ctypes.WINFUNCTYPE\n"
+        "if hasattr(ctypes, 'WINFUNCTYPE'):\n"
+        "    del ctypes.WINFUNCTYPE\n"
         "sys.platform = 'linux'\n"
         f"sys.path.insert(0, {str(ROOT)!r})\n"
         "import prismqml.python.core._notification_banner as module\n"
