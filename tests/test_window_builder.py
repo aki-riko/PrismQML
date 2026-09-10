@@ -126,6 +126,10 @@ def _expected_engine_setup_prefix():
 
 
 def _expected_engine_context_calls(scenario):
+    from prismqml.python.runtime.window_services import (
+        get_notification_banner_guard,
+    )
+
     values = scenario.values
     return [
         ("factory", "theme"),
@@ -138,6 +142,7 @@ def _expected_engine_context_calls(scenario):
         ("context", "MicaManager", values["mica"]),
         ("factory", "clipboard"),
         ("context", "ClipboardHelper", values["clipboard"]),
+        ("context", "NotificationBannerGuard", get_notification_banner_guard()),
         ("context", "PrismQmlStartupProfileVerbose", True),
         ("factory", "asynchronous_page_loader"),
         ("context", "PrismQmlAsynchronousPageLoaderEnabled", False),

@@ -72,46 +72,61 @@ class _MONITORINFO(ctypes.Structure):
     ]
 
 
+# (attribute, user32 export, argtypes, restype) for every probed entry point.
+# 每个被探测入口的 (属性名, user32 导出名, argtypes, restype)。
+# GetWindowBand is undocumented, but user32 has exported it since Windows 8.
+# GetWindowBand 未文档化，但自 Windows 8 起由 user32 导出。
+_BANNER_BINDINGS = (
+    ("window_from_point", "WindowFromPoint", [wintypes.POINT], wintypes.HWND),
+    ("get_ancestor", "GetAncestor", [wintypes.HWND, wintypes.UINT], wintypes.HWND),
+    (
+        "get_window_rect",
+        "GetWindowRect",
+        [wintypes.HWND, ctypes.POINTER(wintypes.RECT)],
+        wintypes.BOOL,
+    ),
+    (
+        "get_window_band",
+        "GetWindowBand",
+        [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)],
+        wintypes.BOOL,
+    ),
+    (
+        "monitor_from_window",
+        "MonitorFromWindow",
+        [wintypes.HWND, wintypes.DWORD],
+        wintypes.HANDLE,
+    ),
+    (
+        "get_monitor_info",
+        "GetMonitorInfoW",
+        [wintypes.HANDLE, ctypes.POINTER(_MONITORINFO)],
+        wintypes.BOOL,
+    ),
+    (
+        "enum_display_monitors",
+        "EnumDisplayMonitors",
+        [
+            wintypes.HDC,
+            ctypes.POINTER(wintypes.RECT),
+            _MONITOR_ENUMPROC,
+            wintypes.LPARAM,
+        ],
+        wintypes.BOOL,
+    ),
+)
+
+
 class _User32BannerApi:
     """Pointer-width user32 bindings for banner probing. 横幅探测所需的 user32 绑定。"""
 
     def __init__(self) -> None:
         user32 = ctypes.WinDLL("user32", use_last_error=True)
-
-        self.window_from_point = user32.WindowFromPoint
-        self.window_from_point.argtypes = [wintypes.POINT]
-        self.window_from_point.restype = wintypes.HWND
-
-        self.get_ancestor = user32.GetAncestor
-        self.get_ancestor.argtypes = [wintypes.HWND, wintypes.UINT]
-        self.get_ancestor.restype = wintypes.HWND
-
-        self.get_window_rect = user32.GetWindowRect
-        self.get_window_rect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
-        self.get_window_rect.restype = wintypes.BOOL
-
-        # Undocumented but exported by user32 since Windows 8.
-        # 未文档化，但自 Windows 8 起由 user32 导出。
-        self.get_window_band = user32.GetWindowBand
-        self.get_window_band.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
-        self.get_window_band.restype = wintypes.BOOL
-
-        self.monitor_from_window = user32.MonitorFromWindow
-        self.monitor_from_window.argtypes = [wintypes.HWND, wintypes.DWORD]
-        self.monitor_from_window.restype = wintypes.HANDLE
-
-        self.get_monitor_info = user32.GetMonitorInfoW
-        self.get_monitor_info.argtypes = [wintypes.HANDLE, ctypes.POINTER(_MONITORINFO)]
-        self.get_monitor_info.restype = wintypes.BOOL
-
-        self.enum_display_monitors = user32.EnumDisplayMonitors
-        self.enum_display_monitors.argtypes = [
-            wintypes.HDC,
-            ctypes.POINTER(wintypes.RECT),
-            _MONITOR_ENUMPROC,
-            wintypes.LPARAM,
-        ]
-        self.enum_display_monitors.restype = wintypes.BOOL
+        for attribute, export, argtypes, restype in _BANNER_BINDINGS:
+            function = getattr(user32, export)
+            function.argtypes = argtypes
+            function.restype = restype
+            setattr(self, attribute, function)
 
 
 _API: Optional[_User32BannerApi] = None
@@ -216,6 +231,21 @@ def clamp_reservation(reserved: int, work_height: int) -> int:
     return min(reserved, int(work_height * MAX_RESERVATION_RATIO))
 
 
+def _banner_work_area(
+    api: _User32BannerApi, hwnd: int
+) -> Optional[Tuple[int, int, int, int]]:
+    """Return the work area of the monitor hosting one window. 返回窗口所在显示器的工作区。"""
+    monitor = api.monitor_from_window(hwnd, _MONITOR_DEFAULTTONEAREST)
+    if not monitor:
+        return None
+    info = _MONITORINFO()
+    info.cbSize = ctypes.sizeof(_MONITORINFO)
+    if not api.get_monitor_info(monitor, ctypes.byref(info)):
+        return None
+    work = info.rcWork
+    return (work.left, work.top, work.right, work.bottom)
+
+
 def notification_banner_reservations() -> Tuple[int, int]:
     """Return (top, bottom) reserved physical heights. 返回 (顶部, 底部) 保留高度。
 
@@ -231,25 +261,15 @@ def notification_banner_reservations() -> Tuple[int, int]:
         rect = wintypes.RECT()
         if not api.get_window_rect(hwnd, ctypes.byref(rect)):
             continue
-        monitor = api.monitor_from_window(hwnd, _MONITOR_DEFAULTTONEAREST)
-        if not monitor:
-            continue
-        info = _MONITORINFO()
-        info.cbSize = ctypes.sizeof(_MONITORINFO)
-        if not api.get_monitor_info(monitor, ctypes.byref(info)):
+        work = _banner_work_area(api, hwnd)
+        if work is None:
             continue
         edge, height = banner_edge_and_height(
-            (rect.left, rect.top, rect.right, rect.bottom),
-            (
-                info.rcWork.left,
-                info.rcWork.top,
-                info.rcWork.right,
-                info.rcWork.bottom,
-            ),
+            (rect.left, rect.top, rect.right, rect.bottom), work
         )
         if height > reserved[edge]:
             reserved[edge] = height
-            work_height[edge] = int(info.rcWork.bottom) - int(info.rcWork.top)
+            work_height[edge] = work[3] - work[1]
     return (
         clamp_reservation(reserved[EDGE_TOP], work_height[EDGE_TOP]),
         clamp_reservation(reserved[EDGE_BOTTOM], work_height[EDGE_BOTTOM]),
