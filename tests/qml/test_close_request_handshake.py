@@ -319,6 +319,56 @@ def main():
     if hide_win._window.property("_closeInProgress") is not False:
         failures.append("second hide-only close left _closeInProgress=true")
 
+    # The landing mode is latched when the accepted close starts: writing
+    # closeRequestHideOnly during the collapse animation must not hijack an
+    # already-accepted hide-only close into the destroy path.
+    # 收尾方式在已接受关闭发起的那一刻闩锁: 收缩动画期间写 closeRequestHideOnly
+    # 不得把已被接受的隐藏式关闭劫持进销毁路径。
+    hide_win.show()
+    pump(180)
+    if not QMetaObject.invokeMethod(hide_win._window, "requestClose"):
+        failures.append("latched hide-only requestClose was not invokable")
+    if hide_win._window.property("_closeInProgress") is not True:
+        failures.append("latched hide-only requestClose did not start synchronously")
+    if hide_win._window.property("_closeHideOnlyLatched") is not True:
+        failures.append("hide-only close was not latched when the accepted close started")
+    hide_win._window.setProperty("closeRequestHideOnly", False)
+    pump(1200)
+    if hide_win.close_events != 3:
+        failures.append(f"latched hide-only requestClose emitted {hide_win.close_events} close events, expected 3")
+    if hide_win.isVisible():
+        failures.append("latched hide-only requestClose left the window visible")
+    if hide_win._window.property("_closeInProgress") is not False:
+        failures.append("mid-animation closeRequestHideOnly write hijacked the accepted close into the destroy path")
+
+    # A native close delivered through onClosing must land exactly the same way.
+    # 经 onClosing 送达的原生关闭也必须以同样方式收尾。
+    hide_win.show()
+    pump(180)
+    result = hide_win.close()
+    pump(1200)
+    if result is not False:
+        failures.append(f"hide-only native close returned {result!r}, expected False")
+    if hide_win.close_events != 4:
+        failures.append(f"hide-only native close emitted {hide_win.close_events} close events, expected 4")
+    if hide_win.isVisible():
+        failures.append("hide-only native close left the window visible")
+    if hide_win._window.property("closeRequestHideOnly") is not True:
+        failures.append("hide-only native close did not write closeRequestHideOnly=true")
+    if hide_win._window.property("_closeInProgress") is not False:
+        failures.append("hide-only native close left _closeInProgress=true")
+    hide_win.show()
+    pump(180)
+    if not hide_win.isVisible():
+        failures.append("re-show after hide-only native close failed to show the window")
+    frame_layer = None
+    for child in hide_win._window.contentItem().childItems():
+        if "WindowsCoreFrame" in child.metaObject().className():
+            frame_layer = child
+            break
+    if frame_layer is not None and not frame_layer.isVisible():
+        failures.append("hide-only native close left the content layer hidden after re-show")
+
     print(f"\n{'=' * 60}")
     if failures:
         print("RESULT: FAIL - close request handshake regression failed")

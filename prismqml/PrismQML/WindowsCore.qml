@@ -63,6 +63,17 @@ Window {
     property bool _closeInProgress: false
     property bool _closeCompletionPending: false
     property bool _closeSourceWasVisible: true
+    // Latched copy of closeRequestHideOnly, frozen when the accepted close starts.
+    // closeRequestHideOnly is a public property the bridge writes while the close request is
+    // dispatched, but the finish only runs after the collapse animation and the frame-end
+    // handshake; reading the live property there would let a later write flip how an already
+    // accepted close completes. closeRequestAccepted has no such window because it is consumed
+    // synchronously, so this mirrors that decision timing.
+    // closeRequestHideOnly 的闩锁副本, 在已接受关闭发起那一刻定案。closeRequestHideOnly 是
+    // 桥接在关闭请求分发期间写入的公开属性, 而收尾要等收缩动画与帧尾握手之后才跑; 那时再读
+    // 活动属性, 后续写入就能改掉一次已被接受的关闭的收尾方式。closeRequestAccepted 没有这个
+    // 空档, 因为它是同步消费的, 所以此处与那个决策时机保持一致。
+    property bool _closeHideOnlyLatched: false
     property bool _titleChromeReady: true
     property bool _resizeHandlesReady: false
     property bool _dwmInitializationDone: false
@@ -135,6 +146,7 @@ Window {
     function _cancelCloseRequest() {
         _closeInProgress = false
         _closeCompletionPending = false
+        _closeHideOnlyLatched = false
         closeFrameWaiter.cancel()
         // stop() also restores this window's opacity if the overlay path hid it.
         // stop() 同时会在覆盖窗口那条路藏了本窗口时把不透明度还原。
@@ -146,6 +158,7 @@ Window {
     }
     function _startAcceptedClose() {
         _closeInProgress = true
+        _closeHideOnlyLatched = closeRequestHideOnly
         _closeSourceWasVisible = windowFrameLayer.visible
         // Nothing hwnd-level is dropped here on purpose. The collapse runs in the overlay
         // window (preferOverlayWindow), which has no Mica and no native shadow, and this
@@ -163,7 +176,7 @@ Window {
     }
     function _completeAcceptedClose() {
         if (!_closeInProgress) return
-        if (!closeRequestHideOnly) {
+        if (!_closeHideOnlyLatched) {
             _closeDesktopNotifications()
             var closed = window.close()
             if (closed === false) {
@@ -185,12 +198,24 @@ Window {
         // 隐藏式关闭: 收缩动画已在覆盖窗口播完，这里以隐藏代替销毁收尾，并把关闭
         // 状态全部复位，窗口之后仍可再次显示与关闭。与真实关闭一致, 宿主窗口
         // 必须等已下屏后才还原。
+        // Desktop notifications are deliberately not closed here, unlike the real close
+        // above: hiding is the collapse-to-tray path, not a shutdown, so notifications the
+        // user has not dismissed yet stay alive and dismissible. Only a destroyed window
+        // has to sweep them away.
+        // 这里故意不像上面的真实关闭那样关掉桌面通知: 隐藏是收进托盘, 不是退出, 用户尚未
+        // 处理的通知应当继续存活并可被处理。只有即将销毁的窗口才必须把它们清掉。
         window.hide()
-        _closeInProgress = false
-        _closeCompletionPending = false
         closeTransition.restoreHostWindow()
         windowFrameLayer.visible = _closeSourceWasVisible
         animHelper.restoreVisibleState()
+        // Cleared last: _closeInProgress must still gate onVisibleChanged ->
+        // ensureVisiblePaintState while the hide() above runs, or the just-hidden window
+        // would have its paint state restored a frame early.
+        // 最后才复位: 上面那次 hide() 触发 onVisibleChanged 时, _closeInProgress 必须仍然挡住
+        // ensureVisiblePaintState, 否则刚下屏的窗口会提前一帧被恢复绘制状态。
+        _closeInProgress = false
+        _closeCompletionPending = false
+        _closeHideOnlyLatched = false
     }
     function _armAcceptedClose() {
         if (!_closeInProgress) return
