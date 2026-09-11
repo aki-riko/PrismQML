@@ -369,6 +369,61 @@ def main():
     if frame_layer is not None and not frame_layer.isVisible():
         failures.append("hide-only native close left the content layer hidden after re-show")
 
+    # A real close only hides the window; the QML object and the engine stay alive, so the
+    # close state must be rewound after it. Otherwise _closeInProgress latches forever and
+    # every later close is swallowed by the "already closing" branch.
+    # 真实关闭只是把窗口藏起来, QML 对象与引擎都还活着, 因此关闭之后必须复位关闭状态。
+    # 否则 _closeInProgress 永久闩住, 之后每次关闭都会被「关闭中」分支吞掉。
+    #
+    # 收尾的帧尾握手要求窗口仍在提交帧, 所以这里不能在 closeEvent 里提前 hide() ——
+    # 那种宿主在收尾前就下屏, 帧尾永不到达 (既有行为, 不在本回归范围内)。
+    class RealCloseWindow(Window):
+        def __init__(self):
+            super().__init__(window_type=WindowType.BAR)
+            self.close_events = 0
+
+        def closeEvent(self, event):
+            self.close_events += 1
+
+    real_win = RealCloseWindow()
+    real_win.setSplashEnabled(False)
+    real_win.setWindowTitle("Real close reset regression")
+    real_win.addPage(None, "Home", "Home")
+    real_win.show()
+    pump(150)
+
+    if not QMetaObject.invokeMethod(real_win._window, "requestClose"):
+        failures.append("real close requestClose was not invokable")
+    pump(1200)
+
+    if real_win.close_events != 1:
+        failures.append(f"real close emitted {real_win.close_events} close events, expected 1")
+    if real_win.isVisible():
+        failures.append("real close left the window visible")
+    if real_win._window.property("_closeInProgress") is not False:
+        failures.append("real close left _closeInProgress=true")
+    if real_win._window.property("_closeCompletionPending") is not False:
+        failures.append("real close left _closeCompletionPending=true")
+    if real_win._window.property("_closeHideOnlyLatched") is not False:
+        failures.append("real close left _closeHideOnlyLatched=true")
+
+    # The window can be shown again, and the next close must run the handshake again
+    # instead of being swallowed by a still-latched close gate.
+    # 窗口可以再次显示, 且下一次关闭必须完整重跑握手, 而不是被仍闩住的关闭门吞掉。
+    real_win.show()
+    pump(180)
+    if not real_win.isVisible():
+        failures.append("re-show after real close failed to show the window")
+    if not QMetaObject.invokeMethod(real_win._window, "requestClose"):
+        failures.append("second real close requestClose was not invokable")
+    pump(1200)
+    if real_win.close_events != 2:
+        failures.append(f"real close gate stayed latched: {real_win.close_events} close events, expected 2")
+    if real_win.isVisible():
+        failures.append("second real close left the window visible")
+    if real_win._window.property("_closeInProgress") is not False:
+        failures.append("second real close left _closeInProgress=true")
+
     print(f"\n{'=' * 60}")
     if failures:
         print("RESULT: FAIL - close request handshake regression failed")

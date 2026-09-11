@@ -63,7 +63,8 @@ static QJsonObject validWindow() {
     return {
         {QStringLiteral("LazyLoading"), false},
         {QStringLiteral("DwmShadow"), false},
-        {QStringLiteral("MicaEnabled"), true},
+        // applyAllChanges 把 micaEnabled 从出厂默认 true 改成 false。
+        {QStringLiteral("MicaEnabled"), false},
         {QStringLiteral("DpiScale"), 150},
         {QStringLiteral("WindowType"), 2},
     };
@@ -154,7 +155,7 @@ static void observeSignals(ConfigManager &config, const QString &path,
     });
     QObject::connect(&config, &ConfigManager::micaEnabledChanged, [&]() {
         ++counts.mica; counts.committedBeforeNotify &=
-            config.micaEnabled() && readWindow(path).value("MicaEnabled").toBool();
+            !config.micaEnabled() && !readWindow(path).value("MicaEnabled").toBool(true);
     });
     QObject::connect(&config, &ConfigManager::dpiScaleChanged, [&]() {
         ++counts.dpi; counts.committedBeforeNotify &=
@@ -194,7 +195,8 @@ static void observeSignals(ConfigManager &config, const QString &path,
 static void applyAllChanges(ConfigManager &config) {
     config.setLazyLoading(false);
     config.setDwmShadow(false);
-    config.setMicaEnabled(true);
+    // MicaEnabled 的出厂默认已是 true, 这里必须写成 false 才是真实变更 (镜像 Python 默认)。
+    config.setMicaEnabled(false);
     config.setDpiScale(150);
     config.setWindowType(2);
     config.setTheme(QStringLiteral("dark"));
@@ -224,7 +226,7 @@ static void testValidLoad(const QTemporaryDir &directory) {
           "写入合法配置夹具");
     ConfigManager config(path);
     CHECK(!config.lazyLoading() &&
-              !config.dwmShadow() && config.micaEnabled() &&
+              !config.dwmShadow() && !config.micaEnabled() &&
               config.dpiScale() == 150 && config.windowType() == 2 &&
               config.theme() == QStringLiteral("dark") &&
               config.skin() == QStringLiteral("neobrutalism") &&
@@ -243,7 +245,7 @@ static void testLegacyWindowLoad(const QTemporaryDir &directory) {
     CHECK(writeJson(path, {{QStringLiteral("Window"), validWindow()}}),
           "写入旧版仅 Window 配置夹具");
     ConfigManager config(path);
-    CHECK(!config.lazyLoading() && !config.dwmShadow() && config.micaEnabled() &&
+    CHECK(!config.lazyLoading() && !config.dwmShadow() && !config.micaEnabled() &&
               config.dpiScale() == 150 && config.windowType() == 2 &&
               config.theme() == QStringLiteral("auto") &&
               config.skin() == QStringLiteral("fluent") &&
@@ -316,7 +318,7 @@ static void testInvalidFieldLoads(const QTemporaryDir &directory) {
         directory.filePath(QStringLiteral("integral-float-dpi/app.json")),
         QByteArrayLiteral(
             "{\"Window\":{\"LazyLoading\":false,\"DwmShadow\":false,"
-            "\"MicaEnabled\":true,\"DpiScale\":150.0,\"WindowType\":2}}"),
+            "\"MicaEnabled\":false,\"DpiScale\":150.0,\"WindowType\":2}}"),
         "积分浮点词法 DPI 仍被严格拒绝");
     testRejectedAppearanceLoad(
         directory.filePath(QStringLiteral("invalid-theme/app.json")),
@@ -378,7 +380,7 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     CHECK(counts.committedBeforeNotify, "属性信号观察到的内存和磁盘均已提交");
     ConfigManager reloaded(path);
     CHECK(!reloaded.lazyLoading() && !reloaded.dwmShadow() &&
-              reloaded.micaEnabled() && reloaded.dpiScale() == 150 &&
+              !reloaded.micaEnabled() && reloaded.dpiScale() == 150 &&
               reloaded.windowType() == 2 &&
               reloaded.theme() == QStringLiteral("dark") &&
               reloaded.skin() == QStringLiteral("neobrutalism") &&
@@ -392,7 +394,8 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     config.setSkin(QStringLiteral("classic"));
     config.setLanguage(QStringLiteral("xx"));
     config.setAccentColor(QStringLiteral("#zzzzzz"));
-    config.setMicaEnabled(true);
+    // 非法值 + 相同值: micaEnabled 已是 false, 再写 false 属相同值, 不得保存或发信号。
+    config.setMicaEnabled(false);
     CHECK(config.waitForPersistence(), "保存失败队列已结算");
     CHECK(counts.config == 9 && counts.properties() == 9,
           "非法值和相同值均不保存也不发信号");
@@ -420,7 +423,7 @@ static void testEphemeralAppearanceIgnoresSharedSkin(
 
     ConfigManager config(path, false);
     CHECK(!config.lazyLoading() && !config.dwmShadow() &&
-              config.micaEnabled() && config.dpiScale() == 150 &&
+              !config.micaEnabled() && config.dpiScale() == 150 &&
               config.windowType() == 2,
           "禁用外观持久化仍恢复 Window 配置");
     CHECK(config.theme() == QStringLiteral("auto") &&

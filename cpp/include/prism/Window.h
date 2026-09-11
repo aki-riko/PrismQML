@@ -29,9 +29,40 @@ public slots:
     void onChanged(int index);
     void onBottomItemClicked(int index);  // 底部导航项点击(含纯功能项) -> 用户回调
     void onCaptionActionTriggered();  // 通用标题栏动作 -> 用户回调
-    void onClosing(QQuickCloseEvent *event);  // 返回键/关闭请求 -> goBack 或退出
+    void onClosing(QQuickCloseEvent *event);  // 原生关闭请求 -> goBack / 用户回调 / 放行
+    void onCloseRequested();  // QML requestClose() -> 用户回调 (无原生关闭事件)
 private:
     Window *m_owner;
+};
+
+// WindowCloseEvent - 可取消的关闭事件 (镜像 Python window_core.py WindowCloseEvent)
+//
+// 默认接受关闭; 宿主可 ignore() 取消这次关闭让窗口继续存活。requestHideOnClose()
+// 声明这次已接受的关闭要「带动画隐藏而非销毁」(收进托盘): 关闭动画照播, 收尾时
+// 隐藏窗口并复位关闭状态, 之后仍可再次 show/close。
+//
+// 与 Python 的差异(有意, 不改既有行为):
+//   Python 的 closeEvent 写回 closeRequestAccepted 是同步的, 因此宿主可以在
+//   closeEvent 返回「之后」再改 accepted; C++ 侧写回紧随 closeEvent 返回执行,
+//   故取消关闭必须在 closeEvent 内直接调用 ignore()。
+class WindowCloseEvent {
+public:
+    explicit WindowCloseEvent(QObject *target = nullptr);
+
+    bool isAccepted() const { return m_accepted; }
+    // 仅当事件已被接受时生效: 被取消的关闭不会隐藏窗口。
+    bool hideOnCloseRequested() const { return m_accepted && m_hideOnClose; }
+
+    void accept() { m_accepted = true; }
+    void ignore() { m_accepted = false; }
+    void requestHideOnClose();
+
+    QObject *targetObject() const { return m_target; }
+
+private:
+    QObject *m_target = nullptr;
+    bool m_accepted = true;
+    bool m_hideOnClose = false;
 };
 
 // WindowType - 窗口类型枚举 (值对齐 Python WindowType IntEnum)
@@ -87,6 +118,12 @@ public:
     void onBottomItemClicked(std::function<void(int)> cb);
     // onCaptionActionTriggered - 通用标题栏动作点击回调。
     void onCaptionActionTriggered(std::function<void()> cb);
+    // onClosing - 关闭请求回调 (镜像 Python WindowCore.closeEvent)。
+    // 用户点关闭按钮、系统关闭或 QML requestClose() 送达时触发, 此时窗口尚未开始
+    // 收尾: 调用 event.ignore() 可取消关闭并让窗口继续存活; 调用
+    // event.requestHideOnClose() 可让这次已接受的关闭以「带动画隐藏」收尾
+    // (收进托盘), 窗口之后仍可再次显示与关闭。未设置回调时保持既有行为(直接关闭)。
+    void onClosing(std::function<void(WindowCloseEvent &)> cb);
 
     void show();
     void navigateTo(int index);
@@ -95,6 +132,7 @@ public:
     // 返回 true=已弹栈到上一页; false=历史栈空(调用方应退出 App)。
     bool goBack();
     bool canGoBack() const { return m_navHistory.size() > 1; }
+    bool hasPreviousPage() const { return m_navHistory.size() > 1; }
 
     QObject *rootObject() const { return m_root; }
     bool isValid() const { return m_root != nullptr; }
@@ -139,10 +177,13 @@ private:
     bool m_splashSubtitleTranslated = false;
     std::function<void(int)> m_onBottomItemClicked;  // 底部项点击回调
     std::function<void()> m_onCaptionActionTriggered;  // 标题栏动作回调
+    std::function<void(WindowCloseEvent &)> m_onClosing;  // 关闭请求回调
 
     void build();
     void handleBottomItemClicked(int localIndex);  // NavBridge 转发的底部项点击(局部索引→全局)
     void handleCaptionActionTriggered();  // NavBridge 转发的通用标题栏动作
+    // 分发一次关闭请求给所有回调并写回 QML 决定, 返回事件是否仍被接受。
+    bool dispatchClose(WindowCloseEvent &event);
     void ensurePageCreated(int index);
     QQuickItem *findChildByName(const QString &name) const;
     void onCurrentPageChanged(int index);

@@ -294,6 +294,14 @@ if(PRISM_BUILD_TESTS)
     target_link_libraries(prism_test_updater PRIVATE prism)
     prism_add_cpp_test(prism_test_updater prism_test_updater offscreen)
 
+    # Window 关闭契约: 宿主回调 + 隐藏式关闭 (镜像 Python closeEvent/requestHideOnClose)
+    find_package(Qt6 ${PRISM_MIN_QT_VERSION} REQUIRED COMPONENTS Test)
+    qt_add_executable(prism_test_window_close tests/test_window_close.cpp)
+    target_link_libraries(prism_test_window_close PRIVATE prism Qt6::Test)
+    prism_add_cpp_test(
+        prism_test_window_close prism_test_window_close offscreen
+        "${CMAKE_CURRENT_SOURCE_DIR}/../prismqml")
+
     qt_add_executable(prism_test_config_manager
         tests/test_config_manager.cpp
         tests/test_config_contracts.cpp

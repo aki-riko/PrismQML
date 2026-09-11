@@ -178,6 +178,21 @@ Window {
         if (!_closeInProgress) return
         if (!_closeHideOnlyLatched) {
             _closeDesktopNotifications()
+            // A close only hides this window; the object and the engine stay alive, so the close
+            // state still has to be rewound after it — otherwise _closeInProgress latches
+            // forever: it keeps ensureVisiblePaintState from restoring paint state and makes
+            // every later requestClose/onClosing take the "already closing" branch, so the
+            // window could never be closed again. The rewind must stay after window.close():
+            // the close request is still on the stack while the platform delivers it, and that
+            // delivery re-enters onClosing. With the gate still up it lands on
+            // nativeCloseAccepted, which is the same step it has always taken; dropping the
+            // gate first would make it replay a whole second collapsed close.
+            // 关闭只是把这个窗口藏起来, 对象与引擎都还活着, 因此关闭之后仍必须复位关闭状态,
+            // 否则 _closeInProgress 会永久闩住: 它既挡住 ensureVisiblePaintState 恢复绘制状态,
+            // 又让之后每次 requestClose/onClosing 都走「关闭中」分支, 窗口再也关不掉。复位必须
+            // 留在 window.close() 之后: 平台投递这次关闭时它仍在调用栈上, 那次投递会重入
+            // onClosing; 门还立着才落到 nativeCloseAccepted —— 与历来的一步完全相同。先落门
+            // 则会让它把整个带动画关闭再播一遍。
             var closed = window.close()
             if (closed === false) {
                 _cancelCloseRequest()
@@ -189,6 +204,9 @@ Window {
             // 覆盖窗口那条路把本窗口藏了, 好让它的 Mica 不出现在收缩圆里。只有现在关闭已成功、
             // 窗口已下屏才还原 —— 早一点还原就会露出一帧完整的、没收紧的窗口。
             closeTransition.restoreHostWindow()
+            _closeInProgress = false
+            _closeCompletionPending = false
+            _closeHideOnlyLatched = false
             return
         }
         // Hide-only close: the collapse already played in the overlay window, so

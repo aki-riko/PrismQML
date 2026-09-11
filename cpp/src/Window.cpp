@@ -18,6 +18,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QDebug>
+#include <exception>
 #include <functional>
 
 namespace prism {
@@ -39,6 +40,49 @@ void NavBridge::onCaptionActionTriggered() {
 
 Window::Window(QQmlEngine *engine, const QString &importPath, WindowType type)
     : m_engine(engine), m_importPath(importPath), m_type(type) {}
+
+WindowCloseEvent::WindowCloseEvent(QObject *target) : m_target(target) {}
+
+void WindowCloseEvent::requestHideOnClose() {
+    // Python WindowCloseEvent.requestHideOnClose 同样强制 accepted=true: 隐藏式
+    // 关闭仍然是一次「被接受的关闭」, QML 才会走已接受关闭的动画链。
+    m_accepted = true;
+    m_hideOnClose = true;
+}
+
+void Window::onClosing(std::function<void(WindowCloseEvent &)> cb) {
+    m_onClosing = std::move(cb);
+}
+
+// dispatchClose - 写回 QML 关闭决定 (镜像 Python _on_close_requested)。
+// 只写 closeRequestHideOnly=true: 写入它会同步触发 QML 的 onClosing, 而该处理器
+// 会把「任何」真正的关闭请求重新分发成带动画收尾的已接受关闭; 因此对普通关闭必须
+// 一个属性都不写, 既有的两步分发(先拒绝本次原生请求, 再发带动画的已接受关闭)保持
+// 不变, 也就保住了动画与视觉。
+bool Window::dispatchClose(WindowCloseEvent &event) {
+    if (m_onClosing) {
+        try {
+            m_onClosing(event);
+        } catch (const std::exception &exc) {
+            qWarning() << "prism::Window close handler threw:" << exc.what();
+            event.ignore();  // 与 Python 一致: 回调异常时 fail-closed 为拒绝关闭
+        } catch (...) {
+            qWarning() << "prism::Window close handler threw an unknown exception";
+            event.ignore();
+        }
+    }
+
+    if (m_root) {
+        if (!event.isAccepted()) {
+            // 取消关闭。QML 的 onClosing 自己也会因 closeRequestAccepted=false 拒绝
+            // 本次原生请求; 这里写回是为访客代码(requestClose() 路径)提供同一契约。
+            m_root->setProperty("closeRequestAccepted", false);
+        } else if (event.hideOnCloseRequested()) {
+            m_root->setProperty("closeRequestHideOnly", true);
+        }
+    }
+    return event.isAccepted();
+}
 
 Window::~Window() {
     if (m_root) {
@@ -407,6 +451,9 @@ void Window::build() {
     // 返回键/关闭请求 -> NavBridge::onClosing (移动端返回键弹栈)
     QObject::connect(m_root, SIGNAL(closing(QQuickCloseEvent*)),
                      m_navBridge, SLOT(onClosing(QQuickCloseEvent*)));
+    // QML requestClose()/animatedClose() -> 同一条宿主关闭回调
+    QObject::connect(m_root, SIGNAL(closeRequested()),
+                     m_navBridge, SLOT(onCloseRequested()));
 
     // 立即创建第 0 页 (默认显示页) + 初始压入导航历史
     if (total > 0) {
@@ -451,21 +498,54 @@ bool Window::goBack() {
     return true;
 }
 
+// QQuickCloseEvent 公开头只做前向声明, 故这里只经 QObject* 用 setProperty 设置
+// accepted(它是 Q_PROPERTY), 不依赖私有头。
 void NavBridge::onClosing(QQuickCloseEvent *event) {
+    if (!m_owner)
+        return;
+
 #if PRISM_MOBILE
     // Mobile back key triggers window closing: intercept if goBack is possible,
     // otherwise let it through (exit). 移动端返回键触发关闭: 能 goBack 则拦截(不关窗), 否则放行退出。
-    // QQuickCloseEvent 公开头仅前向声明, 但它单继承 QObject 且 accepted 是
-    // Q_PROPERTY → 经 QObject* 用 setProperty 设置, 避免依赖私有头。
-    if (m_owner && m_owner->goBack()) {
+    // 返回键拦截与关闭收尾无关, 必须在关闭门之前判定, 否则关闭期间按返回键会丢失弹栈。
+    if (m_owner->hasPreviousPage()) {
         if (event)
             reinterpret_cast<QObject *>(event)->setProperty("accepted", false);
+        return;
     }
-#else
-    // Desktop: the close button must quit immediately, never replay nav history.
-    // 桌面端: 点关闭即退出, 绝不把关闭当作返回键逐级弹导航栈(否则需点击 N 次才能关闭)。
-    Q_UNUSED(event);
 #endif
+
+    // 已接受关闭的收尾会用 window.close() 交付真正的关闭, 那次投递会再次跑进这里; 而
+    // QML 对「关闭中」的投递只登记 nativeCloseAccepted, 不再是一次新的关闭请求。宿主
+    // 回调因此必须以同一道门过滤, 否则一次关闭会向宿主交付两次关闭请求。QML 的
+    // requestClose() 与 onClosing 本身就以 _closeInProgress 挡重复请求, 这里沿用同一道门。
+    if (!m_owner->rootObject())
+        return;
+    if (m_owner->rootObject()->property("_closeInProgress").toBool())
+        return;
+
+    // Route the close request through the host callback and mirror the Python
+    // bridge (WindowCore._on_close_requested): ignore() cancels this close and
+    // leaves the window alive, requestHideOnClose() arms the animated hide.
+    // 把关闭请求交给宿主回调, 并对齐 Python 桥接(WindowCore._on_close_requested):
+    // ignore() 取消本次关闭并保留窗口, requestHideOnClose() 让本次关闭以带动画隐藏收尾。
+    WindowCloseEvent closeEvent(reinterpret_cast<QObject *>(event));
+    m_owner->dispatchClose(closeEvent);
+}
+
+// QML requestClose()/animatedClose() 走的是 closeRequested 信号, 不会产生原生关闭
+// 事件; 这里补上同一条宿主回调 (镜像 Python 对 closeRequested 的信号连接)。
+//
+// 关闭收尾会用 window.close() 交付真正的关闭, 那次投递会再次跑进 QML 的 onClosing,
+// 而它又会访问 closeRequested 信号; 若不拦, 一次关闭会向宿主交付两次回调。QML 的
+// requestClose() 本身以 _closeInProgress 挡住关闭期间的重复请求, 这里沿用同一道门。
+void NavBridge::onCloseRequested() {
+    if (!m_owner || !m_owner->rootObject())
+        return;
+    if (m_owner->rootObject()->property("_closeInProgress").toBool())
+        return;
+    WindowCloseEvent closeEvent(m_owner->rootObject());
+    m_owner->dispatchClose(closeEvent);
 }
 
 // 确保页面已创建并挂入 page_N 容器 (镜像 _create_page)

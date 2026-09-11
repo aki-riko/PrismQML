@@ -359,7 +359,8 @@ int main(int argc, char *argv[]) {
                   appearance.value(QStringLiteral("AccentColor")).toString() ==
                       QStringLiteral("#123456"),
               "公开主题 API 持久化完整 Appearance 并提交内存状态");
-        CHECK(!origMica && origDpi == 0,
+        // MicaEnabled 出厂默认已改为 true (镜像 Python app_config 默认), 这里断言默认值本身。
+        CHECK(origMica && origDpi == 0,
               "隔离配置从默认值启动，不读取真实用户数据");
     }
 
