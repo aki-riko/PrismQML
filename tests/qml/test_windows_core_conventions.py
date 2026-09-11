@@ -485,11 +485,19 @@ def test_windows_core_close_collapse_clips_unmasked_shadow_layer(monkeypatch, qa
         sampler.stop()
 
         # Every sample taken while the circle was still open must show the
-        # unmasked layer already gone. 圆尚未收完时的每个采样都必须显示未遮罩层
-        # 已经撤掉。
+        # unmasked layer already gone. The close-state rewind reactivates the
+        # host once the collapse reaches zero so the window can close again
+        # later; those post-zero samples are expected and excluded by progress.
+        # 圆尚未收完时的每个采样都必须显示未遮罩层已经撤掉。关闭状态复位会在收紧
+        # 归零之后重新激活宿主, 使窗口之后仍可再次关闭; 这些归零后的采样属预期,
+        # 用 progress 排除。
         assert samples
+        during_collapse = [
+            (progress, active) for progress, active in samples if progress > 0.0
+        ]
+        assert during_collapse
         still_active = [
-            progress for progress, active in samples if active
+            progress for progress, active in during_collapse if active
         ]
         assert still_active == []
         assert warnings == []
