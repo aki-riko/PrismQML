@@ -47,6 +47,10 @@ from scripts.test_process import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_MODULE = Path(__file__).resolve()
+WINDOWS_PATH_FORM_ONLY = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Windows path forms need os.path.basename Windows semantics",
+)
 
 
 def test_python_aliases_use_the_running_interpreter():
@@ -77,15 +81,21 @@ def test_bare_console_script_is_resolved_to_an_absolute_path():
         "pythonw.exe",
         "PYTHON",
         "pypy3",
-        r".\python.exe",
         "/usr/bin/python",
-        r"C:\Tools\Python\python.exe",
+        pytest.param(r".\python.exe", marks=WINDOWS_PATH_FORM_ONLY),
+        pytest.param(r"C:\Tools\Python\python.exe", marks=WINDOWS_PATH_FORM_ONLY),
     ),
 )
 def test_explicit_interpreter_name_is_never_path_resolved(interpreter):
     """An explicitly named interpreter keeps the caller's identity.
 
     显式点名的解释器保持调用者给出的身份, 不得解析成绝对路径。
+
+    Windows path forms classify as an interpreter only under Windows path
+    semantics: ``_is_python_interpreter_command`` uses ``os.path.basename``, which
+    does not split on a backslash under POSIX.
+    Windows 路径形式只在 Windows 路径语义下被识别为解释器: 分类函数使用
+    ``os.path.basename``, POSIX 下不按反斜杠切分, 故这两个用例仅在 Windows 执行。
     """
     assert _is_python_interpreter_command(interpreter) is True
     assert _resolve_executable(interpreter) == interpreter
