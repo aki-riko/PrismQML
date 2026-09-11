@@ -226,7 +226,11 @@ def test_hover_motion_policy_disables_exit_animation():
     assert "property bool _transitionWasActive: false" in behavior_source
     assert "onActiveChanged: _recordActiveChange()" in behavior_source
     assert "onTargetValueChanged: _selectTransitionDirection()" in behavior_source
-    assert "_animationFrom = Qt.rgba(next.r, next.g, next.b, 0)" in behavior_source
+    assert "_animationFrom = Enums.withAlpha(" in behavior_source
+    assert "next, Enums.opacityLevel.invisible)" in behavior_source
+    # Alpha-zero variants must route through the Enums color helper.
+    # 零透明变体必须经 Enums 颜色助手构造，禁止组件内直接调用颜色构造器。
+    assert "Qt.rgba" not in behavior_source
     assert "from: root._animationFrom" in behavior_source
     assert "duration: root._transitionWasActive" in behavior_source
     assert "? Enums.motion.hoverExitDuration : root.enterDuration" in behavior_source

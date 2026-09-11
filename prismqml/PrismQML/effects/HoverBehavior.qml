@@ -79,7 +79,8 @@ Behavior {
             // Fade the intended hover color in from alpha zero instead of
             // interpolating RGB from transparent black. 从透明到悬浮色时只插值
             // alpha，避免透明黑参与 RGB 插值产生脏灰帧。
-            _animationFrom = Qt.rgba(next.r, next.g, next.b, 0)
+            _animationFrom = Enums.withAlpha(
+                next, Enums.opacityLevel.invisible)
         }
         _lastTargetValue = next
     }

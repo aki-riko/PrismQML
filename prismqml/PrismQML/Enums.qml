@@ -77,6 +77,11 @@ Item {
             outputAlpha
         )
     }
+    // Build the same color at an explicit alpha, keeping the source RGB untouched.
+    // 生成指定 alpha 的同色变体，保留源 RGB，避免透明黑参与颜色插值产生脏灰帧。
+    function withAlpha(base, alpha) {
+        return Qt.rgba(base.r, base.g, base.b, alpha)
+    }
     
     // ==================== Global Theme Props 全局主题属性 ====================
     readonly property string theme: ThemeManager ? ThemeManager.theme : "auto"

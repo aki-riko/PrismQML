@@ -262,7 +262,8 @@ Item {
     onHeightChanged: _scheduleScrollBarUpdate()
     Component.onCompleted: _scheduleScrollBarUpdate()
 
-    // ==================== Deferred Work 延迟任务 ====================
+    // ==================== Content 内容 ====================
+    // Deferred work timers 延迟任务计时器
     ChatInternal.ChatMessageListScrollToBottomTimer {
         id: scrollToBottomTimer
         host: control

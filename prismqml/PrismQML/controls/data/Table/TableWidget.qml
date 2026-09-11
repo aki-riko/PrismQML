@@ -247,7 +247,7 @@ DataWidgetCore {
         itemSelectionChanged()
     }
 
-    // ==================== Data API 数据 API ====================
+    // ==================== Public Methods 公开方法 ====================
     // Keep the public surface on TableWidget while delegating data state.
     // 保留 TableWidget 公开面，同时委托数据状态处理。
     function _isPureJsArray() { return TableDataController._isPureJsArray(root) }
@@ -297,7 +297,7 @@ DataWidgetCore {
     }
 
     function currentItem() { return item(currentRow, currentColumn >= 0 ? currentColumn : 0) }
-    // ==================== Sorting API 排序 API ====================
+    // Sorting API 排序 API
     function sortItems(column, order) {
         TableDataController.sortItems(root, column, order)
         if (column >= 0 && column < (_safeColumns || []).length) {
