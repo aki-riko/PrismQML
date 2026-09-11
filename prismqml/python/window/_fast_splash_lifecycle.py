@@ -11,7 +11,7 @@ from ctypes import wintypes
 
 from PySide6.QtCore import QTimer, Qt
 
-from ..core.logger import info
+from ..core.logger import debug, info
 
 
 def finish_embedded_handoff(controller) -> None:
@@ -35,8 +35,8 @@ def finish_embedded_handoff(controller) -> None:
         gate["closed"] = True
         try:
             main_window.frameSwapped.disconnect(on_embedded_frame)
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"FastSplash 交接解绑主窗口 frameSwapped 未生效: {type(exc).__name__}: {exc}")
         controller._handoff_done = True
         controller._splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
         controller._splash.setVisible(False)
@@ -94,8 +94,8 @@ def finish_reveal(controller) -> None:
         controller._handoff_done = True
         try:
             splash.frameSwapped.disconnect(on_hidden_frame)
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"FastSplash 揭幕解绑 splash frameSwapped 未生效: {type(exc).__name__}: {exc}")
         splash.setFlag(Qt.WindowType.WindowTransparentForInput, True)
         splash.setVisible(False)
 
@@ -175,11 +175,11 @@ def close(controller) -> None:
     if controller._main_window is not None:
         try:
             controller._main_window.frameSwapped.disconnect(controller._on_main_frame)
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"FastSplash 关闭解绑主窗口 frameSwapped 未生效: {type(exc).__name__}: {exc}")
     if controller._splash is not None:
         try:
             controller._splash.frameSwapped.disconnect(controller._on_splash_frame)
             controller._splash.setVisible(False)
-        except (AttributeError, RuntimeError, TypeError):
-            pass
+        except (AttributeError, RuntimeError, TypeError) as exc:
+            debug(f"FastSplash 关闭解绑 splash frameSwapped 未生效: {type(exc).__name__}: {exc}")
