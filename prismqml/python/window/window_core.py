@@ -528,13 +528,6 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
     def currentIndex(self) -> int:
         return self._current_index
 
-    def pageCount(self) -> int:
-        """Total registered page count. 已注册分页总数。
-
-        供宿主遍历 prewarmPage() 做空闲预热。
-        """
-        return len(self._nav_items) + len(self._bottom_nav_items)
-
     # ==================== 窗口生命周期 ====================
 
     def _attach_fast_splash(self) -> None:
