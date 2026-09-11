@@ -26,6 +26,8 @@ WindowsCore {
     readonly property int navPanelMinWidth: Enums.window.navPanelMinWidth
     readonly property int dividerWidth: Enums.border.thin
     readonly property int resizeDelay: Enums.window.resizeHandlesDelayMs
+    readonly property int resizeEdge: Enums.window.resizeEdge
+    readonly property int resizeCorner: Enums.window.resizeCorner
 
     width: 720
     height: 520

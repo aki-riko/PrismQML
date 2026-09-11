@@ -87,30 +87,148 @@ def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
         assert _wait_for(lambda: len(_resize_areas(window)) == 8)
         resize_areas = _resize_areas(window)
         assert len(resize_areas) == 8
+
+        resize_edge = window.property("resizeEdge")
+        resize_corner = window.property("resizeCorner")
+        left, right = Qt.Edge.LeftEdge, Qt.Edge.RightEdge
+        top, bottom = Qt.Edge.TopEdge, Qt.Edge.BottomEdge
+        # (horizontal edge, vertical edge, diagonal cursor) per corner, in the
+        # order the frame declares them.
+        # 每个角落的 (水平边, 垂直边, 对角光标), 按窗口框架的声明顺序。
+        corner_specs = (
+            (left, top, Qt.CursorShape.SizeFDiagCursor),
+            (right, top, Qt.CursorShape.SizeBDiagCursor),
+            (left, bottom, Qt.CursorShape.SizeBDiagCursor),
+            (right, bottom, Qt.CursorShape.SizeFDiagCursor),
+        )
+
+        def _combined_edge(horizontal, vertical):
+            """Combine two Qt.Edge values the way QML does. 按 QML 方式组合两条边。"""
+            return int(horizontal.value | vertical.value)
+
         # Edges plus the four corners so diagonal resize works.
         # 四条边加四个角落，保证对角线缩放可用。
         expected_edges = sorted(
-            int(edge.value)
-            for edge in (
-                Qt.Edge.LeftEdge,
-                Qt.Edge.RightEdge,
-                Qt.Edge.TopEdge,
-                Qt.Edge.BottomEdge,
-                Qt.Edge.LeftEdge | Qt.Edge.TopEdge,
-                Qt.Edge.RightEdge | Qt.Edge.TopEdge,
-                Qt.Edge.LeftEdge | Qt.Edge.BottomEdge,
-                Qt.Edge.RightEdge | Qt.Edge.BottomEdge,
-            )
+            [int(edge.value) for edge in (left, right, top, bottom)]
+            + [
+                _combined_edge(horizontal, vertical)
+                for horizontal, vertical, _cursor in corner_specs
+            ]
         )
-        edge_values = sorted(int(area.property("edge")) for area in resize_areas)
-        assert edge_values == expected_edges
-        corners = {
-            int(Qt.Edge.LeftEdge.value | Qt.Edge.TopEdge.value),
-            int(Qt.Edge.RightEdge.value | Qt.Edge.TopEdge.value),
-            int(Qt.Edge.LeftEdge.value | Qt.Edge.BottomEdge.value),
-            int(Qt.Edge.RightEdge.value | Qt.Edge.BottomEdge.value),
-        }
-        assert corners.issubset(set(edge_values))
+        by_edge = {int(area.property("edge")): area for area in resize_areas}
+        assert sorted(by_edge) == expected_edges
+
+        def _grabbed_edge(area, local_point):
+            """Press one handle locally and report which handle took the press.
+
+            在某个手柄的局部坐标按下，返回真正接管本次按下的手柄 edge。
+            """
+            mapped = area.mapToItem(window.contentItem(), local_point)
+            position = QPoint(round(mapped.x()), round(mapped.y()))
+            QTest.mousePress(
+                window,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                position,
+            )
+            grabbed = window.mouseGrabberItem()
+            QTest.mouseRelease(
+                window,
+                Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier,
+                position,
+            )
+            _pump()
+            assert grabbed is not None, local_point
+            assert grabbed.metaObject().className().startswith("ResizeArea")
+            return int(grabbed.property("edge"))
+
+        # The corners are declared after the edge strips, so their 16px hot zones
+        # must take the press even where the 8px strips overlap them. Counting
+        # instantiations alone cannot prove that; a real press can.
+        # 角落声明在边条之后，所以 16px 角部热区在与 8px 边条交叠处也必须接管按下。
+        # 只数实例化数量证明不了这一点，真实按下才行。
+        # Offscreen cannot start the native sizing loop, so this contract covers
+        # hot-zone ownership, geometry and cursor only; Qt's Windows platform
+        # plugin owns the diagonal SC_SIZExxxx mapping itself.
+        # offscreen 起不了原生缩放循环，所以本合同只覆盖热区归属、几何与光标；
+        # 对角线 SC_SIZExxxx 映射本身由 Qt 的 Windows 平台插件负责。
+        for horizontal, vertical, cursor_shape in corner_specs:
+            area = by_edge[_combined_edge(horizontal, vertical)]
+            assert area.width() == pytest.approx(resize_corner)
+            assert area.height() == pytest.approx(resize_corner)
+            assert area.property("cursorShape") == cursor_shape
+            parent = area.parentItem()
+            origin = area.mapToItem(parent, QPointF(0, 0))
+            assert origin.x() == pytest.approx(
+                0 if horizontal is left else parent.width() - resize_corner
+            )
+            assert origin.y() == pytest.approx(
+                0 if vertical is top else parent.height() - resize_corner
+            )
+            # Sample all four inner points so both neighbouring edge strips are
+            # covered by the overlap checks.
+            # 取角落内侧四点，确保与两条相邻边条的交叠区都被覆盖。
+            for local_point in (
+                QPointF(2, 2),
+                QPointF(resize_corner - 3, 2),
+                QPointF(2, resize_corner - 3),
+                QPointF(resize_corner - 3, resize_corner - 3),
+            ):
+                assert (
+                    _grabbed_edge(area, local_point)
+                    == _combined_edge(horizontal, vertical)
+                )
+
+        parent = by_edge[int(left.value)].parentItem()
+        edge_specs = (
+            (left, resize_edge, parent.height(), 0.0, 0.0),
+            (right, resize_edge, parent.height(), parent.width() - resize_edge, 0.0),
+            (top, parent.width(), resize_edge, 0.0, 0.0),
+            (bottom, parent.width(), resize_edge, 0.0, parent.height() - resize_edge),
+        )
+        for edge, width, height, x, y in edge_specs:
+            area = by_edge[int(edge.value)]
+            assert area.width() == pytest.approx(width)
+            assert area.height() == pytest.approx(height)
+            origin = area.mapToItem(parent, QPointF(0, 0))
+            assert origin.x() == pytest.approx(x)
+            assert origin.y() == pytest.approx(y)
+            assert area.property("cursorShape") == (
+                Qt.CursorShape.SizeHorCursor
+                if edge is left or edge is right
+                else Qt.CursorShape.SizeVerCursor
+            )
+            # Mid-strip press, far from both corners.
+            # 边条中点按下，远离两端角落。
+            assert (
+                _grabbed_edge(
+                    area, QPointF(area.width() / 2, area.height() / 2)
+                )
+                == int(edge.value)
+            )
+
+        # The window interior must stay with the content, not a resize handle.
+        # 窗口内部必须留给内容，不能被缩放手柄接管。
+        interior = QPoint(window.width() // 2, window.height() // 2)
+        QTest.mousePress(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            interior,
+        )
+        interior_grabber = window.mouseGrabberItem()
+        QTest.mouseRelease(
+            window,
+            Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier,
+            interior,
+        )
+        _pump()
+        assert interior_grabber is None or not (
+            interior_grabber.metaObject().className().startswith("ResizeArea")
+        )
+
         _pump(window.property("resizeDelay") // 4)
         assert len(_resize_areas(window)) == 8
         assert warnings == []
