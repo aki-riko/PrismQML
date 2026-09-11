@@ -2,423 +2,31 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""ButtonCore convention and parent-chain regressions. ButtonCore 规范与父链回归。"""
-
-from pathlib import Path, PurePosixPath
-
-import pytest
-from PySide6.QtCore import QEventLoop, QObject, QPoint, QPointF, Qt, QTimer, QUrl
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickWindow
-from PySide6.QtTest import QTest
-
-from prismqml import register_types
-from scripts.qml_conventions import scan_source_text
-
-
-ROOT = Path(__file__).resolve().parents[2]
-BUTTON_CORE_SOURCE = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "controls"
-    / "buttons"
-    / "Button"
-    / "ButtonCore.qml"
+"""Domain bucket 1/1 of the former test_button_core_conventions.py."""
+import pytest  # noqa: F401
+from button_core_conventions_shared import *
+from button_core_conventions_shared import (
+    _pump,
+    _create_scene,
+    _create_click_scene,
+    _new_visible_windows,
+    _descendants,
+    _visual_descendants,
+    _mapped_x,
+    _right_gap,
+    _painted_right_gap,
+    _matching,
+    _unique,
+    _button,
+    _active_gradient,
+    _content_modules,
+    _dropdown_modules,
+    _progress_modules,
+    _set_feature,
+    _assert_dropdown_bindings,
+    _assert_progress_bindings,
+    _assert_initial_colors,
 )
-ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
-BUTTON_STYLE_HELPER_SOURCE = BUTTON_CORE_SOURCE.with_name("ButtonStyleHelper.qml")
-BUTTON_SURFACE_SOURCE = BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonSurface.qml"
-BUTTON_CONTENT_LAYER_SOURCE = (
-    BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonContentLayer.qml"
-)
-SCENE_URL = QUrl.fromLocalFile(
-    str(ROOT / "tests" / "qml" / "button-core-conventions.qml")
-)
-SCENE_SOURCE = b"""
-import QtQuick
-import PrismQML
-
-Item {
-    id: root
-
-    property int featureUnderTest: Enums.button.feature_none
-
-    readonly property int featureNone: Enums.button.feature_none
-    readonly property int featureDropdown: Enums.button.feature_dropdown
-    readonly property int featureSplit: Enums.button.feature_split
-    readonly property int featureProgress: Enums.button.feature_progress_bar
-    readonly property int alignCenter: Enums.button.align_center
-    readonly property int alignLeft: Enums.button.align_left
-    readonly property int contentLeftMargin: Enums.spacing.m
-    readonly property int menuContentLeadingPadding: Enums.spacing.l
-    readonly property int menuContentTrailingPadding: Enums.spacing.xs
-    readonly property int menuPaddingTolerance: Enums.spacing.xxs
-    readonly property int buttonMinWidth: Enums.controlSize.buttonMinWidth
-    readonly property int buttonHeight: Enums.controlSize.buttonHeight
-    readonly property int splitArrowWidth: Enums.controlSize.splitButtonArrowWidth
-    readonly property int wideMenuPadding: Enums.spacing.xxxl
-    readonly property real aliasBorderWidth: aliasButton.border.width
-    readonly property color aliasBorderColor: aliasButton.border.color
-    readonly property real expectedBorderWidth: Enums.border.thick
-    readonly property color expectedBorderColor: Enums.accentColor
-    readonly property color expectedLifecycleBackground: lifecycleButton.color
-    readonly property color expectedLifecycleBorder: lifecycleButton.styleHelper.borderColor
-    readonly property color expectedLifecycleText: lifecycleButton.getTextColor()
-
-    width: 500
-    height: 220
-
-    Button {
-        id: aliasButton
-        objectName: "aliasButton"
-        width: 160
-        height: 40
-        text: "Alias"
-        border.width: Enums.border.thick
-        border.color: Enums.accentColor
-    }
-
-    Button {
-        id: customButton
-        objectName: "customButton"
-        y: 50
-        width: 160
-        height: 40
-        text: "Ignored default content"
-
-        Rectangle {
-            id: customPayload
-            objectName: "customPayload"
-            width: 37
-            height: 19
-            color: Enums.transparent
-        }
-    }
-
-    Button {
-        id: lifecycleButton
-        objectName: "lifecycleButton"
-        y: 100
-        width: 180
-        height: 40
-        style: Enums.button.style_primary
-        text: "State"
-        icon: Enums.icon.checkmark
-        feature: root.featureUnderTest
-        menuItems: ["Alpha", "Beta"]
-        progress: 0.4
-        showProgress: true
-        toolTipText: ""
-    }
-
-    MenuBar {
-        id: menuBar
-        objectName: "menuBar"
-        x: 220
-        width: 200
-        itemPadding: root.wideMenuPadding
-        items: ["File"]
-    }
-
-    Button {
-        id: pillDropdownButton
-        objectName: "pillDropdownButton"
-        x: 220
-        y: 50
-        width: contentWidth
-        height: contentHeight
-        shape: Enums.button.shape_pill
-        feature: Enums.button.feature_dropdown
-        text: "DropDown"
-        menuItems: ["Alpha", "Beta"]
-    }
-
-    Button {
-        id: pillSplitButton
-        objectName: "pillSplitButton"
-        x: 220
-        y: 100
-        width: contentWidth
-        height: contentHeight
-        shape: Enums.button.shape_pill
-        feature: Enums.button.feature_split
-        text: "Split"
-        menuItems: ["Alpha", "Beta"]
-    }
-
-    Button {
-        id: compactSplitButton
-        objectName: "compactSplitButton"
-        x: 350
-        y: 100
-        width: contentWidth
-        height: contentHeight
-        shape: Enums.button.shape_pill
-        feature: Enums.button.feature_split
-        text: "I"
-        menuItems: ["Alpha", "Beta"]
-    }
-
-    Button {
-        id: gradientButtonA
-        objectName: "gradientButtonA"
-        x: 0
-        y: 160
-        style: Enums.button.style_gradient
-        text: "Gradient A"
-    }
-
-    Button {
-        id: gradientButtonB
-        objectName: "gradientButtonB"
-        x: 180
-        y: 160
-        style: Enums.button.style_gradient
-        text: "Gradient B"
-    }
-}
-"""
-
-CLICK_SCENE_URL = QUrl.fromLocalFile(
-    str(ROOT / "tests" / "qml" / "button-core-double-click.qml")
-)
-CLICK_SCENE_SOURCE = b"""
-import QtQuick
-import PrismQML
-
-Window {
-    id: root
-
-    property int pressedCount: 0
-    property int releasedCount: 0
-    property int clickedCount: 0
-    property int doubleClickedCount: 0
-
-    width: 320
-    height: 160
-    visible: true
-
-    Button {
-        id: button
-        objectName: "rapidClickButton"
-        anchors.centerIn: parent
-        width: 160
-        height: 40
-        text: "Rapid click"
-        onButtonPressed: root.pressedCount += 1
-        onReleased: root.releasedCount += 1
-        onClicked: root.clickedCount += 1
-        onDoubleClicked: root.doubleClickedCount += 1
-    }
-}
-"""
-
-
-def _pump(milliseconds: int = 20) -> None:
-    loop = QEventLoop()
-    QTimer.singleShot(milliseconds, loop.quit)
-    loop.exec()
-
-
-def _create_scene():
-    engine = QQmlApplicationEngine()
-    warnings = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
-    )
-    engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
-    component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
-    for _ in range(50):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump(20)
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
-    root = component.create(engine.rootContext())
-    assert root is not None, [error.toString() for error in component.errors()]
-    _pump(20)
-    assert warnings == []
-    return engine, component, root, warnings
-
-
-def _create_click_scene():
-    engine = QQmlApplicationEngine()
-    warnings = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
-    )
-    engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
-    component = QQmlComponent(engine)
-    component.setData(CLICK_SCENE_SOURCE, CLICK_SCENE_URL)
-    for _ in range(50):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump(20)
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
-    root = component.create(engine.rootContext())
-    assert isinstance(root, QQuickWindow), [
-        error.toString() for error in component.errors()
-    ]
-    _pump(50)
-    assert root.isVisible()
-    assert root.isExposed()
-    assert warnings == []
-    return engine, component, root, warnings
-
-
-def _new_visible_windows(windows_before):
-    return [
-        window
-        for window in QGuiApplication.topLevelWindows()
-        if window.isVisible()
-        and not any(window is existing for existing in windows_before)
-    ]
-
-
-def _descendants(root):
-    result = []
-    pending = list(root.children())
-    while pending:
-        child = pending.pop()
-        result.append(child)
-        pending.extend(child.children())
-    return result
-
-
-def _visual_descendants(root):
-    result = []
-    pending = list(root.childItems())
-    while pending:
-        child = pending.pop()
-        result.append(child)
-        pending.extend(child.childItems())
-    return result
-
-
-def _mapped_x(item, ancestor):
-    return item.mapToItem(ancestor, QPointF()).x()
-
-
-def _right_gap(left_item, right_item, ancestor):
-    return _mapped_x(right_item, ancestor) - (
-        _mapped_x(left_item, ancestor) + left_item.width()
-    )
-
-
-def _painted_right_gap(text_item, right_item, ancestor):
-    painted_right = _mapped_x(text_item, ancestor) + text_item.property("paintedWidth")
-    return _mapped_x(right_item, ancestor) - painted_right
-
-
-def _matching(root, *properties):
-    return [
-        child
-        for child in _descendants(root)
-        if all(child.metaObject().indexOfProperty(name) >= 0 for name in properties)
-    ]
-
-
-def _unique(root, *properties):
-    matches = _matching(root, *properties)
-    assert len(matches) == 1, [item.metaObject().className() for item in matches]
-    return matches[0]
-
-
-def _button(root, name):
-    button = root.findChild(QObject, name)
-    assert button is not None
-    return button
-
-
-def _active_gradient(button):
-    gradients = []
-    for child in _descendants(button):
-        if not child.metaObject().className().startswith("QQuickRectangle"):
-            continue
-        if child.metaObject().indexOfProperty("gradient") < 0:
-            continue
-        candidate = child.property("gradient")
-        if candidate.isQObject():
-            gradients.append(candidate.toQObject())
-    assert len(gradients) == 1
-    return gradients[0]
-
-
-def _content_modules(button):
-    return _matching(button, "_ringBorderColor", "countdownRemaining")
-
-
-def _dropdown_modules(button):
-    return _matching(button, "isMenuOpen", "dropHovered", "parentStyle")
-
-
-def _progress_modules(button):
-    return _matching(button, "_progressColor", "showProgress", "progress")
-
-
-def _set_feature(root, property_name):
-    root.setProperty("featureUnderTest", root.property(property_name))
-    _pump(50)
-
-
-def _assert_dropdown_bindings(root, button, dropdown):
-    assert dropdown.property("feature") == button.property("feature")
-    assert dropdown.property("controlEnabled") == button.property("enabled")
-    assert dropdown.property("loading") == button.property("loading")
-    assert dropdown.property("parentRadius") == button.property("radius")
-    assert dropdown.property("parentStyle") == button.property("style")
-    assert dropdown.property("textColor") == root.property("expectedLifecycleText")
-    assert dropdown.property("menuItems").toVariant() == button.property(
-        "menuItems"
-    ).toVariant()
-    assert not dropdown.property("isMenuOpen")
-    if not _matching(dropdown, "_itemsHeight", "_needsScroll"):
-        dropdown._ensureInternalMenu()
-    popup = _unique(dropdown, "_itemsHeight", "_needsScroll")
-    assert not popup.property("isOpen")
-
-
-def _assert_progress_bindings(button, progress):
-    assert progress.property("feature") == button.property("feature")
-    assert progress.property("progress") == pytest.approx(button.property("progress"))
-    assert progress.property("showProgress") == button.property("showProgress")
-
-
-def _assert_initial_colors(root, button):
-    assert button.property("_animatedBgColor") == root.property(
-        "expectedLifecycleBackground"
-    )
-    assert button.property("_targetBgColor") == root.property(
-        "expectedLifecycleBackground"
-    )
-    assert button.property("_animatedBorderColor") == root.property(
-        "expectedLifecycleBorder"
-    )
-    assert button.property("_targetBorderColor") == root.property(
-        "expectedLifecycleBorder"
-    )
-
-
-@pytest.fixture
-def button_core_scene(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, root, warnings = _create_scene()
-    try:
-        yield root, warnings, windows_before
-    finally:
-        root.deleteLater()
-        del component
-        engine.deleteLater()
-        _pump(1)
-
 
 def test_button_core_border_alias_and_custom_content(button_core_scene):
     root, warnings, windows_before = button_core_scene
@@ -436,7 +44,6 @@ def test_button_core_border_alias_and_custom_content(button_core_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
-
 def test_button_core_custom_content_state_is_not_a_live_children_binding():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     content_source = BUTTON_CONTENT_LAYER_SOURCE.read_text(encoding="utf-8")
@@ -448,13 +55,11 @@ def test_button_core_custom_content_state_is_not_a_live_children_binding():
         "hasCustomContent: customContentContainer.children.length" not in source
     )
 
-
 def test_button_core_schedules_menu_retry_without_per_instance_timer():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     assert "property bool _menuPrewarmRetryScheduled: false" in source
     assert "Qt.callLater(control._runMenuPrewarmRetry)" in source
     assert "_menuPrewarmRetryTimer" not in source
-
 
 def test_button_style_omits_unused_feature_bindings():
     button_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
@@ -462,13 +67,11 @@ def test_button_style_omits_unused_feature_bindings():
     assert "readonly property int _spectralEdgeInset" not in button_source
     assert "required property int feature" not in helper_source
 
-
 def test_button_core_reuses_widget_tooltip_show_timer():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     assert "_startToolTipShowTimer()" in source
     assert "_stopToolTipShowTimer()" in source
     assert "_btnToolTipTimer" not in source
-
 
 def test_button_core_initial_colors_and_handlers(button_core_scene):
     root, warnings, windows_before = button_core_scene
@@ -491,7 +94,6 @@ def test_button_core_initial_colors_and_handlers(button_core_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
-
 def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     root, warnings, windows_before = button_core_scene
     gradient_a = _active_gradient(_button(root, "gradientButtonA"))
@@ -511,7 +113,6 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 
-
 def test_button_core_defers_neo_press_transform(button_core_scene):
     root, warnings, windows_before = button_core_scene
     button = _button(root, "lifecycleButton")
@@ -526,7 +127,6 @@ def test_button_core_defers_neo_press_transform(button_core_scene):
     assert "Behavior on _neoPressShift" not in source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
-
 
 def test_button_core_double_click_preserves_both_click_activations(qapp):
     engine, component, window, warnings = _create_click_scene()
@@ -557,7 +157,6 @@ def test_button_core_double_click_preserves_both_click_activations(qapp):
         engine.deleteLater()
         _pump(1)
 
-
 def test_button_core_main_mouse_area_drives_hover_state(qapp):
     engine, component, window, warnings = _create_click_scene()
     try:
@@ -582,7 +181,6 @@ def test_button_core_main_mouse_area_drives_hover_state(qapp):
         del component
         engine.deleteLater()
         _pump(1)
-
 
 def test_button_core_feature_loader_lifecycle(button_core_scene):
     root, warnings, windows_before = button_core_scene
@@ -616,7 +214,6 @@ def test_button_core_feature_loader_lifecycle(button_core_scene):
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
 
-
 def test_button_core_merges_mutually_exclusive_feature_shells():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     assert "id: featureLoader" in source
@@ -624,7 +221,6 @@ def test_button_core_merges_mutually_exclusive_feature_shells():
     assert "id: progressFeatureLoader" not in source
     assert "id: toggleAnimLoader" not in source
     assert "active: true" not in source
-
 
 def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     root, warnings, windows_before = button_core_scene
@@ -645,7 +241,6 @@ def test_menu_bar_buttons_default_to_left_alignment(button_core_scene):
     assert menu_button.width() - content_x - content[0].width() > content_x
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
-
 
 def test_dropdown_uses_asymmetric_padding_and_split_main_content_is_centered(button_core_scene):
     root, warnings, windows_before = button_core_scene
@@ -703,7 +298,6 @@ def test_dropdown_uses_asymmetric_padding_and_split_main_content_is_centered(but
 
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
-
 
 def test_button_core_source_conventions():
     source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")

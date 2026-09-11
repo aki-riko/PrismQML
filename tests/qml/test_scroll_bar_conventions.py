@@ -2,396 +2,20 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""ScrollBar component group runtime contracts. ScrollBar 组件组运行时合同。"""
-
-from pathlib import Path, PurePosixPath
-
-import pytest
-from PySide6.QtCore import (
-    QCoreApplication,
-    QEvent,
-    QEventLoop,
-    QMetaObject,
-    QPoint,
-    QPointF,
-    QTimer,
-    QUrl,
-    Qt,
+"""Domain bucket 1/1 of the former test_scroll_bar_conventions.py."""
+import pytest  # noqa: F401
+from scroll_bar_conventions_shared import *
+from scroll_bar_conventions_shared import (
+    _pump,
+    _wait_for,
+    _wait_for_stable,
+    _smooth_scroll_helper,
+    _send_wheel,
+    _new_visible_windows,
+    _outward_excursions,
+    _create_scene,
+    _dispose_scene,
 )
-from PySide6.QtGui import QGuiApplication, QWheelEvent
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem, QQuickWindow
-from PySide6.QtTest import QTest
-
-from prismqml import register_types
-from scripts.qml_conventions import scan_source_text
-
-
-ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DIR = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "controls"
-    / "containers"
-    / "ScrollBar"
-)
-SCENE_URL = QUrl.fromLocalFile(
-    str(ROOT / "tests" / "qml" / "scroll-bar-conventions.qml")
-)
-SCENE_SOURCE = b"""
-import QtQuick
-import QtQuick.Window
-import PrismQML
-import "../../prismqml/PrismQML/controls/containers/ScrollBar" as Internal
-
-Window {
-    id: root
-    objectName: "window"
-
-    readonly property real verticalY: verticalFlick.contentY
-    readonly property real verticalTarget: verticalHelper.targetPos
-    readonly property real verticalMax: verticalHelper.maxScroll
-    readonly property bool verticalOvershot: verticalHelper.isOvershot
-    readonly property real horizontalX: horizontalFlick.contentX
-    readonly property real horizontalMax: horizontalHelper.maxScroll
-    readonly property real popupY: popupFlick.contentY
-    readonly property real defaultX: defaultArea.contentX
-    readonly property real defaultY: defaultArea.contentY
-    readonly property real defaultContentWidth: defaultArea.contentWidth
-    readonly property real defaultContentHeight: defaultArea.contentHeight
-    readonly property real listY: listArea.contentY
-    readonly property real listContentHeight: listArea.contentHeight
-    readonly property int listCount: listArea.count
-    readonly property real gridY: gridArea.contentY
-    readonly property real gridOriginY: gridArea.gridView.originY
-    readonly property real gridContentHeight: gridArea.contentHeight
-    readonly property int gridCount: gridArea.count
-
-    function scrollVertical() { verticalHelper.scrollTo(180) }
-    function scrollVerticalToEnd() { verticalHelper.scrollToEnd() }
-    function growVerticalContent() { verticalFlick.contentHeight = 720 }
-    function overshootVertical() { verticalHelper.scrollBy(1000) }
-    function syncVertical() {
-        verticalFlick.contentY = 75
-        verticalHelper.syncPosition()
-    }
-    function scrollHorizontal() { horizontalHelper.scrollTo(260) }
-    function scrollHorizontalToEnd() { horizontalHelper.scrollToEnd() }
-    function overshootHorizontal() { horizontalHelper.scrollBy(1000) }
-    function growHorizontalContent() { horizontalFlick.contentWidth = 820 }
-    function scrollPopup() { popupHelper.scrollTo(999) }
-    function setVerticalHalf() {
-        verticalFlick.contentY = 240
-        verticalHelper.syncPosition()
-    }
-    function scrollDefault() {
-        defaultArea.smoothScrollTo(160)
-        defaultArea.smoothScrollToX(120)
-    }
-    // Move the scroll bounds while the axis is overshooting.
-    function shrinkDefaultContent() { defaultContent.height = 390 }
-    function restoreDefaultContent() { defaultContent.height = 420 }
-    function scrollList() { listArea.scrollToIndex(10) }
-    function scrollGrid() { gridArea.scrollToBottom() }
-
-    width: 760
-    height: 520
-    visible: true
-
-    Flickable {
-        id: verticalFlick
-        objectName: "verticalFlick"
-        x: 20
-        y: 20
-        width: 180
-        height: 120
-        contentWidth: width
-        contentHeight: 600
-        clip: true
-        interactive: false
-
-        Rectangle {
-            width: 180
-            height: 600
-        }
-    }
-
-    Internal.SmoothScrollHelper {
-        id: verticalHelper
-        objectName: "verticalHelper"
-        target: verticalFlick
-        duration: 100
-    }
-
-    Internal.ScrollBar {
-        id: scrollBar
-        objectName: "scrollBar"
-        x: 210
-        y: 20
-        height: 120
-        target: verticalFlick
-        scrollHelper: verticalHelper
-    }
-
-    ScrollBarEntry {
-        id: scrollBarEntry
-        objectName: "scrollBarEntry"
-        x: 230
-        y: 20
-        height: 120
-        flickable: verticalFlick
-    }
-
-    Flickable {
-        id: horizontalFlick
-        objectName: "horizontalFlick"
-        x: 20
-        y: 170
-        width: 180
-        height: 100
-        contentWidth: 700
-        contentHeight: height
-        clip: true
-        interactive: false
-
-        Rectangle {
-            width: 700
-            height: 100
-        }
-    }
-
-    Internal.SmoothScrollHelper {
-        id: horizontalHelper
-        objectName: "horizontalHelper"
-        target: horizontalFlick
-        orientation: Qt.Horizontal
-        duration: 100
-    }
-
-    Flickable {
-        id: popupFlick
-        objectName: "popupFlick"
-        x: 20
-        y: 300
-        width: 180
-        height: 100
-        contentWidth: width
-        contentHeight: 480
-        clip: true
-        interactive: false
-
-        Rectangle {
-            width: 180
-            height: 480
-        }
-
-        Internal.PopupSmoothScroll {
-            id: popupHelper
-            objectName: "popupHelper"
-            flickable: popupFlick
-            duration: 100
-        }
-    }
-
-    Component {
-        id: listDelegate
-        Rectangle {
-            width: ListView.view ? ListView.view.width : 0
-            height: 30
-        }
-    }
-
-    Component {
-        id: gridDelegate
-        Rectangle {
-            width: 60
-            height: 40
-        }
-    }
-
-    Internal.ScrollAreaDefault {
-        id: defaultArea
-        objectName: "defaultArea"
-        x: 300
-        y: 20
-        width: 200
-        height: 140
-        padding: 10
-
-        Rectangle {
-            id: defaultContent
-            width: 360
-            height: 420
-        }
-    }
-
-    Internal.ScrollAreaList {
-        id: listArea
-        objectName: "listArea"
-        x: 300
-        y: 190
-        width: 180
-        height: 120
-        model: 20
-        delegate: listDelegate
-        itemHeight: 30
-    }
-
-    Internal.ScrollAreaGrid {
-        id: gridArea
-        objectName: "gridArea"
-        x: 520
-        y: 190
-        width: 180
-        height: 120
-        model: 20
-        delegate: gridDelegate
-        cellWidth: 60
-        cellHeight: 40
-    }
-}
-"""
-
-
-def _pump(milliseconds: int = 30) -> None:
-    loop = QEventLoop()
-    QTimer.singleShot(milliseconds, loop.quit)
-    loop.exec()
-
-
-def _wait_for(predicate, timeout_ms: int = 1500) -> bool:
-    elapsed = 0
-    while elapsed < timeout_ms:
-        if predicate():
-            return True
-        _pump()
-        elapsed += 30
-    return predicate()
-
-
-def _wait_for_stable(predicate, stable_checks: int = 5, timeout_ms: int = 1500) -> bool:
-    elapsed = 0
-    consecutive_matches = 0
-    while elapsed < timeout_ms:
-        QCoreApplication.processEvents(QEventLoop.AllEvents)
-        consecutive_matches = consecutive_matches + 1 if predicate() else 0
-        if consecutive_matches >= stable_checks:
-            return True
-        QTest.qSleep(10)
-        elapsed += 10
-    return False
-
-
-def _smooth_scroll_helper(item: QQuickItem, orientation: Qt.Orientation) -> QQuickItem:
-    return next(
-        child
-        for child in item.findChildren(QQuickItem)
-        if "SmoothScrollHelper" in child.metaObject().className()
-        and child.property("orientation") == orientation.value
-    )
-
-
-def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
-    position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
-    global_position = QPointF(
-        window.x() + position.x(),
-        window.y() + position.y(),
-    )
-    event = QWheelEvent(
-        position,
-        global_position,
-        QPoint(0, 0),
-        QPoint(0, delta),
-        Qt.MouseButton.NoButton,
-        Qt.KeyboardModifier.NoModifier,
-        Qt.ScrollPhase.NoScrollPhase,
-        False,
-    )
-    assert QGuiApplication.sendEvent(window, event)
-    return event
-
-
-def _new_visible_windows(windows_before, *allowed):
-    return [
-        window
-        for window in QGuiApplication.topLevelWindows()
-        if window.isVisible()
-        and not any(window is existing for existing in windows_before)
-        and not any(window is accepted for accepted in allowed)
-    ]
-
-
-def _outward_excursions(trajectory, boundary, at_start, tolerance=0.5):
-    """Count separate outward legs beyond one boundary. 统计越界外移腿的段数。"""
-    excursions = 0
-    was_outside = False
-    for value in trajectory:
-        outside = (
-            value < boundary - tolerance if at_start else value > boundary + tolerance
-        )
-        if outside and not was_outside:
-            excursions += 1
-        was_outside = outside
-    return excursions
-
-
-def _create_scene():
-    engine = QQmlApplicationEngine()
-    warnings = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
-    )
-    engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
-    component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
-    window = component.create(engine.rootContext())
-    assert isinstance(window, QQuickWindow)
-    _pump()
-    items = {
-        name: window.findChild(QQuickItem, name)
-        for name in (
-            "verticalFlick",
-            "horizontalFlick",
-            "popupFlick",
-            "scrollBar",
-            "scrollBarEntry",
-            "defaultArea",
-            "listArea",
-            "gridArea",
-        )
-    }
-    assert all(items.values())
-    return engine, component, window, items, warnings
-
-
-def _dispose_scene(engine, component, window) -> None:
-    window.close()
-    window.deleteLater()
-    component.deleteLater()
-    engine.collectGarbage()
-    engine.clearComponentCache()
-    engine.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-    QCoreApplication.processEvents()
-
-
-@pytest.fixture
-def scroll_scene(qapp):
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-    QCoreApplication.processEvents()
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    scene = _create_scene()
-    try:
-        yield (*scene[2:], windows_before)
-    finally:
-        _dispose_scene(scene[0], scene[1], scene[2])
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
-
 
 def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
@@ -420,7 +44,6 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     assert _wait_for(lambda: window.property("popupY") == pytest.approx(380))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_area_discards_stale_bounce_peak_after_gui_stall(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
@@ -451,7 +74,6 @@ def test_scroll_area_discards_stale_bounce_peak_after_gui_stall(scroll_scene):
     assert area.property("contentY") == pytest.approx(maximum)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
@@ -500,7 +122,6 @@ def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_sce
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
-
 def test_horizontal_bounce_discards_stale_peak_after_gui_stall(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
     flick = items["horizontalFlick"]
@@ -526,7 +147,6 @@ def test_horizontal_bounce_discards_stale_peak_after_gui_stall(scroll_scene):
     assert window.property("horizontalX") == pytest.approx(520)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_area_same_direction_wheel_does_not_amplify_bounce(scroll_scene):
     """Same-direction wheel during a bounce must not grow the peak.
@@ -565,7 +185,6 @@ def test_scroll_area_same_direction_wheel_does_not_amplify_bounce(scroll_scene):
     assert area.property("contentY") == pytest.approx(maximum)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     """Bounds moving mid-overshoot must not relaunch the outward leg.
@@ -642,7 +261,6 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
-
 def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
 
@@ -659,7 +277,6 @@ def test_smooth_helpers_keep_boundary_target_when_content_grows(scroll_scene):
     assert _wait_for(lambda: window.property("horizontalX") == pytest.approx(640))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_bars_follow_position_and_real_drag(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
@@ -742,7 +359,6 @@ def test_scroll_bars_follow_position_and_real_drag(scroll_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
-
 def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     window, _items, warnings, windows_before = scroll_scene
     assert _wait_for(lambda: window.property("defaultContentWidth") == pytest.approx(380))
@@ -776,7 +392,6 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     )
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
-
 
 def test_scroll_bar_sources_follow_conventions():
     violations = []

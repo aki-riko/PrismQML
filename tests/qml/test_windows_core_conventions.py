@@ -2,367 +2,21 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""WindowsCore geometry and lifecycle contracts. 窗口核心几何与生命周期合同。"""
-
-from pathlib import Path, PurePosixPath
-
-import pytest
-from PySide6.QtCore import (
-    QCoreApplication,
-    QEasingCurve,
-    QEvent,
-    QEventLoop,
-    QMetaObject,
-    QObject,
-    QPoint,
-    QPointF,
-    QTimer,
-    Qt,
-    QUrl,
-    Slot,
+"""Domain bucket 1/2 of the former test_windows_core_conventions.py."""
+import pytest  # noqa: F401
+from windows_core_conventions_shared import *
+from windows_core_conventions_shared import (
+    _WINDOW_SHADOW_MODE_QML,
+    _FakeNativeWindow,
+    _FakeWindowHelper,
+    _pump,
+    _wait_for,
+    _visual_descendants,
+    _resize_areas,
+    _new_visible_windows,
+    _create_scene,
+    _dispose_scene,
 )
-from PySide6.QtGui import QGuiApplication, QWindow
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem, QQuickWindow
-from PySide6.QtTest import QTest
-
-import prismqml.python.runtime.window_services as window_services_module
-from prismqml import register_types
-from scripts.qml_conventions import scan_source_text
-
-
-ROOT = Path(__file__).resolve().parents[2]
-SOURCE_PATH = ROOT / "prismqml" / "PrismQML" / "WindowsCore.qml"
-# Enums.windowShadow.mode_qml, kept in sync with PrismEnums/WindowShadow.qml.
-# 与 PrismEnums/WindowShadow.qml 保持同步。
-_WINDOW_SHADOW_MODE_QML = 2
-WINDOW_FRAME_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreFrame.qml"
-)
-RESIZE_HANDLES_TIMER_PATH = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "_internal"
-    / "WindowsResizeHandlesTimer.qml"
-)
-WINDOW_ICON_DEFERRED_TIMER_PATH = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "_internal"
-    / "WindowIconDeferredLoadTimer.qml"
-)
-ANIMATION_HELPER_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
-)
-WINDOW_CLOSE_FRAME_WAITER_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowCloseFrameWaiter.qml"
-)
-WINDOW_DRAG_HANDLE_PATH = (
-    ROOT
-    / "prismqml"
-    / "PrismQML"
-    / "controls"
-    / "utils"
-    / "WindowDragHandle.qml"
-)
-WINDOW_LEAF_PATHS = [
-    ROOT / "prismqml" / "PrismQML" / "_internal" / name
-    for name in (
-        "QmlShadowHost.qml",
-        "ResizeArea.qml",
-        "WindowIcon.qml",
-        "CaptionButton.qml",
-        "TitleBarActionButton.qml",
-        "ContentFrame.qml",
-        "WindowsCoreFrame.qml",
-    )
-]
-STARTUP_DIAGNOSTIC_PATHS = [
-    ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml",
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsBar.qml",
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsBarContent.qml",
-    ANIMATION_HELPER_PATH,
-    *WINDOW_LEAF_PATHS,
-]
-WINDOW_BUILDER_PATH = (
-    ROOT / "prismqml" / "python" / "window" / "_window_builder.py"
-)
-METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
-ENUMS_PATH = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
-CAPTION_BUTTON_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "CaptionButton.qml"
-)
-REMOVED_CLOSE_EFFECT_PATHS = [
-    ROOT / "prismqml" / "PrismQML" / relative_path
-    for relative_path in (
-        "_internal/WindowCloseDissolve.qml",
-        "_internal/CloseRippleAnimator.qml",
-        "_internal/CloseRippleDissolve.qml",
-        "_internal/CloseRippleFrame.qml",
-        "shaders/window_close_ripple.frag",
-        "shaders/window_close_ripple.frag.qsb",
-    )
-]
-SCENE_URL = QUrl.fromLocalFile(
-    str(ROOT / "tests" / "qml" / "windows-core-conventions.qml")
-)
-SCENE_SOURCE = b"""
-import QtQuick
-import PrismQML
-
-WindowsCore {
-    id: root
-    objectName: "window"
-    property bool initialLeftLayout: false
-    property bool customClose: false
-    property bool noneClose: false
-    property int customCollapseCount: 0
-    property int customStopCount: 0
-    property int nativeCloseAcceptedCount: 0
-    readonly property int topLayout: Enums.windowType.title_bar_top
-    readonly property int leftLayout: Enums.windowType.title_bar_left
-    readonly property int noneAnimationType: Enums.lazyAnimation.none
-    readonly property int noShadow: Enums.windowShadow.mode_none
-    readonly property int qmlShadow: Enums.windowShadow.mode_qml
-    readonly property int nativeShadow: Enums.windowShadow.mode_native
-    readonly property int navPanelMinWidth: Enums.window.navPanelMinWidth
-    readonly property int dividerWidth: Enums.border.thin
-    readonly property int resizeDelay: Enums.window.resizeHandlesDelayMs
-
-    width: 720
-    height: 520
-    visible: true
-    shadowMode: Enums.windowShadow.mode_none
-    windowTitle: "WindowsCore Contract"
-    windowIcon: Qt.resolvedUrl("../../examples/resources/image/avatar/avatar.png")
-    titleBarPosition: initialLeftLayout ? leftLayout : topLayout
-    closeAnimationType: noneClose
-        ? Enums.lazyAnimation.none
-        : (customClose ? Enums.lazyAnimation.custom : Enums.lazyAnimation.lazy_circle)
-    closeAnimation: customClose ? customCloseComponent : null
-
-    onNativeCloseAccepted: nativeCloseAcceptedCount += 1
-
-    Item {
-        objectName: "contentProbe"
-        width: 20
-        height: 20
-    }
-
-    leftPanelContent: [
-        Item {
-            objectName: "leftProbe"
-            width: 16
-            height: 16
-        }
-    ]
-
-    Component {
-        id: customCloseComponent
-
-        Item {
-            property bool active: false
-            property bool running: false
-            property bool collapsing: false
-            property bool collapsed: false
-            property real progress: 0
-
-            signal collapseStarted()
-            signal collapseFinished()
-            signal expandStarted()
-            signal expandFinished()
-
-            function collapse(sourceItem) {
-                root.customCollapseCount += 1
-                active = true
-                running = true
-                collapsing = true
-                collapseStarted()
-                progress = 1
-                sourceItem.visible = false
-                collapsed = true
-                running = false
-                active = false
-                collapseFinished()
-                return true
-            }
-
-            function expand(sourceItem) {
-                sourceItem.visible = true
-                collapsed = false
-                expandStarted()
-                expandFinished()
-                return true
-            }
-
-            function stop() {
-                root.customStopCount += 1
-                active = false
-                running = false
-                collapsed = false
-            }
-        }
-    }
-}
-"""
-
-
-class _FakeNativeWindow(QObject):
-    def __init__(self, events, parent=None):
-        super().__init__(parent)
-        self._events = events
-
-    @Slot(QObject, result=bool)
-    def finalizeAttach(self, _window):
-        self._events.append("native-finalized")
-        return True
-
-    @Slot(QObject, result=bool)
-    def detach(self, _window):
-        return True
-
-    @Slot(QObject, result=bool)
-    def requestMaximize(self, window):
-        self._events.append("native-maximize")
-        window.showMaximized()
-        return True
-
-    @Slot(QObject, result=bool)
-    def requestRestore(self, window):
-        self._events.append("native-restore")
-        window.showNormal()
-        return True
-
-
-class _FakeWindowHelper(QObject):
-    def __init__(self, events, parent=None):
-        super().__init__(parent)
-        self._events = events
-
-    @Slot(str)
-    def setAppIcon(self, icon):
-        assert icon
-        self._events.append("icon")
-
-
-def _pump(milliseconds: int = 20) -> None:
-    loop = QEventLoop()
-    QTimer.singleShot(milliseconds, loop.quit)
-    loop.exec()
-
-
-def _wait_for(predicate, timeout_ms: int = 2200) -> bool:
-    elapsed = 0
-    while elapsed < timeout_ms:
-        if predicate():
-            return True
-        _pump()
-        elapsed += 20
-    return predicate()
-
-
-def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
-    result = []
-    pending = list(root.childItems())
-    while pending:
-        item = pending.pop()
-        result.append(item)
-        pending.extend(item.childItems())
-    return result
-
-
-def _resize_areas(window: QQuickWindow) -> list[QQuickItem]:
-    return [
-        item
-        for item in _visual_descendants(window.contentItem())
-        if item.metaObject().className().startswith("ResizeArea")
-        and item.metaObject().indexOfProperty("edge") >= 0
-    ]
-
-
-def _new_visible_windows(windows_before, *allowed):
-    return [
-        window
-        for window in QGuiApplication.topLevelWindows()
-        if window.isVisible()
-        and not any(window is existing for existing in windows_before)
-        and not any(window is expected for expected in allowed)
-    ]
-
-
-def _create_scene(
-    monkeypatch,
-    *,
-    initial_left_layout: bool = False,
-    custom_close: bool = False,
-    none_close: bool = False,
-):
-    engine = QQmlApplicationEngine()
-    startup_events = []
-    native_window = _FakeNativeWindow(startup_events, engine)
-    window_helper = _FakeWindowHelper(startup_events, engine)
-    monkeypatch.setattr(
-        window_services_module, "get_native_window_hook", lambda: native_window
-    )
-    monkeypatch.setattr(
-        window_services_module, "get_window_helper", lambda: window_helper
-    )
-    warnings = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
-    )
-    engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
-    component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
-    window = component.createWithInitialProperties(
-        {
-            "initialLeftLayout": initial_left_layout,
-            "customClose": custom_close,
-            "noneClose": none_close,
-        },
-        engine.rootContext(),
-    )
-    assert isinstance(window, QQuickWindow), [
-        error.toString() for error in component.errors()
-    ]
-    window.requestActivate()
-    assert _wait_for(window.isActive)
-    content = window.findChild(QQuickItem, "contentContainer")
-    content_probe = window.findChild(QQuickItem, "contentProbe")
-    left_probe = window.findChild(QQuickItem, "leftProbe")
-    assert (
-        content is not None
-        and content_probe is not None
-        and left_probe is not None
-    )
-    assert content_probe.parentItem() is content
-    return (
-        engine,
-        component,
-        window,
-        content,
-        left_probe,
-        warnings,
-        startup_events,
-    )
-
-
-def _dispose_scene(engine, component, window) -> None:
-    window.setVisible(False)
-    window.deleteLater()
-    component.deleteLater()
-    engine.collectGarbage()
-    engine.clearComponentCache()
-    engine.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-    _pump()
-
 
 def test_windows_core_top_left_and_qml_shadow_geometry(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -416,7 +70,6 @@ def test_windows_core_top_left_and_qml_shadow_geometry(monkeypatch, qapp):
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -441,7 +94,6 @@ def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
-
 
 def test_windows_core_right_title_chrome_is_layout_scoped(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -505,7 +157,6 @@ def test_windows_core_right_title_chrome_is_layout_scoped(monkeypatch, qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
-
 
 @pytest.mark.parametrize("initial_left_layout", [False, True])
 def test_windows_core_generic_caption_action_uses_system_button_slot(
@@ -581,7 +232,6 @@ def test_windows_core_generic_caption_action_uses_system_button_slot(
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -604,7 +254,6 @@ def test_windows_core_initial_left_title_chrome_is_ready(monkeypatch, qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
-
 
 @pytest.mark.parametrize(
     ("initial_left_layout", "drag_area_name"),
@@ -661,7 +310,6 @@ def test_windows_core_titlebar_double_click_routes_native_transition(
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_native_close_reuses_lazy_circle_exit_animation(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -701,7 +349,6 @@ def test_windows_core_native_close_reuses_lazy_circle_exit_animation(monkeypatch
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
-
 
 def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
     monkeypatch, qapp
@@ -782,7 +429,6 @@ def test_windows_core_close_collapse_reaches_zero_radius_before_teardown(
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_close_collapse_clips_unmasked_shadow_layer(monkeypatch, qapp):
     """收紧期间必须撤掉未被遮罩的阴影层，否则圆外残留矩形留白。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
@@ -851,7 +497,6 @@ def test_windows_core_close_collapse_clips_unmasked_shadow_layer(monkeypatch, qa
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_close_collapse_easing_spreads_motion_evenly():
     """收紧缓动必须把运动均匀分布，不得把大半距离压到末尾几帧。"""
     frame_count = 12
@@ -891,7 +536,6 @@ def test_windows_core_close_collapse_easing_spreads_motion_evenly():
     assert _max_step(shared_series) < _max_step(rejected_series)
     assert _max_step(shared_series) < 0.2
 
-
 def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -924,7 +568,6 @@ def test_windows_core_close_accepts_custom_page_transition(monkeypatch, qapp):
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
 
-
 def test_windows_core_close_accepts_none_transition(monkeypatch, qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     (
@@ -954,263 +597,3 @@ def test_windows_core_close_accepts_none_transition(monkeypatch, qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
-
-
-def test_windows_core_source_conventions_and_timing_tokens():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    frame_source = WINDOW_FRAME_PATH.read_text(encoding="utf-8")
-    resize_timer_source = RESIZE_HANDLES_TIMER_PATH.read_text(encoding="utf-8")
-    drag_handle_source = WINDOW_DRAG_HANDLE_PATH.read_text(encoding="utf-8")
-    path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-    assert "WindowsResizeHandlesTimer {" in source
-    assert "id: _resizeHandlesTimer" in source
-    assert "host: window" in source
-    assert "\n    Timer {" not in source
-    assert "Timer {" in resize_timer_source
-    assert "required property var host" in resize_timer_source
-    assert "interval: Enums.window.resizeHandlesDelayMs" in resize_timer_source
-    assert "host._resizeHandlesReady = true" in resize_timer_source
-    assert "_animationStartTimer" not in source
-    assert "interval: 100" not in source
-    assert "interval: 1200" not in source
-    assert "window.showMaximized()" not in source
-    assert "window.showNormal()" not in source
-    assert "WindowsCoreFrame {" in source
-    assert "WindowDragHandle {" not in source
-    window_frame_index = frame_source.index("id: windowFrame")
-    window_ticket_paper_index = frame_source.index(
-        'objectName: "windowTicketPaper"'
-    )
-    title_bar_index = frame_source.index("id: titleBar")
-    assert window_frame_index < window_ticket_paper_index < title_bar_index
-    assert "TicketPaper {" in frame_source[
-        window_frame_index:title_bar_index
-    ]
-    assert frame_source.count("WindowDragHandle {") == 3
-    assert "window.startSystemMove()" not in source
-    assert "property bool enableDrag: true" in drag_handle_source
-    assert "property bool _doubleClickPending: false" in drag_handle_source
-    assert "onDoubleClicked:" in drag_handle_source
-    assert "onReleased: root._applyPendingDoubleClick()" in drag_handle_source
-    assert "NativeWindow.requestMaximize(win)" in drag_handle_source
-    assert "NativeWindow.requestRestore(win)" in drag_handle_source
-    profile_start = source.index("function profileTime(msg)")
-    profile_end = source.index("function profileDetail(msg)", profile_start)
-    assert "if (!_startupProfilingVerboseActive) return" in source[
-        profile_start:profile_end
-    ]
-    metrics = METRICS_PATH.read_text(encoding="utf-8")
-    assert "readonly property int resizeHandlesDelayMs: 1200" in metrics
-
-
-def test_leaf_startup_diagnostics_do_not_attach_to_default_object_tree():
-    windows_core = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "function profileDetail(msg)" in windows_core
-    assert "Component.onCompleted: window.profileDetail" not in windows_core
-    assert "profileTarget" not in windows_core
-
-    for source_path in STARTUP_DIAGNOSTIC_PATHS:
-        source = source_path.read_text(encoding="utf-8")
-        assert "profileDetail" not in source, source_path
-        assert "profileTarget" not in source, source_path
-
-    builder = WINDOW_BUILDER_PATH.read_text(encoding="utf-8")
-    assert "profileDetail" not in builder
-
-
-def test_window_animation_helper_source_conventions_and_dead_paths():
-    source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
-    close_frame_waiter_source = WINDOW_CLOSE_FRAME_WAITER_PATH.read_text(
-        encoding="utf-8"
-    )
-    path = PurePosixPath(ANIMATION_HELPER_PATH.relative_to(ROOT).as_posix())
-    violations = scan_source_text(source, path)
-    assert [
-        violation
-        for violation in violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-    assert "animatedMinimizeWithForward" not in source
-    assert "handleVisibilityChange" not in source
-    assert "WindowCloseDissolve" not in source
-    assert "closeEffectLoader" not in source
-    assert "prewarmCloseAnimation" not in source
-    assert "animatedClose" not in source
-    assert "animHelper.handleVisibilityChange" not in SOURCE_PATH.read_text(
-        encoding="utf-8"
-    )
-    windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert 'import "./controls/navigation"' in windows_core_source
-    assert "property int closeAnimationType: Enums.lazyAnimation.lazy_circle" in windows_core_source
-    assert "property Component closeAnimation: null" in windows_core_source
-    assert "property bool _closeSourceWasVisible: true" in windows_core_source
-    assert "property bool _closeCompletionPending: false" in windows_core_source
-    assert "PageTransition {" in windows_core_source
-    assert 'objectName: "windowClosePageTransition"' in windows_core_source
-    assert "animationType: window.closeAnimationType" in windows_core_source
-    assert "customAnimation: window.closeAnimation" in windows_core_source
-    # The aperture closes to the center unconditionally now, so the exit must not
-    # pin an opt-in for it. 光圈现在无条件收紧到中心, 因此退场不得再钉死开关。
-    assert "collapseToCenter" not in windows_core_source
-    # The collapse pacing is shared with page switch, so the exit must inherit
-    # the facade default rather than pin its own duration or easing. Measured on
-    # a real display, both sites produce identical pacing.
-    # 收紧节奏与页面切换共用, 因此退场应继承门面默认值, 不得自己钉死时长或缓动。
-    # 真机实测两处节奏完全相同。
-    assert "coverDuration:" not in windows_core_source
-    assert "coverEasing:" not in windows_core_source
-    assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
-    assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
-    assert "Qt.callLater(window._armAcceptedClose)" in windows_core_source
-    assert "function _handleCloseFrameEnd()" in windows_core_source
-    assert "closeFrameWaiter.arm()" in windows_core_source
-    waiter_path = PurePosixPath(
-        WINDOW_CLOSE_FRAME_WAITER_PATH.relative_to(ROOT).as_posix()
-    )
-    waiter_violations = scan_source_text(close_frame_waiter_source, waiter_path)
-    assert [
-        violation
-        for violation in waiter_violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-    assert "function onAfterFrameEnd()" in close_frame_waiter_source
-    assert "Timer {" not in close_frame_waiter_source
-    assert "interval:" not in close_frame_waiter_source
-    assert "animHelper.animatedClose()" not in windows_core_source
-
-
-def test_window_close_dissolve_artifacts_and_api_are_removed():
-    assert [path for path in REMOVED_CLOSE_EFFECT_PATHS if path.exists()] == []
-    windows_core_source = SOURCE_PATH.read_text(encoding="utf-8")
-    caption_source = CAPTION_BUTTON_PATH.read_text(encoding="utf-8")
-    metrics_source = METRICS_PATH.read_text(encoding="utf-8")
-    enums_source = ENUMS_PATH.read_text(encoding="utf-8")
-    assert "prewarmCloseAnimation" not in windows_core_source
-    assert "prewarmCloseAnimation" not in caption_source
-    assert "windowCloseMetrics" not in enums_source
-    assert "readonly property QtObject windowClose" not in metrics_source
-
-
-def test_window_leaf_source_conventions_and_icon_delay_token():
-    for source_path in WINDOW_LEAF_PATHS:
-        source = source_path.read_text(encoding="utf-8")
-        path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
-        violations = scan_source_text(source, path)
-        assert [
-            violation
-            for violation in violations
-            if violation.rule in {"QML008", "QML009"}
-        ] == []
-    window_icon = (
-        ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowIcon.qml"
-    ).read_text(encoding="utf-8")
-    icon_timer = WINDOW_ICON_DEFERRED_TIMER_PATH.read_text(encoding="utf-8")
-    icon_timer_path = PurePosixPath(
-        WINDOW_ICON_DEFERRED_TIMER_PATH.relative_to(ROOT).as_posix()
-    )
-    icon_timer_violations = scan_source_text(icon_timer, icon_timer_path)
-    assert [
-        violation
-        for violation in icon_timer_violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
-    assert "WindowIconDeferredLoadTimer {" in window_icon
-    assert "host: root" in window_icon
-    assert "\n    Timer {" not in window_icon
-    assert "onTriggered: {" not in window_icon
-    assert "required property var host" in icon_timer
-    assert 'objectName: "windowIconDeferredLoadTimer"' in icon_timer
-    assert "interval: Enums.window.iconDeferredLoadDelayMs" in icon_timer
-    assert "repeat: false" in icon_timer
-    assert "onTriggered: host._deferredLoadReady = true" in icon_timer
-    assert "interval: 1" not in window_icon
-    metrics = METRICS_PATH.read_text(encoding="utf-8")
-    assert "readonly property int iconDeferredLoadDelayMs: 1" in metrics
-
-
-def test_windows_core_close_animates_in_overlay_window_not_by_dropping_dwm_effects():
-    """关闭收紧必须在覆盖窗口里跑, 且禁止为此撤掉 hwnd 级 DWM 效果。
-
-    真机 A/B 隔离过: --drop=mica 会闪一帧, --drop=none/host/shadow 都不闪。写
-    DWMWA_SYSTEMBACKDROP_TYPE 让 DWM 在 QML 重绘之前可见地重新合成, QML 侧无论怎么
-    排序都盖不住 —— 所以"撤掉 Mica 好让遮罩裁到外围"这条路本身就是闪烁的来源。
-
-    正解是根本不在主窗口里遮罩: 收紧改在覆盖窗口(无 Mica、Qt.NoFluentShadowWindowHint)
-    里跑, 主窗口在遮罩帧上屏后以 opacity 藏掉。这条门禁锁住那个开关, 并挡住撤除方案
-    以任何形式回来 —— 它在 offscreen 测试里不会复现, 只在真机上闪。
-    """
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-
-    assert "preferOverlayWindow: true" in source
-
-    # The drop-based approach and its scaffolding must stay gone.
-    # 撤除方案及其脚手架必须保持删除状态。
-    for banned in (
-        "closeCollapseStateChanged",
-        "_setNativeShadowForClose",
-        "NavigationMicaCloseBackdrop",
-    ):
-        assert banned not in source, f"WindowsCore.qml 又出现撤除方案残留: {banned}"
-
-    # Shadow mode switching and the dwmShadow config handler legitimately toggle the native
-    # shadow; only the close path must not. Scope the check to the close functions.
-    # 阴影模式切换与 dwmShadow 配置响应本就该切原生阴影, 只有关闭路径不许。把检查限定在
-    # 关闭相关函数内。
-    for function_name in ("_startAcceptedClose", "_cancelCloseRequest"):
-        body = source.split(f"function {function_name}")[1].split("\n    function ")[0]
-        assert "ShadowManager" not in body, (
-            f"{function_name} 又在动原生阴影: 那是真机实测过的闪烁源"
-        )
-        assert "MicaManager" not in body, f"{function_name} 又在动 Mica"
-
-    navigation = (ROOT / "prismqml" / "PrismQML" / "NavigationWindowCore.qml").read_text(
-        encoding="utf-8"
-    )
-    for banned in ("closeCollapseStateChanged", "NavigationMicaCloseBackdrop"):
-        assert banned not in navigation, f"NavigationWindowCore.qml 残留: {banned}"
-    assert not (
-        ROOT / "prismqml" / "PrismQML" / "_internal" / "NavigationMicaCloseBackdrop.js"
-    ).exists()
-
-
-def test_overlay_window_path_hides_host_and_restores_it_only_after_close():
-    """覆盖窗口那条路必须藏住宿主窗口, 且只在关闭成功后才还原。
-
-    只藏源项不够: 宿主窗口仍带着 hwnd 级 Mica 和原生阴影, 它们画在覆盖窗遮罩之外,
-    搬到覆盖窗这件事就白做了。两个顺序坑:
-
-    1. 用 opacity 而非 visible=false —— 后者拆掉场景图, 而那个场景图还在驱动覆盖窗动画
-    2. 还原必须等 window.close() 成功之后 —— 早一点就露出一帧完整的、没收紧的窗口
-    """
-    backend = (
-        ROOT
-        / "prismqml"
-        / "PrismQML"
-        / "controls"
-        / "navigation"
-        / "_internal"
-        / "LazyPageCircleTransition.qml"
-    ).read_text(encoding="utf-8")
-
-    # The switch must gate the in-window branch, or _hostWindow being always set for a
-    # window-hosted transition means the overlay branch is unreachable.
-    # 开关必须门控窗口内分支, 否则窗口内过渡的 _hostWindow 恒有值, 覆盖窗分支不可达。
-    assert "if (transition._hostWindow && !transition.preferOverlayWindow) {" in backend
-    assert "host.opacity = Enums.opacityLevel.invisible" in backend
-    assert "visible = false" not in backend.split("_hideHostWindowForOverlay")[1].split(
-        "function _restoreHostWindowAfterOverlay"
-    )[0]
-
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    completed = source.split("function _completeAcceptedClose")[1].split("function ")[0]
-    close_index = completed.index("window.close()")
-    restore_index = completed.index("closeTransition.restoreHostWindow()")
-    assert close_index < restore_index, (
-        "还原必须在 window.close() 之后, 否则会露出一帧完整的未收紧窗口"
-    )

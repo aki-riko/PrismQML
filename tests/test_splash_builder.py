@@ -528,6 +528,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     fast_splash_source = (
         ROOT / "prismqml/python/window/fast_splash.py"
     ).read_text(encoding="utf-8")
+    splash_qml_source = (
+        ROOT / "prismqml/python/window/_fast_splash_qml.py"
+    ).read_text(encoding="utf-8")
     lifecycle_source = (
         ROOT / "prismqml/python/window/_fast_splash_lifecycle.py"
     ).read_text(encoding="utf-8")
@@ -552,9 +555,9 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "QQmlEngine.ObjectOwnership.CppOwnership" in fast_splash_source
     assert "wintypes.HWND(0)" in lifecycle_source
     assert "HWND_TOPMOST" not in lifecycle_source
-    assert "win.revealTransition.revealRadiusPixels" in fast_splash_source
+    assert "win.revealTransition.revealRadiusPixels" in splash_qml_source
     assert "self._reveal_component = component" in fast_splash_source
-    reveal_qml = fast_splash_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
+    reveal_qml = splash_qml_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1
     )[0]
     # FastSplash is the default startup surface, so its exit must inherit the
@@ -579,10 +582,10 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "Window::createSplash" not in cpp_source
     assert "createSplash();" not in cpp_source
     assert "splashSubtitle:" in gallery_source
-    assert 'property string splashSubtitle: "{splash_subtitle}"' in fast_splash_source
+    assert 'property string splashSubtitle: "{splash_subtitle}"' in splash_qml_source
     assert "DEFAULT_SPLASH_SUBTITLE" in fast_splash_source
     assert "splashComponent.createObject" not in gallery_source
-    splash_qml = fast_splash_source.split('_SPLASH_QML = """', 1)[1].split(
+    splash_qml = splash_qml_source.split('_SPLASH_QML = """', 1)[1].split(
         '"""', 1
     )[0]
     assert "visible: false" in splash_qml
