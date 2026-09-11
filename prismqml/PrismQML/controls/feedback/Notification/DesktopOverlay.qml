@@ -4,8 +4,8 @@
 
 import "../../.."
 import "_internal"
-import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
-import QtQuick  // 置于库import后:去前缀后保原生类型不被覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:原生Window名归库后不被覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被覆盖
 
 // DesktopOverlay - Desktop notification window with slide animation 带滑动动画的桌面通知窗口
 // Provides desktop-level parent for Toast/InfoBar 为Toast/InfoBar提供桌面级parent

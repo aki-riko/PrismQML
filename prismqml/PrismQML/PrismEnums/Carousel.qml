@@ -9,7 +9,7 @@ import QtQuick
 QtObject {
     // Effect 视觉效果(与 orientation 正交)
     readonly property int effect_peek: 0       // Fluent 商店式 slide+peek 露边(默认)
-    readonly property int effect_slide: 1      // 普通整图滑动 plain slide
+    readonly property int effect_slide: 1      // Plain full-image slide 普通整图滑动 plain slide
 
     // Navigation button position 导航按钮位置
     readonly property int nav_inside: 0        // Inside carousel 内部

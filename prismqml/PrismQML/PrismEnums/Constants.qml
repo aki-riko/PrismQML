@@ -24,23 +24,23 @@ QtObject {
     // light: 米白底/橙主色/黑边黑影; dark: 深炭底/提亮主色/黑边黑影(靠 surface 提亮区分)。
     // 控件与上层 token 读 neo.xxx 不变, 值按 isDark 自动切 → 加深色支持零控件改动。
     readonly property QtObject neoColors: QtObject {
-        // 背景层: light 米白 / dark 深炭(surface 比 background 亮以靠层次区分)
+        // Background layer: light cream / dark charcoal 背景层: light 米白 / dark 深炭(surface 比 background 亮以靠层次区分)
         readonly property color background: root.isDark ? "#1A1A1A" : "#FAFAF0"
         readonly property color surface: root.isDark ? "#262626" : "#FFFFFF"
         readonly property color muted: root.isDark ? "#2E2E2E" : "#F5F5F5"
-        // 文字: light 近黑 / dark 近白
+        // Text: light near-black / dark near-white 文字: light 近黑 / dark 近白
         readonly property color foreground: root.isDark ? "#F5F5F0" : "#171717"
         readonly property color secondaryForeground: root.isDark ? "#A0A0A0" : "#666666"
-        // 描边+硬阴影: light 纯黑(招牌); dark 反转成浅色(黑边在深底隐形, neo dark 用浅边+浅影立体区分)
+        // Stroke + hard shadow: light pure black (signature) 描边+硬阴影: light 纯黑(招牌); dark 反转成浅色(黑边在深底隐形, neo dark 用浅边+浅影立体区分)
         readonly property color border: root.isDark ? "#F5F5F0" : "#000000"
         readonly property color shadow: root.isDark ? "#F5F5F0" : "#000000"
-        // 主色/语义色: dark 下提亮一档保证深底对比
-        readonly property color primary: root.isDark ? "#FB923C" : "#F97316"      // 橙
-        readonly property color primaryForeground: root.isDark ? "#1A1A1A" : "#FFFFFF"  // 主色块上文字(亮橙配深字)
-        readonly property color success: root.isDark ? "#22C55E" : "#16A34A"      // 绿
-        readonly property color danger: root.isDark ? "#F87171" : "#EF4444"       // 红
-        readonly property color warning: root.isDark ? "#FBBF24" : "#F59E0B"      // 琥珀
-        readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // 蓝
+        // Accent/semantic colors: brightened one step on dark for contrast 主色/语义色: dark 下提亮一档保证深底对比
+        readonly property color primary: root.isDark ? "#FB923C" : "#F97316"      // Orange 橙
+        readonly property color primaryForeground: root.isDark ? "#1A1A1A" : "#FFFFFF"  // Text on primary swatch (bright orange, dark text) 主色块上文字(亮橙配深字)
+        readonly property color success: root.isDark ? "#22C55E" : "#16A34A"      // Green 绿
+        readonly property color danger: root.isDark ? "#F87171" : "#EF4444"       // Red 红
+        readonly property color warning: root.isDark ? "#FBBF24" : "#F59E0B"      // Amber 琥珀
+        readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // Blue 蓝
     }
 
     // ==================== TicketColors 复古票据皮肤原始调色板 ====================
@@ -160,7 +160,7 @@ QtObject {
     // 仅当 ThemeManager 缺失时作为 QML 兜底；正常运行时主色由 ThemeManager.DEFAULT_ACCENT 提供。
     // 三值与 ThemeManager 的 HSL 派生保持一致：base / light(L×1.1) / dark(L×0.85)。
     readonly property QtObject accentDefaults: QtObject {
-        readonly property color accent: "#0e5a9c"       // 沉稳深 Fluent 蓝 (白字对比 7.09 AAA)
+        readonly property color accent: "#0e5a9c"       // Deep steady Fluent blue (white-text contrast 7.09 AAA) 沉稳深 Fluent 蓝 (白字对比 7.09 AAA)
         readonly property color accentLight: "#0f63ac"   // hover 变体 (HSL L×1.1)
         readonly property color accentDark: "#0c4c85"    // pressed 变体 (HSL L×0.85)
     }
@@ -374,7 +374,7 @@ QtObject {
     // ==================== ColorPickerDefaults 颜色选择器默认值 ====================
     readonly property QtObject colorPickerDefaults: QtObject {
         readonly property color defaultColor: "#0078d4"  // Fluent accent blue
-        readonly property color baseRed: "#ff0000"       // Base red for sliders
+        readonly property color baseRed: "#ff0000"       // Base red for sliders 滑块基础红色
         readonly property var quickPalette: [
             "#0078d4", "#0099bc", "#2d7d9a", "#00b7c3", "#038387", "#7a7574"
         ]

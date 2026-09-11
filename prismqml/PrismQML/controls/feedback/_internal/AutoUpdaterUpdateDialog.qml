@@ -41,7 +41,7 @@ UpdateDialog {
             )
     }
     onCancelled: {
-        // 用户稍后再说,清空待处理状态
+        // User chose later, clear the pending state 用户稍后再说,清空待处理状态
         updaterControl._awaitingDecision = false
         updaterControl._clearPending()
     }

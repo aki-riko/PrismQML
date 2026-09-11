@@ -51,10 +51,10 @@ Widget {
     readonly property int _toastShadowOffset: Enums.shadow.level4.offset
     
     // Progress properties 进度属性
-    property int feature: Enums.notification.feature_normal  // 功能模式
-    property real progress: 0  // 0-1 进度值
+    property int feature: Enums.notification.feature_normal  // Functional mode 功能模式
+    property real progress: 0  // Progress value 0-1 0-1 进度值
     property string progressIcon: ""  // Progress ring center icon 进度环中心图标
-    property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
+    property int completeDuration: Enums.duration.progressComplete  // How long to keep showing after progress completes (ms) 进度完成后持续显示时间(ms)
     
     // Progress mode helpers 进度模式辅助属性
     readonly property bool _isProgressMode: feature === Enums.notification.feature_progress_bar ||

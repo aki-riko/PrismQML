@@ -9,8 +9,8 @@ import "../../icons"
 import "../../buttons"
 import "../../data"
 import "_internal" as NotificationInternal
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
 
 // DesktopNotification - Desktop notification (standalone window) 桌面通知
 // Popup at screen corners, like system notification 屏幕角落弹出

@@ -35,7 +35,7 @@ DialogBoxCore {
     // Footer content 底部内容
     footer: Component {
         Row {
-            property var dialog  // 由 Loader 自动注入
+            property var dialog  // Auto-injected by the Loader 由 Loader 自动注入
             spacing: Enums.spacing.l
             
             // Yes Button (Primary) 确定按钮
@@ -91,7 +91,7 @@ DialogBoxCore {
             text: control.content
             visible: text !== ""
             wrapMode: Text.WordWrap
-            // 固定换行宽度,使 implicitHeight 反映换行后的真实多行高度(修内容被裁)
+            // Fixed wrap width so implicitHeight reflects the wrapped multi-line height 固定换行宽度,使 implicitHeight 反映换行后的真实多行高度(修内容被裁)
             width: control._contentTextWidth
             readOnly: true
             selectByMouse: control.contentCopyable

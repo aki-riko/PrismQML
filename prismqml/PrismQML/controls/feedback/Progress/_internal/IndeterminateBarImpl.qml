@@ -16,9 +16,9 @@ Item {
     property color color: Enums.accentColor
     property bool running: true
     property real radius: height / 2
-    // 亮块宽度占比 indicator width ratio
+    // Indicator width ratio 亮块宽度占比 indicator width ratio
     property real indicatorRatio: 0.4
-    // 可选底轨 (默认不画) optional track
+    // Optional base track (not painted by default) 可选底轨 (默认不画) optional track
     property color trackColor: Enums.transparent
     property bool showTrack: trackColor.a > 0
 
@@ -52,7 +52,7 @@ Item {
                 from: -indicator.width
                 to: control.width
                 duration: Enums.duration.progressLoop  // 2000ms 单次穿梭
-                easing.type: Easing.InOutQuad  // 首尾缓动, 中段最快
+                easing.type: Easing.InOutQuad  // Ease at both ends, fastest in the middle 首尾缓动, 中段最快
             }
         }
     }

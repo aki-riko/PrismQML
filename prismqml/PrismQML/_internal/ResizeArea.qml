@@ -12,7 +12,7 @@ MouseArea {
     
     // ==================== Required Props 必需属性 ====================
     required property var targetWindow  // Parent window 父窗口
-    required property int edge          // Qt.LeftEdge, Qt.RightEdge, Qt.TopEdge, Qt.BottomEdge or combinations
+    required property int edge          // Qt.LeftEdge, Qt.RightEdge, Qt.TopEdge, Qt.BottomEdge or combinations Qt 边缘枚举, 可组合
     
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isL: edge & Qt.LeftEdge

@@ -24,10 +24,10 @@ QtObject {
     readonly property color headerDark: "#252525"
     readonly property color headerLight: "#fafafa"
     readonly property color tableHoverDark: Qt.rgba(1, 1, 1, 0.06)
-    // 全局统一: table/list hover 跟 controlBgHover 一致 (#f0f0f0)
+    // Global unified: table/list hover matches controlBgHover 全局统一: table/list hover 跟 controlBgHover 一致 (#f0f0f0)
     readonly property color tableHoverLight: "#f0f0f0"
     readonly property color alternateRowDark: Qt.rgba(1, 1, 1, 0.02)
-    // 奇数行底色 — 比 cardLight 略灰但比 hover 淡, 让 hover 仍能跟它区分
+    // Odd-row background: grayer than cardLight, lighter than hover 奇数行底色 — 比 cardLight 略灰但比 hover 淡, 让 hover 仍能跟它区分
     readonly property color alternateRowLight: "#f8f8f8"
     readonly property color scrollTrackDark: Qt.rgba(1, 1, 1, 0.04)
     readonly property color scrollTrackLight: "#f0f0f0"

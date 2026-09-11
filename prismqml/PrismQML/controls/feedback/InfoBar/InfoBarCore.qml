@@ -39,12 +39,12 @@ Widget {
     readonly property bool _hasCustomBg: backgroundColorLight.a > 0 || backgroundColorDark.a > 0
 
     // Progress properties 进度属性
-    property int feature: Enums.notification.feature_normal  // 功能模式
-    property real progress: 0  // 0-1 进度值
-    property int completeDuration: Enums.duration.progressComplete  // 进度完成后持续显示时间(ms)
+    property int feature: Enums.notification.feature_normal  // Functional mode 功能模式
+    property real progress: 0  // Progress value 0-1 0-1 进度值
+    property int completeDuration: Enums.duration.progressComplete  // How long to keep showing after progress completes (ms) 进度完成后持续显示时间(ms)
 
     // Style properties 样式属性
-    property real radius: Enums.surfaceRadius(Enums.radius.large)// 圆角半径
+    property real radius: Enums.surfaceRadius(Enums.radius.large)// Corner radius 圆角半径
     // Border color 边框色 (neo 用控件边框 token=黑; Fluent 用 divider 轻分隔)
     readonly property color borderColor: Enums.hasOutlinedSurfaces ? Enums.stateColor.border : Enums.stateColor.divider
     readonly property real _infoBarRadius: radius

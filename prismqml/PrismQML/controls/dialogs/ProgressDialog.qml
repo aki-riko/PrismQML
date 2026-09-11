@@ -162,7 +162,7 @@ OverlayDialogCore {
                 Label {
                     text: control.content
                     type: Enums.label.type_body
-                    color: Enums.accentColor  // 主题色
+                    color: Enums.accentColor  // Theme color 主题色
                     wrapMode: Text.WordWrap
                     width: Math.min(implicitWidth, 300)
                     visible: text !== ""

@@ -110,7 +110,7 @@ Item {
         anchors.top: infoBar._isVertical ? parent.top : undefined
         anchors.topMargin: infoBar._isVertical ? Enums.spacing.m : 0
         anchors.verticalCenter: infoBar._isVertical ? undefined : parent.verticalCenter
-        width: height  // 保持正方形
+        width: height  // Keep it square 保持正方形
         height: Math.min(infoBar.height - Enums.spacing.xs * 2, Enums.infoBarMetrics.iconContainerSize)
         visible: !infoBar._isRingMode
 
@@ -153,7 +153,7 @@ Item {
             width: Math.min(implicitWidth, 800 - parent.x
                             - (closeBtn.visible
                                ? closeBtn.width + Enums.infoBarMetrics.margin * 2 : 0))
-            // 长文本/多行折行显示,不再单行省略号截断
+            // Long text wraps to multiple lines instead of ellipsis-truncating 长文本/多行折行显示,不再单行省略号截断
             wrapMode: Text.Wrap
         }
     }

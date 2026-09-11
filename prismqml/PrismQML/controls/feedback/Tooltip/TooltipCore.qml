@@ -6,8 +6,8 @@ import "../../.."
 import "../../data"
 import "../../../effects"
 import "_internal" as TooltipInternal
-import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:原生Window名归库后不被覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TooltipCore - Tooltip using native Window for cross-boundary display
 // 提示基类 — 使用原生 Window 实现跨窗口边界显示
@@ -18,7 +18,7 @@ Item {
     property string text: ""
     property int showDelay: Enums.duration.tooltipShowDelay
     property int hideDelay: Enums.duration.none
-    // 显示期间是否持续跟随锚点(parent)位置。用于手柄拖动这类
+    // Follow the anchor (parent) position every frame while shown (e.g. gamepad drag) 显示期间是否持续跟随锚点(parent)位置。用于手柄拖动这类
     // parent 会移动的场景:开启后 tooltip 窗口每帧重算全局坐标跟着走。
     property bool followAnchor: false
 
@@ -64,7 +64,7 @@ Item {
         })
     }
 
-    // 按当前锚点位置重算窗口全局坐标(show 时一次 + followAnchor 时持续)
+    // Recompute the global window position from the current anchor 按当前锚点位置重算窗口全局坐标(show 时一次 + followAnchor 时持续)
     function _reposition() {
         if (!control.parent) return
         var host = tooltipWindowLoader.item
@@ -89,7 +89,7 @@ Item {
     height: tooltipHeight
     visible: false  // Item 本身不可见，窗口独立渲染
 
-    // 兼容旧 API：外部通过 visible 属性控制时自动转发到 show/hide
+    // Legacy API compat: external visible writes forward to show/hide 兼容旧 API：外部通过 visible 属性控制时自动转发到 show/hide
     onVisibleChanged: {
         if (visible) {
             show()

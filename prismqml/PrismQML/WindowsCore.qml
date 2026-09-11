@@ -97,7 +97,7 @@ Window {
     // Fired when the optional host-defined caption action is activated.
     // 可选宿主标题栏动作被点击时发射。
     signal captionActionTriggered()
-    // Fired before a user/system close request is accepted. Handlers may set
+    // Fired before a user/system close request is accepted. Handlers may set 用户/系统关闭请求被接受前触发; 置 closeRequestAccepted=false 可保持窗口存活
     // closeRequestAccepted to false to keep the window alive.
     signal closeRequested()
 
@@ -244,7 +244,7 @@ Window {
     height: Enums.window.defaultHeight
     minimumWidth: Enums.window.minimumWidth
     minimumHeight: Enums.window.minimumHeight
-    // QML-created windows should show by default. Python WindowCore injects
+    // QML-created windows should show by default. Python WindowCore injects QML 创建的窗口默认自行显示; Python WindowCore 会在 show 前注入 visible:false
     // visible: false into its generated root QML before calling Window.show().
     visible: true
     opacity: Enums.opacityLevel.invisible
@@ -269,8 +269,8 @@ Window {
         animHelper.animScale = 0.95
         animHelper.animOpacity = 0
         profileTime("初始化动画状态")
-        // 延后 native hook: winId()/style 写入在冷启动可达 90ms+,不要阻塞 loadData。
         // Native startup helper finalizes attach after winId becomes available.
+        // 延后 native hook: winId()/style 写入在冷启动可达 90ms+,不要阻塞 loadData。
         // 原生启动助手会在 winId 可用后完成 attach。
         nativeWindowStartup.start()
         profileTime("nativeWindowStartup.start")
@@ -293,14 +293,14 @@ Window {
             return
         }
         nativeCloseAccepted()
-        // 注意: onClosing 在窗口收到「任何」关闭请求时都会触发,包括上层
+        // Warning: onClosing fires on ANY close request, including hide-to-tray 注意: onClosing 在窗口收到「任何」关闭请求时都会触发,包括上层
         // event.ignore() 拦截后「隐藏到托盘」的场景 —— 此时窗口并未销毁,
         // 仍要继续使用。这里绝不能 detach NativeWindowHook,否则 hwnd 的
         // WS_CAPTION/THICKFRAME style 被还原 + 移出 NCCALCSIZE 过滤集合,
         // 之后再 show() 无法点亮 WS_VISIBLE,主窗口永久无法恢复显示。
         // detach 的正确时机是窗口「真正销毁」时,见下方 Component.onDestruction。
     }
-    // 窗口真正销毁时才解除 native hook (而非每次 closing)。
+    // Detach native hook only on real destruction, not on every closing 窗口真正销毁时才解除 native hook (而非每次 closing)。
     // QML 对象 destroy() / 引擎析构会触发此处;detach 内部对未 attach 的
     // hwnd 有保护,重复或无效调用安全。
     // 守卫必须同时挡 undefined 和 null: 析构期 context property NativeWindow
@@ -333,7 +333,7 @@ Window {
         }
     }
 
-    // 从隐藏恢复显示时重新播放显示动画,把 opacity 拉回 1。
+    // Replay the show animation when shown from hidden, restoring full opacity 从隐藏恢复显示时重新播放显示动画,把 opacity 拉回 1。
     // 背景: 窗口 opacity 初值为 0(invisible),首个完整帧后由 startShow()
     // 直接设为 1。若下游在首帧门槛期间隐藏后再调用裸 show(), layered 窗口
     // 可能仍保持 alpha=0。这里在 visible 由 false→true 时恢复完整绘制状态,

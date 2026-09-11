@@ -5,7 +5,7 @@
 import QtQuick
 import "../controls/feedback/Notification"
 
-// DesktopNotificationCloser - Deferred close-path bridge for NotificationManager
+// DesktopNotificationCloser - Deferred close-path bridge for NotificationManager NotificationManager 的延迟关闭路径桥接
 QtObject {
     function closeAll() {
         NotificationManager.closeAllDesktopNotifications()

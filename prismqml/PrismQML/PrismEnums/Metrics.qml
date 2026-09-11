@@ -52,8 +52,8 @@ QtObject {
  readonly property int splashTimeout: 5000 // Splash dismiss fallback when first page never signals loaded 首屏加载信号意外不来时关闭欢迎页的兜底超时
  readonly property int splashMinimumVisible: 600 // Minimum stable splash display after the window becomes visible 窗口可见后启动画面最短稳定展示时长
  readonly property int scroll: 750
- // 导航滚轮时长必须跟随 scroll: 250ms 在高刷屏上尾段会退化成逐物理像素蠕动。
  // Navigation wheel duration tracks scroll; 250ms decays into per-physical-pixel crawl.
+ // 导航滚轮时长必须跟随 scroll: 250ms 在高刷屏上尾段会退化成逐物理像素蠕动。
  readonly property int navigationScroll: scroll // Navigation wheel smooth scroll animation 导航滚轮平滑滚动动画
  readonly property int bounce: 750 // Scroll bounce animation 滚动回弹动画
  readonly property int verySlow: 1000 // Very slow ornamental animation 较慢装饰动画
@@ -160,12 +160,12 @@ QtObject {
  // 几何范式集中放此; 配色【引用 Constants.neoColors 单一真相源】(dark-aware), 不在此重复定义,
  // 否则改一处忘另一处会出 bug(深色边框没反转即此坑)。控件读 Enums.neo.xxx。
  readonly property QtObject neo: QtObject {
- // ---- 几何 ----
- readonly property real borderWidth: root._physicalPixelWidth(2) // 粗描边宽度
- readonly property int radius: 6 // 圆角(0.375rem≈6px, 接近直角)
- readonly property real shadowOffset: 4 // 硬阴影偏移(X=Y), 即"纸面投影"距离
- readonly property real pressOffset: 4 // 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
- // ---- 配色: 全部指向 Constants.neoColors(按 isDark 自动切 light/dark) ----
+ // ---- Geometry 几何 ----
+ readonly property real borderWidth: root._physicalPixelWidth(2) // Thick border width 粗描边宽度
+ readonly property int radius: 6 // Corner radius (0.375rem≈6px, near-square) 圆角(0.375rem≈6px, 接近直角)
+ readonly property real shadowOffset: 4 // Hard shadow offset (X=Y), the paper drop distance 硬阴影偏移(X=Y), 即"纸面投影"距离
+ readonly property real pressOffset: 4 // Pressed shift down/right (= shadowOffset, flattens the shadow) 按下时控件下移/右移距离(= shadowOffset, 视觉上压平阴影)
+ // ---- Colors 配色: 全部指向 Constants.neoColors(按 isDark 自动切 light/dark) ----
  readonly property color shadowColor: root.constants.neoColors.shadow
  readonly property color borderColor: root.constants.neoColors.border
  readonly property color background: root.constants.neoColors.background
@@ -786,7 +786,7 @@ QtObject {
  readonly property int dialogHexMaxLength: 6
  readonly property int dialogCustomRowSpacing: 60
 
- // Dialog defaults and constants
+ // Dialog defaults and constants 对话框默认值与常量
  readonly property real dialogHueDefault: 0.5
  readonly property real dialogSaturationDefault: 1.0
  readonly property real dialogBrightnessDefault: 1.0
@@ -875,7 +875,7 @@ QtObject {
  
  // ==================== List Indicator 列表指示条 ====================
  readonly property QtObject listIndicator: QtObject {
- // 列表项选中指示条的度量参数(按下/选中态的高度比例与圆角)
+ // List item selection indicator metrics 列表项选中指示条的度量参数(按下/选中态的高度比例与圆角)
 
  // Height ratio when pressed 按下时高度比例
  readonly property real pressedRatio: 0.36

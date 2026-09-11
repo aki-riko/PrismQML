@@ -7,8 +7,8 @@ import QtQuick
 // Lang - Language codes 语言代码
 QtObject {
     // State component types 状态组件类型
-    readonly property int type_no_data: 1      // 无数据（EmptyDataState）
-    readonly property int type_no_internet: 2  // 无网络（OfflineState）
+    readonly property int type_no_data: 1      // No data (EmptyDataState) 无数据（EmptyDataState）
+    readonly property int type_no_internet: 2  // Offline (OfflineState) 无网络（OfflineState）
     
     // Language codes 语言代码
     readonly property string auto: "auto"  // Auto-detect system language 自动检测系统语言

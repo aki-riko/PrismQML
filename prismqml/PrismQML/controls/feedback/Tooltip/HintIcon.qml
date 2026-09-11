@@ -23,9 +23,9 @@ Widget {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property string icon: "Info"                         // 图标名,等同 Icon.icon
-    property int iconSize: 14                             // 图标渲染大小
-    property color color: Enums.textColor.tertiary // 图标颜色,默认次要文本色
+    property string icon: "Info"                         // Icon name, same as Icon.icon 图标名,等同 Icon.icon
+    property int iconSize: 14                             // Icon render size 图标渲染大小
+    property color color: Enums.textColor.tertiary // Icon color, defaults to secondary text color 图标颜色,默认次要文本色
 
     // ==================== Size 尺寸 ====================
     // contentWidth/Height = 图标尺寸,不占额外空间。Widget 基类会让最终
@@ -44,6 +44,6 @@ Widget {
         icon: control.icon
         iconSize: control.iconSize
         color: control.color
-        themeAware: false   // 颜色由外层 control.color 主导,不再跟主题二次变换
+        themeAware: false   // Outer control.color owns the color; no second theming transform 颜色由外层 control.color 主导,不再跟主题二次变换
     }
 }

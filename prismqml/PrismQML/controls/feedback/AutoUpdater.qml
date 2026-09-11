@@ -33,12 +33,12 @@ Item {
     //        openInBrowser(url)
     property var updater: null
 
-    // ---- 可配置行为 ----
-    property bool autoDownload: true              // 用户确认后是否自动下载(false 则仅发 downloadRequested 信号)
+    // ---- Configurable behavior 可配置行为 ----
+    property bool autoDownload: true              // Auto-download after user confirms (else only emits downloadRequested) 用户确认后是否自动下载(false 则仅发 downloadRequested 信号)
     property string silentArgs: Qt.platform.os === "windows"
         ? "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-"
         : "" // Inno Setup silent install arguments Inno Setup 静默安装参数
-    property bool notifyWhenUpToDate: false        // 已是最新时是否弹提示 toast
+    property bool notifyWhenUpToDate: false        // Show a toast when already up to date 已是最新时是否弹提示 toast
     readonly property bool usesDualSlot:
         updater && updater.installStrategy === "dual_slot"
     // Presenter component contract 展示器组件契约:
@@ -47,11 +47,11 @@ Item {
     // 默认使用右下角 Toast;设为 null 可完全关闭内置展示。
     property Component feedbackPresenter: defaultFeedbackPresenter
 
-    // ---- 展示信息(默认读取底层,应用仍可直接赋值覆盖) ----
+    // ---- Display info (defaults read from core, apps may override) 展示信息(默认读取底层,应用仍可直接赋值覆盖) ----
     property string repository: updater && updater.repository ? updater.repository : ""
     property string currentVersion: updater && updater.currentVersion ? updater.currentVersion : ""
 
-    // ---- 展示状态(供自定义 Presenter 只读消费) ----
+    // ---- Display state (read-only for custom Presenters) 展示状态(供自定义 Presenter 只读消费) ----
     readonly property QtObject feedbackModel: QtObject {
         readonly property bool active: root._feedbackActive
         readonly property bool checking: root._checking
@@ -78,14 +78,14 @@ Item {
         }
     }
 
-    // ---- 内部状态 ----
+    // ---- Internal state 内部状态 ----
     property string _pendingUrl: ""
     property string _pendingHtmlUrl: ""
     property string _pendingVersion: ""
     property bool _rangeKnown: false
-    property bool _checking: false      // 是否处于检查态(不确定环) checking state (indeterminate ring)
+    property bool _checking: false      // checking state (indeterminate ring) 是否处于检查态(不确定环)
     property bool _checkSilent: false   // Suppress startup check feedback 抑制启动检查反馈
-    property bool _downloading: false   // 是否处于下载态(不确定环→确定环) downloading (indeterminate to determinate ring)
+    property bool _downloading: false   // downloading (indeterminate to determinate ring) 是否处于下载态(不确定环→确定环)
     property bool _installPreparing: false
     property bool _awaitingDecision: false
     property bool _componentReady: false
@@ -101,7 +101,7 @@ Item {
     readonly property int _bytesPerKibibyte: 1024
     readonly property int _bytesPerMebibyte: _bytesPerKibibyte * _bytesPerKibibyte
 
-    // ---- 对外信号(供应用可选接管) ----
+    // ---- Public signals (optional app takeover) 对外信号(供应用可选接管) ----
     signal upToDateNotified(string version)
     signal errorOccurred(string message)
     signal downloadRequested(string version, string downloadUrl, string htmlUrl)
@@ -128,7 +128,7 @@ Item {
         _clearPending();
         _dismissFeedback();
         root._checkSilent = silent === true;
-        // 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
+        // Check phase: total unknown, show indeterminate ring (until size is known) 检查阶段:总量未知,显示不确定进度环(读信息=不确定,下载拿到总大小才转确定)
         root._checking = true;
         root._rangeKnown = false;
         if (!root._checkSilent) {
@@ -141,7 +141,7 @@ Item {
         updater.checkForUpdate();
     }
 
-    // 手动开始下载(autoDownload=false 时供应用调用)
+    // Start download manually (when autoDownload=false) 手动开始下载(autoDownload=false 时供应用调用)
     function startDownload() {
         if (!updater || root._checking || root._downloading || root._awaitingDecision
             || root._installPreparing
@@ -162,7 +162,7 @@ Item {
     function _beginDownload(version, downloadUrl, htmlUrl) {
         if (root._downloading)
             return;
-        // 无安装包资产 → 跳转 Release 页
+        // No installer asset found -> open the Release page 无安装包资产 → 跳转 Release 页
         if (!downloadUrl || downloadUrl === "") {
             if (htmlUrl && htmlUrl !== "" && updater.openInBrowser(htmlUrl)) {
                 _clearPending();
@@ -261,14 +261,14 @@ Item {
     }
     Component.onDestruction: root._destroyFeedbackPresenter()
 
-    // ---- 默认反馈展示器 ----
+    // ---- Default feedback presenter 默认反馈展示器 ----
     Component {
         id: defaultFeedbackPresenter
 
         AutoUpdaterToastPresenter {}
     }
 
-    // ---- 短时反馈生命周期 ----
+    // ---- Short-lived feedback lifecycle 短时反馈生命周期 ----
     FeedbackInternal.AutoUpdaterFeedbackTimer {
         host: root
     }
@@ -278,7 +278,7 @@ Item {
         host: root
     }
 
-    // ---- 更新确认弹窗 ----
+    // ---- Update confirmation dialog 更新确认弹窗 ----
     Component {
         id: updateDialogComponent
 

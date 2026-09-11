@@ -61,7 +61,7 @@ Item {
         return Math.max(Enums.controlSize.toastHeight, h)
     }
     readonly property real verticalHeight: {
-        // Use childrenRect because Column implicitHeight can lag wrapped children.
+        // Use childrenRect because Column implicitHeight can lag wrapped children. childrenRect 兜底, Column implicitHeight 对折行子项可能滞后
         var h = verticalLayout.childrenRect.height
             + Enums.spacing.m * 2
             + Enums.spacing.cardElevate
@@ -177,7 +177,7 @@ Item {
             type: Enums.label.type_caption
             color: Enums.textColor.secondary
             visible: text !== "" && !toast._isVertical
-            // 用 anchors 左右约束确定宽度→触发自动换行;Text.Wrap 处理硬换行+长行折行
+            // Width from anchors left/right so Text.Wrap can fold long lines 用 anchors 左右约束确定宽度→触发自动换行;Text.Wrap 处理硬换行+长行折行
             wrapMode: Text.Wrap
             verticalAlignment: Text.AlignTop
         }

@@ -336,7 +336,7 @@ QtObject {
         return _itemLifecycle.create(component, windowParent, {
             "severity": severity, "title": title, "message": message,
             "duration": duration, "position": position, "feature": feature,
-            // 长文本/多行自动用垂直布局(水平布局高度受限,长内容易裁切)
+            // Long text uses a vertical layout automatically (horizontal height clips it) 长文本/多行自动用垂直布局(水平布局高度受限,长内容易裁切)
             "orient": orientationForMessage(message)
         }, position)
     }

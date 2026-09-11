@@ -6,7 +6,7 @@ import QtQuick
 
 // State - State component type enums 状态组件类型枚举
 QtObject {
-    readonly property int type_result: 0       // 结果状态（ResultState）
-    readonly property int type_no_data: 1      // 无数据（EmptyDataState）
-    readonly property int type_no_internet: 2  // 无网络（OfflineState）
+    readonly property int type_result: 0       // Result state (ResultState) 结果状态（ResultState）
+    readonly property int type_no_data: 1      // No data (EmptyDataState) 无数据（EmptyDataState）
+    readonly property int type_no_internet: 2  // Offline (OfflineState) 无网络（OfflineState）
 }

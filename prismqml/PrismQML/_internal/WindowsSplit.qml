@@ -153,7 +153,7 @@ NavigationWindowCore {
  model: window.navigationItems
  bottomItems: window.bottomNavigationItems
  showReturnButton: true
- // 单向绑定 window.currentIndex → navInterface.currentIndex
+ // One-way bind window.currentIndex to navInterface.currentIndex 单向绑定 window.currentIndex → navInterface.currentIndex
  currentIndex: window.currentIndex
 
  backgroundColor: window._micaActive ? Enums.transparent : Enums.backgroundColor

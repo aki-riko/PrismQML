@@ -5,8 +5,8 @@
 import "../../.."
 import "../../utils/_internal"
 import "_internal" as TooltipInternal
-import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:原生Window名归库后不被覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TipPopup - Unified tip popup component 统一的提示弹出组件
 // Integrates Flyout and TeachingTip, distinguished by tipType 整合 Flyout 和 TeachingTip 功能，通过 tipType 区分

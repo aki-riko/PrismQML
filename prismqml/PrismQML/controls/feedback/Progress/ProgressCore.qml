@@ -49,7 +49,7 @@ Widget {
         to = max
     }
 
-    /// 重置进度到初始状态: value=from, 清掉 indeterminate/paused/error
+    /// Reset progress to initial state (value=from, clear indeterminate/paused/error) 重置进度到初始状态: value=from, 清掉 indeterminate/paused/error
     /// 任务可重用同一个 ProgressBar 实例时调用
     function reset() {
         value = from

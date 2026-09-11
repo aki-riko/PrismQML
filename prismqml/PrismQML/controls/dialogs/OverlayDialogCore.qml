@@ -4,8 +4,8 @@
 
 import "../.."
 import "_internal" as DialogInternal
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
 
 // OverlayDialogCore - Base class for overlay dialogs 覆盖式对话框基类
 // Provides common overlay functionality for MaskedDialog and DialogBoxCore 为 MaskedDialog 和 DialogBoxCore 提供共同的覆盖功能
@@ -102,7 +102,7 @@ Item {
             return overlayTarget
         }
 
-        // ✅ 2026-05-15: 默认升到 Window 级覆盖,避免对话框被父组件 (ScrollArea / 局部布局) 限制位置
+        // 2026-05-15: default raised to Window level so parent widgets cannot clip the dialog ✅ 2026-05-15: 默认升到 Window 级覆盖,避免对话框被父组件 (ScrollArea / 局部布局) 限制位置
         // 调用方若需组件级覆盖,显式设 overlayTarget 即可
         if (Window.window && Window.window.contentItem) {
             return Window.window.contentItem
@@ -147,7 +147,7 @@ Item {
         
         MouseArea {
             anchors.fill: parent
-            // 拦截 hover/wheel/click 防止穿透到下层 ListView/CommandBar 等
+            // Intercept hover/wheel/click so they never reach the ListView/CommandBar below 拦截 hover/wheel/click 防止穿透到下层 ListView/CommandBar 等
             // (默认 hoverEnabled=false, 不接 hover 时下层 hover 高亮仍可见)
             hoverEnabled: true
             acceptedButtons: Qt.AllButtons

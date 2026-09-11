@@ -119,7 +119,7 @@ WindowsCore {
     function _enableDeferredSplash() { NavigationSplashRouting.enable(window) }
 
     function _applyMicaEffect(reason) {
-        // _closeInProgress arm: a reapply landing mid-collapse repaints Mica outside the circle.
+        // _closeInProgress arm: a reapply landing mid-collapse repaints Mica outside the circle. 折叠中途重应用会让 Mica 在圆外重绘, 故预置 _closeInProgress
         if (!MicaManager || !_micaAvailable || !_nativeHookReady || (_closeInProgress && reason !== "closeCancelled")) {
             _micaNativeApplySucceeded = false
             _micaBackdropReady = false
@@ -140,7 +140,7 @@ WindowsCore {
 
     function _scheduleMicaReapply(reason) {
         if (!_micaActive || !_nativeHookReady || _closeInProgress) return
-        // 在 DWM 重新确认背板前关掉透明兜底, 否则只剩透明外壳。Hide transparent fallback.
+        // Hide transparent fallback before DWM re-confirms the backdrop 在 DWM 重新确认背板前关掉透明兜底, 否则只剩透明外壳。
         _micaBackdropReady = false
         _micaBackdropCommitTimer.stop()
         _micaReapplyReason = reason

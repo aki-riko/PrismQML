@@ -162,7 +162,7 @@ QtObject {
     // Light: 默认fefefe, 悬浮fafafa, 按下/聚焦fcfcfc
     // Dark: 默认4e4e4e, 悬浮595959, 按下/聚焦4e4e4e
     readonly property color controlBg: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? "#4e4e4e" : "#fefefe")))
-    // 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
+    // Global unified hover/pressed gray ramp (Fluent subtle hover) 全局统一 hover/pressed 灰阶 (Fluent UI 标准 subtle hover):
     // controlBgHover = menuItemHover = tableHoverLight = #f0f0f0,
     // 所有可交互行/项 hover 视觉一致, 用户能明显感知。
     readonly property color controlBgHover: isNeo ? _neo.muted : (isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? "#3c3c3c" : "#f0f0f0")))

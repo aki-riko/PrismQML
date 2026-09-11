@@ -4,7 +4,7 @@
 
 import QtQuick.Effects
 import "../../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // SplashScreen - Application splash screen overlay 应用启动画面覆盖层
 // Usage 用法:

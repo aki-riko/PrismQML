@@ -235,7 +235,7 @@ OverlayDialogCore {
                     anchors.centerIn: parent
                     active: control.footer !== null
                     sourceComponent: control.footer
-                    // 注入 dialog 引用，自定义组件声明 property var dialog 即可接收
+                    // Inject dialog reference; custom components receive it via property var dialog 注入 dialog 引用，自定义组件声明 property var dialog 即可接收
                     onLoaded: {
                         if (item && item.hasOwnProperty("dialog")) {
                             item.dialog = control

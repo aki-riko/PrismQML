@@ -8,8 +8,8 @@ import "../../effects"
 import "../buttons"
 import "../containers"
 import "../icons"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
 
 // FlyoutSheet - Floating dialog 浮动对话框
 Window {

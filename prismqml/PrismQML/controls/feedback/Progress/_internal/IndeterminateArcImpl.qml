@@ -29,8 +29,8 @@ Item {
     // sweepLen: 当前弧长 (角度) current arc length, 呼吸伸缩
     // spinDuration: 旋转/伸缩周期, 越小越快 (可被上层覆盖) spin & pulse period, smaller = faster
     property int spinDuration: Enums.progressRingMetrics.spinDuration
-    readonly property real _minSweep: 25    // 最短弧 shortest arc
-    readonly property real _maxSweep: 160   // 最长弧 ~44% (不到半圈, 不显冗长) longest arc
+    readonly property real _minSweep: 25    // Shortest arc 最短弧 shortest arc
+    readonly property real _maxSweep: 160   // Longest arc ~44% (under half circle, never looks bloated) 最长弧 ~44% (不到半圈, 不显冗长) longest arc
     property real sweepLen: _minSweep
 
     readonly property real _cx: width / 2
@@ -147,12 +147,12 @@ Item {
         loops: Animation.Infinite
         NumberAnimation {
             from: control._minSweep; to: control._maxSweep
-            duration: control.spinDuration  // 伸长
+            duration: control.spinDuration  // Stretch 伸长
             easing.type: Easing.InOutSine
         }
         NumberAnimation {
             from: control._maxSweep; to: control._minSweep
-            duration: control.spinDuration  // 收缩
+            duration: control.spinDuration  // Shrink 收缩
             easing.type: Easing.InOutSine
         }
     }

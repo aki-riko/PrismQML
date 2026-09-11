@@ -101,7 +101,7 @@ DialogBoxCore {
         height: _hasNotes ? Math.max(320, control.height * 0.75) : implicitHeight
         spacing: Enums.spacing.l
 
-        // 顶部图标圈
+        // Top icon circle 顶部图标圈
         Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: Enums.spacing.s
@@ -121,7 +121,7 @@ DialogBoxCore {
             }
         }
 
-        // 标题
+        // Title 标题
         Label {
             Layout.fillWidth: true
             text: { Translator._v; return Translator.tr("new_version_available") }
@@ -131,7 +131,7 @@ DialogBoxCore {
             wrapMode: Text.WordWrap
         }
 
-        // 版本对比副文本
+        // Version comparison subtext 版本对比副文本
         Label {
             Layout.fillWidth: true
             text: {
@@ -147,7 +147,7 @@ DialogBoxCore {
             visible: control.version !== ""
         }
 
-        // 更新说明区:外层 Rectangle 提供边框+圆角,内部 ScrollArea 滚动 Markdown 文本。
+        // Release notes: bordered rounded box, ScrollArea rendering Markdown text 更新说明区:外层 Rectangle 提供边框+圆角,内部 ScrollArea 滚动 Markdown 文本。
         // 用 Qt 原生 Text.MarkdownText 渲染(标题/列表/加粗/链接),避免跨目录引 MarkdownView
         // 导致其相对 import 的 Enums 解析失败。
         Rectangle {

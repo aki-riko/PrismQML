@@ -21,7 +21,7 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     // accent=true 时阴影转 neo 主色(橙), 用于聚焦/展开等激活态强调。
     property bool accent: false
-    // 偏移量(X=Y), 默认取 neo.shadowOffset。
+    // Offset (X=Y), defaults to neo.shadowOffset 偏移量(X=Y), 默认取 neo.shadowOffset。
     property real offset: Enums.neo.shadowOffset
 
     // ==================== Size 尺寸 ====================

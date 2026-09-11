@@ -46,7 +46,7 @@ DialogBoxCore {
         return Translator.tr("confirm_action")
     }
     property string message: ""
-    property int messageAlignment: Text.AlignHCenter  // 消息正文水平对齐, 默认居中; 长文本(如更新说明)可设 Text.AlignLeft
+    property int messageAlignment: Text.AlignHCenter  // Message horizontal alignment, centered by default; use Text.AlignLeft for long text 消息正文水平对齐, 默认居中; 长文本(如更新说明)可设 Text.AlignLeft
     property string confirmText: ""
     property string cancelText: {
         Translator._v
@@ -54,9 +54,9 @@ DialogBoxCore {
     }
     property string confirmIcon: ""
     property bool destructive: level === Enums.statusLevel.error  // error 自动 destructive 视觉
-    property int countdown: 0  // 倒计时秒数, 0 = 关闭 countdown seconds, 0 = disabled
+    property int countdown: 0  // countdown seconds, 0 = disabled 倒计时秒数, 0 = 关闭
 
-    // 暴露公开 isOpen 标志: _isOpen 是基类内部下划线属性, QML Connections 对下划线属性
+    // Public isOpen exposed: underscore props get unstable Connections handler names in Qt 6 暴露公开 isOpen 标志: _isOpen 是基类内部下划线属性, QML Connections 对下划线属性
     // 的 handler 名 (on_IsOpenChanged) 在 Qt 6 行为不稳定, 用 readonly 中转更可靠。
     readonly property bool isOpen: _isOpen
 
@@ -87,21 +87,21 @@ DialogBoxCore {
     }
 
     readonly property string _baseConfirmText: confirmText !== "" ? confirmText : _autoConfirmText
-    // 倒计时未结束时拼后缀 "删除 (3s)", 结束后回到 "删除"
+    // Suffix "Delete (3s)" while counting down, back to "Delete" after 倒计时未结束时拼后缀 "删除 (3s)", 结束后回到 "删除"
     readonly property string _effectiveConfirmText: _countdownRemaining > 0
         ? _baseConfirmText + " (" + _countdownRemaining + "s)"
         : _baseConfirmText
     readonly property string _effectiveConfirmIcon: confirmIcon !== "" ? confirmIcon : _autoIcon
     readonly property color _accentColor: Enums.statusLevel.getColorByLevel(level)
     readonly property real _iconBackgroundOpacity: Enums.opacityLevel.pressed
-    // 倒计时进行中主按钮禁用 (防误点危险操作)
+    // Disable primary button during countdown (guards dangerous actions) 倒计时进行中主按钮禁用 (防误点危险操作)
     readonly property bool _confirmEnabled: _countdownRemaining === 0
 
     // ==================== Signals 信号 ====================
     signal confirmed()
     signal cancelled()
 
-    // 打开时启动倒计时, 关闭时复位
+    // Start countdown on open, reset on close 打开时启动倒计时, 关闭时复位
     onIsOpenChanged: {
         if (isOpen && countdown > 0) {
             _countdownRemaining = countdown
@@ -118,7 +118,7 @@ DialogBoxCore {
             property var dialog
             spacing: Enums.spacing.l
 
-            // 主按钮: filled + level 色, 视觉强调
+            // Primary button: filled + level color for emphasis 主按钮: filled + level 色, 视觉强调
             // 倒计时进行中走 enabled=false: filled 禁用态保留 level 色相淡化版 (引擎层
              // 已修, 不再灰化), 视觉仍是"红色褪色"的危险按钮在冷却。
             ButtonCore {
@@ -136,7 +136,7 @@ DialogBoxCore {
                 }
             }
 
-            // 次按钮: default 中性
+            // Secondary button: neutral default 次按钮: default 中性
             ButtonCore {
                 text: control.cancelText
                 style: Enums.button.style_default
@@ -162,7 +162,7 @@ DialogBoxCore {
         width: 360
         spacing: Enums.spacing.l
 
-        // 顶部图标圈 — 圆形背景 (level 色 12% 透明) + 实色图标, 给确认操作仪式感
+        // Top icon circle — level-tinted disc (12% alpha) + solid icon, adds ceremony 顶部图标圈 — 圆形背景 (level 色 12% 透明) + 实色图标, 给确认操作仪式感
         Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: Enums.spacing.s
@@ -185,7 +185,7 @@ DialogBoxCore {
             }
         }
 
-        // 标题 — 居中, subtitle 字号
+        // Title — centered, subtitle size 标题 — 居中, subtitle 字号
         Label {
             Layout.fillWidth: true
             text: control.title
@@ -195,7 +195,7 @@ DialogBoxCore {
             wrapMode: Text.WordWrap
         }
 
-        // 消息正文 — 对齐方式由 messageAlignment 控制(默认居中), body 字号, 次要色
+        // Message body — alignment via messageAlignment, body size, secondary color 消息正文 — 对齐方式由 messageAlignment 控制(默认居中), body 字号, 次要色
         Label {
             Layout.fillWidth: true
             text: control.message
