@@ -3,6 +3,7 @@ name: Build All Platforms (C++ host)
 # 统一多平台构建: 桌面(Win/Linux/macOS) + Android(arm64) + iOS(simulator)。
 # 一次触发, 各平台并行构建 prism 库 + demo, 各自上传 artifact。
 # 替代散落的本地 build_*.bat 脚本与独立 ios.yml。
+# 含 Linux 全量 Python 门禁, 使平台专属缺陷在打 tag 之前暴露。
 on:
   workflow_dispatch:
   push:
@@ -84,6 +85,52 @@ jobs:
           python -m pytest
       - name: Probe source QML components
         env:
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 180 --
+          python tests/qml/probe_all_components.py
+
+  # Linux 全量门禁: 除 tag 触发的 release.yml 之外, 唯一在 ubuntu 上跑完整 Python
+  # 受保护套件的地方。缺少它时 Linux 专属缺陷(导入期仅 Windows 存在的 ctypes 属性、
+  # POSIX 路径语义等)只会在打完 tag 之后才暴露, 只能跳号或强制重打 tag。
+  # Linux full gate: the only ubuntu run of the complete protected Python suite
+  # outside the release tag, so platform-only defects surface before a tag exists.
+  python_quality_linux:
+    name: Python/QML zero-interaction gate (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Qt (desktop)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          modules: qtshadertools
+      - name: Install source test dependencies
+        run: >-
+          python -m pip install --disable-pip-version-check -e ".[dev]"
+          -r cpp/tests/requirements.txt
+      - name: Run protected Python tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LD_LIBRARY_PATH: ${{ env.pythonLocation }}/lib
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen
+          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
+          python -m pytest
+      - name: Probe source QML components
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LD_LIBRARY_PATH: ${{ env.pythonLocation }}/lib
           QT_PLUGIN_PATH: ""
           QML2_IMPORT_PATH: ""
           QML_IMPORT_PATH: ""
