@@ -205,7 +205,7 @@ DataWidgetCore {
             // 加 padding 后再 clamp, 避免短内容列下溢到 minW 之下
             return Math.max(minW, Math.min(max + pad, maxW))
         }
-        // 静态宽度: < 1 比例, >= 1 像素, 缺省 0.15
+        // Static width: <1 ratio, >=1px, default 0.15 静态宽度: < 1 比例, >= 1 像素, 缺省 0.15
         var w = col.width || 0.15
         return w < 1 ? root._columnViewportWidth * w : w
     }

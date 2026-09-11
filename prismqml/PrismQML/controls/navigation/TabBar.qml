@@ -21,7 +21,7 @@ Widget {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property var tabs: []  // [{title, icon, content?}] or simple strings
+    property var tabs: []  // [{title, icon, content?}] or simple strings 结构化对象数组或简单字符串
     property int currentIndex: 0
     property bool closable: false
     property bool shadowEnabled: true

@@ -99,27 +99,27 @@ QtObject {
     // 来源: https://github.com/microsoft/microsoft-ui-xaml CommonStyles/Common_themeresources_any.xaml
     readonly property QtObject semanticColors: QtObject {
         // Foreground semantic colors 语义前景色
-        readonly property color infoLight: "#676767"  // 自定义：中性灰信息色
+        readonly property color infoLight: "#676767"  // custom: neutral gray info color 自定义：中性灰信息色
         readonly property color successLight: "#0f7b0f"  // WinUI SystemFillColorSuccess (Light)
         readonly property color warningLight: "#9d5d00"  // WinUI SystemFillColorCaution (Light)
         readonly property color errorLight: "#c42b1c"  // WinUI SystemFillColorCritical (Light)
-        readonly property color processingLight: "#7b2cbf"  // 自定义：鲜紫色代表处理中
-        readonly property color attentionLight: "#0a93a8"  // 自定义：青色代表注意
+        readonly property color processingLight: "#7b2cbf"  // custom: vivid purple marks processing 自定义：鲜紫色代表处理中
+        readonly property color attentionLight: "#0a93a8"  // custom: cyan marks attention 自定义：青色代表注意
 
-        readonly property color infoDark: "#a3a3a3"  // 自定义：中性灰信息色
+        readonly property color infoDark: "#a3a3a3"  // custom: neutral gray info color 自定义：中性灰信息色
         readonly property color successDark: "#6ccb5f"  // WinUI SystemFillColorSuccess (Dark)
-        readonly property color warningDark: "#c09000"  // 自定义：较 WinUI #FCE100 调深以提升暗色可读性
+        readonly property color warningDark: "#c09000"  // custom: darker than WinUI #FCE100 for dark readability 自定义：较 WinUI #FCE100 调深以提升暗色可读性
         readonly property color errorDark: "#ff99a4"  // WinUI SystemFillColorCritical (Dark)
-        readonly property color processingDark: "#d8b4fe"  // 自定义：深色主题亮鲜紫
-        readonly property color attentionDark: "#33b5bf"  // 自定义：深色主题亮青色
+        readonly property color processingDark: "#d8b4fe"  // custom: light vivid purple on dark 自定义：深色主题亮鲜紫
+        readonly property color attentionDark: "#33b5bf"  // custom: light cyan on dark 自定义：深色主题亮青色
 
         // Background semantic colors (light) 语义背景色（浅色）
-        readonly property color infoBgLight: "#cce4f7"  // 自定义
+        readonly property color infoBgLight: "#cce4f7"  // custom color token 自定义
         readonly property color successBgLight: "#dff6dd"  // WinUI SystemFillColorSuccessBackground (Light)
         readonly property color warningBgLight: "#fff4ce"  // WinUI SystemFillColorCautionBackground (Light)
         readonly property color errorBgLight: "#fde7e9"  // WinUI SystemFillColorCriticalBackground (Light)
-        readonly property color attentionBgLight: "#f0e6fa"  // 自定义
-        readonly property color processingBgLight: "#f3e8ff"  // 自定义：浅紫色背景
+        readonly property color attentionBgLight: "#f0e6fa"  // custom color token 自定义
+        readonly property color processingBgLight: "#f3e8ff"  // custom: light purple background 自定义：浅紫色背景
     }
 
     // ==================== DemoPalette 示例色板 ====================

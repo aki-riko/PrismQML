@@ -11,7 +11,7 @@ Item {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property real value: Enums.colorPickerMetrics.hueValueDefault         // 0-1, maps to hue 0-360°
+    property real value: Enums.colorPickerMetrics.hueValueDefault         // 0-1, maps to hue 0-360° 0-1 映射色相 0-360°
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _safeValue: isFinite(value) ? Math.max(0, Math.min(1, value)) : 0

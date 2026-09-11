@@ -136,7 +136,7 @@ Item {
                                     model: 50
                                     Rectangle {
                                         width: 40 + (index % 7) * 12
-                                        height: 30 + (index * 17 % 80)  // 高度范围 30~110，差异更明显
+                                        height: 30 + (index * 17 % 80)  // 高度范围 30~110，差异更明显 height range 30~110 so the difference is obvious
                                         color: flowDemo.getColor(index)
                                         radius: Fluent.Enums.radius.small
                                         Text {

@@ -42,7 +42,7 @@ Widget {
             // Widget 默认 layoutFillWidth=true, layoutFillHeight=false
             // 但在 HBoxLayout 中，我们可能希望垂直方向填满？视具体情况。
             // 保持默认行为让 Widget 决定。
-            widget.Layout.fillHeight = true // 这是旧逻辑，保留
+            widget.Layout.fillHeight = true // 这是旧逻辑，保留 legacy kept on purpose
         }
     }
 

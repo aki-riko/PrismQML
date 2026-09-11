@@ -54,7 +54,7 @@ DialogBoxCore {
     }
     property string confirmIcon: ""
     property bool destructive: level === Enums.statusLevel.error  // error 自动 destructive 视觉
-    property int countdown: 0  // 倒计时秒数, 0 = 关闭
+    property int countdown: 0  // 倒计时秒数, 0 = 关闭 countdown seconds, 0 = disabled
 
     // 暴露公开 isOpen 标志: _isOpen 是基类内部下划线属性, QML Connections 对下划线属性
     // 的 handler 名 (on_IsOpenChanged) 在 Qt 6 行为不稳定, 用 readonly 中转更可靠。

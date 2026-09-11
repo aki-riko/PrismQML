@@ -315,7 +315,7 @@ QtObject {
  // ==================== Control Size 控件尺寸 ====================
  readonly property QtObject controlSize: QtObject {
  // Toggle controls 切换控件
- readonly property int radioOuter: 20 // Fluent Design: radius=10 → diameter=20
+ readonly property int radioOuter: 20 // Fluent Design: radius=10 → diameter=20 Fluent 规范：圆角 10 → 直径 20
  readonly property int radioInner: 8
  readonly property int checkboxOuter: 18
  readonly property int checkboxInner: 12

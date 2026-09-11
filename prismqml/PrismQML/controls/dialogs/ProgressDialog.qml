@@ -26,7 +26,7 @@ OverlayDialogCore {
     property int ringSize: 64
     property int ringStrokeWidth: Enums.controlSize.progressStrokeWidth
     property int maxWaitingTime: -1  // -1 = infinite wait 无限等待
-    property real progress: -1  // -1 = 不确定(转圈), 0~100 = 确定进度百分比
+    property real progress: -1  // -1 = indeterminate spinner, 0~100 = determinate percent -1 = 不确定(转圈), 0~100 = 确定进度百分比
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _progressMinimum: 0

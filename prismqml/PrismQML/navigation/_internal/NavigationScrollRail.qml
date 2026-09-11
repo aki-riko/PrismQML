@@ -26,9 +26,9 @@ Item {
 
     // ==================== Public Props 公开属性 ====================
     property bool active: true
-    // 悬停整个侧边栏即显形, 而非只悬停轨道本身 —— 否则用户得先找到一条看不见的
-    // 细线才能让它出现。Reveal on hovering the whole sidebar, not just the rail;
-    // otherwise the user must find an invisible line to make it appear.
+    // Reveal on hovering the whole sidebar, not just the rail; otherwise
+    // the user must find an invisible line to make it appear.
+    // 悬停整个侧边栏即显形, 而非只悬停轨道本身 —— 否则用户得先找到一条看不见的细线才能让它出现。
     property bool hostHovered: false
 
     // ==================== Readonly State 只读状态 ====================

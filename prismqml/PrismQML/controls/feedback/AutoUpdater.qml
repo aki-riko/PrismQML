@@ -23,7 +23,7 @@ import "_internal" as FeedbackInternal
 Item {
     id: root
 
-    // ---- 注入 ----
+    // ---- Injection 注入 ----
     // 底层更新器实例(宿主通过 enableAutoUpdate 注入为 appUpdater),须提供以下契约:
     //   信号 updateAvailable(version, notes, downloadUrl, htmlUrl) / upToDate(version)
     //        checkFailed(error) / downloadProgress(received, total)
@@ -83,9 +83,9 @@ Item {
     property string _pendingHtmlUrl: ""
     property string _pendingVersion: ""
     property bool _rangeKnown: false
-    property bool _checking: false      // 是否处于检查态(不确定环)
+    property bool _checking: false      // 是否处于检查态(不确定环) checking state (indeterminate ring)
     property bool _checkSilent: false   // Suppress startup check feedback 抑制启动检查反馈
-    property bool _downloading: false   // 是否处于下载态(不确定环→确定环)
+    property bool _downloading: false   // 是否处于下载态(不确定环→确定环) downloading (indeterminate to determinate ring)
     property bool _installPreparing: false
     property bool _awaitingDecision: false
     property bool _componentReady: false

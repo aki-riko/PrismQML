@@ -34,8 +34,8 @@ QtObject {
     }
 
     readonly property QtObject rail: QtObject {
-        // 轨道是浮层, 不占宽度, 不挤压导航项。
         // The rail is an overlay: it claims no width and never squeezes items.
+        // 轨道是浮层, 不占宽度, 不挤压导航项。
 
         // Overlay inset from the viewport's right edge 浮层距视口右边缘的内缩
         readonly property int inset: navigation.railInset

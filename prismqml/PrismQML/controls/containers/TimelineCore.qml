@@ -276,9 +276,9 @@ Item {
 
     function _getStatusIcon(status) {
         switch (status) {
-            case "success": return "Checkmark"      // 简单勾号，不带圆圈
-            case "warning": return "Warning"        // 感叹号三角
-            case "error": return "Dismiss"          // 简单X，不带圆圈
+            case "success": return "Checkmark"      // 简单勾号，不带圆圈 plain checkmark, no circle
+            case "warning": return "Warning"        // 感叹号三角 exclamation triangle
+            case "error": return "Dismiss"          // 简单X，不带圆圈 plain X, no circle
             default: return "Info"                  // info - i图标
         }
     }

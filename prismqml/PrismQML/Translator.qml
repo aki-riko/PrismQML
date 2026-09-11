@@ -146,7 +146,7 @@ QtObject {
         try {
             var xhr = new XMLHttpRequest()
             var url = _i18nPath + langCode + ".json"
-            xhr.open("GET", url, false)  // synchronous — see comment above
+            xhr.open("GET", url, false)  // synchronous 同步, see comment above 见上方注释
             xhr.send()
 
             if (xhr.status === 200 || xhr.status === 0) {
