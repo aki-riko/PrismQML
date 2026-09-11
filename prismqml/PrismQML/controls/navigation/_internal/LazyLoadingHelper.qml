@@ -14,10 +14,10 @@ Item {
     required property var loaders           // _loaders array reference
     required property int targetIndex       // Current target index
     required property int currentVisibleIndex // Currently visible page index 当前可见页面索引
-    required property var isPageLoadedFunc  // Function to check if page loaded
+    required property var isPageLoadedFunc  // Function to check if page loaded 检查页面是否已加载的函数 检查页面是否已加载的函数
     required property var isPageLoadFailedFunc // Function to check if page loading failed 检查页面加载是否失败的函数
     required property var pageLoadErrorFunc // Function to obtain the Loader error 获取Loader错误的函数
-    required property var activateLoaderFunc // Function to activate loader
+    required property var activateLoaderFunc // Function to activate loader 激活加载器的函数 激活加载器的函数
     required property var diagnosticFunc // Diagnostic stage callback 诊断阶段回调
     required property var pageTransition // Shared page-circle transition 共享页面圆形过渡
     

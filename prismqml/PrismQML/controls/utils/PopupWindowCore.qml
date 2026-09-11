@@ -8,8 +8,8 @@ import "_internal/PopupLifecycle.js" as PopupLifecycle
 import "_internal/PopupPositioning.js" as PopupPositioning
 import "_internal/PopupPrewarm.js" as PopupPrewarm
 import QtQuick.Controls as Controls
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
-import QtQuick.Window  // 置于库import后:去前缀后保原生Window不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
 
 // PopupWindowCore - Unified popup window base class 统一弹出窗口基类
 // All popup components should use this base 所有弹出组件应使用此基类
@@ -120,7 +120,7 @@ Item {
         return PopupPositioning.calcSubmenuPosition(control, Qt, Enums)
     }
 
-    // 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
+    // Prewarm the native window handle: the first Windows show() blocks ~170ms Prewarm the native window handle: the first Windows show() blocks ~170ms 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
     // ~170ms 等 native surface 创建。在 hover/focus 等"用户即将点开"时机调用,
     // 让真正点击时走暖路径 (<5ms)。已预热则 no-op。
     // 真正的预热推到 Qt.callLater, 避免 hover 进入瞬间卡顿主线程。

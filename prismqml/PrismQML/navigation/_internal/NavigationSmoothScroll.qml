@@ -71,8 +71,8 @@ Item {
             return Math.round(value * _devicePixelRatio) / _devicePixelRatio
         }
 
-        // 精确边界不能被对齐挪动, 否则会破坏 Flickable 的起止状态语义。
         // Exact bounds must survive snapping or Flickable end-states break.
+        // 精确边界不能被对齐挪动, 否则会破坏 Flickable 的起止状态语义。
         function _publishedPosition(value) {
             if (Math.abs(value - _minY) < Enums.scroll.boundary_epsilon) return _minY
             if (Math.abs(value - _maxY) < Enums.scroll.boundary_epsilon) return _maxY

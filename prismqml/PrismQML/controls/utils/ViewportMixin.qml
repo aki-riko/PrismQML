@@ -14,11 +14,11 @@ QtObject {
     id: mixin
     
     // ==================== Required Props 必需属性 ====================
-    required property Item target  // 要检测的目标组件
+    required property Item target  // Target component to detect Target component to detect 要检测的目标组件
 
     // ==================== Public Props 公开属性 ====================
-    property bool isInViewport: true  // 默认可见
-    property bool ready: false  // 初始化完成标志
+    property bool isInViewport: true  // Visible by default Visible by default 默认可见
+    property bool ready: false  // Initialization-done flag Initialization-done flag 初始化完成标志
 
     // ==================== Internal Props 内部属性 ====================
     property var _flickableAncestor: null
@@ -96,7 +96,7 @@ QtObject {
     function _init() {
         _flickableAncestor = _findFlickable()
         _updateViewport()
-        ready = true  // 标记初始化完成
+        ready = true  // Mark initialization complete Mark initialization complete 标记初始化完成
     }
 
     // Initialize synchronously so consumers never observe a stale default, then

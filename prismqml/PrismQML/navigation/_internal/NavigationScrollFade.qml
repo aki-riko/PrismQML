@@ -75,10 +75,10 @@ QtObject {
     // the viewport in lockstep with the item it marks.
     // 选中项的透明度; 用于让视口之外的指示器与其所标记的项锁步渐隐。
     function selectionOpacity(item, eligible) {
-        // 无条件先读填充与布局信号: itemAt() 是命令式取值, 不登记依赖。若宿主在
-        // Repeater 尚空时求值一次, 其绑定会永久锁死在满值。
         // Read population/layout signals unconditionally; itemAt() registers no
         // dependency, so an early empty-Repeater pass would latch the binding.
+        // 无条件先读填充与布局信号: itemAt() 是命令式取值, 不登记依赖。若宿主在
+        // Repeater 尚空时求值一次, 其绑定会永久锁死在满值。
         var ready = fade.itemCount > 0 && fade.flickable.contentHeight > 0
         if (!ready || !eligible) return Enums.navigationFade.maxOpacity
         return fade.opacityForItem(item)

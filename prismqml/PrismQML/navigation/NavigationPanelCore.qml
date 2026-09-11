@@ -46,12 +46,12 @@ Item {
     // Scroll offset for indicator real-time tracking 指示器实时跟踪的滚动偏移
     property real scrollOffset: 0
 
-    // 指示器裁剪下界(可滚动区底边的 y, control 坐标系)。跟踪顶部项滚动时, 指示器
+    // Indicator clip bottom bound (scrollable area bottom y in control coords) Indicator clip bottom bound (scrollable area bottom y in control coords) 指示器裁剪下界(可滚动区底边的 y, control 坐标系)。跟踪顶部项滚动时, 指示器
     // 超过此 y 的部分被裁掉, 避免溢出到底部固定项区域露白(Mica 模式下遮盖层透明
     // 无法遮挡)。默认=全高(不裁); 子类(如 NavigationBar)按布局设为可滚动区底边。
     property real indicatorClipBottom: height
 
-    // 指示器透明度。子类接入滚动渐隐时把选中项的渐隐值写进来, 让指示器与导航项
+    // Indicator opacity; subclass writes the selected item fade value here Indicator opacity; subclass writes the selected item fade value here 指示器透明度。子类接入滚动渐隐时把选中项的渐隐值写进来, 让指示器与导航项
     // 锁步淡出; 默认全不透明, 未启用渐隐的宿主行为不变。
     property real indicatorOpacity: Enums.navigationFade.maxOpacity
 
@@ -63,7 +63,7 @@ Item {
     property int _pendingTargetIndex: -1
     property int _indicatorUpdateGeneration: 0
 
-    // 临时屏蔽 onCurrentIndexChanged 的动画路径(底部 item 点击时由
+    // Temporarily suppress onCurrentIndexChanged animation for bottom-item clicks Temporarily suppress onCurrentIndexChanged animation for bottom-item clicks 临时屏蔽 onCurrentIndexChanged 的动画路径(底部 item 点击时由
     // NavigationWindowCore 设 true,避免用页面索引(非导航项索引)算错指示器位置)
     property bool _skipIndicatorAnimation: false
     // Hide the shared indicator when the selected page has no visible nav item.
@@ -303,17 +303,17 @@ Item {
     function _computeIndicatorRect(item) {
         if (!item) return Qt.rect(0, 0, 0, 0)
 
-        // 关键点：使用 mapToItem 映射到 control 的坐标系
+        // Key point: map to control coordinates via mapToItem Key point: map to control coordinates via mapToItem 关键点：使用 mapToItem 映射到 control 的坐标系
         var mappedPos = item.mapToItem(control, 0, 0)
 
-        // y坐标需要在项的居中位置
+        // The y coordinate must be centered within the item The y coordinate must be centered within the item y坐标需要在项的居中位置
         var y = mappedPos.y + (item.height - indicatorHeight) / 2
 
         return Qt.rect(indicatorX, y, indicatorWidth, indicatorHeight)
     }
 
     function _updateIndicatorWithAnimation() {
-        // 如果当前是底部选中项，由于动画已经被 updateIndicatorForBottomItem 处理过，直接返回避免错乱
+        // If a bottom item is active, updateIndicatorForBottomItem already handled it; return early If a bottom item is active, updateIndicatorForBottomItem already handled it; return early 如果当前是底部选中项，由于动画已经被 updateIndicatorForBottomItem 处理过，直接返回避免错乱
         if (control._currentKey !== "") return
 
         var newItem = _getItemAt(currentIndex)
@@ -393,16 +393,16 @@ Item {
         }
         if (changedKey) currentItemChanged(changedKey)
 
-        // 跳过本次动画(底部 item 点击时由 NavigationWindowCore 设标志,
+        // Skip this animation (flag set by NavigationWindowCore on bottom-item clicks) Skip this animation (flag set by NavigationWindowCore on bottom-item clicks) 跳过本次动画(底部 item 点击时由 NavigationWindowCore 设标志,
         // 避免用页面索引算错指示器位置;真正的动画交给 updateIndicatorForBottomItem 跑)
         if (_skipIndicatorAnimation) return
 
-        // 指示器动画: currentIndex 在 _onItemClicked 删掉直接赋值后, 通过 Qt Binding
-        // 从 window.currentIndex 异步同步过来. 由这里统一驱动动画, 既支持点击 (走 _onItemClicked)
-        // 也支持外部直接改 window.currentIndex (Python 侧 setCurrentIndex / 程序化切换).
         // Defer one event-loop turn so the window can publish the lazy-loading
         // state before animation starts. This also keeps synchronous QML
         // incubation from freezing an already-running indicator animation.
+        // 指示器动画: currentIndex 在 _onItemClicked 删掉直接赋值后, 通过 Qt Binding
+        // 从 window.currentIndex 异步同步过来. 由这里统一驱动动画, 既支持点击 (走 _onItemClicked)
+        // 也支持外部直接改 window.currentIndex (Python 侧 setCurrentIndex / 程序化切换).
         // 延后一轮事件循环，等待窗口发布懒加载状态；同时避免同步 QML
         // 孵化冻结已经开始的指示器动画。
         _scheduleIndicatorUpdate(currentIndex)
@@ -440,7 +440,7 @@ Item {
         anchors.fill: parent
         panel: control
     }
-    // 指示器裁剪容器: top/left/right 贴 control(容器内坐标系原点 == control 原点,
+    // Indicator clip container: edges hug control; height toggles full vs clipped by tracking mode Indicator clip container: edges hug control; height toggles full vs clipped by tracking mode 指示器裁剪容器: top/left/right 贴 control(容器内坐标系原点 == control 原点,
     // 故 navIndicator 的 x/y 仍按 control 坐标系算, _computeIndicatorRect 无需改)。
     // height 动态: 跟踪底部项或动画进行中 → 全高不裁(指示器要能显示在底部区/动画
     // 全程可见); 跟踪顶部项滚动 → 裁到 indicatorClipBottom(可滚动区底边), 溢出
@@ -454,7 +454,7 @@ Item {
                 ? control.height
                 : control.indicatorClipBottom
         clip: true
-        // ⚠️ 动画进行中保持高 Z(controlsAbove+1),否则 backward 动画(底→顶)启动时
+        // Keep high Z while animating, otherwise backward anim gets covered by bottom items Keep high Z while animating, otherwise backward anim gets covered by bottom items ⚠️ 动画进行中保持高 Z(controlsAbove+1),否则 backward 动画(底→顶)启动时
         // _currentKey 已清空, Z 立即降到 controls-1 被底部项遮住, 看到"下半段动画消失"。
         z: (control._currentKey !== "" || navIndicator.running)
             ? (Enums.zIndex.controlsAbove + 1)

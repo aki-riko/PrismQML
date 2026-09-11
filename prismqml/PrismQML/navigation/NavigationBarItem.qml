@@ -98,7 +98,7 @@ Item {
         // Check if avatar image (non-svg images need circular clipping) 是否为头像图片（非svg的图片需要圆形裁剪）
         readonly property bool isAvatarIcon: isFilePathIcon && !control.icon.endsWith(".svg")
 
-        // 解析后的图标源: 图标名→fluent/名字.svg(模块内可移植), 否则原值
+        // Resolved icon source: icon name -> fluent/<name>.svg, else raw value Resolved icon source: icon name -> fluent/<name>.svg, else raw value 解析后的图标源: 图标名→fluent/名字.svg(模块内可移植), 否则原值
         function _resolveIcon(ic) {
             return isIconName && !isFilePathIcon ? (Enums.iconPath + ic + ".svg") : ic
         }

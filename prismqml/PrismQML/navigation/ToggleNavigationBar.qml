@@ -45,7 +45,7 @@ Item {
     // 当前页面没有可见导航项时隐藏共享选中指示器。
     property bool _indicatorVisible: true
     
-    // Track if indicator is controlled by bottom page item
+    // Track if indicator is controlled by bottom page item 跟踪指示器是否由底部页面项控制 跟踪指示器是否由底部页面项控制
     property bool _bottomItemActive: false
     
     // Scroll offset for real-time indicator tracking 指示器实时跟踪的滚动偏移
@@ -80,7 +80,7 @@ Item {
         return null
     }
     
-    // 构造指示器矩形 (整块胶囊, 横向占满, 纵向随 item)
+    // Build the indicator rect (whole pill, full width, height follows the item) Build the indicator rect (whole pill, full width, height follows the item) 构造指示器矩形 (整块胶囊, 横向占满, 纵向随 item)
     function _rectFor(y, h) {
         return Qt.rect(Enums.spacing.xs, y,
                        control.width - Enums.spacing.xs * 2, h)
@@ -187,7 +187,7 @@ Item {
         itemCount: topRep.count
     }
 
-    // 被动悬停探测, 不抢委托的 TapHandler 事件 Passive hover, steals no delegate events
+    // Passive hover, steals no delegate TapHandler events 被动悬停探测, 不抢委托的 TapHandler 事件
     HoverHandler { id: hostHover }
     
     // Top navigation items 顶部导航项
@@ -206,8 +206,8 @@ Item {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        // 委托用 TapHandler, 与 Flickable 手势天然协作。
         // The delegates use TapHandler, which cooperates with Flickable natively.
+        // 委托用 TapHandler, 与 Flickable 手势天然协作。
         interactive: control.dragScrollEnabled
         
         Item {
@@ -230,7 +230,7 @@ Item {
                     required property int index
                     required property var modelData
 
-                    // 供 objectName 定位与外部读取 For lookup and external reads
+                    // For objectName lookup and external reads 供 objectName 定位与外部读取
                     readonly property string itemText: text
                     readonly property bool itemVisible: !modelData || modelData.visible !== false
 
@@ -269,8 +269,8 @@ Item {
         }
     }
 
-    // 浮层滚动轨: 与 topFlickable 同级, 不在其内部 —— 放进去会随内容一起滚动。
     // Overlay rail as a sibling of topFlickable; inside, it would scroll away.
+    // 浮层滚动轨: 与 topFlickable 同级, 不在其内部 —— 放进去会随内容一起滚动。
     NavigationScrollRail {
         objectName: "toggleNavigationBarScrollRail"
         flickable: topFlickable
@@ -317,7 +317,7 @@ Item {
                 required property var modelData
 
                 readonly property int globalIndex: control._safeModel.length + index
-                // 供 objectName 定位与外部读取 For lookup and external reads
+                // For objectName lookup and external reads 供 objectName 定位与外部读取
                 readonly property string itemText: text
                 readonly property bool itemSelectable: !modelData || modelData.selectable !== false
                 readonly property bool itemVisible: !modelData || modelData.visible !== false

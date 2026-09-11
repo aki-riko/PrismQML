@@ -8,7 +8,7 @@ import "../controls/icons"
 import "_internal"
 import "_internal/NavigationLayout.js" as NavigationLayout
 
-// NavigationView - Fluent Design expandable sidebar navigation (Window style)
+// NavigationView - Fluent Design expandable sidebar navigation (Window style) Fluent 可展开侧边导航 (Window 风格) Fluent 可展开侧边导航 (Window 风格)
 // Horizontal layout (icon+text), supports expand/collapse
 // Extends NavigationPanelCore for common indicator/routing logic
 NavigationPanelCore {
@@ -34,7 +34,7 @@ NavigationPanelCore {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isCompact: !isExpanded
     readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
-    // 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
+    // Selected item fade value; pinned bottom items are outside the scroller 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
     readonly property real _selectedItemFade: scrollFade.selectionOpacity(
         control._getItemAt(control.currentIndex),
         control.currentIndex >= 0
@@ -78,7 +78,7 @@ NavigationPanelCore {
 
     // Bind scroll offset for real-time indicator tracking 绑定滚动偏移以实时跟踪指示器
     scrollOffset: topFlickable.contentY
-    // 指示器裁剪下界 = 可滚动区底边, 滚动时指示器溢出此处被裁, 不露进底部固定项区。
+    // Indicator clip bottom = scrollable-area edge, so overflow never leaks into the pinned zone 指示器裁剪下界 = 可滚动区底边, 滚动时指示器溢出此处被裁, 不露进底部固定项区。
     indicatorClipBottom: topFlickable.y + topFlickable.height
     // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐
     indicatorOpacity: control._selectedItemFade
@@ -165,7 +165,7 @@ NavigationPanelCore {
         itemCount: topRep.count
     }
 
-    // 被动悬停探测, 不抢委托的 MouseArea 事件 Passive hover, steals no delegate events
+    // Passive hover, steals no delegate MouseArea events 被动悬停探测, 不抢委托的 MouseArea 事件
     HoverHandler { id: hostHover }
 
     // Top navigation items (scrollable) 顶部导航项（可滚动）
@@ -188,8 +188,8 @@ NavigationPanelCore {
         contentHeight: topLayout.height
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        // 见 NavigationBar 同处注释: 无需 pressDelay。
         // See the note in NavigationBar: no pressDelay needed.
+        // 见 NavigationBar 同处注释: 无需 pressDelay。
         interactive: control.dragScrollEnabled
 
         Item {
@@ -238,8 +238,8 @@ NavigationPanelCore {
         }
     }
 
-    // 浮层滚动轨: 与 topFlickable 同级, 不在其内部 —— 放进去会随内容一起滚动。
     // Overlay rail as a sibling of topFlickable; inside, it would scroll away.
+    // 浮层滚动轨: 与 topFlickable 同级, 不在其内部 —— 放进去会随内容一起滚动。
     NavigationScrollRail {
         objectName: "navigationViewScrollRail"
         flickable: topFlickable

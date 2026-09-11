@@ -72,7 +72,7 @@ Item {
         barWidth: Enums.navigationRail.thickness
     }
 
-    // 静止一段时间后退隐 Retreat once scrolling has settled
+    // Retreat once scrolling has settled 静止一段时间后退隐
     Timer {
         id: idleTimer
         objectName: "navigationScrollRailIdleTimer"
