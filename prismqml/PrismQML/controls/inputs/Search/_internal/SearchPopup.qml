@@ -25,7 +25,7 @@ Item {
     id: popupRoot
 
     // ==================== Public Props 公开属性 ====================
-    property Item anchorTarget: null    // 锚控件 (AnchoredBelow 模式贴它下方)
+    property Item anchorTarget: null    // Anchor control (AnchoredBelow mode sticks under it) 锚控件 (AnchoredBelow 模式贴它下方)
     property int popupMode: Enums.input.search_popup_anchored_below
     property var rootContent: null      // SearchResultList 实例,父级注入
 
@@ -55,7 +55,7 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _bindContentHeight() {
         if (!rootContent) return
-        // 用 callLater 确保 rootContent 已经布局完成
+        // Use callLater so rootContent is laid out already 用 callLater 确保 rootContent 已经布局完成
         Qt.callLater(function() {
             popupBase.popupWidth = popupRoot._resolvedWidth
             popupBase.implicitContentHeight = popupRoot._resolvedContentHeight
@@ -74,7 +74,7 @@ Item {
         }
         _reopenRequested = false
 
-        // 实时同步尺寸 (rootContent 可能在 open 调用前刚换内容)
+        // Sync size live (content may change right before open) 实时同步尺寸 (rootContent 可能在 open 调用前刚换内容)
         popupBase.popupWidth = popupRoot._resolvedWidth
         popupBase.implicitContentHeight = popupRoot._resolvedContentHeight
 
@@ -97,7 +97,7 @@ Item {
         popupBase.close()
     }
 
-    // 当 rootContent 高度变化时(空态/有结果切换),同步 popupBase
+    // Sync popupBase height when rootContent changes (empty vs results) 当 rootContent 高度变化时(空态/有结果切换),同步 popupBase
     onRootContentChanged: _bindContentHeight()
     Component.onCompleted: _bindContentHeight()
 
@@ -129,12 +129,12 @@ Item {
         onOpened: popupRoot.opened()
         onClosed: popupRoot.dismissed()
 
-        // 把外部塞进 popupRoot 的 rootContent 转发进 PopupWindowCore 的 popupContent
+        // Forward the injected rootContent into PopupWindowCore popupContent 把外部塞进 popupRoot 的 rootContent 转发进 PopupWindowCore 的 popupContent
         Item {
             anchors.fill: parent
             data: popupRoot.rootContent ? [popupRoot.rootContent] : []
 
-            // 让 rootContent 撑满 (它自己 anchors.fill 也行,但 ResultList
+            // Force-fill rootContent (ResultList defaults to implicit size) 让 rootContent 撑满 (它自己 anchors.fill 也行,但 ResultList
             // 默认是 implicitWidth/Height,不主动 fill,所以这里强制 fill)
             Component.onCompleted: {
                 if (popupRoot.rootContent) {

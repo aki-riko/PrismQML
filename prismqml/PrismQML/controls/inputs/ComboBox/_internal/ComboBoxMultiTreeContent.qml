@@ -6,7 +6,7 @@ import "../../../.."
 import "../../../containers/ScrollBar"
 import "../../../data"
 import "../../../menus"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxMultiTreeContent - Multi-tree visual and popup content 多选树视觉与弹层内容
 // Keeps the public entry focused on selection state and tree orchestration

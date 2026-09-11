@@ -357,11 +357,11 @@ Item {
             var foundSeriesIndex = -1
 
             if (root.isMultiSeries) {
-                // 直接在 seriesPointPositions 缓存里找鼠标最近的 X — 不再用 stepX 公式
+                // Find nearest mouse X directly in the seriesPointPositions cache 直接在 seriesPointPositions 缓存里找鼠标最近的 X — 不再用 stepX 公式
                 // (公式跟 paint 函数计算细节走偏后会错位; 直接对画面位置最稳)
                 if (root.seriesPointPositions.length > 0) {
                     foundIndex = root._nearestSeriesPointIndexByX(mouse.x)
-                    // 在该 X 索引上找 Y 最近的 series
+                    // On that X index pick the series with nearest Y 在该 X 索引上找 Y 最近的 series
                     if (foundIndex >= 0) {
                         var closestDist = Infinity
                         for (var si = 0; si < root.seriesPointPositions.length; si++) {

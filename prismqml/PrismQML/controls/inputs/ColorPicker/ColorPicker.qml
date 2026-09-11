@@ -4,8 +4,8 @@
 
 import "../../.."
 import "_internal" as ColorPickerInternal
-import QtQuick.Window  // 置于库import后:原生Window名归库后不被覆盖
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:原生Window名归库后不被覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ColorPicker - Unified color picker component 统一颜色选择器组件
 // Control via type property 通过type属性控制类型

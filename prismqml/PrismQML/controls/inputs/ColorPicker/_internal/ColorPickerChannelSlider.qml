@@ -12,10 +12,10 @@ Item {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property string label: "R"       // R/G/B/A (default, will be overridden)
+    property string label: "R"       // R/G/B/A (default, will be overridden) R/G/B/A 通道默认值, 会被覆盖
     property int channel: Enums.colorPickerMetrics.dialogRgbChannelR
     property int value: Enums.colorPickerMetrics.channelMinValue
-    property color baseColor: Enums.colorPalette.automaticColor  // Current color (for gradient calculation)
+    property color baseColor: Enums.colorPalette.automaticColor  // Current color (for gradient calculation) 当前颜色, 用于渐变计算
     property bool showInput: true    // Show input field 显示输入框
 
     // ==================== Readonly State 只读状态 ====================

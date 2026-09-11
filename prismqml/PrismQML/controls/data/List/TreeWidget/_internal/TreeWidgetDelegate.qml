@@ -6,7 +6,7 @@ import "../../../../.."
 import "../../../../icons"
 import "../../../../inputs/Toggle"
 import "../../../../data"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TreeWidgetDelegate - Tree item delegate 树形项委托
 // Internal module for TreeWidget 树形组件内部模块

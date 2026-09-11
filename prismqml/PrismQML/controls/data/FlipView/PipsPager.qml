@@ -12,7 +12,7 @@ PipsPagerCore {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property int orientation: Qt.Horizontal  // Qt.Horizontal (1) or Qt.Vertical (2)
+    property int orientation: Qt.Horizontal  // Qt.Horizontal (1) or Qt.Vertical (2) Qt.Horizontal (1) 或 Qt.Vertical (2)
     
     // Apply orientation 应用方向
     vertical: orientation === Qt.Vertical

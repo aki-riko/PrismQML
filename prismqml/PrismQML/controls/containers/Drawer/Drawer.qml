@@ -20,7 +20,7 @@ OverlayDialogCore {
     property int drawerWidth: 320
     property int drawerHeight: 400
     property bool modal: true  // Inside mode scrim only 仅控制内侧模式遮罩
-    /// 抽屉滑入/滑出动画时长 (毫秒)。默认与全局慢速一致;
+    /// Drawer slide-in/out animation duration in ms (default matches global slow; 抽屉滑入/滑出动画时长 (毫秒)。默认与全局慢速一致;
     /// 紧凑场景可调小,例如 200。
     property int animationDuration: Enums.duration.slow
     default property alias content: drawerSurface.content

@@ -4,7 +4,7 @@
 
 import "../.."
 import "_internal" as InputInternal
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // CycleWheelPicker - Cycle wheel picker with scroll buttons 循环滚轮选择器（带滚动按钮）
 // A Fluent Design style scrollable wheel selector Fluent Design 风格的循环滚轮选择器

@@ -100,21 +100,21 @@ Widget {
     contentWidth: col.implicitWidth + leftPadding + rightPadding
     contentHeight: col.implicitHeight + topPadding + bottomPadding
     
-    // 覆盖 Widget 默认 width：Layout 必须填充父容器宽度（保持原 Item 行为）
+    // Override Widget default width: Layout fills parent width (keeps Item behavior) 覆盖 Widget 默认 width：Layout 必须填充父容器宽度（保持原 Item 行为）
     // Widget 默认 width 优先使用 contentWidth，但 Layout 应该填充父宽度
     width: preferredWidth > 0 ? preferredWidth : (parent ? parent.width : implicitWidth)
 
-    // 让 Layout 系统处理尺寸
+    // Let the Layout system compute size 让 Layout 系统处理尺寸
     Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
     Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
 
-    // 覆盖 Widget 默认值：VBoxLayout 默认填充宽度和高度
+    // Override Widget defaults: VBoxLayout fills width and height by default 覆盖 Widget 默认值：VBoxLayout 默认填充宽度和高度
     layoutFillWidth: true
     layoutFillHeight: true
 
     Layout.alignment: layoutAlignment
     
-    // 条件性高度绑定：仅在不使用 Layout.fillHeight 时绑定高度
+    // Conditional height binding: bind height only when not using Layout.fillHeight 条件性高度绑定：仅在不使用 Layout.fillHeight 时绑定高度
     Binding {
         target: control
         property: "height"

@@ -32,7 +32,7 @@ Item {
 
  Column {
  id: mainColumn
- x: 0 // 确保列左对齐
+ x: 0 // Ensure columns are left-aligned 确保列左对齐
  width: parent.width
  spacing: Enums.spacing.l
  opacity: _vpc.inViewport ? 1 : 0
@@ -77,8 +77,8 @@ Item {
 
  y: cardContainer.shadowMargin / 2
  shadowLevel: Enums.shadow.level2
- shadowOffsetX: Enums.shadow.level2.offset // 右偏移
- shadowOffsetY: Enums.shadow.level2.offset // 下偏移
+ shadowOffsetX: Enums.shadow.level2.offset // Right offset 右偏移
+ shadowOffsetY: Enums.shadow.level2.offset // Bottom offset 下偏移
 
  // neo 硬阴影
  Loader {

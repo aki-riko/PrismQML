@@ -12,7 +12,7 @@ import "../../containers/ScrollBar"
 import "../../menus"
 import "_internal"
 import "_internal/ComboBoxTreeNodes.js" as TreeNodes
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxTree - Tree combo box with search and expandable nodes 树形下拉框
 // Extends ComboBoxCore for consistent styling 继承ComboBoxCore保持样式一致

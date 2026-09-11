@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import "../../../.."
 import "../../../data/Label"
 import "FuzzyMatcher.js" as FM
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // SearchResultList — 搜索结果列表 + 键盘导航 + 空态
 //
@@ -32,7 +32,7 @@ Item {
     property int maxSuggestions: 5
     property bool sectionHeaders: true
     property bool highlightMatches: true
-    property string emptyText: ''  // 空时显示文案,父级注入(走 i18n)
+    property string emptyText: ''  // Empty-state text, injected by parent (i18n) 空时显示文案,父级注入(走 i18n)
     property color highlightColor: Enums.accentColor
     property int itemHeight: Enums.searchMetrics.resultItemHeight
 
@@ -107,7 +107,7 @@ Item {
             .replace(/'/g, '&#39;')
     }
 
-    // 当 _hits 变化时,重置 currentIndex 到 0 (跟 query 输入一致)
+    // When _hits changes reset currentIndex to 0 (in sync with query) 当 _hits 变化时,重置 currentIndex 到 0 (跟 query 输入一致)
     on_HitsChanged: reset()
 
     // ==================== Size 尺寸 ====================
@@ -130,7 +130,7 @@ Item {
     Item {
         anchors.fill: parent
 
-        // 空态
+        // Empty state 空态
         Label {
             anchors.centerIn: parent
             visible: control.isEmpty
@@ -139,7 +139,7 @@ Item {
             color: Enums.textColor.secondary
         }
 
-        // 列表
+        // List 列表
         ListView {
             id: listView
             anchors.fill: parent
@@ -148,14 +148,14 @@ Item {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             interactive: true
-            keyNavigationEnabled: false  // 自己处理避免冲突
+            keyNavigationEnabled: false  // Handle locally to avoid conflicts 自己处理避免冲突
             currentIndex: 0
             highlightMoveDuration: Enums.duration.fast
 
             model: control._hits
             spacing: Enums.spacing.xxs
 
-            // 滚动条由父 popup 容器决定 (TipPopup / PopupWindowCore 内部已带)
+            // Scrollbar owned by the parent popup container 滚动条由父 popup 容器决定 (TipPopup / PopupWindowCore 内部已带)
 
             delegate: Loader {
                 property var hitData: modelData
@@ -167,7 +167,7 @@ Item {
             }
         }
 
-        // 把 SearchResultItem 用 Loader 包,避免 required property
+        // Wrap SearchResultItem in a Loader to dodge delegate binding-order issues 把 SearchResultItem 用 Loader 包,避免 required property
         // 在 ListView 直接 delegate 时的 binding 时序坑
         Component {
             id: itemComponent

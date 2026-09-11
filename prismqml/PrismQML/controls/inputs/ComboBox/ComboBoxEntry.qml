@@ -162,7 +162,7 @@ Item {
             if (item.selectionChanged) item.selectionChanged.connect(control.selectionChanged)
             if (item.fontSelected) item.fontSelected.connect(control.fontSelected)
             if (item.itemSelected) item.itemSelected.connect(control.itemSelected)
-            // 同步初始 currentText
+            // Sync initial currentText 同步初始 currentText
             if (item.currentText !== undefined) {
                 control.currentText = item.currentText || ""
             }

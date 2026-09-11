@@ -7,7 +7,7 @@ import "../../../.."
 import "../../../icons"
 import "../../../data"
 import "TreeWidgetCore.js" as Core
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TreeView - Low-level tree view (QTreeView equivalent) 低阶树形视图（QTreeView 等价物）
 // Inherits DataWidgetCore in lightweight mode without shadow or margin 继承 DataWidgetCore 的无阴影、无边距轻量模式

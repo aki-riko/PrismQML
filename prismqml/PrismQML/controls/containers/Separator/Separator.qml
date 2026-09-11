@@ -16,7 +16,7 @@ Widget {
     property int type: 0  // 0=horizontal, 1=vertical
     property real lineWidth: Enums.border.thin
     property real lineLength: 0  // 0=auto fill, >0=fixed length  0=自动填充，>0=固定长度
-    property color lineColor: Enums.stateColor.divider  // 线条颜色,默认 divider, 可覆盖
+    property color lineColor: Enums.stateColor.divider  // Line color, defaults to divider, overridable 线条颜色,默认 divider, 可覆盖
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isHorizontal: type === 0

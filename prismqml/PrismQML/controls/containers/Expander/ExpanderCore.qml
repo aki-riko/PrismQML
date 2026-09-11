@@ -78,7 +78,7 @@ Widget {
     // Add widget to expand content area 添加控件到展开内容区域
     function addExpandWidget(widget) {
         widget.parent = contentArea
-        // Call hook if defined (for subclass customization)
+        // Call hook if defined (for subclass customization) 调用已定义的钩子, 供子类定制
         if (typeof onWidgetAdded === "function") {
             onWidgetAdded(widget)
         }
@@ -167,7 +167,7 @@ Widget {
             // 内容分隔线独立于表面描边，新拟态仍需保留分隔线。
             lineWidth: Enums.border.thin
             visible: control.expanded
-            // 必须高于 viewContainer, 否则 viewContainer 内 expandViewBg
+            // Must stay above viewContainer or the top-margin bleed covers the separator 必须高于 viewContainer, 否则 viewContainer 内 expandViewBg
             // (anchors.topMargin: -_radius 向上延伸) 会盖住 separator
             z: 1
         }

@@ -43,9 +43,9 @@ Item {
     property var matchKeys: ['title', 'subtitle', 'keywords']
     property bool fuzzyMatch: true
     property int maxSuggestions: 5
-    property bool sectionHeaders: true   // 暂未实现 (v2)
+    property bool sectionHeaders: true   // Not implemented yet (v2) 暂未实现 (v2)
     property bool highlightMatches: true
-    property string emptyText: ''  // 默认走 i18n no_results
+    property string emptyText: ''  // Defaults to i18n key 默认走 i18n no_results
 
     // ==================== Internal Props 内部属性 ====================
     property Item _resultList: null
@@ -64,7 +64,7 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal entrySelected(var entry)
-    // 注意: 不暴露 queryChanged — 它会跟 readonly property `query`
+    // Note: queryChanged is not exposed; listen with onQueryChanged 注意: 不暴露 queryChanged — 它会跟 readonly property `query`
     // 自带的 *Changed signal 冲突. 应用层要监听用 onQueryChanged.
     signal queryEdited(string text)
     signal cleared()
@@ -100,7 +100,7 @@ Item {
     }
     function setQuery(text) {
         lineEdit.text = text || ''
-        // 命令式 API 直接调 popup 操作; 底层 PopupWindowCore 自带
+        // Imperative API calls popup ops directly; the core guards re-entry 命令式 API 直接调 popup 操作; 底层 PopupWindowCore 自带
         // isOpen/isClosing 守卫,重复调用幂等
         if (control.popupMode === Enums.input.search_popup_anchored_below) {
             if (lineEdit.text.length > 0) {
@@ -191,7 +191,7 @@ Item {
             control.dismiss()
         }
 
-        // 键盘事件 — Enter 命中,Esc 关闭,↑↓ 切换列表项
+        // Keyboard events: Enter picks, Esc closes, Up/Down move selection 键盘事件 — Enter 命中,Esc 关闭,↑↓ 切换列表项
         Keys.onUpPressed: function(event) {
             if (control.isOpen) {
                 control._resultList.moveUp()

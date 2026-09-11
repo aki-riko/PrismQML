@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ScrollAreaGrid - Virtualized grid scroll area 虚拟化网格滚动区域
 // Only renders visible items 只渲染可见项
@@ -21,7 +21,7 @@ Item {
     // delegate 为纯展示(仅绑 modelData)时安全; 若 delegate 含内部可变状态需自行在
     // GridView.onReused 中重置, 或将本属性置 false。
     property bool reuseItems: true
-    property int cacheBuffer: -1  // -1 = 用默认 cellHeight*5
+    property int cacheBuffer: -1  // -1 = default cellHeight*5 -1 = 用默认 cellHeight*5
     property bool showScrollBar: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true

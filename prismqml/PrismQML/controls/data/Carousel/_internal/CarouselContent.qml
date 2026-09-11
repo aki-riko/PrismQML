@@ -5,7 +5,7 @@
 import QtQuick.Effects
 import "../../../.."
 import "../../../data"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // CarouselContent - Carousel content area module 轮播内容区域模块
 // Peek 模式采用 Fluent 商店式 "slide + 两侧 peek" 范式：中心项满显，
@@ -40,7 +40,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function setIndex(index) {
-        // 两种 effect 的内容视图(PathView / ListView)都通过 currentIndex 绑定驱动，
+        // Both effect views are driven by the currentIndex binding already 两种 effect 的内容视图(PathView / ListView)都通过 currentIndex 绑定驱动，
         // 无需手动设置。保留此方法仅为兼容 Carousel.qml 既有调用契约。
     }
 
@@ -130,9 +130,9 @@ Item {
             id: pv
             readonly property bool isVertical: control.isVertical
             readonly property real axisLen: isVertical ? height : width
-            // 中心卡沿主轴占视图的比例(<1 才能让两侧相邻项 peek 出来)
+            // Center card main-axis share of the view (<1 so neighbors peek) 中心卡沿主轴占视图的比例(<1 才能让两侧相邻项 peek 出来)
             readonly property real centerRatio: 0.82
-            // 相邻槽位中心相对视图中心的偏移量(决定 peek 露出多少)
+            // Neighbor slot center offset from view center (controls peek amount) 相邻槽位中心相对视图中心的偏移量(决定 peek 露出多少)
             readonly property real slotOffset: axisLen * (centerRatio + Enums.carousel.peekScale * centerRatio) / 2
                                                + axisLen * Enums.carousel.peekSpacing
             readonly property real cardLen: axisLen * centerRatio
@@ -140,10 +140,10 @@ Item {
             anchors.fill: parent
             clip: true
             model: control.model
-            interactive: false  // 翻页由 Carousel 的导航按钮/滚轮/自动播放驱动
+            interactive: false  // Paging driven by Carousel nav buttons / wheel / autoplay 翻页由 Carousel 的导航按钮/滚轮/自动播放驱动
 
-            // ----- 几何参数(可微调) 中心卡占视图比例 + 相邻槽位偏移 -----
-            pathItemCount: 3            // 同时实例化 prev/current/next
+            // ----- Geometry knobs (tunable) 几何参数(可微调): center share + neighbor offsets 中心卡占视图比例 + 相邻槽位偏移 -----
+            pathItemCount: 3            // Instantiate prev/current/next at once 同时实例化 prev/current/next
             preferredHighlightBegin: 0.5
             preferredHighlightEnd: 0.5
             highlightRangeMode: PathView.StrictlyEnforceRange
@@ -159,7 +159,7 @@ Item {
                 }
             }
 
-            // 主轴方向的直线路径：start(相邻) → mid(中心高亮) → end(相邻)
+            // Straight main-axis path: start(neighbor) to mid(center highlight) to end(neighbor) 主轴方向的直线路径：start(相邻) → mid(中心高亮) → end(相邻)
             // PathAttribute 在控制点间插值，delegate 通过 PathView.<name> 读取。
             path: Path {
                 startX: pv.isVertical ? pv.width / 2 : pv.width / 2 - pv.slotOffset
@@ -219,7 +219,7 @@ Item {
                 ? (itemData.source || itemData)
                 : itemData
             fillMode: Image.PreserveAspectCrop
-            // 异步解码 + sourceSize 上限 1920(全屏轮播覆盖大多数显示器宽度),
+            // Async decode + 1920 sourceSize cap: avoids full-res 4K/8K GPU textures 异步解码 + sourceSize 上限 1920(全屏轮播覆盖大多数显示器宽度),
             // 避免 Qt 把 4K/8K 原图按原始分辨率解到 GPU 纹理 (可能数 MB),
             // 滚动 ScrollArea 平移多张大图时纹理带宽吃紧, 是 CarouselPage 滚动卡的主因.
             // 不绑 sourceSize 到 width: width 抖动会触发整图重新解码, 引入新卡顿.

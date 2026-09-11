@@ -65,7 +65,7 @@ Item {
         _modelCount > 0 || (shadowLevel !== null && shadowLevel !== undefined)
     readonly property bool _hasIndicator: showIndicator && _modelCount > 1
     readonly property bool _hasNavButtons: showNavButtons && _modelCount > 1
-    // 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
+    // Whether the pointer is inside the Carousel (delegates and nav buttons included) 指针是否位于 Carousel 范围内（含 itemDelegate 的子元素、导航按钮）。
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered

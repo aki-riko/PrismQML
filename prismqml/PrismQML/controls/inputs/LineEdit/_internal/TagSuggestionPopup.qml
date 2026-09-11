@@ -7,7 +7,7 @@ import "../../../../effects"
 import "../../../data"
 import "../../../utils"
 import "../../../containers/ScrollBar"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TagSuggestionPopup - Autocomplete dropdown for TagLineEdit 标签输入自动完成下拉
 // Uses PopupWindowCore for proper layering outside parent bounds 使用PopupWindowCore确保在父组件外正确渲染

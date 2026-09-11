@@ -123,7 +123,7 @@ Item {
         }
     }
 
-    // ---------- 卡片行 ----------
+    // ---------- Card rows 卡片行 ----------
     Repeater {
         model: rowDelegate.model.kind === "card" ? 1 : 0
         onItemAdded: (index, item) => rowDelegate.cardPart = item
@@ -148,7 +148,7 @@ Item {
             height: cardBox.y + cardBox.height + Enums.spacing.m
             clip: true
 
-            // 左侧连接线
+            // Left connector line 左侧连接线
             Rectangle {
                 objectName: "timelineStatusConnector"
                 x: (Enums.controlSize.timelineIcon - width) / 2

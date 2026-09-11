@@ -20,9 +20,9 @@ Rectangle {
 
     // ==================== Required Props 必需属性 ====================
     required property int itemIndex
-    required property var entryData      // 完整 entry: {title, subtitle, icon, section, ...}
-    required property string highlightedTitle    // 已渲染好高亮的 HTML 字符串
-    required property string highlightedSubtitle // 同上,subtitle 高亮
+    required property var entryData      // Full entry data: 完整 entry: {title, subtitle, icon, section, ...}
+    required property string highlightedTitle    // HTML string with highlights already rendered 已渲染好高亮的 HTML 字符串
+    required property string highlightedSubtitle // Same as above, subtitle highlight 同上,subtitle 高亮
 
     // ==================== Internal Props 内部属性 ====================
     property bool hovered: false
@@ -42,7 +42,7 @@ Rectangle {
 
     // ==================== Signals 信号 ====================
     signal clicked()
-    signal hoveredChanged_()  // 跟 hover 状态防撞
+    signal hoveredChanged_()  // Avoid id collision with hover state 跟 hover 状态防撞
 
     // ==================== Size 尺寸 ====================
     height: Enums.searchMetrics.resultItemHeight
@@ -77,7 +77,7 @@ Rectangle {
         anchors.rightMargin: Enums.spacing.l
         spacing: Enums.spacing.m
 
-        // 图标 (可选)
+        // Icon (optional) 图标 (可选)
         Icon {
             Layout.preferredWidth: Enums.searchMetrics.resultIconSize
             Layout.preferredHeight: Enums.searchMetrics.resultIconSize
@@ -88,7 +88,7 @@ Rectangle {
             visible: !!icon
         }
 
-        // 主体: title + subtitle 两行
+        // Body: two lines, title + subtitle 主体: title + subtitle 两行
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter

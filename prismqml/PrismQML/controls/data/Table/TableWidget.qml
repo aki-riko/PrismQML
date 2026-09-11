@@ -8,7 +8,7 @@ import "../../menus/"
 import "../../navigation/"
 import "_internal" as TableInternal
 import "_internal/TableDataController.js" as TableDataController
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TableWidget - Fluent style table widget 表格控件
 // High performance with direct array model 使用直接数组模型的高性能实现
@@ -20,7 +20,7 @@ DataWidgetCore {
     property var tableData: []  // Direct array model for performance 直接数组模型提升性能
     property var columns: []  // [{text, width, role}]
 
-    // 集中渲染模式 (Phase 4 100B 优化): true 时 delegate 用 PaintedRow,
+    // Centralized render mode: rows collapse into one Canvas paint pass 集中渲染模式 (Phase 4 100B 优化): true 时 delegate 用 PaintedRow,
     // 整行收敛到 1 个 Canvas paint(),quasi-90% 减少 QObject 开销。
     // 触发条件:
     // - 行数 >= 100k 且 delegate 子树 > 5 个 QObject 时强烈推荐
@@ -96,7 +96,7 @@ DataWidgetCore {
     signal currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
     signal itemSelectionChanged()
     signal sortChanged(int column, int order)
-    signal customContextMenuRequested(point pos)  // 右键菜单信号 Context menu signal
+    signal customContextMenuRequested(point pos)  // Context menu signal 右键菜单信号
 
     // ==================== Internal Methods 内部方法 ====================
     function _listOrEmpty(value) {
@@ -119,7 +119,7 @@ DataWidgetCore {
         for (var i = 0; i < safeColumns.length; i++) {
             widths.push(_computeColumnWidth(safeColumns[i]))
         }
-        // 自适应列宽 (autoWidth) 算完后, 如果总宽 < 表格容器宽, 按比例放大到铺满,
+        // After autoWidth, scale columns up proportionally if total < container width 自适应列宽 (autoWidth) 算完后, 如果总宽 < 表格容器宽, 按比例放大到铺满,
         // 避免出现"右侧大片空白"的视觉缺陷。
         // 如果总宽 > 容器宽, 保持原值, DataWidgetCore 会启用横向滚动。
         // 只在所有列都没显式 width (即都是 autoWidth) 时拉伸, 业务设了固定 width 的列尊重原值。
@@ -141,7 +141,7 @@ DataWidgetCore {
         _columnPixelWidths = widths
     }
 
-    // 默认 measureWidth: 取 rowData[role] 转字符串, 按字符宽度估算
+    // Default measureWidth: string-cast rowData[role], estimate by char width 默认 measureWidth: 取 rowData[role] 转字符串, 按字符宽度估算
     // 中文(Unicode > 127) 14px, 英文/数字 8px, 不含 padding (引擎层 cellPadding 统一加)。
     // 业务不显式提供 measureWidth 时, 所有列自动按内容自适应。
     function _defaultMeasureWidth(role) {
@@ -149,7 +149,7 @@ DataWidgetCore {
             if (!rowData) return 0
             var v = rowData[role]
             if (v === undefined || v === null) return 0
-            // 数组类型 (例如 income/expense [{amount, kind}, ...]): 按 JSON 字符长度估算
+            // Array values (e.g. income/expense lists): estimate by JSON length 数组类型 (例如 income/expense [{amount, kind}, ...]): 按 JSON 字符长度估算
             // 这只是兜底, 业务通常会显式给货币列写 measureWidth
             var s = (typeof v === 'object') ? JSON.stringify(v) : String(v)
             var w = 0
@@ -184,7 +184,7 @@ DataWidgetCore {
             // 防止内容贴边视觉缺陷, 业务可显式 col.cellPadding = N 覆盖
             var pad = (typeof col.cellPadding === 'number') ? col.cellPadding : 32
             var n = Math.min(sampleSize, _rowCountForMeasure())
-            // 算表头文字本身宽度作为最小基线 (列名比内容长时不至于截断)
+            // Header text width as the minimum baseline (no clipping of long titles) 算表头文字本身宽度作为最小基线 (列名比内容长时不至于截断)
             var headerText = String(col.text || "")
             var headerW = 0
             for (var hi = 0; hi < headerText.length; hi++) {
@@ -202,7 +202,7 @@ DataWidgetCore {
                     console.warn("TableWidget._computeColumnWidth: measureWidth threw:", e)
                 }
             }
-            // 加 padding 后再 clamp, 避免短内容列下溢到 minW 之下
+            // Clamp after adding padding so short columns stay above minW 加 padding 后再 clamp, 避免短内容列下溢到 minW 之下
             return Math.max(minW, Math.min(max + pad, maxW))
         }
         // Static width: <1 ratio, >=1px, default 0.15 静态宽度: < 1 比例, >= 1 像素, 缺省 0.15
@@ -220,7 +220,7 @@ DataWidgetCore {
         if (typeof tableData.rowCount === 'function') {
             try { return tableData.rowCount() } catch (e) {}
         }
-        // 最后 fallback: 走基类 DataWidgetCore 的 rowCount property
+        // Last fallback: base DataWidgetCore rowCount property 最后 fallback: 走基类 DataWidgetCore 的 rowCount property
         if (typeof root.rowCount === 'number' && root.rowCount > 0) return root.rowCount
         return 0
     }
@@ -357,7 +357,7 @@ DataWidgetCore {
     listModel: tableData
     showHeader: (_safeColumns || []).length > 0
 
-    // 计算所有列的总像素宽度 (基类 DataWidgetCore 据此判断是否启用横向滚动)。
+    // Total pixel width of all columns (base uses it for h-scroll) 计算所有列的总像素宽度 (基类 DataWidgetCore 据此判断是否启用横向滚动)。
     contentTotalWidth: {
         var total = 0
         for (var i = 0; i < _columnPixelWidths.length; i++) {
@@ -366,7 +366,7 @@ DataWidgetCore {
         return total
     }
 
-    // 触发条件: columns 数组变 / 数据变 / root 宽度变
+    // Triggers: columns array / data / root width changed 触发条件: columns 数组变 / 数据变 / root 宽度变
     onColumnsChanged: _recomputeColumnWidths()
     onWidthChanged: _recomputeColumnWidths()
     onTableDataChanged: { rowCount = _calcRowCount(); _recomputeColumnWidths() }

@@ -38,10 +38,10 @@ Item {
     property real padding: Enums.spacing.m
     property int horizontalAlign: Enums.orient.align_center
     property alias spacing: row.spacing
-    // 让用户直接 RowFit { Label{}; ... } 把子项写在里面
+    // Let users write children inline as RowFit { Label{}; ... } 让用户直接 RowFit { Label{}; ... } 把子项写在里面
     default property alias content: row.data
 
-    // 不开 autoFit 时, root 的尺寸 = Row 实际尺寸
+    // Without autoFit, root size equals the actual Row size 不开 autoFit 时, root 的尺寸 = Row 实际尺寸
     implicitWidth: autoFit ? row.implicitWidth + 2 * padding : row.implicitWidth
     implicitHeight: row.implicitHeight
 
@@ -49,7 +49,7 @@ Item {
         id: row
         spacing: Enums.spacing.s
 
-        // 不 autoFit: 直接靠左排,不管尺寸 (= 原生 Row 行为)
+        // No autoFit: left-align directly (native Row); autoFit: switch anchor by horizontalAlign 不 autoFit: 直接靠左排,不管尺寸 (= 原生 Row 行为)
         // autoFit: 跟 horizontalAlign 切锚点
         anchors.verticalCenter: root.autoFit ? parent.verticalCenter : undefined
 

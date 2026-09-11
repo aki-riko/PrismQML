@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // PopupSmoothScroll: Smooth scroll for popup/dropdown scenarios. Must be placed INSIDE the Flickable/ListView as a child. 弹窗平滑滚动。必须作为 Flickable/ListView 的子元素放置。
 // Usage 用法:

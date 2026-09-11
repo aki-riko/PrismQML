@@ -23,14 +23,14 @@ Item {
     // status: "success", "info", "warning", "error"
     property var items: []
 
-    // Visual type: standard grouped timeline or generic graph timeline.
+    // Visual type: standard grouped timeline or generic graph timeline. 可视化类型: 标准分组时间线或通用图时间线
     // Graph cards may provide graph:{nodeLane,nodeColorIndex,segments:[{fromLane,toLane,colorIndex}]}
     // and labels:[{text,status}]. Group graph data draws lanes through date headers.
     property int type: Enums.timeline.type_standard
     property int graphLaneCount: 1
     property var graphPalette: Enums.chartColors.extendedPalette
 
-    // 虚拟滚动:默认关(保持原 Column+Repeater 全量渲染,向后兼容)。
+    // Virtual scrolling: off by default (keeps full render, backward compatible) 虚拟滚动:默认关(保持原 Column+Repeater 全量渲染,向后兼容)。
     // 开启后整个组件改用单层 ListView 渲染,把 items 拍平成行(组头行+卡片行),
     // 只渲染可见项,适合大列表(上千条)。开启时组件自身可滚动,需给定 height。
     // Virtual scrolling: off by default (keeps original full render, backward compatible).
@@ -38,9 +38,9 @@ Item {
     property bool showScrollBar: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
 
-    // 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
+    // Key of the selected item (highlights it via selectedRole); empty = no highlight 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
     property string selectedRole: "commit"   // card 对象里用作唯一标识的字段名
-    property var selectedKey: undefined        // 当前选中值(与 card[selectedRole] 比对)
+    property var selectedKey: undefined        // Current selected value (compared against card[selectedRole]) 当前选中值(与 card[selectedRole] 比对)
 
     // ==================== Internal Props 内部属性 ====================
     property var _flatRows: []
@@ -74,7 +74,7 @@ Item {
     // cardClickedData: 回传完整 card 对象(含调用方自定义字段,如业务 id/hash)
     // cardClickedData: emits the full card object (carrying caller's custom fields, e.g. business id/hash)
     signal cardClickedData(int groupIndex, int cardIndex, var cardData)
-    // 虚拟滚动模式下滚动到接近底部时触发(用于分页加载更多)
+    // Fires near the bottom in virtual scroll mode (paginated load-more) 虚拟滚动模式下滚动到接近底部时触发(用于分页加载更多)
     signal reachedEnd()
 
     // ==================== Internal Methods 内部方法 ====================
@@ -276,9 +276,9 @@ Item {
 
     function _getStatusIcon(status) {
         switch (status) {
-            case "success": return "Checkmark"      // 简单勾号，不带圆圈 plain checkmark, no circle
-            case "warning": return "Warning"        // 感叹号三角 exclamation triangle
-            case "error": return "Dismiss"          // 简单X，不带圆圈 plain X, no circle
+            case "success": return "Checkmark"      // plain checkmark, no circle 简单勾号，不带圆圈
+            case "warning": return "Warning"        // exclamation triangle 感叹号三角
+            case "error": return "Dismiss"          // plain X, no circle 简单X，不带圆圈
             default: return "Info"                  // info - i图标
         }
     }
@@ -336,8 +336,8 @@ Item {
         model: control._usesVirtualList ? _flatModel : null
         clip: true
         cacheBuffer: 600
-        reuseItems: true   // 复用 delegate,滚动时不重复实例化(大列表性能关键)
-        interactive: false // 关原生 flick,交给 SmoothScrollHelper 接管(否则平滑滚动不生效)
+        reuseItems: true   // Reuse delegates, no re-instantiation on scroll (key perf for large lists) 复用 delegate,滚动时不重复实例化(大列表性能关键)
+        interactive: false // Disable native flick, let SmoothScrollHelper take over 关原生 flick,交给 SmoothScrollHelper 接管(否则平滑滚动不生效)
         boundsBehavior: Flickable.DragAndOvershootBounds
         onContentYChanged: {
             if (contentHeight > height && contentY + height >= contentHeight - 600)
@@ -346,7 +346,7 @@ Item {
 
         delegate: TimelineInternal.TimelineVirtualRow {}
 
-        // 平滑滚动(滚轮缓动,与其他 Fluent 列表一致)
+        // Smooth scrolling (wheel easing, consistent with other Fluent lists) 平滑滚动(滚轮缓动,与其他 Fluent 列表一致)
         SmoothScrollHelper {
             id: vScrollHelper
             target: virtualList

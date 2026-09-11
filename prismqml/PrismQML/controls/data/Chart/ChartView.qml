@@ -19,7 +19,7 @@ ShadowedRectangle {
     property int chartType: Enums.chart.type_bar
     property int barOrientation: Enums.chart.orientation_vertical
     property var chartData: []           // [{label: "", value: 0, color: ""}, ...]
-    property var indicators: []          // [{name: "", max: 100}, ...] - for radar
+    property var indicators: []          // [{name: "", max: 100}, ...] - for radar 雷达图轴定义 [{name: "", max: 100}, ...]
     property var series: []              // [{name: "", values/data: [], color: ""}, ...]
     property var boxplotData: []         // [{label: "", min, q1, median, q3, max, outliers: []}, ...]
     property string title: ""
@@ -32,7 +32,7 @@ ShadowedRectangle {
     property bool showValues: true
     property bool showLegend: true
     property bool showGrid: true
-    // 是否显示 hover tooltip; 折线图数据点过密时关闭可显著减少掉帧
+    // Show hover tooltip; off cuts frames when line points are dense 是否显示 hover tooltip; 折线图数据点过密时关闭可显著减少掉帧
     property bool showTooltip: true
     property bool animated: true
     property bool smoothLine: true

@@ -5,7 +5,7 @@
 import "../../.."
 import "../../icons"
 import "../../data"
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ListWidgetItem - Single item in ListWidget 列表控件单项
 // Fluent Design style with indicator, reveal highlight, and press feedback 带指示条、悬浮光晕与按压反馈的 Fluent Design 样式

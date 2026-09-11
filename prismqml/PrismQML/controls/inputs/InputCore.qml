@@ -38,7 +38,7 @@ Widget {
     // Note: transparentBackground takes highest priority 透明背景优先级最高
     property color color: {
         if (transparentBackground) return Enums.transparent
-        // 颜色由 token 层在 neo 下自动返回白面/muted, 无需控件分支。
+        // Token layer already yields white/muted under neo, no control-side branch 颜色由 token 层在 neo 下自动返回白面/muted, 无需控件分支。
         if (!enabled) return Enums.stateColor.controlBgDisabled
         if (focused) return Enums.cardColor  // InputgHover
         return Enums.stateColor.controlBg
@@ -177,7 +177,7 @@ Widget {
 
     // Mouse cursor 鼠标光标
     MouseArea {
-        // z 必须高于子 Loader/TextInput 内部 MouseArea, 否则鼠标 hover 进 padding 区域时
+        // z must stay above inner MouseAreas of child Loader/TextInput z 必须高于子 Loader/TextInput 内部 MouseArea, 否则鼠标 hover 进 padding 区域时
         // 子 MouseArea (无 hoverEnabled / cursorShape) 拦截掉, IBeam 光标只在 TextInput
         // 文字像素上有, padding 周围光标变默认箭头, 用户视觉感受为"没有光标"
         z: Enums.zIndex.inputInteraction
@@ -191,7 +191,7 @@ Widget {
             if (control.enabled && control.focusTarget) {
                 control.focusTarget.forceActiveFocus()
             }
-            // 根因修复: 点击落在 focusTarget(TextInput) 区域内 → 放行(accepted=false),
+            // Root-cause fix: click on text passes through, click on padding edge is consumed 根因修复: 点击落在 focusTarget(TextInput) 区域内 → 放行(accepted=false),
             // 让 TextInput 自己 selectByMouse 定位光标; 落在 padding 边缘区(TextInput
             // 接不住) → 消费(accepted=true), 不冒泡到下层"点空白失焦"MouseArea 夺焦
             // (旧 bug: 边缘点击 accepted=false 冒泡到 blur 层 → 进焦立刻失焦)。
@@ -199,7 +199,7 @@ Widget {
                 var p = mapToItem(control.focusTarget, mouse.x, mouse.y)
                 var inside = p.x >= 0 && p.y >= 0
                             && p.x <= control.focusTarget.width && p.y <= control.focusTarget.height
-                mouse.accepted = !inside   // 命中输入区放行(TextInput定位光标), 边缘消费
+                mouse.accepted = !inside   // Pass input-area clicks (TextInput places cursor), consume edge clicks 命中输入区放行(TextInput定位光标), 边缘消费
             } else {
                 mouse.accepted = false
             }
@@ -207,7 +207,7 @@ Widget {
         // Let wheel events pass through to subclass handlers (SpinBox, etc.)
         // 把 wheel 事件让给子类处理（SpinBox 等），避免被本层吞掉
         onWheel: function(wheel) { wheel.accepted = false }
-        // 根因修复: 消费 composed clicked, 阻止其经 propagateComposedEvents 穿透到
+        // Root-cause fix: consume composed clicked so it cannot reach the blur layer 根因修复: 消费 composed clicked, 阻止其经 propagateComposedEvents 穿透到
         // 下层"点空白失焦"MouseArea。旧 bug: 按住进焦→松开时 clicked 穿透到 blur 层
         // onClicked 清焦点→松开瞬间失焦。控件内点击的 clicked 不该触发"点空白"逻辑。
         onClicked: function(mouse) { mouse.accepted = true }

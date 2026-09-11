@@ -61,7 +61,7 @@ Item {
         target: content.table.listView
     }
 
-    // 仅当 tableData 是真正的 QAbstractListModel/QObject (有 modelReset 等 signal) 才订阅;
+    // Subscribe only for real list models (QVariantList lacks these signals) 仅当 tableData 是真正的 QAbstractListModel/QObject (有 modelReset 等 signal) 才订阅;
     // QVariantList 没这些 signal, 直接绑 target 会被识别成 QObject 报警告
     // "Unable to assign QVariantList to QObject*"
     Connections {

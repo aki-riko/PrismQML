@@ -7,7 +7,7 @@ import ".."
 import "../../containers"
 import "./_internal"
 import "./_internal/ComboBoxMethods.js" as ComboBoxMethods
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxCore - Dropdown base class 下拉框基类
 // ComboBox series extend this ComboBox系列继承此基类

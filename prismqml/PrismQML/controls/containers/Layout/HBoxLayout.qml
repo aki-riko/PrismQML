@@ -42,7 +42,7 @@ Widget {
             // Widget 默认 layoutFillWidth=true, layoutFillHeight=false
             // 但在 HBoxLayout 中，我们可能希望垂直方向填满？视具体情况。
             // 保持默认行为让 Widget 决定。
-            widget.Layout.fillHeight = true // 这是旧逻辑，保留 legacy kept on purpose
+            widget.Layout.fillHeight = true // legacy kept on purpose 这是旧逻辑，保留
         }
     }
 
@@ -105,20 +105,20 @@ Widget {
     contentWidth: row.implicitWidth + leftPadding + rightPadding
     contentHeight: row.implicitHeight + topPadding + bottomPadding
     
-    // 覆盖 Widget 默认 width：Layout 必须填充父容器宽度（模拟 QWidget Layout 行为）
+    // Override Widget default width: Layout fills parent width (mimics QWidget Layout) 覆盖 Widget 默认 width：Layout 必须填充父容器宽度（模拟 QWidget Layout 行为）
     width: preferredWidth > 0 ? preferredWidth : (parent ? parent.width : implicitWidth)
 
-    // 让 Layout 系统处理尺寸
+    // Let the Layout system compute size 让 Layout 系统处理尺寸
     Layout.preferredWidth: preferredWidth > 0 ? preferredWidth : -1
     Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
 
-    // 覆盖 Widget 默认值：HBoxLayout 默认填充宽度和高度
+    // Override Widget defaults: HBoxLayout fills width and height by default 覆盖 Widget 默认值：HBoxLayout 默认填充宽度和高度
     layoutFillWidth: true
     layoutFillHeight: true
 
     Layout.alignment: layoutAlignment
     
-    // 条件性高度绑定：仅在不使用 Layout.fillHeight 时绑定高度
+    // Conditional height binding: bind height only when not using Layout.fillHeight 条件性高度绑定：仅在不使用 Layout.fillHeight 时绑定高度
     Binding {
         target: control
         property: "height"

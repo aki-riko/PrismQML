@@ -15,7 +15,7 @@ import "../../../containers/Separator"
 import "_internal"
 import "TreeWidgetCore.js" as Core
 import "TreeWidgetApi.js" as Api
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // TreeWidget - Fluent Design tree widget 树形组件
 // QTreeWidget-style migration API subset QTreeWidget风格迁移接口子集

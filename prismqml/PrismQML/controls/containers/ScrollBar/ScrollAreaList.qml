@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ScrollAreaList - Virtualized list scroll area 虚拟化列表滚动区域
 // Only renders visible items 只渲染可见项
@@ -15,10 +15,10 @@ Item {
     property var model: []
     property Component delegate: null
     property int itemHeight: 40
-    property int spacing: Enums.spacing.none  // 列表项间距 (用于卡片化场景需要间隙时)
+    property int spacing: Enums.spacing.none  // Item spacing for card-styled scenes that need a gap 列表项间距 (用于卡片化场景需要间隙时)
     property bool reuseItems: false  // delegate 复用 (Qt 5.15+, 避免大列表频繁 create/destroy)
-    property int cacheBuffer: -1  // -1 = 用引擎默认值 itemHeight*10; 长 delegate 场景可调小
-    // 重 delegate (含 ComboBox/SpinBox/复杂布局) 场景: 用 Loader.asynchronous 包一层,
+    property int cacheBuffer: -1  // -1 = engine default itemHeight*10; lower it for long delegates -1 = 用引擎默认值 itemHeight*10; 长 delegate 场景可调小
+    // Heavy delegates: wrap in Loader.asynchronous so first scroll stays smooth 重 delegate (含 ComboBox/SpinBox/复杂布局) 场景: 用 Loader.asynchronous 包一层,
     // ListView instantiate Loader 几乎零开销, 真卡片内容下一帧异步填充, 首次滚动不卡
     property bool delegateAsync: false
     property bool showScrollBar: true
@@ -28,7 +28,7 @@ Item {
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart
-    // 边界 bounce: true=继续滚露出空白回弹 (默认), false=硬切到边界 (避免顶部/底部空白闪烁)
+    // Edge bounce: true reveals blank and springs back; false hard-stops at bounds 边界 bounce: true=继续滚露出空白回弹 (默认), false=硬切到边界 (避免顶部/底部空白闪烁)
     property bool bounceEnabled: true
     property int currentIndex: -1
     property bool selectable: true
@@ -102,7 +102,7 @@ Item {
         itemCount: listView.count
     }
 
-    // 异步 delegate 包装: Loader 几乎零创建成本, 真组件下一帧填充。
+    // Async delegate wrapper: Loader is near-free, real content fills next frame 异步 delegate 包装: Loader 几乎零创建成本, 真组件下一帧填充。
     // 关键: ListView 把 index/model 注入到 Loader (它才是 ListView 的直接 delegate),
     // Loader.item (sourceComponent 实例) 拿不到。这里显式 reify 成 Loader 的 properties
     // (delegateIndex / delegateModel), 业务 delegate 内用 parent.delegateIndex /
@@ -110,7 +110,7 @@ Item {
     Component {
         id: asyncDelegate
         Loader {
-            // 关键: ListView 注入的 index/model 在 Loader scope 可见, binding 成 properties
+            // Key: ListView-injected index/model are visible in Loader scope, reified as props 关键: ListView 注入的 index/model 在 Loader scope 可见, binding 成 properties
             // 让 Loader.item 通过 parent 访问
             property int delegateIndex: index
             property var delegateModel: model

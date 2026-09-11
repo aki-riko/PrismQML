@@ -139,7 +139,7 @@ Widget {
 
     // ==================== Signals 信号 ====================
     signal clicked()
-    // 注意: 不能命名为 pressed, 会与下方 `property bool pressed` 同名,
+    // Note: must not be named pressed (signal shadowed by property) 注意: 不能命名为 pressed, 会与下方 `property bool pressed` 同名,
     // QML 中属性会遮蔽同名信号, 导致 emit (pressed()) 把 bool 当函数调而报 TypeError。
     // 外部监听按下请用 onButtonPressed。
     signal buttonPressed()

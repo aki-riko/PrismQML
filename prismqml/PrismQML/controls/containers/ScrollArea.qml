@@ -42,12 +42,12 @@ Item {
     property int currentIndex: -1
     property bool selectable: true
     // List 模式额外属性 (向 ScrollAreaList 透传, 默认值不影响旧调用方)
-    property int listSpacing: 0          // 列表项间距 (卡片化场景)
+    property int listSpacing: 0          // Item spacing for card-styled list scenes 列表项间距 (卡片化场景)
     property bool reuseItems: false      // delegate 复用, 大列表频繁 create/destroy 时打开
-    property int listCacheBuffer: -1     // -1 = 引擎默认 itemHeight*10
-    property bool delegateAsync: false   // 重 delegate 用 Loader.asynchronous 包一层防卡顿
-    property bool alwaysShowScrollBar: false  // 滚动条常显
-    property bool bounceEnabled: true    // 边界 bounce 回弹 (List 模式), false 防止顶/底空白闪烁
+    property int listCacheBuffer: -1     // -1 = engine default itemHeight*10 -1 = 引擎默认 itemHeight*10
+    property bool delegateAsync: false   // Wrap heavy delegates in Loader.asynchronous to avoid jank 重 delegate 用 Loader.asynchronous 包一层防卡顿
+    property bool alwaysShowScrollBar: false  // Always-visible scrollbar 滚动条常显
+    property bool bounceEnabled: true    // Edge bounce (List mode); false prevents top/bottom blank flicker 边界 bounce 回弹 (List 模式), false 防止顶/底空白闪烁
     // Preferred size (external override) 首选尺寸（外部覆盖）
     property real preferredWidth: 0
     property real preferredHeight: 0

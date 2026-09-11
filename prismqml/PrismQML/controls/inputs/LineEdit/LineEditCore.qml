@@ -26,7 +26,7 @@ InputCore {
     //       validator: DoubleValidator { ... }
     //       validator: RegularExpressionValidator { regularExpression: /.../ }
     property var validator: null
-    // 例如: inputMethodHints: Qt.ImhDigitsOnly (软键盘 + IME 提示)
+    // Example: 例如: inputMethodHints: Qt.ImhDigitsOnly (软键盘 + IME 提示)
     property int inputMethodHints: Qt.ImhNone
     property bool showPassword: false
     property bool collapsible: false
@@ -44,7 +44,7 @@ InputCore {
     property var textInput: loader.item ? loader.item.textInput : null
 
     // ==================== Internal Props 内部属性 ====================
-    property bool _syncing: false  // 防止同步循环
+    property bool _syncing: false  // Prevent a sync loop 防止同步循环
 
     // ==================== Readonly State 只读状态 ====================
     // 透传 TextInput 状态属性,避免调用方写 lineEdit.textInput.cursorPosition
@@ -53,7 +53,7 @@ InputCore {
     readonly property int selectionStart: textInput ? textInput.selectionStart : 0
     readonly property int selectionEnd: textInput ? textInput.selectionEnd : 0
     readonly property string selectedText: textInput ? textInput.selectedText : ""
-    // 当前 text 是否通过 validator 验证 (无 validator 时永远 true)
+    // Whether current text passes the validator 当前 text 是否通过 validator 验证 (无 validator 时永远 true)
     readonly property bool acceptableInput: textInput ? textInput.acceptableInput : true
     readonly property bool _isSearch: inputType === Enums.input.type_search
     readonly property bool expanded: !collapsible || (loader.item ? loader.item.expanded : true)
@@ -167,7 +167,7 @@ InputCore {
         }
     }
 
-    // 内部组件 → 外部 text 属性同步 (用户输入时触发)
+    // Inner component syncs out to the public text property 内部组件 → 外部 text 属性同步 (用户输入时触发)
     Connections {
         function onTextChanged() {
             if (!control._syncing && loader.item && control.text !== loader.item.text) {

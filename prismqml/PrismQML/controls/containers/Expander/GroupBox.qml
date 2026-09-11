@@ -201,7 +201,7 @@ Widget {
         x: Enums.spacing.l
         y: control._titleHeight + Enums.spacing.l
         width: parent.width - Enums.spacing.l * 2
-        // 高度按 anchors 思路: 占满父级剩余空间。
+        // Height fills remaining parent space (anchors style), avoiding childrenRect loop 高度按 anchors 思路: 占满父级剩余空间。
         // 旧实现 height = childrenRect.height 会与 Layout.* 子元素形成 binding loop:
         //   父 Layout.preferredHeight 设了 → control 高度固定 →
         //   子 Layout 元素响应父 height 调整自己 → childrenRect 变 →

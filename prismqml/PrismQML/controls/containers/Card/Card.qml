@@ -167,7 +167,7 @@ Widget {
  id: card
 
  property color _bgColor: {
- // 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
+ // Color handled by token layer under neo, no control-side branch needed 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
  // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
  // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
  if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
@@ -273,7 +273,7 @@ Widget {
  z: Enums.zIndex.background // Below content to not block child interactions 置于内容下方避免阻挡子组件交互
  hoverEnabled: false
  enabled: control.interactionEnabled
- visible: control.interactionEnabled // 完全隐藏时不阻挡事件
+ visible: control.interactionEnabled // Do not block events when fully transparent 完全隐藏时不阻挡事件
  cursorShape: control.clickEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
 
  onClicked: if (control.clickEnabled) control.clicked()

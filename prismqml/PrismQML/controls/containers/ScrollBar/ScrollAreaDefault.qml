@@ -3,7 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../../.."
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ScrollAreaDefault - Default scroll area implementation 默认滚动区域实现
 // For arbitrary content, no virtualization 用于任意内容，无虚拟化
@@ -92,10 +92,10 @@ Item {
             if (!child || !child.visible) continue
             var pt = rootItem.mapToItem(child, mouseX, mouseY)
             if (pt.x < 0 || pt.y < 0 || pt.x > child.width || pt.y > child.height) continue
-            // 优先递归命中更深层
+            // Prefer recursing into a deeper hit 优先递归命中更深层
             var deeper = _findScrollableChild(child, pt.x, pt.y, delta)
             if (deeper) return deeper
-            // 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
+            // Nested ScrollArea: compute bounds from the real Flickable/ListView/GridView viewport 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
             var viewport = _scrollViewport(child)
             if (viewport && viewport.contentHeight !== undefined
                 && viewport.contentHeight > viewport.height
@@ -272,7 +272,7 @@ Item {
                 event.accepted = true
                 return
             }
-            // 无可滚动方向：透传
+            // Nothing to scroll: pass the event through 无可滚动方向：透传
             event.accepted = false
         }
         onPressed: (event) => event.accepted = false

@@ -6,7 +6,7 @@ import "../../.."
 import ".."
 import "_internal"
 import "_internal/ComboBoxTreeNodes.js" as TreeNodes
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxMultiTree - Tree multi-select dropdown with search 带搜索的树形多选下拉框
 // Extends ComboBoxCore for consistent styling 继承ComboBoxCore保持样式一致
@@ -276,7 +276,7 @@ ComboBoxCore {
     // ==================== Size 尺寸 ====================
     implicitWidth: 280
 
-    // Popup content and token visuals live in the dedicated internal owner.
+    // Popup content and token visuals live in the dedicated internal owner. 弹层内容与标签视觉由专用内部子组件承载
     popupContent: multiTreeContent.popupContent
 
     Behavior on _smoothContentX { NumberAnimation { duration: Enums.duration.medium; easing.type: Easing.OutCubic } }

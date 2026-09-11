@@ -125,7 +125,7 @@ Item {
                 property var commandData: modelData
                 property int commandIndex: index
 
-                // ✅ 2026-02-02: 支持三种类型：separator、widget、button
+                // Support three kinds: separator, widget, button ✅ 2026-02-02: 支持三种类型：separator、widget、button
                 sourceComponent: {
                     if (modelData && modelData.separator) return separatorComponent
                     if (modelData && modelData.widget && modelData.qmlItem) return widgetComponent
@@ -276,14 +276,14 @@ Item {
         id: widgetComponent
         Item {
             id: widgetWrapper
-            // 尺寸跟随嵌入的组件
+            // Size follows the embedded component 尺寸跟随嵌入的组件
             implicitWidth: commandData && commandData.qmlItem ? commandData.qmlItem.width : 0
             implicitHeight: commandData && commandData.qmlItem ? commandData.qmlItem.height : Enums.controlSize.commandBarButtonSize
             width: implicitWidth
             height: implicitHeight
             
             Component.onCompleted: {
-                // 将外部 QML 组件重新设置父级到这个容器
+                // Reparent the external QML component into this container 将外部 QML 组件重新设置父级到这个容器
                 if (commandData.qmlItem) {
                     commandData.qmlItem.parent = widgetWrapper
                     commandData.qmlItem.anchors.verticalCenter = widgetWrapper.verticalCenter

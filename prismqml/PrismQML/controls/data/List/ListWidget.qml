@@ -5,7 +5,7 @@
 import "../../.."
 import "../../../controls/containers/ScrollBar"
 import "_internal/ListDataController.js" as ListDataController
-import QtQuick  // 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ListWidget - Fluent style list widget 列表控件
 // QListWidget-style migration API subset QListWidget风格迁移接口子集
