@@ -41,8 +41,6 @@ void NavBridge::onCaptionActionTriggered() {
 Window::Window(QQmlEngine *engine, const QString &importPath, WindowType type)
     : m_engine(engine), m_importPath(importPath), m_type(type) {}
 
-WindowCloseEvent::WindowCloseEvent(QObject *target) : m_target(target) {}
-
 void WindowCloseEvent::requestHideOnClose() {
     // Python WindowCloseEvent.requestHideOnClose 同样强制 accepted=true: 隐藏式
     // 关闭仍然是一次「被接受的关闭」, QML 才会走已接受关闭的动画链。
@@ -529,7 +527,7 @@ void NavBridge::onClosing(QQuickCloseEvent *event) {
     // leaves the window alive, requestHideOnClose() arms the animated hide.
     // 把关闭请求交给宿主回调, 并对齐 Python 桥接(WindowCore._on_close_requested):
     // ignore() 取消本次关闭并保留窗口, requestHideOnClose() 让本次关闭以带动画隐藏收尾。
-    WindowCloseEvent closeEvent(reinterpret_cast<QObject *>(event));
+    WindowCloseEvent closeEvent;
     m_owner->dispatchClose(closeEvent);
 }
 
@@ -544,7 +542,7 @@ void NavBridge::onCloseRequested() {
         return;
     if (m_owner->rootObject()->property("_closeInProgress").toBool())
         return;
-    WindowCloseEvent closeEvent(m_owner->rootObject());
+    WindowCloseEvent closeEvent;
     m_owner->dispatchClose(closeEvent);
 }
 

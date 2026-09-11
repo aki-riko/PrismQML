@@ -47,7 +47,7 @@ private:
 //   故取消关闭必须在 closeEvent 内直接调用 ignore()。
 class WindowCloseEvent {
 public:
-    explicit WindowCloseEvent(QObject *target = nullptr);
+    WindowCloseEvent() = default;
 
     bool isAccepted() const { return m_accepted; }
     // 仅当事件已被接受时生效: 被取消的关闭不会隐藏窗口。
@@ -57,10 +57,7 @@ public:
     void ignore() { m_accepted = false; }
     void requestHideOnClose();
 
-    QObject *targetObject() const { return m_target; }
-
 private:
-    QObject *m_target = nullptr;
     bool m_accepted = true;
     bool m_hideOnClose = false;
 };
