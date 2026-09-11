@@ -20,22 +20,33 @@ Resolution must not touch an explicitly named interpreter: ``python3`` / ``py`` 
 ``test_test_process_command.py`` locks for ``_normalize_child_command``.
 解析不得触碰显式点名的解释器: ``python3`` / ``py`` / ``pythonw.exe`` 必须保留
 调用者给出的身份, 该契约由 ``test_test_process_command.py`` 锁定。
+
+This module must stay importable where ``ctypes.WINFUNCTYPE`` does not exist, because
+Linux CI collects it too; the Windows-only helper is imported inside the single test
+that needs it, so collection cannot fail on a non-Windows platform.
+本模块必须在不存在 ``ctypes.WINFUNCTYPE`` 的平台上保持可导入 —— Linux CI 同样会收集
+本文件; 仅 Windows 才需要的辅助模块只在需要它的那一个测试内部导入, 收集期不得失败。
 """
 
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
-from scripts._test_support.windows import api as windows_api
 from scripts.test_process import (
     _PYTHON_COMMAND_ALIASES,
     _is_python_interpreter_command,
     _normalize_child_command,
     _resolve_executable,
 )
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_MODULE = Path(__file__).resolve()
 
 
 def test_python_aliases_use_the_running_interpreter():
@@ -121,10 +132,48 @@ def test_unresolvable_command_is_returned_unchanged():
     assert _normalize_child_command((missing,)) == (missing,)
 
 
+@pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Windows PATH lookup error codes only",
+)
 def test_path_lookup_error_codes_cover_the_windows_lookup_failures():
+    from scripts._test_support.windows import api as windows_api
+
     assert windows_api.PATH_LOOKUP_ERROR_CODES == frozenset(
         (windows_api.ERROR_FILE_NOT_FOUND, windows_api.ERROR_PATH_NOT_FOUND)
     )
+
+
+def test_contract_module_stays_importable_without_windows_ctypes_api():
+    """Collection must survive a platform without ``ctypes.WINFUNCTYPE``.
+
+    收集期必须能在没有 ``ctypes.WINFUNCTYPE`` 的平台上存活: Linux CI 会真实收集本文件,
+    模块级导入 Windows 专属辅助模块会让整轮测试在收集阶段以 exit 2 中断。
+    """
+    script = (
+        "import ctypes, sys\n"
+        "if hasattr(ctypes, 'WINFUNCTYPE'):\n"
+        "    del ctypes.WINFUNCTYPE\n"
+        "sys.platform = 'linux'\n"
+        "import importlib.util\n"
+        "spec = importlib.util.spec_from_file_location(\n"
+        f"    'child_command_contract', {str(CONTRACT_MODULE)!r}\n"
+        ")\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(module)\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_empty_command_is_rejected():
