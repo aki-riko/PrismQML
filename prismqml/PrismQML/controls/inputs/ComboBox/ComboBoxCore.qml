@@ -232,7 +232,16 @@ Widget {
     contentHeight: Enums.controlSize.inputHeight
 
     onCurrentIndexChanged: _syncCurrentTextFromSelection()
-    onModelChanged: _syncCurrentTextFromSelection()
+    // Replacing the whole model may leave the derived model binding one turn
+    // behind inside this notification, so the sync above can still read the
+    // previous list and keep a stale currentText whenever currentIndex did not
+    // change. Re-calibrate once on the next turn to cover that path.
+    // 整表替换模型时，本次通知回调里可能仍读到替换前的模型；若 currentIndex 恰好没变，
+    // 上面那次同步会沿用旧文本。下一拍再校准一次，覆盖这条路径。
+    onModelChanged: {
+        _syncCurrentTextFromSelection()
+        Qt.callLater(_syncCurrentTextFromSelection)
+    }
     Component.onCompleted: _syncCurrentTextFromSelection()
 
     // ==================== Content 内容 ====================

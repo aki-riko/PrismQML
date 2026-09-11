@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 from PySide6.QtCore import (
+    Q_ARG,
     QCoreApplication,
     QEvent,
     QEventLoop,
@@ -53,9 +54,47 @@ Window {
     function useEnglish() { Translator.setLanguage(Enums.lang.en) }
     function useSimplifiedChinese() { Translator.setLanguage(Enums.lang.zh_CN) }
 
+    property var probeValues: []
+
+    // Objects are passed in as arguments: this fixture builds the scene with
+    // rootContext, where ids are not resolvable inside function bodies.
+    function replaceModelOnly(holder, values) {
+        holder.values = values
+    }
+
+    function replaceModelAndSetIndex(holder, core, entry, values, index) {
+        holder.values = values
+        core.currentIndex = index
+        entry.currentIndex = index
+    }
+
     width: 720
     height: 360
     visible: true
+
+    QtObject {
+        id: modelHolder
+        objectName: "modelHolder"
+        property var values: ["First", "Second"]
+    }
+
+    ComboBoxCore {
+        objectName: "replacingCombo"
+        x: 60
+        y: 140
+        width: 260
+        model: modelHolder.values
+        currentIndex: 0
+    }
+
+    ComboBox {
+        objectName: "replacingEntryCombo"
+        x: 60
+        y: 190
+        width: 260
+        model: modelHolder.values
+        currentIndex: 0
+    }
 
     ComboBoxCore {
         id: combo
@@ -536,6 +575,70 @@ def test_combo_box_core_popup_honors_height_icon_disabled_and_signals(qapp):
         assert text_changed == ["Gamma"]
         assert warnings == []
         assert _wait_for(lambda: _new_visible_windows(windows_before, window) == [])
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_model_replacement_refreshes_current_text(qapp):
+    """Replacing the whole model must refresh currentText even when the index stays.
+
+    整表替换模型时，即使 currentIndex 没有变化，currentText 也必须跟着刷新；两层
+    （ComboBoxCore 基类与 Fluent.ComboBox 入口）都要一致。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        core = window.findChild(QQuickItem, "replacingCombo")
+        entry = window.findChild(QQuickItem, "replacingEntryCombo")
+        holder = window.findChild(QObject, "modelHolder")
+        assert core is not None and entry is not None and holder is not None
+        assert core.property("currentText") == "First"
+        assert entry.property("currentText") == "First"
+
+        def replace_only(values):
+            # QML 声明的 JS 函数在元对象里统一是 QVariant 形参，类型必须写 QVariant
+            assert QMetaObject.invokeMethod(
+                window, "replaceModelOnly",
+                Q_ARG("QVariant", holder), Q_ARG("QVariant", list(values)),
+            )
+            assert _variant(core.property("model")) == list(values)
+
+        def replace_with_index(values, index):
+            assert QMetaObject.invokeMethod(
+                window, "replaceModelAndSetIndex",
+                Q_ARG("QVariant", holder), Q_ARG("QVariant", core),
+                Q_ARG("QVariant", entry), Q_ARG("QVariant", list(values)),
+                Q_ARG("QVariant", index),
+            )
+            assert _variant(core.property("model")) == list(values)
+            assert core.property("currentIndex") == index
+            assert entry.property("currentIndex") == index
+
+        def expect_text(values, index):
+            assert _wait_for(
+                lambda: core.property("currentText") == list(values)[index]
+            ), (list(values), index, core.property("currentText"))
+            assert _wait_for(
+                lambda: entry.property("currentText") == list(values)[index]
+            ), (list(values), index, entry.property("currentText"))
+
+        # 1) 只替换模型，索引保持 0：文本必须换成新列表首项
+        replace_only(["NewFirst", "NewSecond"])
+        expect_text(["NewFirst", "NewSecond"], 0)
+        # 2) 列表变短但索引仍在范围内
+        replace_only(["OnlyOne"])
+        expect_text(["OnlyOne"], 0)
+        # 3) 同一拍内替换模型并把索引改到 1
+        replace_with_index(["Third", "Fourth"], 1)
+        expect_text(["Third", "Fourth"], 1)
+        # 4) 同一拍内替换模型并把索引写回同一个值（不产生索引变更）
+        replace_with_index(["Fifth", "Sixth"], 0)
+        expect_text(["Fifth", "Sixth"], 0)
+
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window, combo, editable)
         assert _new_visible_windows(windows_before) == []
