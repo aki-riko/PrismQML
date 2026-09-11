@@ -67,6 +67,22 @@ def _pump(milliseconds: int = 10) -> None:
     loop.exec()
 
 
+def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
+    """有界轮询等待条件成立，替代固定时长泵。
+
+    背板提交定时器只有 16ms，但 CI 高负载下事件循环会被饿到，固定 100ms
+    的余量不足以保证它一定在窗口内触发；改为轮询到条件成立或超时，断言
+    目标与强度不变。与 test_navigation_window_core_timer_lifecycle.py 同惯例。
+    """
+    elapsed = 0
+    while elapsed < timeout_ms:
+        if predicate():
+            return True
+        _pump()
+        elapsed += 10
+    return predicate()
+
+
 def _dispose_qml(engine, component, instance) -> None:
     """Synchronously drain deferred QML deletion. 同步冲刷 QML 延迟删除。"""
     if instance is not None:
@@ -312,8 +328,7 @@ NavigationWindowCore {
         assert fake_mica.calls[-1] == (True, False)
         assert fake_mica.corner_calls[-1] is True
         assert instance.property("_micaBackdropReady") is False
-        _pump(100)
-        assert instance.property("_micaBackdropReady") is True
+        assert _wait_for(lambda: instance.property("_micaBackdropReady") is True)
 
         setSkin(Skin.NEOBRUTALISM)
         _pump(1)
@@ -335,8 +350,7 @@ NavigationWindowCore {
         assert instance.property("_micaActive") is True
         assert fake_mica.calls[-1] == (True, False)
         assert fake_mica.corner_calls[-1] is True
-        _pump(100)
-        assert instance.property("_micaBackdropReady") is True
+        assert _wait_for(lambda: instance.property("_micaBackdropReady") is True)
     finally:
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
