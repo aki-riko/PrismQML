@@ -51,8 +51,8 @@ Item {
             return Math.max(minimum, Math.min(maximum, value))
         }
 
-        // 非整数缩放下每帧必须落在物理像素上, 否则次像素错位会让滚动发抖。
         // Fractional scaling needs per-frame physical-pixel snapping or it judders.
+        // 非整数缩放下每帧必须落在物理像素上, 否则次像素错位会让滚动发抖。
         function _refreshDevicePixelRatio() {
             if (typeof WindowHelper === "undefined" || !WindowHelper
                     || typeof WindowHelper.devicePixelRatioAt !== "function") {
@@ -80,8 +80,8 @@ Item {
         }
 
         function scrollTo(targetY) {
-            // 窗口可能被拖到不同缩放的屏幕, 每次滚动前重取比率。
             // The window can move between screens, so re-read the ratio here.
+            // 窗口可能被拖到不同缩放的屏幕, 每次滚动前重取比率。
             _refreshDevicePixelRatio()
             _targetY = _clamp(targetY, _minY, _maxY)
             _smoothY = _targetY
