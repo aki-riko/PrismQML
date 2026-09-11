@@ -11,6 +11,8 @@ import ctypes
 import logging
 import math
 import os
+import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -47,6 +49,9 @@ AUTOMATED_TEST_BOUNDARY_ENV = "PRISMQML_AUTOMATED_TEST_BOUNDARY"
 AUTOMATED_TEST_BOUNDARY_VERSION = "v1"
 TEST_CONFIG_FILE_ENV = "PRISMQML_CONFIG_FILE"
 _PYTHON_COMMAND_ALIASES = frozenset(("python", "python.exe"))
+_PYTHON_INTERPRETER_NAME = re.compile(
+    r"^(?:python|pythonw|pypy|pyw?)(?:\d+(?:\.\d+)*)?$"
+)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -361,10 +366,51 @@ def _format_return_code(return_code: int) -> str:
     return str(return_code)
 
 
+def _is_python_interpreter_command(command: str) -> bool:
+    """Report whether an explicitly named interpreter must pass through unchanged.
+
+    显式解释器名（python3 / py / pythonw.exe 等）按既有契约原样透传：调用者点名的
+    解释器身份必须保留，不得在这里改写成绝对路径。
+    """
+    name = os.path.basename(command).lower()
+    for suffix in (".exe", ".cmd", ".bat"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    return _PYTHON_INTERPRETER_NAME.match(name) is not None
+
+
+def _resolve_executable(command: str) -> str:
+    """Resolve a bare console script the way CreateProcessW cannot.
+
+    把裸控制台脚本名解析成绝对路径 —— CreateProcessW 自身不做 PATH 查找（会直接报
+    ERROR_FILE_NOT_FOUND），所以这里必须替它完成解析。显式解释器名不在此列。
+    """
+    if _is_python_interpreter_command(command):
+        return command
+    if os.path.isabs(command) or os.sep in command or (os.altsep and os.altsep in command):
+        return command
+    found = shutil.which(command)
+    if found is not None:
+        return found
+    interpreter_directory = os.path.dirname(sys.executable)
+    for suffix in (".exe", ".cmd", ".bat"):
+        candidate = os.path.join(interpreter_directory, command + suffix)
+        if os.path.isfile(candidate):
+            return candidate
+    for suffix in ("", ".exe", ".cmd", ".bat"):
+        candidate = os.path.join(interpreter_directory, command, suffix)
+        if os.path.isfile(candidate):
+            return candidate
+    return command
+
+
 def _normalize_child_command(command: Sequence[str]) -> tuple[str, ...]:
     """Keep a generic Python child in the runner's active environment.
 
-    让裸 Python 子命令保持在 runner 当前激活的解释器环境中。
+    让裸 Python 子命令保持在 runner 当前激活的解释器环境中；显式解释器名
+    （python3 / py / pythonw.exe 等）原样透传。其余裸命令名解析为绝对路径，
+    否则 CreateProcessW 不做 PATH 查找，在私有桌面上无法启动它们。
     """
     normalized = tuple(command)
     if not normalized:
@@ -373,7 +419,7 @@ def _normalize_child_command(command: Sequence[str]) -> tuple[str, ...]:
         if not sys.executable:
             raise RuntimeError("current Python executable is unavailable")
         return (sys.executable, *normalized[1:])
-    return normalized
+    return (_resolve_executable(normalized[0]), *normalized[1:])
 
 
 def run_child(command: Sequence[str], timeout: float | None = None) -> int:

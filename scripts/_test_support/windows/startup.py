@@ -84,6 +84,7 @@ def _create_process(kernel32, command: Sequence[str], startup) -> _api._ProcessI
     command_line = ctypes.create_unicode_buffer(subprocess.list2cmdline(command))
     process = _api._ProcessInformation()
     creation_flags = _api.CREATE_SUSPENDED | _api.EXTENDED_STARTUPINFO_PRESENT
+    ctypes.set_last_error(0)
     if not kernel32.CreateProcessW(
         None,
         command_line,
@@ -96,7 +97,19 @@ def _create_process(kernel32, command: Sequence[str], startup) -> _api._ProcessI
         ctypes.cast(ctypes.byref(startup), ctypes.POINTER(_api._StartupInfoW)),
         ctypes.byref(process),
     ):
-        raise ctypes.WinError(ctypes.get_last_error())
+        error = ctypes.get_last_error()
+        # CreateProcessW 不做 PATH 查找: argv[0] 为裸命令名时会以
+        # ERROR_FILE_NOT_FOUND 失败, 容易被误读成"缺少某个文件"。
+        if error in _api.PATH_LOOKUP_ERROR_CODES:
+            raise FileNotFoundError(
+                error,
+                "CreateProcessW could not locate the child executable. "
+                "CreateProcessW performs no PATH lookup, so argv[0] must be an "
+                "absolute path. 未能定位子进程可执行文件; CreateProcessW 不做 PATH "
+                "查找, argv[0] 必须是绝对路径。",
+                command[0] if command else "",
+            )
+        raise ctypes.WinError(error)
     return process
 
 
