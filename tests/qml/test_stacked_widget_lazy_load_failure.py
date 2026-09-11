@@ -426,3 +426,14 @@ def test_lazy_helper_respects_unsafe_incubation_fallback():
     ).read_text(encoding="utf-8")
 
     assert "asynchronous: host._asynchronousPageLoaderEnabled" in source
+
+
+def test_source_page_loader_uses_shared_async_gate_in_eager_mode():
+    """Eager source pages must still use safe sliced incubation. Eager 页面也必须使用安全分片孵化。"""
+    source = (
+        _ROOT
+        / "prismqml/PrismQML/controls/navigation/_internal/"
+        "StackedSourcePages.qml"
+    ).read_text(encoding="utf-8")
+
+    assert "asynchronous: sourceContainer.host._asynchronousPageLoaderEnabled" in source

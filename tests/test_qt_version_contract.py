@@ -23,7 +23,7 @@ def test_python_and_cmake_require_qt_69() -> None:
     pyproject = _read("pyproject.toml")
     cmake = _read("cpp/CMakeLists.txt")
 
-    assert '"PySide6>=6.9.0"' in pyproject
+    assert '"PySide6>=6.9.0,!=6.11.1"' in pyproject
     assert "set(PRISM_MIN_QT_VERSION 6.9)" in cmake
     assert "find_package(Qt6 ${PRISM_MIN_QT_VERSION} REQUIRED" in cmake
 

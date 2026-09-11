@@ -75,8 +75,15 @@ Item {
             opacity: index === sourceContainer.host._displayIndex ? 1 : 0
             scale: 1
             transformOrigin: Item.Center
-            asynchronous: sourceContainer.host.lazyLoading &&
-                          sourceContainer.host._asynchronousPageLoaderEnabled
+            // Use sliced incubation for eager pages too when the runtime marks
+            // the Qt build safe. Eager mode still activates every page, but
+            // creation is spread across GUI frames instead of one blocking
+            // synchronous burst. Unsafe Qt builds retain the synchronous
+            // fallback selected by the shared incubation policy.
+            // 运行时判定 Qt 构建安全时，eager 页面也使用分片孵化。eager 模式仍会激活
+            // 全部页面，但创建过程分摊到多个 GUI 帧，不再形成一次同步长阻塞；不安全
+            // 的 Qt 构建继续沿用共享孵化策略选出的同步回退。
+            asynchronous: sourceContainer.host._asynchronousPageLoaderEnabled
 
             Component.onCompleted: {
                 var loaders = sourceContainer.host._loaders.slice()
