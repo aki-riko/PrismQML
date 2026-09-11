@@ -496,7 +496,7 @@ Item {
         id: colorDialog
         title: Fluent.Translator.tr("gallery_53c8bd2fe9d60274", Fluent.Translator._v)
         selectedColor: Enums.accentColor
-        overlayTarget: scrollArea  // Override ScrollArea 覆盖ScrollArea
+        overlayTarget: scrollArea  // Overlay onto ScrollArea 覆盖ScrollArea
         onColorAccepted: (c) => console.log(Fluent.Translator.tr("gallery_c80b23dc43aefe9f", Fluent.Translator._v), c)
     }
 }
