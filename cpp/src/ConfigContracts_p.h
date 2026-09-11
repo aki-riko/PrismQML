@@ -14,7 +14,7 @@ enum class ConfigLoadStatus { Missing, Invalid, Valid };
 struct WindowConfigState {
     bool lazyLoading = true;
     bool dwmShadow = true;
-    bool micaEnabled = false;
+    bool micaEnabled = true;
     int dpiScale = 0;
     int windowType = 1;
 };

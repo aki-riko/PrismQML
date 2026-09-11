@@ -119,7 +119,7 @@ QVariantList variantOptions(const std::array<int, Size> &values) {
 
 bool hasDefaults(const ConfigManager &config) {
     return config.lazyLoading() && config.dwmShadow() &&
-           !config.micaEnabled() && config.dpiScale() == 0 &&
+           config.micaEnabled() && config.dpiScale() == 0 &&
            config.windowType() == 1;
 }
 

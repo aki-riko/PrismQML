@@ -46,7 +46,7 @@ class AppConfig(SettingsCore):
     mica_enabled: ClassVar[SettingEntry] = SettingEntry(
         group="Window",
         name="MicaEnabled",
-        default=False,
+        default=True,
         validator=_schema.MICA_ENABLED_VALIDATOR,
     )
 

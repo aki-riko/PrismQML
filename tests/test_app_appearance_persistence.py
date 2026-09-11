@@ -354,7 +354,7 @@ def test_invalid_appearance_setters_do_not_persist_or_change_runtime(qapp, tmp_p
     )
     try:
         manager = _new_manager(path)
-        manager.setMicaEnabled(True)
+        manager.setMicaEnabled(False)
         _wait_persistence(manager)
         baseline = path.read_bytes()
         manager.setTheme("missing")

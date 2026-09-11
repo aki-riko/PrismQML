@@ -93,7 +93,7 @@ static QJsonObject invalidAppearance(const QString &field,
 
 static bool hasDefaults(const ConfigManager &config) {
     return config.lazyLoading() && config.dwmShadow() &&
-           !config.micaEnabled() && config.dpiScale() == 0 &&
+           config.micaEnabled() && config.dpiScale() == 0 &&
            config.windowType() == 1 && config.theme() == QStringLiteral("auto") &&
            config.skin() == QStringLiteral("fluent") &&
            config.language() == QStringLiteral("auto") &&
@@ -489,9 +489,9 @@ static void testDirectoryTarget(const QTemporaryDir &directory) {
     ConfigManager config(target);
     SignalCounts counts;
     observeSignals(config, target, counts);
-    config.setMicaEnabled(true);
+    config.setMicaEnabled(false);
     CHECK(config.waitForPersistence(), "目录目标保存队列已结算");
-    CHECK(!config.micaEnabled() && counts.config == 0 && counts.properties() == 0 &&
+    CHECK(config.micaEnabled() && counts.config == 0 && counts.properties() == 0 &&
               QFileInfo(target).isDir(),
           "目标为目录时保持旧内存、零信号且目录不变");
 }

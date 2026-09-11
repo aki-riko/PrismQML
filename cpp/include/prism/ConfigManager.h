@@ -107,7 +107,7 @@ private:
     struct State {
         bool lazyLoading = true;
         bool dwmShadow = true;
-        bool micaEnabled = false;
+        bool micaEnabled = true;
         int dpiScale = 0;
         int windowType = 1;
         QString theme = QStringLiteral("auto");

@@ -474,10 +474,10 @@ def test_config_manager_property_signal_is_silent_on_save_failure(
         manager.micaEnabledChanged.connect(lambda: property_changes.append(True))
         manager.configChanged.connect(lambda: config_changes.append(True))
 
-        manager.setMicaEnabled(True)
+        manager.setMicaEnabled(False)
         assert manager.waitForPersistence(5000)
 
-        assert manager.micaEnabled is False
+        assert manager.micaEnabled is True
         assert property_changes == []
         assert config_changes == []
         assert len(diagnostics) == 1
