@@ -257,6 +257,15 @@ def test_fast_splash_allows_lazy_qml_shell_handoff_before_page_ready():
     assert FastSplashController._shell_ready_while_page_loading(window) is False
 
 
+def test_fast_splash_uses_arrow_cursor_during_startup():
+    """The startup surface must not inherit the Windows busy cursor."""
+    source = (ROOT / "prismqml/python/window/fast_splash.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "splash.setCursor(QCursor(Qt.CursorShape.ArrowCursor))" in source
+
+
 def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
     """Legacy metadata is cached until Window commits the final splash config."""
     controller = FastSplashController(None)

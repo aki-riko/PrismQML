@@ -11,7 +11,8 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from PySide6.QtCore import QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QMetaObject, QObject, QTimer, QUrl, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickWindow
 
@@ -180,6 +181,10 @@ class FastSplashController(QObject):
                 warning("FastSplash QML 根对象不是 QQuickWindow")
                 return False
             self._splash = splash
+            # Keep the startup surface from inheriting Windows' process-busy
+            # cursor while the main QML scene is incubating.
+            # 固定启动页使用普通箭头，避免主 QML 场景孵化期间继承 Windows 忙碌光标。
+            splash.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
             initial_icon = icon or getattr(self._app, "application_icon", "")
             initial_icon_ready = False
             if initial_icon:
