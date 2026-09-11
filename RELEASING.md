@@ -55,6 +55,29 @@ git push origin vx.y.z.n
 
 `git push` 使用 SSH 公钥；`gh release` 使用 GitHub token。不得在对话、命令记录或仓库中写入明文 PAT。使用 `gh auth login` 或进程环境中的 `GH_TOKEN`。
 
+## CI 失败后的版本号处理
+
+tag 推送后 `release.yml` 只有在 `quality_gate` 通过后才会执行 `publish`，因此质量门禁失败时
+PyPI 上不会留下任何文件——这是判断能否复用版本号的唯一依据：
+
+```bash
+# 404 = 该版本在 PyPI 无任何文件, 允许复用; 200 = 已发布, 只能跳过该构建号
+curl -s -o /dev/null -w "%{http_code}\n" https://pypi.org/pypi/prismqml/x.y.z.n/json
+```
+
+- **允许复用（不跳号）**：删除 Release 页与本地、两个远程的 tag，修复并推到 `main`，
+  在同一版本号上重新打 tag 并推送，`release.yml` 会重新执行。只要 PyPI 仍为 404，
+  同一次 tag 可以反复重打。
+- **必须跳号**：PyPI 上已存在该版本的任何文件（含只上传成功一部分）时，同名版本与同名
+  文件不可重复上传，只能递增构建号后重发；失败 tag 保留，不创建 Release 页。
+- 重打 tag 属于 force push 类破坏性操作，必须由维护者明确决定；重打后需通知已抓取过该
+  tag 的克隆执行 `git fetch --tags --force`，避免残留"同一版本号指向两个提交"。
+- 门禁失败必须先修复根因，禁止用跳号或重打 tag 掩盖未修复的缺陷。
+
+`build-all.yml` 的 `python_quality_linux` 在 `main` 推送时执行与 tag 门禁相同的 ubuntu
+全量 Python 套件与 QML probe，使 Linux 专属缺陷在打 tag 之前暴露；新增平台相关断言时
+必须保持该 job 与 `release.yml` 的 `quality_gate` 覆盖一致。
+
 ## CI 与 abi3
 
 `.github/workflows/release.yml` 是正式构建与发布入口：推送 `v*` tag 后，三平台使用 cibuildwheel 构建 wheel 和 sdist，publish job 通过 PyPI Trusted Publishing 上传。普通提交不发布；`workflow_dispatch` 只构建不发布。
