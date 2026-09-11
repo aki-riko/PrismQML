@@ -84,11 +84,35 @@ def test_windows_core_deferred_resize_handles_load_once(monkeypatch, qapp):
     try:
         assert not window.property("_resizeHandlesReady")
         assert _wait_for(lambda: bool(window.property("_resizeHandlesReady")))
-        assert _wait_for(lambda: len(_resize_areas(window)) == 4)
+        assert _wait_for(lambda: len(_resize_areas(window)) == 8)
         resize_areas = _resize_areas(window)
-        assert len(resize_areas) == 4
+        assert len(resize_areas) == 8
+        # Edges plus the four corners so diagonal resize works.
+        # 四条边加四个角落，保证对角线缩放可用。
+        expected_edges = sorted(
+            int(edge.value)
+            for edge in (
+                Qt.Edge.LeftEdge,
+                Qt.Edge.RightEdge,
+                Qt.Edge.TopEdge,
+                Qt.Edge.BottomEdge,
+                Qt.Edge.LeftEdge | Qt.Edge.TopEdge,
+                Qt.Edge.RightEdge | Qt.Edge.TopEdge,
+                Qt.Edge.LeftEdge | Qt.Edge.BottomEdge,
+                Qt.Edge.RightEdge | Qt.Edge.BottomEdge,
+            )
+        )
+        edge_values = sorted(int(area.property("edge")) for area in resize_areas)
+        assert edge_values == expected_edges
+        corners = {
+            int(Qt.Edge.LeftEdge.value | Qt.Edge.TopEdge.value),
+            int(Qt.Edge.RightEdge.value | Qt.Edge.TopEdge.value),
+            int(Qt.Edge.LeftEdge.value | Qt.Edge.BottomEdge.value),
+            int(Qt.Edge.RightEdge.value | Qt.Edge.BottomEdge.value),
+        }
+        assert corners.issubset(set(edge_values))
         _pump(window.property("resizeDelay") // 4)
-        assert len(_resize_areas(window)) == 4
+        assert len(_resize_areas(window)) == 8
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

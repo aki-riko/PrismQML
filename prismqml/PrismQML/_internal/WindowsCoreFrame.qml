@@ -363,10 +363,17 @@ Item {
         sourceComponent: Component {
             Item {
                 anchors.fill: parent
+                // Edges first, corners after: later siblings sit on top, so the
+                // 16px corner hot zones win over the edge strips.
+                // 先边后角：后声明的兄弟在上层，16px 角部热区优先于边条。
                 ResizeArea { targetWindow: control; edge: Qt.LeftEdge }
                 ResizeArea { targetWindow: control; edge: Qt.RightEdge }
                 ResizeArea { targetWindow: control; edge: Qt.TopEdge }
                 ResizeArea { targetWindow: control; edge: Qt.BottomEdge }
+                ResizeArea { targetWindow: control; edge: Qt.LeftEdge | Qt.TopEdge }
+                ResizeArea { targetWindow: control; edge: Qt.RightEdge | Qt.TopEdge }
+                ResizeArea { targetWindow: control; edge: Qt.LeftEdge | Qt.BottomEdge }
+                ResizeArea { targetWindow: control; edge: Qt.RightEdge | Qt.BottomEdge }
             }
         }
     }
