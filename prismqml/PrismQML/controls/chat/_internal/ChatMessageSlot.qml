@@ -64,13 +64,6 @@ Loader {
     }
     onLoaded: if (host) host._scheduleSlotMeasurement(slot)
 
-    // ==================== Content 内容 ====================
-    ChatInternal.ChatMessageSlotMeasurementTimer {
-        id: slotMeasurementTimer
-        targetSlot: slot
-        host: slot.host
-    }
-
     sourceComponent: ChatBubble {
         role: slot.role
         content: slot.content
@@ -89,5 +82,12 @@ Loader {
             slot._reasoningExpanded = _reasoningExpanded
         on_UserToggledReasoningChanged:
             slot._userToggledReasoning = _userToggledReasoning
+    }
+
+    // ==================== Content 内容 ====================
+    ChatInternal.ChatMessageSlotMeasurementTimer {
+        id: slotMeasurementTimer
+        targetSlot: slot
+        host: slot.host
     }
 }

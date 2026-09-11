@@ -499,10 +499,10 @@ Item {
     }
 
     Connections {
-        target: transition._hostWindow
-
         function onFrameSwapped() { transition._handleSourceWindowFrameSwapped() }
         function onAfterFrameEnd() { transition._handleCollapseFrameEnd() }
+
+        target: transition._hostWindow
     }
 
     Window {

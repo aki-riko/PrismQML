@@ -109,9 +109,10 @@ Item {
             }
 
             Connections {
-                target: sourceContainer.host
                 function onPageSourcesChanged() { sourceLoader._syncSource() }
                 function onPagePropertiesChanged() { sourceLoader._syncSource() }
+
+                target: sourceContainer.host
             }
         }
     }

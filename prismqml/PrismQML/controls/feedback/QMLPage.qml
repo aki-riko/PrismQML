@@ -131,6 +131,8 @@ Item {
     ParallelAnimation {
         id: finishAnimation
 
+        onFinished: control._completeFinish()
+
         NumberAnimation {
             target: contentColumn
             property: "opacity"
@@ -148,7 +150,5 @@ Item {
             duration: Enums.duration.fast
             easing.type: Easing.InCubic
         }
-
-        onFinished: control._completeFinish()
     }
 }

@@ -11,8 +11,6 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property Item host
 
-    visible: false
-
     // ==================== Public Methods 公开方法 ====================
     function setCurrentWidget(widget) {
         for (var i = 0; i < host.count; i++) {
@@ -62,4 +60,6 @@ Item {
     function itemAt(index) {
         return api.widget(index)
     }
+
+    visible: false
 }

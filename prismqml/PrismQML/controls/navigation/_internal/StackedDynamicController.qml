@@ -11,8 +11,6 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property Item host
 
-    visible: false
-
     // ==================== Public Methods 公开方法 ====================
     function push(source, properties) {
         if (!host.dynamicStack || !host._useSourceMode || !source) return -1
@@ -54,4 +52,6 @@ Item {
         host.pageSources = host._safePageSources.slice(0, targetDepth)
         host._dynamicDepth = targetDepth
     }
+
+    visible: false
 }

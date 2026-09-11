@@ -65,6 +65,7 @@ Window {
     color: Enums.transparent
     width: contentWidth + _contentInset * 2  // Follow actual notification width 跟随通知实际宽度
     height: contentHeight + _contentInset * 2  // Use actual content height 使用实际内容高度
+    Component.onDestruction: _bannerReservation.release()
 
     // ==================== Content 内容 ====================
     // Shared animator 共享动画器
@@ -104,6 +105,4 @@ Window {
         target: control.screen
         ignoreUnknownSignals: true
     }
-
-    Component.onDestruction: _bannerReservation.release()
 }

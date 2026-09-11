@@ -19,8 +19,6 @@ QtObject {
     property bool _updatingLanguage: false
 
     property QtObject _configConnections: Connections {
-        target: typeof ConfigManager !== "undefined" ? ConfigManager : null
-
         function onLanguageChanged() {
             if (translator._pendingLanguage === "") {
                 translator._updateLanguage(ConfigManager.language)
@@ -34,6 +32,8 @@ QtObject {
                 translator._updateLanguage(ConfigManager.language)
             }
         }
+
+        target: typeof ConfigManager !== "undefined" ? ConfigManager : null
     }
     
     // Actual resolved language 实际解析后的语言
