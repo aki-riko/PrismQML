@@ -253,6 +253,72 @@ def main():
     if tray_win._window.property("_closeInProgress") is not False:
         failures.append("close-to-tray native close left _closeInProgress=true")
 
+    # Hide-only close: the collapse animation plays in the overlay window, then the
+    # window hides instead of being destroyed, and close state fully rewinds so the
+    # window can be shown and closed again.
+    # 隐藏式关闭: 收缩动画播完后隐藏而非销毁, 关闭状态全部复位, 窗口可再次显示与关闭。
+    class HideToTrayWindow(Window):
+        def __init__(self):
+            super().__init__(window_type=WindowType.BAR)
+            self.close_events = 0
+
+        def closeEvent(self, event):
+            self.close_events += 1
+            event.requestHideOnClose()
+
+    hide_win = HideToTrayWindow()
+    hide_win.setSplashEnabled(False)
+    hide_win.setWindowTitle("Hide-only close regression")
+    hide_win.addPage(None, "Home", "Home")
+    hide_win.show()
+    pump(150)
+
+    if not QMetaObject.invokeMethod(hide_win._window, "requestClose"):
+        failures.append("hide-only requestClose method was not invokable")
+    # Cover the 420ms circle collapse plus frame-end handshake with margin.
+    pump(1200)
+
+    if hide_win.close_events != 1:
+        failures.append(f"hide-only requestClose emitted {hide_win.close_events} close events, expected 1")
+    if hide_win.isVisible():
+        failures.append("hide-only requestClose left the window visible")
+    if hide_win._window.property("closeRequestAccepted") is not True:
+        failures.append("hide-only request did not write closeRequestAccepted=true")
+    if hide_win._window.property("closeRequestHideOnly") is not True:
+        failures.append("hide-only request did not write closeRequestHideOnly=true")
+    if hide_win._window.property("_closeInProgress") is not False:
+        failures.append("hide-only close left _closeInProgress=true")
+    if abs(float(hide_win._window.opacity()) - 1.0) > 0.01:
+        failures.append(f"hide-only close left window opacity at {hide_win._window.opacity()}")
+
+    # Re-show must present a fully visible window with its content layer back on.
+    hide_win.show()
+    pump(180)
+    if not hide_win.isVisible():
+        failures.append("re-show after hide-only close failed to show the window")
+    if abs(float(hide_win._window.opacity()) - 1.0) > 0.01:
+        failures.append(f"re-show after hide-only close left opacity at {hide_win._window.opacity()}")
+    frame_layer = None
+    for child in hide_win._window.contentItem().childItems():
+        if "WindowsCoreFrame" in child.metaObject().className():
+            frame_layer = child
+            break
+    if frame_layer is None:
+        failures.append("WindowsCoreFrame content layer was not found")
+    elif not frame_layer.isVisible():
+        failures.append("hide-only close left the content layer hidden after re-show")
+
+    # A second request must run the full handshake again.
+    if not QMetaObject.invokeMethod(hide_win._window, "requestClose"):
+        failures.append("second hide-only requestClose was not invokable")
+    pump(1200)
+    if hide_win.close_events != 2:
+        failures.append(f"second hide-only requestClose emitted {hide_win.close_events} close events, expected 2")
+    if hide_win.isVisible():
+        failures.append("second hide-only requestClose left the window visible")
+    if hide_win._window.property("_closeInProgress") is not False:
+        failures.append("second hide-only close left _closeInProgress=true")
+
     print(f"\n{'=' * 60}")
     if failures:
         print("RESULT: FAIL - close request handshake regression failed")

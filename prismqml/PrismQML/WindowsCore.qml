@@ -19,6 +19,10 @@ Window {
     property bool startupProfilingVerbose: false
     readonly property color accentColor: Enums.accentColor
     property bool closeRequestAccepted: true
+    // Hide-only close: the accepted close request plays the close animation, then
+    // hides the window instead of destroying it (animated hide-to-tray).
+    // 隐藏式关闭: 被接受的关闭请求播完关闭动画后隐藏窗口而非销毁(带动画的隐藏到托盘)。
+    property bool closeRequestHideOnly: false
     property int titleBarPosition: Enums.windowType.title_bar_top
     // Left panel width for the left layout. 左侧布局的面板宽度。
     property int leftPanelWidth: Enums.window.navPanelMinWidth
@@ -159,18 +163,34 @@ Window {
     }
     function _completeAcceptedClose() {
         if (!_closeInProgress) return
-        _closeDesktopNotifications()
-        var closed = window.close()
-        if (closed === false) {
-            _cancelCloseRequest()
+        if (!closeRequestHideOnly) {
+            _closeDesktopNotifications()
+            var closed = window.close()
+            if (closed === false) {
+                _cancelCloseRequest()
+                return
+            }
+            // The overlay path hid this window to keep its Mica out of the collapsing circle.
+            // Restore it only now that the close succeeded and the window is off screen —
+            // restoring any earlier shows one frame of the full, un-collapsed window.
+            // 覆盖窗口那条路把本窗口藏了, 好让它的 Mica 不出现在收缩圆里。只有现在关闭已成功、
+            // 窗口已下屏才还原 —— 早一点还原就会露出一帧完整的、没收紧的窗口。
+            closeTransition.restoreHostWindow()
             return
         }
-        // The overlay path hid this window to keep its Mica out of the collapsing circle.
-        // Restore it only now that the close succeeded and the window is off screen —
-        // restoring any earlier shows one frame of the full, un-collapsed window.
-        // 覆盖窗口那条路把本窗口藏了, 好让它的 Mica 不出现在收缩圆里。只有现在关闭已成功、
-        // 窗口已下屏才还原 —— 早一点还原就会露出一帧完整的、没收紧的窗口。
+        // Hide-only close: the collapse already played in the overlay window, so
+        // finish by hiding instead of destroying, then rewind every piece of close
+        // state so the window can be shown and closed again later. Like the real
+        // close above, the host is only restored once the window is off screen.
+        // 隐藏式关闭: 收缩动画已在覆盖窗口播完，这里以隐藏代替销毁收尾，并把关闭
+        // 状态全部复位，窗口之后仍可再次显示与关闭。与真实关闭一致, 宿主窗口
+        // 必须等已下屏后才还原。
+        window.hide()
+        _closeInProgress = false
+        _closeCompletionPending = false
         closeTransition.restoreHostWindow()
+        windowFrameLayer.visible = _closeSourceWasVisible
+        animHelper.restoreVisibleState()
     }
     function _armAcceptedClose() {
         if (!_closeInProgress) return
@@ -215,6 +235,7 @@ Window {
     function requestClose() {
         if (_closeInProgress) return
         closeRequestAccepted = true
+        closeRequestHideOnly = false
         closeRequested()
         if (closeRequestAccepted) {
             _startAcceptedClose()
@@ -280,6 +301,7 @@ Window {
     onClosing: (close) => {
         if (!_closeInProgress) {
             closeRequestAccepted = true
+            closeRequestHideOnly = false
             closeRequested()
             if (!closeRequestAccepted) {
                 close.accepted = false

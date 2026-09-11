@@ -118,6 +118,7 @@ class WindowCloseEvent:
 
     def __init__(self):
         self._accepted = True
+        self._hide_on_close = False
 
     @property
     def accepted(self) -> bool:
@@ -135,6 +136,19 @@ class WindowCloseEvent:
 
     def isAccepted(self) -> bool:
         return self._accepted
+
+    def requestHideOnClose(self):
+        """Play the close animation, then hide the window instead of destroying it.
+
+        播放关闭动画后隐藏窗口而非销毁(带动画的隐藏到托盘)。必须保持
+        event 处于 accepted 状态，QML 才会走已接受关闭的动画链。
+        """
+        self._accepted = True
+        self._hide_on_close = True
+
+    @property
+    def hideOnCloseRequested(self) -> bool:
+        return self._hide_on_close
 
 
 # ==================== 窗口基类 ====================
@@ -615,6 +629,10 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
 
         try:
             self._window.setProperty("closeRequestAccepted", event.isAccepted())
+            self._window.setProperty(
+                "closeRequestHideOnly",
+                event.isAccepted() and event.hideOnCloseRequested,
+            )
         except RuntimeError as exc:
             exception(
                 "WindowCore.closeRequestAccepted write failed: "
