@@ -242,6 +242,21 @@ def test_fast_splash_waits_for_python_page_readiness():
     assert FastSplashController._page_ready(window) is True
 
 
+def test_fast_splash_allows_lazy_qml_shell_handoff_before_page_ready():
+    """Lazy QML source windows may reveal their loading surface before the page tree finishes."""
+    stack = _PropertyObject(_useSourceMode=True)
+    window = _PropertyObject(
+        stackedWidget=stack,
+        _pythonPageMode=False,
+        lazyLoading=True,
+    )
+
+    assert FastSplashController._shell_ready_while_page_loading(window) is True
+
+    window._properties["lazyLoading"] = False
+    assert FastSplashController._shell_ready_while_page_loading(window) is False
+
+
 def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
     """Legacy metadata is cached until Window commits the final splash config."""
     controller = FastSplashController(None)

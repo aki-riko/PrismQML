@@ -439,6 +439,16 @@ class FastSplashController(QObject):
         return True
 
     @staticmethod
+    def _shell_ready_while_page_loading(main_window: QQuickWindow) -> bool:
+        """Allow lazy QML source windows to reveal their loading surface early."""
+        if main_window.property("_pythonPageMode") is True:
+            return False
+        stack = main_window.property("stackedWidget")
+        if stack is None or not bool(stack.property("_useSourceMode")):
+            return False
+        return bool(main_window.property("lazyLoading"))
+
+    @staticmethod
     def _show_qml_owned_window(main_window: QQuickWindow) -> None:
         """Expose a hidden pure-QML window after the splash owns its startup."""
         if main_window.property("_pythonPageMode") is True:
@@ -460,7 +470,15 @@ class FastSplashController(QObject):
                 self._ready_timer.stop()
             self._finish_embedded_handoff()
             return
-        if self._main_frame_count < 3 or not self._page_ready(self._main_window):
+        if self._main_frame_count < 3:
+            self._page_ready_observed_frame = -1
+            return
+        if self._main_window.property("_startupPresentationReady") is not True:
+            self._page_ready_observed_frame = -1
+            return
+        page_ready = self._page_ready(self._main_window)
+        shell_ready = self._shell_ready_while_page_loading(self._main_window)
+        if not page_ready and not shell_ready:
             self._page_ready_observed_frame = -1
             return
         # A ready signal means the page tree is constructed, not that it has
