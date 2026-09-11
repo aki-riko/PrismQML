@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 按钮展示页面
+// Button showcase page 按钮展示页面
 Item {
     id: root
     readonly property int _flowSpacing: Fluent.Enums.spacing.l
@@ -20,7 +20,7 @@ Item {
         Action { text: Fluent.Translator.tr("gallery_b03fab65bf7cae21", Fluent.Translator._v) }
     }
 
-    // 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
+    // Icon path resolver (portable via Enums.iconPath, no source-tree dependency) 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
@@ -32,7 +32,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -430,7 +430,7 @@ Item {
                 }
             }
             
-            // ==================== 带徽章的组合 ====================
+            // ==================== Badge combinations 带徽章的组合 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_1eefca4b4783ce1d", Fluent.Translator._v)
                 description: "Button + Badge"

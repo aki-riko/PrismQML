@@ -5,7 +5,7 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML as Fluent
 import "../prismqml/PrismQML/_internal" as FluentInternal
 import "../prismqml/PrismQML/controls/buttons"
@@ -16,7 +16,7 @@ import "../prismqml/PrismQML/controls/containers"
 QtObject {
     id: root
     
-    // 从配置读取窗口类型 Read window type from config
+    // Read window type from config 从配置读取窗口类型
     property int windowType: ConfigManager ? ConfigManager.windowType : Fluent.Enums.windowType.type_ms
     // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
     property bool _startupLazyLoading: true
@@ -38,7 +38,7 @@ QtObject {
     readonly property string loadingText: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
     readonly property string splashSubtitle: Fluent.Translator.tr("gallery_12422784480e8784", Fluent.Translator._v)
     
-    // 图标路径解析函数
+    // Icon path resolver function 图标路径解析函数
     function iconPath(name) {
         return Qt.resolvedUrl("../prismqml/PrismQML/controls/icons/fluent/" + name + ".svg")
     }
@@ -47,7 +47,7 @@ QtObject {
         console.log("GALLERY_CAPTION_ACTION_TRIGGERED")
     }
     
-    // 导航项配置
+    // Navigation item config 导航项配置
     property var navItems: [
         { "text": Fluent.Translator.tr("gallery_ad1c50c9367c756d", Fluent.Translator._v), "icon": iconPath("CursorClick") },
         { "text": Fluent.Translator.tr("gallery_2087c777c06fefe5", Fluent.Translator._v), "icon": iconPath("Keyboard") },
@@ -86,10 +86,10 @@ QtObject {
         Qt.resolvedUrl("pages/SettingsPage.qml")
     ]
     
-    // 窗口实例
+    // Window instances 窗口实例
     property var windowInstance: null
     
-    // 根据类型选择组件
+    // Pick the component by type 根据类型选择组件
     property Component windowComponent: {
         switch (windowType) {
             case Fluent.Enums.windowType.type_fluent:
@@ -103,7 +103,7 @@ QtObject {
         }
     }
     
-    // 启动时创建窗口
+    // Create windows at startup 启动时创建窗口
     Component.onCompleted: {
         _startupLazyLoading = ConfigManager ? ConfigManager.lazyLoading : true
         windowInstance = windowComponent.createObject(null)

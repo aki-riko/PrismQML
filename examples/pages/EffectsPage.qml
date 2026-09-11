@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 特效展示页面 Effects showcase page
+// Effects showcase page 特效展示页面
 Item {
     id: root
     
@@ -24,7 +24,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Enums.spacing.xxl
             
-            // 页面标题 Page title
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
@@ -41,7 +41,7 @@ Item {
                     width: parent ? parent.width : 0
                     spacing: Enums.spacing.l
                     
-                    // 效果展示区域 Effect display area
+                    // Effect display area 效果展示区域
                     Rectangle {
                         width: parent.width
                         height: 300
@@ -59,7 +59,7 @@ Item {
                             fadeSpeed: fadeSlider.value
                         }
                         
-                        // 边框 Border
+                        // Border 边框
                         Rectangle {
                             anchors.fill: parent
                             color: Enums.transparent
@@ -69,17 +69,17 @@ Item {
                         }
                     }
                     
-                    // 控制面板 Control panel
+                    // Control panel 控制面板
                     Row {
                         spacing: Enums.spacing.xxl
                         
-                        // 运行开关 Running switch
+                        // Running switch 运行开关
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_75b269496f698fae", Fluent.Translator._v)
                             Toggle { id: runningSwitch; controlType: Enums.toggle.control_switch; checked: true }
                         }
                         
-                        // 速度 Speed
+                        // Speed 速度
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_2c46293d126101da", Fluent.Translator._v) + speedSlider.value.toFixed(1)
                             Slider {
@@ -94,7 +94,7 @@ Item {
                             }
                         }
                         
-                        // 字体大小 Font size
+                        // Font size 字体大小
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_800b0e9e70229d11", Fluent.Translator._v) + Math.round(fontSizeSlider.value) + "px"
                             Slider {
@@ -108,7 +108,7 @@ Item {
                             }
                         }
                         
-                        // 密度 Density
+                        // Density 密度
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_76d9b92538f405c9", Fluent.Translator._v) + densitySlider.value.toFixed(1)
                             Slider {
@@ -123,7 +123,7 @@ Item {
                             }
                         }
                         
-                        // 拖尾 Fade
+                        // Fade trail 拖尾
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_728f1239d38766e4", Fluent.Translator._v) + fadeSlider.value.toFixed(2)
                             Slider {
@@ -139,7 +139,7 @@ Item {
                         }
                     }
                     
-                    // 主题预设 Theme presets
+                    // Theme presets 主题预设
                     Row {
                         spacing: Enums.spacing.l
                         Text { text: Fluent.Translator.tr("gallery_ddb3b7159fd24042", Fluent.Translator._v); color: Enums.textColor.primary; font.family: Enums.fontFamily; font.pixelSize: Enums.typography.body; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
@@ -149,7 +149,7 @@ Item {
                         }
                     }
                     
-                    // 方向控制 Direction control
+                    // Direction control 方向控制
                     Row {
                         spacing: Enums.spacing.l
                         Text { text: Fluent.Translator.tr("gallery_1121471a0ff440f8", Fluent.Translator._v); color: Enums.textColor.primary; font.family: Enums.fontFamily; font.pixelSize: Enums.typography.body; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
@@ -159,7 +159,7 @@ Item {
                         Button { text: Fluent.Translator.tr("gallery_07abb4fb7aaea2e0", Fluent.Translator._v); onClicked: matrixRain.setDirection("right") }
                     }
                     
-                    // 字符集预设 Charset presets
+                    // Charset presets 字符集预设
                     Row {
                         spacing: Enums.spacing.l
                         Text { text: Fluent.Translator.tr("gallery_1e61cd479c3866e9", Fluent.Translator._v); color: Enums.textColor.primary; font.family: Enums.fontFamily; font.pixelSize: Enums.typography.body; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
@@ -169,7 +169,7 @@ Item {
                         }
                     }
                     
-                    // 特效开关 Effect toggles
+                    // Effect toggles 特效开关
                     Row {
                         spacing: Enums.spacing.l
                         Text { text: Fluent.Translator.tr("gallery_8829dbcbcfce6e54", Fluent.Translator._v); color: Enums.textColor.primary; font.family: Enums.fontFamily; font.pixelSize: Enums.typography.body; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
@@ -215,7 +215,7 @@ Item {
                         }
                     }
                     
-                    // 控制按钮 Control buttons
+                    // Control buttons 控制按钮
                     Row {
                         spacing: Enums.spacing.l
                         Button { text: Fluent.Translator.tr("gallery_2acba087ac8fa1a0", Fluent.Translator._v); icon: iconPath("Pause"); onClicked: matrixRain.toggle() }

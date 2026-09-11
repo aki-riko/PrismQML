@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 标签与展示页面
+// Labels & display page 标签与展示页面
 Item {
     id: root
     
@@ -24,7 +24,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -32,7 +32,7 @@ Item {
                 Text { text: Fluent.Translator.tr("gallery_6eb5be42af0c58be", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // 文本标签
+            // Text labels 文本标签
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_8e0daec2a60a370c", Fluent.Translator._v)
                 description: "Label + type"
@@ -49,7 +49,7 @@ Item {
                 }
             }
             
-            // 徽章
+            // Badges 徽章
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_2007e7c457991125", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_ed154f2610a9fa4f", Fluent.Translator._v)
@@ -134,7 +134,7 @@ Item {
                 }
             }
             
-            // 头像
+            // Avatars 头像
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3ea2d23c902cfa31", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_f2706f98edc1da71", Fluent.Translator._v)
@@ -161,7 +161,7 @@ Item {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
 
-                    // 竖向
+                    // Vertical 竖向
                     Row {
                         spacing: Fluent.Enums.spacing.xxl
                         ComponentCard {
@@ -218,7 +218,7 @@ Item {
                         }
                     }
 
-                    // 横向
+                    // Horizontal 横向
                     Row {
                         spacing: Fluent.Enums.spacing.xxl
                         ComponentCard {

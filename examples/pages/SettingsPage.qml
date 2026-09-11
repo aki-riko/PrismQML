@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Window
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 设置组件页面
+// Settings components page 设置组件页面
 Item {
     id: root
     
@@ -28,7 +28,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -36,12 +36,12 @@ Item {
                 Text { text: "prismqml.controls.settings"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.tertiary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // ==================== 实际功能设置 Functional Settings ====================
+            // ==================== Functional Settings 实际功能设置 ====================
             SettingsCardGroup {
                 title: Fluent.Translator.tr("gallery_248c888b290d234f", Fluent.Translator._v)
                 width: parent ? parent.width : 0
                 
-                // 窗口类型
+                // Window type 窗口类型
                 SettingsCard {
                     readonly property var windowTypeValues:
                         ConfigManager ? ConfigManager.windowTypeOptions : []
@@ -92,7 +92,7 @@ Item {
                     }
                 }
                 
-                // 云母效果
+                // Mica effect 云母效果
                 SettingsCard {
                     width: parent ? parent.width : 0
                     title: Fluent.Translator.tr("gallery_491d8a1d801bb51f", Fluent.Translator._v)
@@ -130,7 +130,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_a1a42cd9b16e2162", Fluent.Translator._v)
                 width: parent ? parent.width : 0
                 
-                // 应用主题 Application theme
+                // Application theme 应用主题
                 SettingsCard {
                     id: themeCard
 

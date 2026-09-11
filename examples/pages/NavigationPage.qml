@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 导航组件页面
+// Navigation components page 导航组件页面
 Item {
     id: root
     
@@ -24,7 +24,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -32,7 +32,7 @@ Item {
                 Text { text: "prismqml.controls.navigation"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // 面包屑
+            // Breadcrumbs 面包屑
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_6c3f7b6a12a97468", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_aefd232185a863d6", Fluent.Translator._v)
@@ -119,7 +119,7 @@ Item {
                 }
             }
             
-            // 分段控件
+            // Segmented controls 分段控件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_e998714a526683d7", Fluent.Translator._v)
                 description: "SegmentedControl / Pivot"
@@ -130,7 +130,7 @@ Item {
                 }
             }
             
-            // 步骤进度条
+            // Stepper progress bar 步骤进度条
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ae9e675a583eeb35", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_e8ac692d3cae2e98", Fluent.Translator._v)
@@ -270,7 +270,7 @@ Item {
                 }
             }
             
-            // 命令栏视图
+            // Command bar views 命令栏视图
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_1b2a34ab3faa47a8", Fluent.Translator._v)
                 description: "CommandBar (type_view)"
@@ -308,7 +308,7 @@ Item {
                 }
             }
             
-            // 分页器
+            // Pagination 分页器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_4bf9ffa772b28b9d", Fluent.Translator._v)
                 description: "Paginator"
@@ -318,7 +318,7 @@ Item {
                 }
             }
             
-            // 菜单栏
+            // Menu bar 菜单栏
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_a304cb9cd6c523bb", Fluent.Translator._v)
                 description: "MenuBar"

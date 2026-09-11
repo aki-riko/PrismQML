@@ -5,12 +5,12 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 import "_internal"
 
-// 反馈组件页面
+// Feedback components page 反馈组件页面
 Item {
     id: root
     
@@ -33,7 +33,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -41,7 +41,7 @@ Item {
                 Text { text: "prismqml.controls.feedback"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // 进度指示
+            // Progress indicators 进度指示
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_b16f0cf94c81feaa", Fluent.Translator._v)
                 description: "Progress (type_bar / type_bar_filled / type_ring)"
@@ -63,7 +63,7 @@ Item {
                 }
             }
             
-            // 骨架屏
+            // Skeleton screens 骨架屏
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_76f59696529a636c", Fluent.Translator._v)
                 description: "Skeleton (shape_rounded / shape_rect / shape_circle)"
@@ -77,7 +77,7 @@ Item {
                     }
                     Row {
                         spacing: Fluent.Enums.spacing.l
-                        // 方形个人信息骨架
+                        // Square profile skeleton 方形个人信息骨架
                         Column {
                             spacing: Fluent.Enums.spacing.none
                             Text { text: Fluent.Translator.tr("gallery_b2a08a05f90e151b", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
@@ -91,7 +91,7 @@ Item {
                                 }
                             }
                         }
-                        // 圆形个人信息骨架
+                        // Round profile skeleton 圆形个人信息骨架
                         Column {
                             spacing: Fluent.Enums.spacing.none
                             Text { text: Fluent.Translator.tr("gallery_1840f748c438cea2", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.secondaryForeground; bottomPadding: Fluent.Enums.spacing.m }
@@ -147,7 +147,7 @@ Item {
                 notificationParent: root
             }
             
-            // 状态组件 - StateWidget（统一组件）
+            // State components - StateWidget (unified) 状态组件 - StateWidget（统一组件）
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_7cffe28ddcedd1d0", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_9b6c6de92f21ee98", Fluent.Translator._v)
@@ -161,7 +161,7 @@ Item {
             }
             
             
-            // 对话框
+            // Dialogs 对话框
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_dffaa1bf796588bc", Fluent.Translator._v)
                 description: "MessageBox / DialogBoxCore / ProgressDialog"
@@ -185,7 +185,7 @@ Item {
                 }
             }
             
-            // 弹出层 - Flyout (6种动画)
+            // Popups - Flyout (6 animation styles) 弹出层 - Flyout (6种动画)
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_470739e4f4ac1431", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_087b36f7897ea738", Fluent.Translator._v)
@@ -258,7 +258,7 @@ Item {
                 }
             }
             FeedbackTeachingTourExample {}
-            // 其他弹出组件
+            // Other popup components 其他弹出组件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_08f2cb12e2942057", Fluent.Translator._v)
                 description: "ToolTip"
@@ -277,7 +277,7 @@ Item {
             }
             
             
-            // 彩纸动画
+            // Confetti animation 彩纸动画
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_83a058f36678dc08", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_fd58a8c832d36df0", Fluent.Translator._v)
@@ -293,7 +293,7 @@ Item {
         }
     }
     
-    // 对话框组件 - 必须放在root级别以正确填充窗口
+    // Dialog components - keep at root level so they fill the window 对话框组件 - 必须放在root级别以正确填充窗口
     MessageBox { id: demoMessageBox; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_200bf3564876553e", Fluent.Translator._v) }
     MessageBox { 
         id: confirmBox; title: Fluent.Translator.tr("gallery_36f33adaf0942634", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_7fa2094884a8778a", Fluent.Translator._v)
@@ -321,6 +321,6 @@ Item {
     ProgressDialog { id: progressDlg; title: Fluent.Translator.tr("gallery_9cbb625342267237", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_f1bd46290e9ead41", Fluent.Translator._v); maxWaitingTime: Fluent.Enums.duration.toast; onTimeout: progressTimer.stop() }
     Timer { id: progressTimer; interval: Fluent.Enums.duration.toast; onTriggered: progressDlg.close() }
     
-    // 彩纸效果 - 显示在主窗口级别
+    // Confetti effect, rendered at the main-window level 彩纸效果 - 显示在主窗口级别
     Confetti { id: confettiEffect }
 }

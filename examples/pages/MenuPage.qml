@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 菜单与列表页面
+// Menus & lists page 菜单与列表页面
 Item {
     id: root
     
@@ -24,7 +24,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -32,7 +32,7 @@ Item {
                 Text { text: "prismqml.controls.menus"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // 右键菜单
+            // Context menus 右键菜单
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_8cbbf31c44ce3dba", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_b7d9e9d08c3dac12", Fluent.Translator._v)
@@ -54,7 +54,7 @@ Item {
                 }
             }
             
-            // 滚动文字
+            // Marquee text 滚动文字
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_251a120b78b76504", Fluent.Translator._v)
                 description: "Marquee"
@@ -64,7 +64,7 @@ Item {
                 }
             }
             
-            // 列表与表格组件
+            // List and table components 列表与表格组件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ee9fee3d038211be", Fluent.Translator._v)
                 description: "ListWidget / TableWidget / TreeWidget"
@@ -156,7 +156,7 @@ Item {
                 }
             }
 
-            // 列表/表格视图 (低阶 View)
+            // List/table views (low-level View) 列表/表格视图 (低阶 View)
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ccff6b9a85f87905", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_d8cae3421f371e22", Fluent.Translator._v)
@@ -476,7 +476,7 @@ Item {
                 Component { id: tab4Content; Rectangle { anchors.fill: parent; color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_473e84592c3040cf", Fluent.Translator._v); color: Fluent.Enums.accentForeground } } }
             }
             
-            // 数据展示
+            // Data display 数据展示
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_7b0b7388ec0c5902", Fluent.Translator._v)
                 description: "Timeline"
@@ -523,7 +523,7 @@ Item {
                 }
             }
             
-            // 分页指示器
+            // Pips pager 分页指示器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_0876e77f76f912ed", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_f48abd0dc464735c", Fluent.Translator._v)

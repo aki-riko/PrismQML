@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 容器组件页面
+// Container components page 容器组件页面
 Item {
     id: root
     
@@ -24,7 +24,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Fluent.Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
@@ -32,7 +32,7 @@ Item {
                 Text { text: "prismqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
-            // 布局组件
+            // Layout components 布局组件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_047006167c1e7f73", Fluent.Translator._v)
                 description: "Layout(mode=mode_horizontal/mode_vertical/mode_grid)"
@@ -77,7 +77,7 @@ Item {
                 }
             }
             
-            // 流式布局
+            // Flow layout 流式布局
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_49967e9c544605f9", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_0057bf9f1eab521a", Fluent.Translator._v)
@@ -85,7 +85,7 @@ Item {
                     spacing: Fluent.Enums.spacing.l
                     width: parent ? parent.width : 0
                     
-                    // 模式切换控制 Mode switch controls
+                    // Mode switch controls 模式切换控制
                     Row {
                         spacing: Fluent.Enums.spacing.m
                         Text { text: Fluent.Translator.tr("gallery_ad23faff8799802b", Fluent.Translator._v); color: Fluent.Enums.textColor.primary; anchors.verticalCenter: parent.verticalCenter }
@@ -94,7 +94,7 @@ Item {
                         Button { text: Fluent.Translator.tr("gallery_161909ed3a63d957", Fluent.Translator._v); style: flowDemo.mode === Fluent.Enums.flow.vertical ? Fluent.Enums.button.style_primary : Fluent.Enums.button.style_default; onClicked: flowDemo.mode = Fluent.Enums.flow.vertical }
                     }
                     
-                    // 演示区域
+                    // Demo area 演示区域
                     Rectangle {
                         width: 500; height: 500
                         color: Fluent.Enums.hoverColor
@@ -114,7 +114,7 @@ Item {
                                 mode: Fluent.Enums.flow.default_
                                 columnCount: 6
                                 
-                                // 获取颜色函数
+                                // Color getter function 获取颜色函数
                                 function getColor(idx) {
                                     var colors = [
                                         Fluent.Enums.demoPalette.blue,
@@ -131,12 +131,12 @@ Item {
                                     return colors[idx % colors.length]
                                 }
                                 
-                                // 50个彩色方块 - 随机尺寸（垂直模式下高度差异更明显）
+                                // 50 colored squares with random sizes (height gap stands out vertically) 50个彩色方块 - 随机尺寸（垂直模式下高度差异更明显）
                                 Repeater {
                                     model: 50
                                     Rectangle {
                                         width: 40 + (index % 7) * 12
-                                        height: 30 + (index * 17 % 80)  // 高度范围 30~110，差异更明显 height range 30~110 so the difference is obvious
+                                        height: 30 + (index * 17 % 80)  // Height range 30~110 so the difference is obvious 高度范围 30~110，差异更明显
                                         color: flowDemo.getColor(index)
                                         radius: Fluent.Enums.radius.small
                                         Text {
@@ -152,7 +152,7 @@ Item {
                         }
                     }
                     
-                    // 说明文字
+                    // Description text 说明文字
                     Text {
                         text: flowDemo.mode === Fluent.Enums.flow.default_ ? Fluent.Translator.tr("gallery_f7d09fb46f23e857", Fluent.Translator._v) :
                               flowDemo.mode === Fluent.Enums.flow.horizontal ? Fluent.Translator.tr("gallery_67355d877cd81630", Fluent.Translator._v) :
@@ -163,7 +163,7 @@ Item {
                 }
             }
             
-            // 分隔线
+            // Separator 分隔线
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_c64dd5eb2135d0ba", Fluent.Translator._v)
                 description: "Separator"
@@ -179,7 +179,7 @@ Item {
                 }
             }
             
-            // 分组框
+            // Group box 分组框
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_e05a542493aa6e37", Fluent.Translator._v)
                 description: "GroupBox"
@@ -189,7 +189,7 @@ Item {
                 }
             }
             
-            // 滚动组件
+            // Scroll components 滚动组件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_dc4ef2ff18e2a748", Fluent.Translator._v)
                 description: "ScrollArea"
@@ -205,7 +205,7 @@ Item {
                 }
             }
             
-            // 分割器
+            // Splitter 分割器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_94e5ca260bd07309", Fluent.Translator._v)
                 description: "SplitPane"
@@ -232,7 +232,7 @@ Item {
                 }
             }
             
-            // 抽屉
+            // Drawer 抽屉
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3bf97e9265673fb5", Fluent.Translator._v)
                 description: "Drawer (mode_inside)"
@@ -258,7 +258,7 @@ Item {
             }
             
             
-            // 二维码
+            // QR code 二维码
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_9b1cd3668052b24b", Fluent.Translator._v)
                 description: "QRCode"
@@ -270,7 +270,7 @@ Item {
                 }
             }
             
-            // 水印
+            // Watermark 水印
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_aa9f217c81861768", Fluent.Translator._v)
                 description: "Watermark"
@@ -284,7 +284,7 @@ Item {
                 }
             }
             
-            // 文件拖放
+            // File drag & drop 文件拖放
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_0c8f29023557e79a", Fluent.Translator._v)
                 description: "DropZone"
@@ -296,7 +296,7 @@ Item {
         }
     }
     
-    // 抽屉组件
+    // Drawer component 抽屉组件
     Drawer {
         id: leftDrawer
         position: Fluent.Enums.position.left

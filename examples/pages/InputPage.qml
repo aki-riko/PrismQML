@@ -5,11 +5,11 @@
 import QtQuick
 import QtQuick.Effects
 
-// 导入组件
+// Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
 
-// 输入组件展示页面
+// Input components showcase page 输入组件展示页面
 Item {
     id: root
     
@@ -25,7 +25,7 @@ Item {
             width: parent ? parent.width : 0
             spacing: Enums.spacing.xxl
             
-            // 页面标题
+            // Page title 页面标题
             Column {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
@@ -33,7 +33,7 @@ Item {
                 Text { text: "prismqml.controls.inputs"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
             }
             
-            // 文本输入
+            // Text input 文本输入
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_5420b6d872e828b9", Fluent.Translator._v)
                 description: "LineEdit / TextEdit"
@@ -53,7 +53,7 @@ Item {
                     }
                     Row {
                         spacing: Enums.spacing.l
-                        // 差异化能力: 校验回调(长度≥2才接受) + 逗号/分号粘贴拆分
+                        // Extras: validator callback (accepts len>=2) + comma/semicolon paste splitting 差异化能力: 校验回调(长度≥2才接受) + 逗号/分号粘贴拆分
                         ComponentCard {
                             label: "tag_validate"
                             LineEdit {
@@ -90,7 +90,7 @@ Item {
                 }
             }
             
-            // 下拉选择
+            // Dropdown selects 下拉选择
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_095b751a68e708b2", Fluent.Translator._v)
                 description: "ComboBox - type/style/feature"
@@ -161,7 +161,7 @@ Item {
             }
             
             
-            // 数值输入
+            // Numeric input 数值输入
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_cde4729fd9104c52", Fluent.Translator._v)
                 description: "SpinBox (type: normal / double / compact / compact_double)"
@@ -213,7 +213,7 @@ Item {
                 }
             }
             
-            // 滑块
+            // Sliders 滑块
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_a7c3e94cbb35a809", Fluent.Translator._v)
                 description: "Slider"
@@ -224,7 +224,7 @@ Item {
                 }
             }
             
-            // 日期时间选择器（统一组件）
+            // Date & time picker (unified component) 日期时间选择器（统一组件）
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_b087092ffece72c8", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_a3845a3dee776402", Fluent.Translator._v)
@@ -244,7 +244,7 @@ Item {
                 }
             }
             
-            // 日历选择器
+            // Calendar picker 日历选择器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_1e2f7daf79570e9c", Fluent.Translator._v)
                 description: "CalendarPicker / CalendarPickerCore"
@@ -256,7 +256,7 @@ Item {
                 }
             }
             
-            // 特殊输入
+            // Special inputs 特殊输入
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3b1c70eca9718194", Fluent.Translator._v)
                 description: "PinInput / Rating"
@@ -267,7 +267,7 @@ Item {
                 }
             }
             
-            // 图片相关
+            // Image related 图片相关
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_d24c10d37db0feea", Fluent.Translator._v)
                 description: "BeforeAfterSlider / ImageCropper (Dialog / Overlay)"
@@ -279,7 +279,7 @@ Item {
                 }
             }
             
-            // 过滤器
+            // Filter bar 过滤器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_4aaccba26873ebc2", Fluent.Translator._v)
                 description: "FilterBar (text / icon / icon+text)"
@@ -353,14 +353,14 @@ Item {
                 }
             }
             
-            // 平滑滚动条
+            // Smooth scrollbars 平滑滚动条
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_dd5e3983be8e0f6e", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_b233049163c5e4c2", Fluent.Translator._v)
                 Row {
                     spacing: Enums.spacing.xxxl
                     
-                    // 垂直滚动条 - 带实际内容
+                    // Vertical scrollbar with real content 垂直滚动条 - 带实际内容
                     ComponentCard {
                         label: Fluent.Translator.tr("gallery_1777a1e5f3a54dee", Fluent.Translator._v)
                         Rectangle {
@@ -403,7 +403,7 @@ Item {
                         }
                     }
                     
-                    // 水平滚动条
+                    // Horizontal scrollbars 水平滚动条
                     ComponentCard {
                         label: Fluent.Translator.tr("gallery_4995b90d72fc59f9", Fluent.Translator._v)
                         Rectangle {
@@ -444,7 +444,7 @@ Item {
             }
             
             
-            // 颜色选择器
+            // Color pickers 颜色选择器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_6b4298bb407fc598", Fluent.Translator._v)
                 description: "ColorPicker (type: picker/palette/circle/screen/dialog)"
@@ -470,7 +470,7 @@ Item {
                 }
             }
             
-            // 快捷键选择器
+            // Shortcut picker 快捷键选择器
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_da0b8919b7ad7da3", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_6d9b62998a127d13", Fluent.Translator._v)
@@ -496,7 +496,7 @@ Item {
         id: colorDialog
         title: Fluent.Translator.tr("gallery_53c8bd2fe9d60274", Fluent.Translator._v)
         selectedColor: Enums.accentColor
-        overlayTarget: scrollArea  // 覆盖ScrollArea
+        overlayTarget: scrollArea  // Override ScrollArea 覆盖ScrollArea
         onColorAccepted: (c) => console.log(Fluent.Translator.tr("gallery_c80b23dc43aefe9f", Fluent.Translator._v), c)
     }
 }
