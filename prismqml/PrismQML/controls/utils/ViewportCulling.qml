@@ -44,24 +44,24 @@ Item {
     function _updateVisibility() {
         if (!_flickable || !root.parent) { _visible = true; return }
 
-        // Host Item position in the Flickable contentItem coordinate system Host Item position in the Flickable contentItem coordinate system 宿主 Item 在 Flickable contentItem 坐标系中的位置
+        // Host Item position in the Flickable contentItem coordinate system 宿主 Item 在 Flickable contentItem 坐标系中的位置
         var hostItem = root.parent
         var mapped = hostItem.mapToItem(_flickable.contentItem, 0, 0)
         var itemTop = mapped.y
         var itemBottom = itemTop + hostItem.height
 
-        // Viewport range (buffer included) Viewport range (buffer included) 视口范围 (含 buffer)
+        // Viewport range (buffer included) 视口范围 (含 buffer)
         var vpTop = _flickable.contentY - root.buffer
         var vpBottom = _flickable.contentY + _flickable.height + root.buffer
 
         _visible = (itemBottom > vpTop && itemTop < vpBottom)
     }
 
-    // Zero size, does not participate in layout Zero size, does not participate in layout 零尺寸, 不参与布局
+    // Zero size, does not participate in layout 零尺寸, 不参与布局
     width: 0; height: 0; visible: false
 
     Component.onCompleted: {
-        // Find the nearest Flickable ancestor upward Find the nearest Flickable ancestor upward 向上找最近的 Flickable 祖先
+        // Find the nearest Flickable ancestor upward 向上找最近的 Flickable 祖先
         var p = root.parent
         while (p) {
             if (p instanceof Flickable) {

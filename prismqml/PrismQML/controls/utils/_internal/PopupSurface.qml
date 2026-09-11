@@ -5,7 +5,7 @@
 import "../../.."
 import "../../../effects"
 import QtQuick.Effects
-import QtQuick  // After library import: unprefixed native types stay unshadowed After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 Item {
     id: surface

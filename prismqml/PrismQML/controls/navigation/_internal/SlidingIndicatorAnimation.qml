@@ -18,14 +18,14 @@ Item {
     // 主轴方向: Qt.Vertical → Y/Height 为主轴; Qt.Horizontal → X/Width 为主轴
     property int orientation: Qt.Vertical
 
-    // Animation mode: stretch (rubber-band) / spring / instant Animation mode: stretch (rubber-band) / spring / instant 动画模式: "stretch"(橡皮筋粘滞) / "spring"(弹簧) / "instant"(无动画)
+    // Animation mode: stretch (rubber-band) / spring / instant 动画模式: "stretch"(橡皮筋粘滞) / "spring"(弹簧) / "instant"(无动画)
     property string mode: "stretch"
 
-    // Rubber-band durations: leading edge fast / trailing slow, bigger gap = stickier Rubber-band durations: leading edge fast / trailing slow, bigger gap = stickier 橡皮筋时长: 前缘(快) / 后缘(慢), 差值越大粘滞越明显
+    // Rubber-band durations: leading edge fast / trailing slow, bigger gap = stickier 橡皮筋时长: 前缘(快) / 后缘(慢), 差值越大粘滞越明显
     property int leadDuration: Enums.duration.medium   // 200ms
     property int trailDuration: Enums.duration.dialog   // 400ms
 
-    // Whether animating (reads Animation.running; Behavior has no reliable running) Whether animating (reads Animation.running; Behavior has no reliable running) 是否正在动画 (引用各 Animation 的 running, Behavior 本身无可靠 running)
+    // Whether animating (reads Animation.running; Behavior has no reliable running) 是否正在动画 (引用各 Animation 的 running, Behavior 本身无可靠 running)
     readonly property bool running: nearAnim.running || farAnim.running
                                     || crossPosAnim.running || crossLenAnim.running
                                     || springPosAnim.running || springLenAnim.running
@@ -33,13 +33,13 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     readonly property bool _isH: orientation === Qt.Horizontal
 
-    // Immediate-jump guard: when true all Behaviors are disabled (setGeometry has no animation) Immediate-jump guard: when true all Behaviors are disabled (setGeometry has no animation) 立即定位守卫: 为真时所有 Behavior 禁用 (setGeometry 真正无动画)
+    // Immediate-jump guard: when true all Behaviors are disabled (setGeometry has no animation) 立即定位守卫: 为真时所有 Behavior 禁用 (setGeometry 真正无动画)
     property bool _immediate: false
 
-    // Two main-axis edges (rubber-band): near = smaller-coord edge, far = larger edge Two main-axis edges (rubber-band): near = smaller-coord edge, far = larger edge 主轴两条边 (橡皮筋驱动): near = 小坐标边(左/上), far = 大坐标边(右/下)
+    // Two main-axis edges (rubber-band): near = smaller-coord edge, far = larger edge 主轴两条边 (橡皮筋驱动): near = 小坐标边(左/上), far = 大坐标边(右/下)
     property real _near: 0
     property real _far: 0
-    // Cross axis (fixed edge, quick follow): position + length Cross axis (fixed edge, quick follow): position + length 副轴 (固定边, 快速跟随): cross 位置 + 长度
+    // Cross axis (fixed edge, quick follow): position + length 副轴 (固定边, 快速跟随): cross 位置 + 长度
     property real _crossPos: 0
     property real _crossLen: 0
     // spring 模式专用 (整体平移 + 长度弹簧)
@@ -80,7 +80,7 @@ Item {
     function setGeometry(rect) {
         if (!_isFiniteRect(rect)) return false
         nearAnim.stop(); farAnim.stop()
-        _immediate = true   // Disable all Behaviors to guarantee instant repositioning Disable all Behaviors to guarantee instant repositioning 禁用所有 Behavior, 保证瞬间定位
+        _immediate = true   // Disable all Behaviors to guarantee instant repositioning 禁用所有 Behavior, 保证瞬间定位
         var m = _mainOf(rect), c = _crossOf(rect)
         _crossPos = c.p; _crossLen = c.l
         _near = m.p; _far = m.p + m.l
@@ -89,7 +89,7 @@ Item {
         return true
     }
 
-    // Animate from startRect to endRect Animate from startRect to endRect 从 startRect 动画到 endRect
+    // Animate from startRect to endRect 从 startRect 动画到 endRect
     function animateTo(startRect, endRect) {
         if (!_isFiniteRect(startRect) || !_isFiniteRect(endRect)) return false
         var ms = _mainOf(startRect), me = _mainOf(endRect)
@@ -106,12 +106,12 @@ Item {
             return true
         }
 
-        // Cross axis follows quickly (position/length eased by Behavior) Cross axis follows quickly (position/length eased by Behavior) 副轴快速跟随 (位置/长度差异由 Behavior 平滑)
+        // Cross axis follows quickly (position/length eased by Behavior) 副轴快速跟随 (位置/长度差异由 Behavior 平滑)
         _crossPos = ce.p
         _crossLen = ce.l
 
         if (mode === "spring") {
-            // Spring mode: assign target directly, SpringAnimation in Behavior drives it Spring mode: assign target directly, SpringAnimation in Behavior drives it 弹簧: 直接赋目标值, Behavior 内 SpringAnimation 驱动
+            // Spring mode: assign target directly, SpringAnimation in Behavior drives it 弹簧: 直接赋目标值, Behavior 内 SpringAnimation 驱动
             _springPos = me.p
             _springLen = me.l
             // near/far 同步, 保证 mode 切换无跳变 (immediate 避免触发橡皮筋路径)
@@ -127,10 +127,10 @@ Item {
         var startNear = ms.p, startFar = ms.p + ms.l
         var endNear = me.p, endFar = me.p + me.l
 
-        // Toward motion direction: forward = move to larger coords (down/right) Toward motion direction: forward = move to larger coords (down/right) 朝运动方向: forward = 向大坐标移动 (下/右)
+        // Toward motion direction: forward = move to larger coords (down/right) 朝运动方向: forward = 向大坐标移动 (下/右)
         var forward = endNear >= startNear
 
-        // Jump to start (no animation), then nearAnim/farAnim drive to the end Jump to start (no animation), then nearAnim/farAnim drive to the end 瞬置到起点 (无动画), 再由 nearAnim/farAnim 驱动到终点
+        // Jump to start (no animation), then nearAnim/farAnim drive to the end 瞬置到起点 (无动画), 再由 nearAnim/farAnim 驱动到终点
         _immediate = true
         _near = startNear
         _far = startFar

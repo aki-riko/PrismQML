@@ -4,7 +4,7 @@
 
 import "../.."
 import "../containers/ScrollBar"
-import QtQuick  // After library import: unprefixed native types stay unshadowed After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // HorizontalScrollMixin - 横向滚动 mixin
 // 给一个 Flickable (ListView 也是 Flickable) target 自动加上:
@@ -36,7 +36,7 @@ Item {
     // 不设则 mixin 不管 header.
     property Item headerContainer: null
 
-    // Scroll config (same-named props passed through to SmoothScrollHelper) Scroll config (same-named props passed through to SmoothScrollHelper) 滚动配置 (与 SmoothScrollHelper 同名属性透传)
+    // Scroll config (same-named props passed through to SmoothScrollHelper) 滚动配置 (与 SmoothScrollHelper 同名属性透传)
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
@@ -52,11 +52,11 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _applyTargetSetup() {
         if (!target) return
-        // Enable horizontal flick (keeps vertical when target is vertical-only) Enable horizontal flick (keeps vertical when target is vertical-only) 启用 horizontal flick (target 仅作 vertical 时也保留 vertical)
+        // Enable horizontal flick (keeps vertical when target is vertical-only) 启用 horizontal flick (target 仅作 vertical 时也保留 vertical)
         if (target.flickableDirection !== undefined) {
             target.flickableDirection = Flickable.HorizontalAndVerticalFlick
         }
-        // Soft bounds; overshoot needs programmatic negative contentX Soft bounds; overshoot needs programmatic negative contentX 软边界, 程序化 contentX 设负数才能 overshoot
+        // Soft bounds; overshoot needs programmatic negative contentX 软边界, 程序化 contentX 设负数才能 overshoot
         if (target.boundsBehavior !== undefined &&
             target.boundsBehavior === Flickable.StopAtBounds) {
             target.boundsBehavior = Flickable.DragAndOvershootBounds
@@ -100,7 +100,7 @@ Item {
                 hHelper.scrollBy(-dx / 120 * hHelper.step)
                 event.accepted = true
             } else if (event.angleDelta.x !== 0) {
-                // Horizontal hardware wheel (trackpad swipe) scrolls sideways directly Horizontal hardware wheel (trackpad swipe) scrolls sideways directly 横向硬件滚轮 (触摸板水平滑动) 直接横向滚
+                // Horizontal hardware wheel (trackpad swipe) scrolls sideways directly 横向硬件滚轮 (触摸板水平滑动) 直接横向滚
                 hHelper.scrollBy(-event.angleDelta.x / 120 * hHelper.step)
                 event.accepted = true
             } else {

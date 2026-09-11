@@ -8,7 +8,7 @@ import "../controls/icons"
 import "_internal"
 import "_internal/NavigationLayout.js" as NavigationLayout
 
-// NavigationView - Fluent Design expandable sidebar navigation (Window style) Fluent 可展开侧边导航 (Window 风格) Fluent 可展开侧边导航 (Window 风格)
+// NavigationView - Fluent Design expandable sidebar navigation (Window style) Fluent 可展开侧边导航 (Window 风格)
 // Horizontal layout (icon+text), supports expand/collapse
 // Extends NavigationPanelCore for common indicator/routing logic
 NavigationPanelCore {

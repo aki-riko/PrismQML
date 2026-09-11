@@ -44,9 +44,9 @@ MouseArea {
     // ==================== Public Props 公开属性 ====================
     // Whether pointer movement can start a system drag. 是否允许鼠标移动启动系统拖动。
     property bool enableDrag: true
-    // Double-click toggles maximize/restore (default off; floating windows rarely use it) Double-click toggles maximize/restore (default off; floating windows rarely use it) 双击是否切换最大化/还原(默认 false,因为浮窗一般不用)
+    // Double-click toggles maximize/restore (default off; floating windows rarely use it) 双击是否切换最大化/还原(默认 false,因为浮窗一般不用)
     property bool enableDoubleClickMaximize: false
-    // Pixel threshold before a move counts as a drag (separates click vs drag) Pixel threshold before a move counts as a drag (separates click vs drag) 鼠标移动多少像素后判定为拖动(用于区分 click vs drag)
+    // Pixel threshold before a move counts as a drag (separates click vs drag) 鼠标移动多少像素后判定为拖动(用于区分 click vs drag)
     property int dragThreshold: 4
 
     // ==================== Internal Props 内部属性 ====================
@@ -88,7 +88,7 @@ MouseArea {
     // 默认接受左键;使用方可用 acceptedButtons 覆盖(如 Qt.LeftButton | Qt.RightButton)
     acceptedButtons: Qt.LeftButton
     cursorShape: Qt.ArrowCursor
-    hoverEnabled: false  // Do not steal hover; upper ToolTip/Button keep working Do not steal hover; upper ToolTip/Button keep working 不抢 hover,让上层 ToolTip/Button 正常工作
+    hoverEnabled: false  // Do not steal hover; upper ToolTip/Button keep working 不抢 hover,让上层 ToolTip/Button 正常工作
 
     onPressed: (mouse) => {
         _pressPoint = Qt.point(mouse.x, mouse.y)
@@ -102,7 +102,7 @@ MouseArea {
         if (Math.abs(dx) >= dragThreshold || Math.abs(dy) >= dragThreshold) {
             _dragging = true
             dragStarted()
-            // Hand control to the OS; this MouseArea no longer sees release or clicked (drag is not a click) Hand control to the OS; this MouseArea no longer sees release or clicked (drag is not a click) 把控制权交给系统;此后 mouse 事件由 OS 处理,本 MouseArea 不再触发 release
+            // Hand control to the OS; this MouseArea no longer sees release or clicked (drag is not a click) 把控制权交给系统;此后 mouse 事件由 OS 处理,本 MouseArea 不再触发 release
             // 因此 MouseArea 内置 clicked 也不会触发(符合预期 — 拖动不算点击)
             var win = Window.window
             if (win) {

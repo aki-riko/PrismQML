@@ -45,7 +45,7 @@ Item {
     // 当前页面没有可见导航项时隐藏共享选中指示器。
     property bool _indicatorVisible: true
     
-    // Track if indicator is controlled by bottom page item 跟踪指示器是否由底部页面项控制 跟踪指示器是否由底部页面项控制
+    // Track if indicator is controlled by bottom page item 跟踪指示器是否由底部页面项控制
     property bool _bottomItemActive: false
     
     // Scroll offset for real-time indicator tracking 指示器实时跟踪的滚动偏移
@@ -80,7 +80,7 @@ Item {
         return null
     }
     
-    // Build the indicator rect (whole pill, full width, height follows the item) Build the indicator rect (whole pill, full width, height follows the item) 构造指示器矩形 (整块胶囊, 横向占满, 纵向随 item)
+    // Build the indicator rect (whole pill, full width, height follows the item) 构造指示器矩形 (整块胶囊, 横向占满, 纵向随 item)
     function _rectFor(y, h) {
         return Qt.rect(Enums.spacing.xs, y,
                        control.width - Enums.spacing.xs * 2, h)

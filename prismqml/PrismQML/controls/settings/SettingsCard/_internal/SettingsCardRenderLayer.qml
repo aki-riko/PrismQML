@@ -266,7 +266,7 @@ Item {
 
             Item {
                 width: parent.width
-                // Vertical spacing.l padding top/bottom, visually consistent with group rows below Vertical spacing.l padding top/bottom, visually consistent with group rows below 上下各 spacing.l 的纵向 padding, 与下方 group_item_height
+                // Vertical spacing.l padding top/bottom, visually consistent with group rows below 上下各 spacing.l 的纵向 padding, 与下方 group_item_height
                 // 行内 verticalCenter 视觉一致, 之前只加 spacing.m (8) 总余量
                 // 导致第一行 radio 与下方分隔线贴太紧, 第二行又显得空旷
                 height: radioColumn.height + Enums.spacing.l * 2
@@ -308,7 +308,7 @@ Item {
 
             Item {
                 width: parent.width
-                // Same as Item1: row height + spacing.l padding, no fixed group_item_height Same as Item1: row height + spacing.l padding, no fixed group_item_height 跟 Item1 一致: row 高度 + 上下各 spacing.l, 不再用 group_item_height
+                // Same as Item1: row height + spacing.l padding, no fixed group_item_height 跟 Item1 一致: row 高度 + 上下各 spacing.l, 不再用 group_item_height
                 // (固定 53 + contentArea 底部 12 padding 叠加, 看着上紧下松)
                 height: colorRow.height + Enums.spacing.l * 2
 

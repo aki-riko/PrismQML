@@ -56,7 +56,7 @@ NavigationPanelCore {
     
     // Bind scroll offset for real-time indicator tracking 绑定滚动偏移以实时跟踪指示器
     scrollOffset: topFlickable.contentY
-    // Indicator clip bottom = scrollable-area bottom edge, overflow is clipped away Indicator clip bottom = scrollable-area bottom edge, overflow is clipped away 指示器裁剪下界 = 可滚动区(topFlickable)底边, 滚动时指示器溢出此处被裁,
+    // Indicator clip bottom = scrollable-area bottom edge, overflow is clipped away 指示器裁剪下界 = 可滚动区(topFlickable)底边, 滚动时指示器溢出此处被裁,
     // 不再露进底部固定项区(替代 Mica 下失效的 bottomCover 遮盖)。
     indicatorClipBottom: topFlickable.y + topFlickable.height
     // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐

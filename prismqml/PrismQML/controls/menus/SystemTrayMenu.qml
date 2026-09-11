@@ -22,19 +22,19 @@ MenuCore {
     
     // ==================== Public Methods 公开方法 ====================
     function showAtPosition(x, y) {
-        // Fully reset old state (stop animation + hide old window + clear flags) Fully reset old state (stop animation + hide old window + clear flags) 彻底重置旧状态（停止动画 + 隐藏旧窗口 + 清除标志）
+        // Fully reset old state (stop animation + hide old window + clear flags) 彻底重置旧状态（停止动画 + 隐藏旧窗口 + 清除标志）
         forceReset()
         
         // Ensure menu items are visible to the size pass before positioning.
         // 定位前先创建内容宿主，让尺寸计算能看到菜单项。
         if (!_usesControlsPopup) _ensureNativeWindow()
 
-        // Recompute size Recompute size 重新计算尺寸
+        // Recompute size 重新计算尺寸
         _updateSize()
         
         var menuHeight = popupHeight
         
-        // Pull-up placement: menu appears above the click point Pull-up placement: menu appears above the click point 上拉定位：菜单出现在点击位置上方
+        // Pull-up placement: menu appears above the click point 上拉定位：菜单出现在点击位置上方
         var posX = x
         var posY = y - menuHeight - Enums.spacing.xs
         
