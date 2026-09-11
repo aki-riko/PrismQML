@@ -1,3 +1,7 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Enumerate contentItem children that stay opaque during the close collapse.
 
 列出关闭收紧期间仍在画不透明底色、且不在 windowFrameLayer 之下的兄弟节点。

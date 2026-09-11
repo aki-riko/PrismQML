@@ -1,3 +1,7 @@
+# coding: utf-8
+# SPDX-License-Identifier: MIT
+# This file is part of PrismQML, licensed under MIT.
+# 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Sample real screen pixels outside the shrinking close circle.
 
 采样关闭圆环之外的真实屏幕像素, 判断外围到底被裁掉了没有。
