@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from PySide6.QtCore import QMetaObject, QObject, QTimer, QUrl, Qt
-from PySide6.QtGui import QCursor
+from PySide6.QtGui import QCursor, QGuiApplication
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickWindow
 
@@ -120,6 +120,7 @@ class FastSplashController(QObject):
         self._icon_metadata_ready = False
         self._splash_size = (_DEFAULT_SPLASH_WIDTH, _DEFAULT_SPLASH_HEIGHT)
         self._closed = False
+        self._startup_cursor_forced = False
 
     @property
     def splash(self) -> Optional[QQuickWindow]:
@@ -158,6 +159,7 @@ class FastSplashController(QObject):
             self._title_metadata_ready = False
             self._icon_metadata_ready = False
             self._splash_size = (width, height)
+            self._force_startup_arrow_cursor()
             palette = self._app.palette()
             is_dark = palette.window().color().lightness() < 128
             self._splash_engine = QQmlEngine()
@@ -273,6 +275,22 @@ class FastSplashController(QObject):
     def _set_icon_metadata(self, icon: Any) -> bool:
         """Publish a path/URL or legacy QIcon to the isolated QML surface."""
         return set_icon_metadata(self._splash, self._icon_provider, icon)
+
+    def _force_startup_arrow_cursor(self) -> None:
+        """Keep Windows' process-busy cursor out of the startup handoff."""
+        if self._startup_cursor_forced:
+            return
+        if QGuiApplication.overrideCursor() is not None:
+            return
+        QGuiApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor))
+        self._startup_cursor_forced = True
+
+    def _restore_startup_cursor(self) -> None:
+        """Restore the host cursor exactly once after startup handoff."""
+        if not self._startup_cursor_forced:
+            return
+        QGuiApplication.restoreOverrideCursor()
+        self._startup_cursor_forced = False
 
     def _show_deferred_splash(self) -> None:
         """Show a deferred splash after the real window metadata is ready."""
@@ -564,15 +582,18 @@ class FastSplashController(QObject):
 
     def _finish_embedded_handoff(self) -> None:
         finish_embedded_handoff(self)
+        self._restore_startup_cursor()
 
     def _inject_context(self) -> None:
         register_fast_splash_context(self._splash_engine)
 
     def _finish_reveal(self) -> None:
         finish_reveal(self)
+        self._restore_startup_cursor()
 
     def close(self) -> None:
         close_fast_splash(self)
+        self._restore_startup_cursor()
 
     _bind_owner = staticmethod(bind_owner)
     _raise_owned_splash = staticmethod(raise_owned_splash)

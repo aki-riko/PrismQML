@@ -266,6 +266,17 @@ def test_fast_splash_uses_arrow_cursor_during_startup():
     assert "splash.setCursor(QCursor(Qt.CursorShape.ArrowCursor))" in source
 
 
+def test_fast_splash_restores_application_cursor_after_handoff():
+    """Startup cursor forcing must be paired with a single restore call."""
+    source = (ROOT / "prismqml/python/window/fast_splash.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "QGuiApplication.setOverrideCursor(QCursor(Qt.CursorShape.ArrowCursor))" in source
+    assert "QGuiApplication.restoreOverrideCursor()" in source
+    assert "self._startup_cursor_forced = False" in source
+
+
 def test_fast_splash_shows_after_legacy_title_and_icon_metadata():
     """Legacy metadata is cached until Window commits the final splash config."""
     controller = FastSplashController(None)
