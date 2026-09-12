@@ -183,6 +183,9 @@ Item {
     }
 
     visible: false
+    // Runtime-created direct children are moved when the native surface exists.
+    // 原生弹层存在后,运行时直接添加的子项也会被搬迁。
+    onChildrenChanged: contentMover.moveContent()
 
     // ==================== Content 内容 ====================
     // Staging Item for caller content; TipContentMover moves its children into the
@@ -198,8 +201,10 @@ Item {
 
     TooltipInternal.TipContentMover {
         id: contentMover
+        control: control
         staging: contentStaging
         surface: control._popupWindow
+        internalItems: [contentStaging, popupWindowLoader, arrowWindowLoader, positionTracker]
     }
 
     TooltipInternal.TipPositionHelper {
@@ -298,6 +303,7 @@ Item {
     }
     
     PopupPositionTracker {
+        id: positionTracker
         target: control.target
         targetWindow: control._targetWindow
         trackingEnabled: control._isOpen && !hideAnim.running

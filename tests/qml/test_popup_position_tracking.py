@@ -189,6 +189,79 @@ Window {
 }
 """
 
+DIRECT_CONTENT_TEACHING_TIP_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    readonly property int itemHeight: Enums.spacing.m
+    readonly property int contentSpacing: Enums.spacing.xs
+
+    function showTip() { directTip.show() }
+    function addLateContent() { return lateContentComponent.createObject(directTip) }
+
+    width: 420
+    height: 280
+    visible: true
+
+    Rectangle {
+        id: anchor
+
+        x: Enums.spacing.xl
+        y: Enums.spacing.xl
+        width: Enums.controlSize.buttonMinWidth
+        height: Enums.controlSize.buttonHeight
+        color: Enums.accentColor
+    }
+
+    Component {
+        id: lateContentComponent
+
+        Rectangle {
+            objectName: "lateTeachingTipContent"
+            width: Enums.controlSize.buttonMinWidth
+            height: root.itemHeight
+            color: Enums.statusLevel.successColor
+        }
+    }
+
+    TeachingTip {
+        id: directTip
+
+        objectName: "directTeachingTip"
+        target: anchor
+        closable: false
+        modal: false
+        duration: Enums.duration.persistent
+        anchorPosition: Enums.teachingTip.anchor_bottom
+
+        Rectangle {
+            objectName: "directTeachingTipFirst"
+            width: Enums.controlSize.buttonMinWidth
+            height: root.itemHeight
+            color: Enums.statusLevel.infoColor
+        }
+
+        Rectangle {
+            objectName: "directTeachingTipSecond"
+            width: Enums.controlSize.buttonMinWidth
+            height: root.itemHeight
+            color: Enums.statusLevel.warningColor
+        }
+
+        Rectangle {
+            objectName: "directTeachingTipThird"
+            width: Enums.controlSize.buttonMinWidth
+            height: root.itemHeight
+            color: Enums.statusLevel.errorColor
+        }
+    }
+}
+"""
+
 
 class _RecordingShadowManager(QObject):
     def __init__(self, events):
@@ -342,6 +415,30 @@ def _create_custom_teaching_tip_scene():
     payload = window.findChild(QQuickItem, "customTeachingTipPayload")
     assert tip is not None and payload is not None
     return engine, component, window, tip, payload, warnings
+
+
+def _create_direct_content_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(DIRECT_CONTENT_TEACHING_TIP_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    window.requestActivate()
+    assert _wait_for(window.isActive)
+    tip = window.findChild(QQuickItem, "directTeachingTip")
+    assert tip is not None
+    return engine, component, window, tip, warnings
 
 
 def _dispose_scene(engine, component, window) -> None:
@@ -507,6 +604,60 @@ def test_teaching_tip_moves_declared_content_into_its_native_surface(qapp):
         _dispose_scene(engine, component, window)
 
 
+def test_teaching_tip_lays_out_multiple_top_level_content_items(qapp):
+    engine, component, window, tip, warnings = _create_direct_content_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "showTip")
+        assert _wait_for(lambda: tip.property("_isOpen"))
+        host = tip.findChild(QQuickItem, "tipPopupCustomContent")
+        items = [
+            tip.findChild(QQuickItem, name)
+            for name in (
+                "directTeachingTipFirst",
+                "directTeachingTipSecond",
+                "directTeachingTipThird",
+            )
+        ]
+        assert host is not None and all(items)
+        assert _wait_for(lambda: all(item.parentItem() is host for item in items))
+
+        item_height = window.property("itemHeight")
+        spacing = window.property("contentSpacing")
+        expected_y = [
+            0,
+            item_height + spacing,
+            2 * (item_height + spacing),
+        ]
+        assert _wait_for(
+            lambda: all(
+                item.y() == pytest.approx(expected)
+                for item, expected in zip(items, expected_y)
+            )
+        )
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_teaching_tip_moves_direct_runtime_content_into_native_surface(qapp):
+    engine, component, window, tip, warnings = _create_direct_content_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "showTip")
+        assert _wait_for(lambda: tip.property("_isOpen"))
+        host = tip.findChild(QQuickItem, "tipPopupCustomContent")
+        surface = tip.findChild(QQuickItem, "tipPopupSurface")
+        assert host is not None and surface is not None
+
+        assert QMetaObject.invokeMethod(window, "addLateContent")
+        late = window.findChild(QQuickItem, "lateTeachingTipContent")
+        assert late is not None
+        assert _wait_for(lambda: late.parentItem() is host)
+        assert late.window() is surface.window()
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
 def test_tip_popup_attaches_native_shadow_after_reveal_animation(qapp):
     shadow_events = []
     shadow_manager = _RecordingShadowManager(shadow_events)
@@ -613,8 +764,9 @@ def test_popup_tracking_source_is_event_driven():
 
     for source in (popup_source, tip_source):
         assert "PopupPositionTracker {" in source
-        assert "id: positionTracker" not in source
         assert "interval: Enums.popupMetrics.trackerIntervalMs" not in source
+    assert "id: positionTracker" not in popup_source
+    assert "id: positionTracker" in tip_source
     assert "referenceControlWidth" not in popup_source
     assert "centerOffset" not in popup_source
     assert "function onAfterAnimating()" in tracker_source

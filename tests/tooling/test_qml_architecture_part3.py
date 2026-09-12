@@ -612,8 +612,12 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     helper = _source(
         "prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPopupWindow.qml"
     )
+    mover = _source(
+        "prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipContentMover.qml"
+    )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
+    mover_source = mover.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 370
     assert helper.exists()
@@ -626,7 +630,13 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     assert "default property alias contentData: contentStaging.data" in source
     assert "TooltipInternal.TipContentMover {" in source
     assert "contentMover.moveContent()" in source
+    assert source.count("onChildrenChanged: contentMover.moveContent()") == 2
+    assert "control: control" in source
+    assert "internalItems: [contentStaging, popupWindowLoader, arrowWindowLoader, positionTracker]" in source
     assert "property alias customContentHost: customContentHost" in helper_source
+    assert "required property var control" in mover_source
+    assert "required property var internalItems" in mover_source
+    assert "host.forceLayout()" in mover_source
     assert "required property var popupControl" in helper_source
     assert "required property var positionHelper" in helper_source
     assert "id: customContentHost" in helper_source
