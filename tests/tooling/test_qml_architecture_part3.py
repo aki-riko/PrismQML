@@ -632,6 +632,12 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     assert "contentMover.moveContent()" in source
     assert source.count("onChildrenChanged: contentMover.moveContent()") == 2
     assert "control: control" in source
+    # 弹层尺寸必须是公开属性:富自定义内容需要比默认 220x90 更宽的表面,
+    # 硬编码会让调用方无从配置(桌宠余额气泡按设计需要 324 宽)。
+    assert "property int viewWidth:" in source
+    assert "property int viewHeight:" in source
+    assert "viewWidth: control.viewWidth" in source
+    assert "viewHeight: control.viewHeight" in source
     assert "internalItems: [contentStaging, popupWindowLoader, arrowWindowLoader, positionTracker]" in source
     assert "property alias customContentHost: customContentHost" in helper_source
     assert "required property var control" in mover_source

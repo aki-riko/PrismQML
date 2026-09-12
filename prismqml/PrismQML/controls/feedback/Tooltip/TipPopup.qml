@@ -28,6 +28,11 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
+    // Native surface size. The defaults keep the historical behaviour so existing
+    // callers are unaffected; rich custom content may ask for a wider surface.
+    // 原生弹层尺寸。默认值保持历史行为,已有调用方不受影响;富自定义内容可以要求更宽弹层。
+    property int viewWidth: _hasActions ? Enums.controlSize.teachingTipWidth : 220
+    property int viewHeight: _hasActions ? Enums.controlSize.teachingTipHeight : 90
     // Caller content is written as ordinary declarative children; the staging Item
     // owns them visually and TipContentMover reparents them into the native surface.
     // 调用方内容按普通声明式子项书写:视觉父对象是暂存 Item,由 TipContentMover 挂进弹层。
@@ -213,8 +218,8 @@ Item {
         tipType: control.tipType
         animationType: control.animationType
         anchorPosition: control.anchorPosition
-        viewWidth: control._hasActions ? Enums.controlSize.teachingTipWidth : 220
-        viewHeight: control._hasActions ? Enums.controlSize.teachingTipHeight : 90
+        viewWidth: control.viewWidth
+        viewHeight: control.viewHeight
     }
 
     // Main window 主窗口
