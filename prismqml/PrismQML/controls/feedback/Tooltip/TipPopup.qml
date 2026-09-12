@@ -82,11 +82,14 @@ Item {
         if (arrowWindow) arrowWindow.opacity = 0
         _isOpen = true
 
-        var pos = posHelper.calculatePosition()
+        // Show the transparent native surface before mapping a Qt.Tool target.
+        // 先显示透明原生表面,再映射 Qt.Tool 目标坐标。
+        popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()
+
+        var pos = posHelper.calculatePosition(_resolveTargetGlobalPosition())
         var startPos = posHelper.getStartPosition(pos)
         _animX = startPos.x; _animY = startPos.y
 
-        popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()
         _prewarmed = true
 
         if (posHelper.hasArrow && arrowWindow) {
@@ -123,6 +126,14 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    function _resolveTargetGlobalPosition() {
+        if (!target || target.mapToGlobal === undefined) return Qt.point(0, 0)
+        // Resolve from this Item context; Qt.Tool targets mis-map inside QtObject helpers.
+        // 在当前 Item 上下文解析; Qt.Tool 目标在 QtObject helper 内会发生坐标退化。
+        var position = target.mapToGlobal(0, 0)
+        return Qt.point(position.x, position.y)
+    }
+
     function _setNativeShadow(enabled) {
         if (!_popupWindow || typeof ShadowManager === "undefined" || !ShadowManager
                 || _nativeShadowEnabled === enabled) return
@@ -165,8 +176,9 @@ Item {
         if (deleteOnClose) control.destroy()
     }
 
-    function _applyTrackedPosition() {
-        var pos = posHelper.calculatePosition()
+    function _applyTrackedPosition(globalPosition) {
+        var resolvedPosition = globalPosition || _resolveTargetGlobalPosition()
+        var pos = posHelper.calculatePosition(resolvedPosition)
         _animX = pos.x
         _animY = pos.y
 
@@ -313,7 +325,7 @@ Item {
         targetWindow: control._targetWindow
         trackingEnabled: control._isOpen && !hideAnim.running
         positionEpsilon: Enums.popupMetrics.positionEpsilon
-        onTargetMoved: control._applyTrackedPosition()
+        onTargetMoved: (globalPosition) => control._applyTrackedPosition(globalPosition)
         onTargetOutOfView: control.close()
     }
 

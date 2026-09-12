@@ -48,10 +48,10 @@ QtObject {
     readonly property bool hasArrow: isTop || isBottom || isLeft || isRight
     
     // ==================== Public Methods 公开方法 ====================
-    function calculatePosition() {
-        if (!target) return { x: 0, y: 0 }
-        
-        var targetPos = target.mapToGlobal(0, 0)
+    function calculatePosition(targetGlobalPosition) {
+        if (!target || !targetGlobalPosition) return { x: 0, y: 0 }
+
+        var targetPos = targetGlobalPosition
         var w = viewWidth
         var h = viewHeight
         var arrowSpace = isTeachingTip ? (tailSize + 4) : gap

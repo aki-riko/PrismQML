@@ -660,3 +660,21 @@ def test_tip_popup_keeps_main_window_surface_modularized():
         'objectName: "tipSecondaryActionButton"',
     ):
         assert marker not in source
+
+
+def test_tip_popup_resolves_target_position_outside_qtobject_helper():
+    entry = _source("prismqml/PrismQML/controls/feedback/Tooltip/TipPopup.qml")
+    position_helper = _source(
+        "prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPositionHelper.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = position_helper.read_text(encoding="utf-8")
+
+    assert "function _resolveTargetGlobalPosition()" in source
+    assert "var pos = posHelper.calculatePosition(_resolveTargetGlobalPosition())" in source
+    assert "onTargetMoved: (globalPosition) => control._applyTrackedPosition(globalPosition)" in source
+    assert "function calculatePosition(targetGlobalPosition)" in helper_source
+    assert "target.mapToGlobal" not in helper_source
+    assert source.index("popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()") < source.index(
+        "var pos = posHelper.calculatePosition(_resolveTargetGlobalPosition())"
+    )

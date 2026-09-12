@@ -1,6 +1,6 @@
 # 已知问题：`Qt.Tool` 窗口上 `TipPopup` 定位整体偏移
 
-> 状态：**已确证成因，未修复**（换 API 绕不过去，需要换实现位置或业务侧绕开）
+> 状态：**已修复并验证**（引擎侧采用方向 A；保留本文作为回归证据与排查记录）
 > 发现场景：ConfigPilot 的桌宠悬浮窗（`Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool`）里把余额气泡改成 `TeachingTip`
 > 版本：PrismQML `0.4.2.26`（提交 `05babada7` 附近）
 
@@ -163,21 +163,21 @@ print("实测=(%d,%d) 期望=(%.0f,%.0f) dx=%+.0f dy=%+.0f"
 
 ---
 
-## 五、建议修复方向（**未验证**，供接手方判断）
+## 五、修复方向与取舍
 
-### 方向 A：把坐标解析从 `QtObject` 移到 `Item` 上下文
+### 方向 A：把坐标解析从 `QtObject` 移到 `Item` 上下文（**已实施**）
 
 `TipPositionHelper` 是 `QtObject`。实测在**正确的对象上下文**里对同一个 anchor 调 `mapToItem(null)` 得到的是**正确值 `(8,364)`**，而 helper 内部拿到的是无效值 `(0,4)`。
 
-因此把 `targetGlobalPosition()` 的实现挪进 `TipPopup`（`Item`）里算，再把结果传给 helper，**很可能绕开该缺陷**。
+因此已把 `_resolveTargetGlobalPosition()` 挪进 `TipPopup`（`Item`）里算，再把结果传给 helper；同时先显示透明原生表面，再解析坐标，绕开了弹层创建前的 Qt.Tool 映射退化。
 
 另一条相关观察：通过 `var` 类型的 `target` 访问 `target.Window.window` 这类 attached property，在 `QtObject` 里并不可靠（实测取不到窗口），这也支持"挪到 Item 上下文"的方向。
 
-### 方向 B：不再依赖跨对象映射，由调用方提供锚点全局矩形
+### 方向 B：不再依赖跨对象映射，由调用方提供锚点全局矩形（未采用）
 
 给 `TipPopup` 增加可选属性（如 `anchorGlobalRect`），由调用方在自己的上下文里算好并传入。彻底绕开引擎内部的映射调用。
 
-### 方向 C：在 `Qt.Tool` 上加一个专用修正
+### 方向 C：在 `Qt.Tool` 上加一个专用修正（未采用）
 
 在 `mapToGlobal` 结果上按"窗口高度/半宽"补偿。**不推荐**：补偿量依赖窗口几何，属于把缺陷固化。
 
@@ -227,4 +227,8 @@ ConfigPilot 想把桌宠余额气泡（原为内联自绘）换成 `TeachingTip`
 - `TipPopup` 支持声明式自定义内容（`default property alias contentData` + `TipContentMover` 显式 reparent）—— **已完成并验证**；
 - `TipPopup.viewWidth/viewHeight` 公开可配（默认值保持历史行为）—— **已完成并验证**。
 
-唯一阻塞就是本文档描述的定位问题。ConfigPilot 侧的改造 patch 已备好，引擎侧修好后可直接应用。
+定位问题已在引擎侧修复。ConfigPilot 侧的改造 patch 可在完成真机副作用确认后继续应用。
+
+### 修复验证
+
+使用本文第三节同一组 `Qt.Tool` 输入，在独立 Windows 进程中验证：首次显示和移动锚点后的 `dx=dy=0`；修复前首次显示为 `dx=-170,dy=-504`。定向合同测试 `tests/qml/test_popup_position_tracking.py` 与 `tests/tooling/test_qml_architecture_part3.py` 当前均通过（37 passed）。
