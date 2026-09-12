@@ -17,6 +17,9 @@ Window {
     required property var popupControl
     required property var positionHelper
 
+    // ==================== Public Props 公开属性 ====================
+    default property alias contentData: customContentHost.data
+
     flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
     color: Enums.transparent
     width: positionHelper.viewWidth
@@ -71,6 +74,17 @@ Window {
                 wrapMode: Text.Wrap
                 width: parent.width
                 visible: text !== ""
+            }
+
+            // Custom content follows the built-in text without replacing it.
+            // 自定义内容紧随内置文本，不覆盖它们。
+            Column {
+                id: customContentHost
+
+                objectName: "tipPopupCustomContent"
+                width: parent.width
+                spacing: Enums.spacing.xs
+                visible: children.length > 0
             }
         }
 

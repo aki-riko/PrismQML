@@ -123,6 +123,72 @@ Window {
 }
 """
 
+CUSTOM_TEACHING_TIP_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+
+    function showCustomTip() { customTip.show() }
+
+    width: 420
+    height: 280
+    visible: true
+
+    Rectangle {
+        id: anchor
+
+        x: Enums.spacing.xl
+        y: Enums.spacing.xl
+        width: Enums.controlSize.buttonMinWidth
+        height: Enums.controlSize.buttonHeight
+        color: Enums.accentColor
+    }
+
+    TeachingTip {
+        id: customTip
+
+        objectName: "customTeachingTip"
+        target: anchor
+        closable: false
+        modal: false
+        duration: Enums.duration.persistent
+        anchorPosition: Enums.teachingTip.anchor_bottom
+
+        Column {
+            id: customPayload
+
+            objectName: "customTeachingTipPayload"
+            width: parent.width
+            spacing: Enums.spacing.xs
+
+            Text {
+                text: "Balance"
+                color: Enums.textColor.secondary
+                font.family: Enums.fontFamily
+                font.pixelSize: Enums.typography.caption
+            }
+
+            Text {
+                text: "42"
+                color: Enums.accentColor
+                font.family: Enums.fontFamily
+                font.pixelSize: Enums.typography.titleLarge
+            }
+
+            Text {
+                text: "Tokens"
+                color: Enums.textColor.secondary
+                font.family: Enums.fontFamily
+                font.pixelSize: Enums.typography.caption
+            }
+        }
+    }
+}
+"""
+
 
 class _RecordingShadowManager(QObject):
     def __init__(self, events):
@@ -251,6 +317,31 @@ def _create_scene(shadow_manager=None):
     }
     assert all(items.values())
     return engine, component, window, items, warnings
+
+
+def _create_custom_teaching_tip_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(CUSTOM_TEACHING_TIP_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    window.requestActivate()
+    assert _wait_for(window.isActive)
+    tip = window.findChild(QQuickItem, "customTeachingTip")
+    payload = window.findChild(QQuickItem, "customTeachingTipPayload")
+    assert tip is not None and payload is not None
+    return engine, component, window, tip, payload, warnings
 
 
 def _dispose_scene(engine, component, window) -> None:
@@ -384,6 +475,36 @@ def test_tip_popup_follows_target_and_closes_out_of_view_without_polling(
     assert _wait_for(lambda: not popup_window.isVisible())
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def test_teaching_tip_moves_declared_content_into_its_native_surface(qapp):
+    engine, component, window, tip, payload, warnings = (
+        _create_custom_teaching_tip_scene()
+    )
+    try:
+        assert tip.findChildren(QWindow) == []
+        assert QMetaObject.invokeMethod(window, "showCustomTip")
+        assert _wait_for(lambda: tip.property("_isOpen"))
+
+        tip_windows = tip.findChildren(QWindow)
+        assert len(tip_windows) == 2
+        assert _wait_for(lambda: all(candidate.isVisible() for candidate in tip_windows))
+
+        surface = tip.findChild(QQuickItem, "tipPopupSurface")
+        content_host = tip.findChild(QQuickItem, "tipPopupCustomContent")
+        assert surface is not None and content_host is not None
+        assert _wait_for(lambda: payload.parentItem() is content_host)
+        assert payload.window() is surface.window()
+        assert content_host.window() is surface.window()
+        assert content_host.y() == pytest.approx(0)
+        assert content_host.isVisible()
+
+        assert QMetaObject.invokeMethod(tip, "close")
+        assert _wait_for(lambda: not tip.property("_isOpen"))
+        assert all(not candidate.isVisible() for candidate in tip_windows)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
 
 
 def test_tip_popup_attaches_native_shadow_after_reveal_animation(qapp):

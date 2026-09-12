@@ -620,8 +620,18 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     assert len(helper_source.splitlines()) < 180
     assert 'import "_internal" as TooltipInternal' in source
     assert "TooltipInternal.TipPopupWindow {" in source
+    assert "default property alias contentData: contentStaging.data" in source
+    assert "contentData: control.contentData" in source
     assert "required property var popupControl" in helper_source
     assert "required property var positionHelper" in helper_source
+    assert "default property alias contentData: customContentHost.data" in helper_source
+    assert "id: customContentHost" in helper_source
+    assert helper_source.index("text: popupControl.title") < helper_source.index(
+        "id: customContentHost"
+    )
+    assert helper_source.index("text: popupControl.content") < helper_source.index(
+        "id: customContentHost"
+    )
     assert 'objectName: "tipPopupSurface"' in helper_source
     assert "\n                id: popupWindow\n" not in source
     for marker in (

@@ -28,6 +28,7 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
+    default property alias contentData: contentStaging.data
     readonly property int _tipRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _tipBackground: Enums.isVintageTicket
         ? Enums.cardColor
@@ -180,6 +181,10 @@ Item {
     visible: false
 
     // ==================== Content 内容 ====================
+    Item {
+        id: contentStaging
+    }
+
     TooltipInternal.TipPositionHelper {
         id: posHelper
         target: control.target
@@ -200,6 +205,7 @@ Item {
             TooltipInternal.TipPopupWindow {
                 popupControl: control
                 positionHelper: posHelper
+                contentData: control.contentData
             }
         }
     }
