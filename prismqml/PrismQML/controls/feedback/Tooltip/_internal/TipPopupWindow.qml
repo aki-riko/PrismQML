@@ -18,7 +18,12 @@ Window {
     required property var positionHelper
 
     // ==================== Public Props 公开属性 ====================
-    default property alias contentData: customContentHost.data
+    // Host for caller content. TipPopup reparents its declarative children here
+    // once this window exists: assigning a QQmlListProperty across windows does not
+    // move the objects, so this has to be an explicit reparent through the alias.
+    // 调用方内容的宿主。TipPopup 在本窗口就绪后把声明式子项重新挂到这里:跨窗口直接
+    // 赋值 QQmlListProperty 并不会搬运对象,所以必须通过 alias 显式 reparent。
+    property alias customContentHost: customContentHost
 
     flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint
     color: Enums.transparent

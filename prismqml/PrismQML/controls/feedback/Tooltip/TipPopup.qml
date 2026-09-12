@@ -28,7 +28,6 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
-    default property alias contentData: contentStaging.data
     readonly property int _tipRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _tipBackground: Enums.isVintageTicket
         ? Enums.cardColor
@@ -144,6 +143,7 @@ Item {
             console.warn("TipPopup failed to create its native window surface")
             return false
         }
+        contentMover.moveContent()
         return true
     }
 
@@ -179,10 +179,15 @@ Item {
     }
 
     visible: false
+    // Content added after show() is moved over as soon as it appears.
+    // show() 之后再添加的内容,出现时立刻搬迁。
+    onChildrenChanged: contentMover.moveContent()
 
     // ==================== Content 内容 ====================
-    Item {
-        id: contentStaging
+    TooltipInternal.TipContentMover {
+        id: contentMover
+        control: control
+        surface: control._popupWindow
     }
 
     TooltipInternal.TipPositionHelper {
@@ -198,6 +203,7 @@ Item {
     // Main window 主窗口
     Loader {
         id: popupWindowLoader
+        objectName: "tipPopupWindowLoader"
         active: control._popupWindowRequested
         asynchronous: false
 
@@ -205,7 +211,6 @@ Item {
             TooltipInternal.TipPopupWindow {
                 popupControl: control
                 positionHelper: posHelper
-                contentData: control.contentData
             }
         }
     }
@@ -214,6 +219,7 @@ Item {
     // 仅在 TeachingTip 首次使用后创建箭头窗口，随后复用。
     Loader {
         id: arrowWindowLoader
+        objectName: "tipArrowWindowLoader"
         active: control._arrowWindowRequested
         asynchronous: false
 
@@ -245,66 +251,11 @@ Item {
                     width: (posHelper.isLeft || posHelper.isRight) ? (posHelper.tailSize + 4) : 20
                     height: (posHelper.isTop || posHelper.isBottom) ? (posHelper.tailSize + 4) : 20
 
-                    Canvas {
+                    TooltipInternal.TipArrowCanvas {
                         id: arrowCanvas
                         anchors.fill: parent
-
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.reset()
-                            var bgColor = control._tipBackground
-                            var borderColor = control._tipBorderColor
-                            var w = width, h = height, inset = 2
-
-                            // Draw filled triangle 绘制填充三角形
-                            ctx.beginPath()
-                            if (posHelper.isBottom) {
-                                ctx.moveTo(inset, inset)
-                                ctx.lineTo(w/2, h - inset)
-                                ctx.lineTo(w - inset, inset)
-                            } else if (posHelper.isTop) {
-                                ctx.moveTo(inset, h - inset)
-                                ctx.lineTo(w/2, inset)
-                                ctx.lineTo(w - inset, h - inset)
-                            } else if (posHelper.isLeft) {
-                                ctx.moveTo(w - inset, inset)
-                                ctx.lineTo(inset, h/2)
-                                ctx.lineTo(w - inset, h - inset)
-                            } else if (posHelper.isRight) {
-                                ctx.moveTo(inset, inset)
-                                ctx.lineTo(w - inset, h/2)
-                                ctx.lineTo(inset, h - inset)
-                            }
-                            ctx.closePath()
-                            ctx.fillStyle = bgColor
-                            ctx.fill()
-
-                            // Draw the same border contract as the popup surface on the two exposed sides.
-                            // 箭头仅在两条外露斜边复用主表面的描边合同。
-                            if (control._tipBorderWidth > Enums.border.none) {
-                                ctx.beginPath()
-                                ctx.strokeStyle = borderColor
-                                ctx.lineWidth = control._tipBorderWidth
-                                if (posHelper.isBottom) {
-                                    ctx.moveTo(inset, inset)
-                                    ctx.lineTo(w/2, h - inset)
-                                    ctx.lineTo(w - inset, inset)
-                                } else if (posHelper.isTop) {
-                                    ctx.moveTo(inset, h - inset)
-                                    ctx.lineTo(w/2, inset)
-                                    ctx.lineTo(w - inset, h - inset)
-                                } else if (posHelper.isLeft) {
-                                    ctx.moveTo(w - inset, inset)
-                                    ctx.lineTo(inset, h/2)
-                                    ctx.lineTo(w - inset, h - inset)
-                                } else if (posHelper.isRight) {
-                                    ctx.moveTo(inset, inset)
-                                    ctx.lineTo(w - inset, h/2)
-                                    ctx.lineTo(inset, h - inset)
-                                }
-                                ctx.stroke()
-                            }
-                        }
+                        positionHelper: posHelper
+                        popupControl: control
                     }
                 }
             }
@@ -337,6 +288,7 @@ Item {
     }
     
     PopupPositionTracker {
+        objectName: "tipPositionTracker"
         target: control.target
         targetWindow: control._targetWindow
         trackingEnabled: control._isOpen && !hideAnim.running
