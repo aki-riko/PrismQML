@@ -28,6 +28,10 @@ Item {
     property string primaryButtonText: ""
     property string secondaryButtonText: ""
     property bool closeOnAction: true
+    // Caller content is written as ordinary declarative children; the staging Item
+    // owns them visually and TipContentMover reparents them into the native surface.
+    // 调用方内容按普通声明式子项书写:视觉父对象是暂存 Item,由 TipContentMover 挂进弹层。
+    default property alias contentData: contentStaging.data
     readonly property int _tipRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property color _tipBackground: Enums.isVintageTicket
         ? Enums.cardColor
@@ -179,14 +183,22 @@ Item {
     }
 
     visible: false
-    // Content added after show() is moved over as soon as it appears.
-    // show() 之后再添加的内容,出现时立刻搬迁。
-    onChildrenChanged: contentMover.moveContent()
 
     // ==================== Content 内容 ====================
+    // Staging Item for caller content; TipContentMover moves its children into the
+    // native surface. A TipPopup is an invisible Item, so content cannot render here.
+    // 调用方内容的暂存 Item;由 TipContentMover 把子项搬进原生弹层。TipPopup 是不可见
+    // 的 Item,内容无法在这里渲染。
+    Item {
+        id: contentStaging
+        // Content added after show() is moved over as soon as it appears.
+        // show() 之后再添加的内容,出现时立刻搬迁。
+        onChildrenChanged: contentMover.moveContent()
+    }
+
     TooltipInternal.TipContentMover {
         id: contentMover
-        control: control
+        staging: contentStaging
         surface: control._popupWindow
     }
 
@@ -203,7 +215,6 @@ Item {
     // Main window 主窗口
     Loader {
         id: popupWindowLoader
-        objectName: "tipPopupWindowLoader"
         active: control._popupWindowRequested
         asynchronous: false
 
@@ -219,7 +230,6 @@ Item {
     // 仅在 TeachingTip 首次使用后创建箭头窗口，随后复用。
     Loader {
         id: arrowWindowLoader
-        objectName: "tipArrowWindowLoader"
         active: control._arrowWindowRequested
         asynchronous: false
 
@@ -288,7 +298,6 @@ Item {
     }
     
     PopupPositionTracker {
-        objectName: "tipPositionTracker"
         target: control.target
         targetWindow: control._targetWindow
         trackingEnabled: control._isOpen && !hideAnim.running

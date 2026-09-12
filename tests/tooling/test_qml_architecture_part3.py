@@ -620,9 +620,10 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     assert len(helper_source.splitlines()) < 180
     assert 'import "_internal" as TooltipInternal' in source
     assert "TooltipInternal.TipPopupWindow {" in source
-    # 声明式内容必须由 TipContentMover 显式 reparent 进原生弹层:跨窗口直接赋值
-    # QQmlListProperty 不会搬运对象,旧写法(暂存区 alias + 转发 list property)
-    # 实测一个字符都渲染不出来。
+    # 调用方内容先由 default property alias 收进暂存 Item,再必须由 TipContentMover
+    # 显式 reparent 进原生弹层:跨窗口直接赋值 QQmlListProperty 不会搬运对象,
+    # 旧写法(转发 control.contentData)实测一个字符都渲染不出来。
+    assert "default property alias contentData: contentStaging.data" in source
     assert "TooltipInternal.TipContentMover {" in source
     assert "contentMover.moveContent()" in source
     assert "property alias customContentHost: customContentHost" in helper_source
@@ -637,20 +638,6 @@ def test_tip_popup_keeps_main_window_surface_modularized():
     )
     assert 'objectName: "tipPopupSurface"' in helper_source
     assert "\n                id: popupWindow\n" not in source
-    # objectName 白名单是搬运逻辑的核心:新增"可视"内部子项必须登记,否则会被误当成
-    # 调用方内容搬进弹层。这里锁定白名单里的每个名字都真的存在于入口文件。
-    mover = _source(
-        "prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipContentMover.qml"
-    )
-    mover_source = mover.read_text(encoding="utf-8")
-    assert mover.exists()
-    for internal_name in (
-        "tipPopupWindowLoader",
-        "tipArrowWindowLoader",
-        "tipPositionTracker",
-    ):
-        assert '"%s"' % internal_name in mover_source, internal_name
-        assert 'objectName: "%s"' % internal_name in source, internal_name
     for marker in (
         'objectName: "tipPopupSurface"',
         'objectName: "tipPrimaryActionButton"',
