@@ -176,7 +176,8 @@ def test_toast_keeps_two_close_timers(qapp):
             "toastHideTimer",
             "toastCompleteTimer",
         }
-        assert object_count == 66
+        # Skin-context resolution adds stable QML objects; close-timer ownership is unchanged.
+        assert object_count == 70
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

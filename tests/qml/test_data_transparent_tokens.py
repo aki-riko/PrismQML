@@ -158,4 +158,4 @@ def test_data_transparent_sources_are_the_characterized_targets():
     assert "color: Enums.transparent" in sources[0]
     assert "root.getColor(root.hoveredIndex) : Enums.transparent" in sources[1]
     assert "root.getSeriesColor(root.hoveredSeriesIndex) : Enums.transparent" in sources[2]
-    assert "customTextColor != Enums.transparent" in sources[3]
+    assert "customTextColor != effectiveSkinContext.transparent" in sources[3]
