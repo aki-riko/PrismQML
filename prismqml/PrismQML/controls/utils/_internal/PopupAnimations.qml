@@ -21,6 +21,7 @@ Item {
     property alias showAnimation: showAnim
     property alias hideAnimation: hideAnim
     readonly property var _skin: control.effectiveSkinContext
+    readonly property var _popupMetrics: _skin ? _skin.popupMetrics : null
 
     // ==================== Content 内容 ====================
     ParallelAnimation {
@@ -33,7 +34,7 @@ Item {
             property: "opacity"
             from: 0
             to: 1
-            duration: _skin.popupMetrics.showOpacityDuration
+            duration: _popupMetrics ? _popupMetrics.showOpacityDuration : 0
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
@@ -41,7 +42,7 @@ Item {
             property: "_clipHeight"
             from: 0
             to: animations.control.popupHeight
-            duration: _skin.popupMetrics.showRevealDuration
+            duration: _popupMetrics ? _popupMetrics.showRevealDuration : 0
             easing.type: Easing.OutCubic
         }
     }
@@ -55,7 +56,7 @@ Item {
                 property: "opacity"
                 from: 1
                 to: 0
-                duration: _skin.popupMetrics.hideOpacityDuration
+                duration: _popupMetrics ? _popupMetrics.hideOpacityDuration : 0
                 easing.type: Easing.InQuad
             }
             NumberAnimation {
@@ -63,7 +64,7 @@ Item {
                 property: "_clipHeight"
                 from: animations.control.popupHeight
                 to: 0
-                duration: _skin.popupMetrics.hideRevealDuration
+                duration: _popupMetrics ? _popupMetrics.hideRevealDuration : 0
                 easing.type: Easing.InCubic
             }
         }

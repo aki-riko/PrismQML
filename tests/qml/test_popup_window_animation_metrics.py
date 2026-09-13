@@ -85,6 +85,36 @@ Item {
 }
 """
 
+NULL_SKIN_SCENE_SOURCE = b"""
+import QtQuick
+import PrismQML
+import "../../prismqml/PrismQML/controls/utils/_internal"
+
+Item {
+    id: host
+    property var effectiveSkinContext: null
+    property int popupHeight: 180
+    property int _clipHeight: 0
+    property bool _shadowVisible: false
+    property bool isClosing: false
+
+    Rectangle {
+        id: surface
+        width: 200
+        height: 180
+    }
+
+    PopupAnimations {
+        objectName: "animations"
+        control: host
+        surface: surface
+        usesControlsPopup: false
+        inlinePopup: null
+        popupWindow: null
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -181,6 +211,37 @@ def test_popup_window_animation_metrics_preserve_runtime_values(qapp):
         del component
         engine.deleteLater()
         _pump(1)
+
+
+def test_popup_animations_do_not_read_dead_skin_context(qapp):
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    component = QQmlComponent(engine)
+    component.setData(NULL_SKIN_SCENE_SOURCE, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    _pump(10)
+
+    animations = root.findChild(QQuickItem, "animations")
+    assert animations is not None
+    number_animations = _number_animations(animations)
+    assert number_animations
+    assert all(animation.property("duration") == 0 for animation in number_animations)
+    assert not any("popupMetrics" in warning for warning in warnings)
+
+    root.deleteLater()
+    _pump(10)
+    assert not any("popupMetrics" in warning for warning in warnings)
+    engine.deleteLater()
+    _pump(1)
 
 
 def test_popup_window_content_clips_overflow_for_every_consumer(qapp):
@@ -303,13 +364,14 @@ def test_popup_window_animation_source_uses_role_tokens():
     ):
         assert declaration in metrics_block
     for binding in (
-        "duration: _skin.popupMetrics.showOpacityDuration",
-        "duration: _skin.popupMetrics.showRevealDuration",
-        "duration: _skin.popupMetrics.hideOpacityDuration",
-        "duration: _skin.popupMetrics.hideRevealDuration",
+        "duration: _popupMetrics ? _popupMetrics.showOpacityDuration : 0",
+        "duration: _popupMetrics ? _popupMetrics.showRevealDuration : 0",
+        "duration: _popupMetrics ? _popupMetrics.hideOpacityDuration : 0",
+        "duration: _popupMetrics ? _popupMetrics.hideRevealDuration : 0",
     ):
         assert binding in animation_block
     assert "readonly property var _skin: control.effectiveSkinContext" in animation_block
+    assert "readonly property var _popupMetrics: _skin ? _skin.popupMetrics : null" in animation_block
     for legacy_name in ("fadeInDuration", "settleDuration", "hideDuration"):
         assert legacy_name not in metrics_block
     assert (
