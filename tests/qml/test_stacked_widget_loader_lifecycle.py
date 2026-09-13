@@ -110,6 +110,7 @@ import PrismQML
 Item {{
     width: 400
     height: 240
+    property int animationStartedCount: 0
 
     function pushSecond() {{
         stack.push("{page_urls[1]}", {{ marker: "second" }})
@@ -127,6 +128,7 @@ Item {{
         dynamicStack: true
         pageSources: ["{page_urls[0]}"]
         pageProperties: [{{ marker: "first" }}]
+        onAnimationStarted: animationStartedCount += 1
     }}
 }}
 """.encode("utf-8")
@@ -145,10 +147,12 @@ Item {{
         assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-first"
 
         assert QMetaObject.invokeMethod(root, "pushSecond")
+        assert _evaluate(root, "animationStartedCount") == 0
         _pump(1000)
         assert _evaluate(root, "stack.depth") == 2
         assert _evaluate(root, "stack.currentIndex") == 1
         assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-second"
+        assert _evaluate(root, "animationStartedCount") == 1
 
         assert QMetaObject.invokeMethod(root, "popCurrent")
         assert _evaluate(root, "stack.depth") == 2

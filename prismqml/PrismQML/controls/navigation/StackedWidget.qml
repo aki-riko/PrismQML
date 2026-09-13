@@ -151,10 +151,10 @@ Item {
         if (_pythonPageMode) {
             return count === 0 || _pythonReadyIndexes.indexOf(index) >= 0
         }
-        if (!lazyLoading && _useSourceMode && !eagerActivationHelper.ready) {
+        if (!_useSourceMode) return true
+        if (!lazyLoading && !eagerActivationHelper.ready) {
             return eagerActivationHelper.isPageLoaded(index)
         }
-        if (!lazyLoading || !_useSourceMode) return true
         return _loaders[index] && _loaders[index].status === Loader.Ready
     }
     function _markPythonPageReady(index) {
