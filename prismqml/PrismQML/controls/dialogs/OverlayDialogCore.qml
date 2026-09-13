@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
+import "../../SkinResolver.js" as SkinResolver
 import "_internal" as DialogInternal
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
@@ -19,7 +20,7 @@ import QtQuick.Window  // After library import: native Window type stays unshado
 Item {
     id: control
     // ==================== Public Props 公开属性 ====================
-    property alias skinContext: _skinContext.skinContext
+    property var skinContext: null
     property bool dismissOnScrimClick: false  // Close when overlay scrim is clicked 点击遮罩关闭
     property bool draggable: false              // Allow drag dialog 允许拖拽
     // Overlay target 覆盖目标
@@ -30,11 +31,15 @@ Item {
     // Mask color 遮罩颜色
     property color maskColor: effectiveSkinContext.stateColor.maskHeavy
     // ==================== Internal Props 内部属性 ====================
-    property alias _capturedSkinContext: _skinContext.capturedSkinContext
-    readonly property alias _nearestSkinContext: _skinContext.nearestSkinContext
-    readonly property alias effectiveSkinContext: _skinContext.effectiveSkinContext
-    readonly property alias _prismSkinScopeContext: _skinContext.prismSkinScopeContext
-    readonly property alias _skin: _skinContext.skin
+    property var _capturedSkinContext: null
+    readonly property var _nearestSkinContext:
+        (skinContext || _capturedSkinContext)
+        ? null : SkinResolver.nearestContext(parent)
+    readonly property var effectiveSkinContext:
+        skinContext || _capturedSkinContext || _nearestSkinContext || Enums
+    readonly property var _prismSkinScopeContext:
+        skinContext || _capturedSkinContext || null
+    readonly property var _skin: effectiveSkinContext
     property bool _isOpen: false
     property bool _isClosing: false
     property point _dragPos: Qt.point(0, 0)
@@ -158,10 +163,6 @@ Item {
     DialogInternal.OverlayDialogRestoreParentTimer {
         id: _restoreParentTimer
 
-        host: control
-    }
-    DialogInternal.OverlayDialogSkinContext {
-        id: _skinContext
         host: control
     }
 }

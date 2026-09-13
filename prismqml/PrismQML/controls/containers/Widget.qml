@@ -4,6 +4,7 @@
 
 import QtQuick.Layouts
 import "../.."
+import "../../SkinResolver.js" as SkinResolver
 import "_internal" as ContainerInternal
 import QtQuick  // Keep native types unprefixed after library imports 库导入后保留无前缀原生类型
 import QtQuick.Window  // Keep native Window unprefixed after library imports 库导入后保留无前缀原生 Window
@@ -26,9 +27,9 @@ Item {
     // Allow parent layout to control fill behavior 允许父布局控制填充行为
     property bool layoutFillWidth: true
     property bool layoutFillHeight: false
-    property alias skinContext: _skinContext.skinContext
-    readonly property alias effectiveSkinContext: _skinContext.effectiveSkinContext
-    readonly property alias _prismSkinScopeContext: _skinContext.prismSkinScopeContext
+    property var skinContext: null
+    readonly property var effectiveSkinContext: skinContext || _nearestSkinContext || Enums
+    readonly property var _prismSkinScopeContext: skinContext || null
 
     // Tooltip support 工具提示支持
     property string toolTipText: ""
@@ -40,6 +41,8 @@ Item {
     property int toolTipTextAlignment: Text.AlignLeft
     // ==================== Internal Props 内部属性 ====================
     property bool _toolTipShowPending: false
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(widget.parent)
     readonly property Loader _centerChildrenDelayed: Loader {
         active: widget.centerContent
         onLoaded: widget._scheduleCenterChildren()
@@ -139,9 +142,5 @@ Item {
             item.widget = widget
             if (widget._toolTipShowPending) item.showToolTip()
         }
-    }
-    ContainerInternal.WidgetSkinContext {
-        id: _skinContext
-        host: widget
     }
 }
