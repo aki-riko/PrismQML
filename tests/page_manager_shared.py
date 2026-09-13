@@ -27,6 +27,10 @@ class _Signal:
         self.callbacks.append(callback)
         self.events.append(("connect", self.name))
 
+    def disconnect(self, callback):
+        self.callbacks.remove(callback)
+        self.events.append(("disconnect", self.name))
+
     def emit(self, *args):
         self.events.append(("emit", self.name, *args))
 

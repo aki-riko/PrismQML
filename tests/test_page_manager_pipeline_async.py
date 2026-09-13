@@ -95,6 +95,58 @@ def test_async_page_source_priority_is_getter_then_class_then_existing():
     assert events == [("getter",), ("class",)]
 
 
+def test_async_page_waits_for_python_lazy_collapse_before_creation(monkeypatch):
+    events = []
+    page = _Page(events)
+    item = _source_item("getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+    collapse_finished = _Signal("python_lazy_collapse_finished", events)
+    stack = SimpleNamespace(pythonLazyCollapseFinished=collapse_finished)
+    manager._window = SimpleNamespace(property=lambda name: stack)
+
+    manager._start_async_page_load(0)
+
+    assert events == [
+        ("find", "page_0"),
+        ("connect", "python_lazy_collapse_finished"),
+        ("invoke", "_startPythonLoading", 0),
+    ]
+    assert timers.delays == []
+
+    collapse_finished.fire(0)
+
+    assert events[-1] == ("timer", _PAGE_RENDER_DELAY_MS)
+    assert timers.delays == [_PAGE_RENDER_DELAY_MS]
+    assert manager._pages == {}
+
+    timers.run(_PAGE_RENDER_DELAY_MS)
+
+    assert manager._pages[0] is page
+    assert ("disconnect", "python_lazy_collapse_finished") in events
+
+
+def test_async_page_does_not_create_retargeted_page_after_collapse(monkeypatch):
+    events = []
+    page = _Page(events)
+    item = _source_item("getter", page, events)
+    manager = _new_manager(events, item, _Container(events))
+    timers = _install_runtime_fakes(monkeypatch, events)
+    collapse_finished = _Signal("python_lazy_collapse_finished", events)
+    stack = SimpleNamespace(pythonLazyCollapseFinished=collapse_finished)
+    manager._window = SimpleNamespace(property=lambda name: stack)
+
+    manager._start_async_page_load(0)
+    manager._current_index = 1
+    manager._foreground_page_load_index = 1
+    collapse_finished.fire(0)
+
+    assert manager._pages == {}
+    assert ("fire", "python_lazy_collapse_finished", 0) in events
+    assert ("disconnect", "python_lazy_collapse_finished") in events
+    assert timers.delays == []
+
+
 def test_async_page_pipeline_waits_one_frame_and_finishes_before_switch(
     monkeypatch,
 ):

@@ -335,18 +335,23 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         """异步加载页面（显示loading动画）
 
         流程：
-        1. 显示QML侧的_pythonLoading覆盖层
-        2. 延迟16ms让loading动画先渲染
-        3. 创建页面实例
-        4. 如果页面有_deferred_queue，启动分批创建
-        5. 完成后隐藏loading覆盖层
+        1. 启动QML侧的圆形收紧动画
+        2. 收紧完成后显示_pythonLoading覆盖层
+        3. 延迟16ms让loading动画先渲染
+        4. 创建页面实例
+        5. 如果页面有_deferred_queue，启动分批创建
+        6. 完成后隐藏loading覆盖层
         """
         self._current_index = index
         self._mark_page_load_started(index)
         self._mark_foreground_page_load_started(index)
-        self._start_loading_overlay(index)
+        collapse_finished = self._python_lazy_collapse_signal()
+        if collapse_finished is None:
+            self._start_loading_overlay(index)
         item, page_container = self._resolve_async_page_target(index)
         if item is _NO_PAGE_TARGET:
+            if collapse_finished is not None:
+                self._start_loading_overlay(index)
             self._mark_page_load_finished(index)
             if self._is_active_foreground_target(index):
                 self._finish_loading()
@@ -354,7 +359,13 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         on_page_ready = partial(
             self._on_async_page_ready, index, item, page_container
         )
-        self._schedule_async_page_creation(item, on_page_ready)
+        if collapse_finished is None:
+            self._schedule_async_page_creation(item, on_page_ready)
+        else:
+            self._schedule_async_page_creation_after_collapse(
+                index, item, on_page_ready, collapse_finished
+            )
+            self._start_loading_overlay(index)
 
     def _resolve_async_page_target(self, index: int):
         all_items = self._nav_items + self._bottom_nav_items
@@ -431,6 +442,45 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
     def _schedule_async_page_creation(self, item, on_page_ready):
         create_page = partial(_create_async_page_boundary, item, on_page_ready)
         QTimer.singleShot(_PAGE_LOAD_RENDER_DELAY_MS, create_page)
+
+    def _python_lazy_collapse_signal(self):
+        """Return the Python-mode collapse signal when the host exposes it."""
+        if self._window is None:
+            return None
+        try:
+            stack = self._window.property("stackedWidget")
+        except (AttributeError, RuntimeError):
+            return None
+        return getattr(stack, "pythonLazyCollapseFinished", None)
+
+    def _schedule_async_page_creation_after_collapse(
+        self, index, item, on_page_ready, collapse_finished
+    ):
+        """Wait for the cover animation before creating a Python page.
+
+        等待收紧动画完成后再创建 Python 页面。
+
+        QML object incubation still runs on the GUI thread. Starting it while
+        the circle transition is collapsing can therefore freeze the running
+        animation, even when the nested Loader is marked asynchronous. The
+        Python page mode exposes the collapse-finished signal specifically for
+        this boundary; older/lightweight hosts retain the one-frame fallback.
+        Python 页面模式专门通过收紧完成信号提供这个边界；旧版或轻量宿主继续
+        使用一帧延迟回退路径。
+        """
+        def on_collapse_finished(collapsed_index):
+            if collapsed_index != index:
+                return
+            try:
+                collapse_finished.disconnect(on_collapse_finished)
+            except (AttributeError, RuntimeError, TypeError):
+                pass
+            if not self._is_active_foreground_target(index):
+                self._mark_page_load_finished(index)
+                return
+            self._schedule_async_page_creation(item, on_page_ready)
+
+        collapse_finished.connect(on_collapse_finished)
 
     def _start_loading_overlay(self, index: int) -> None:
         if not self._window:
