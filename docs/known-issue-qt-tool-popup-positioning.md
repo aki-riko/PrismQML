@@ -211,7 +211,7 @@ ConfigPilot 侧当时的折中（**已回滚，未采用**）是保留 `Qt.Tool`
 
 | 文件 | 作用 |
 |---|---|
-| `prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPositionHelper.qml` | `calculatePosition()` / `calculateArrowPosition()`，目前用 `target.mapToGlobal(0,0)` |
+| `prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPositionHelper.qml` | `calculatePosition(targetGlobalPosition)` / `calculateArrowPosition()`，坐标改由 `TipPopup` 在 `Item` 上下文解析后传入 |
 | `prismqml/PrismQML/controls/feedback/Tooltip/TipPopup.qml` | `posHelper` 装配、`_targetWindow`、`show()` / `_applyTrackedPosition()` |
 | `prismqml/PrismQML/controls/feedback/Tooltip/_internal/TipPopupWindow.qml` | 原生弹层窗口（`x: popupControl._animX`） |
 | `prismqml/PrismQML/controls/utils/_internal/PopupPositionTracker.qml` | 逐帧跟随，`_updatePosition()` 内也用 `target.mapToGlobal(0,0)` |
@@ -231,4 +231,81 @@ ConfigPilot 想把桌宠余额气泡（原为内联自绘）换成 `TeachingTip`
 
 ### 修复验证
 
-使用本文第三节同一组 `Qt.Tool` 输入，在独立 Windows 进程中验证：首次显示和移动锚点后的 `dx=dy=0`；修复前首次显示为 `dx=-170,dy=-504`。定向合同测试 `tests/qml/test_popup_position_tracking.py` 与 `tests/tooling/test_qml_architecture_part3.py` 当前均通过（37 passed）。
+使用本文第三节同一组 `Qt.Tool` 输入，在独立 Windows 进程中验证：首次显示和移动锚点后的 `dx=dy=0`；修复前首次显示为 `dx=-170,dy=-504`。定向合同测试 `tests/qml/test_popup_position_tracking.py` 与 `tests/tooling/test_qml_architecture_part3.py` 当前均通过（38 passed）。
+
+**offscreen 平台不能验收本问题**：`QT_QPA_PLATFORM=offscreen` 下该偏差**恒定存在**（修复前后都是 `dx=-170,dy=-504`），因为该平台没有真实的 `Qt.Tool` 原生窗口语义。只有在真实桌面平台（`--qt-platform windows` 或 `QT_QPA_PLATFORM=windows`）才能观察到修复效果。
+
+---
+
+## 十、关联缺陷：预热（prewarm）切断弹层的位置绑定
+
+排查定位问题时另发现一个**独立**缺陷，症状同样是"弹层跑到错误位置"，但成因、触发条件、影响面都不同，**不要与本问题混为一谈**。
+
+### 症状
+
+弹层不是偏一点，而是**永久停在屏幕左上角 `(0,0)`**（实测 `dx=-1240, dy=-582`）。Gallery 的 TeachingTip 就命中这一条：用户必须先把鼠标滑到按钮上再点击，而**首次交互是悬停**正是触发条件。
+
+### 触发条件（精确）
+
+1. 调用方在 `show()` **之前**先触发过一次 `prewarm()`（例如 `TipPopup` 自带的三条 hover 连接：`hovered` / `containsMouse` / `activeFocus`）；
+2. 且这次 `prewarm()` 是该实例的**第一次**（`_prewarmed` 为 `false`）。
+
+`prewarm()` 有守卫 `if (!target || (_prewarmed && ...)) return`，而 `show()` 会把 `_prewarmed` 置 `true`，所以**每个实例只会坏一次**，坏的那次正好是用户第一次看到它的那次。因此"手动调 `show()` 的探针"**测不出来**——必须先悬停。
+
+### 根因
+
+`_prewarmWindow()` 为了把窗口停到屏幕外避免闪现，直接给窗口属性赋值：
+
+```js
+var savedX = window.x          // 读到的是 _animX 的当前值（首次为 0）
+window.x = _prewarmCoordinate  // -32000，直接赋值 → 移除声明式绑定
+window.show(); window.hide()
+window.x = savedX              // 写回值 → 绑定不会回来，窗口 x 从此固定
+```
+
+而 `TipPopupWindow` 的位置**完全依赖绑定**：
+
+```qml
+x: popupControl._animX
+y: popupControl._animY
+```
+
+QML 中对该属性做任何命令式赋值都会**移除绑定**。绑定一旦被移除，此后 `show()` 里再怎么更新 `_animX/_animY`，窗口都不再跟随，于是停在 `prewarm` 时的值 `(0,0)`。
+
+### 证据
+
+真实桌面平台、同一份 QML，先悬停再显示（`_animX/_animY` 已是正确值，窗口却不动）：
+
+```
+after-hover   : prewarmed=True popup=(0,0) animX=0.0 animY=0.0
+after-show    : popup=(0,0)   animX=1240.0 animY=582.0   ← 值对了，窗口不跟随
+nohover       : popup=(1240,582)                          ← 正确
+```
+
+该缺陷自 `e690e49c0`（2026-08-06，`perf: 延迟创建 TipPopup 原生窗口`）引入，与本文档第一至九节的定位修复**无关**：在定位修复前后逐位相同的 `(0,0)`。
+
+### 修复
+
+`prewarm()` 里对**主弹层**改用绑定恢复：
+
+```js
+_prewarmWindow(_popupWindow)
+_popupWindow.x = Qt.binding(function() { return control._animX })
+_popupWindow.y = Qt.binding(function() { return control._animY })
+if (_arrowWindow) _prewarmWindow(_arrowWindow)
+```
+
+箭头窗口（`TipPopup` 的 `arrowWindowLoader`）没有 `x/y` 绑定——它的位置由 `showAt(position)` 与 `_applyTrackedPosition()` 直接赋值驱动——所以**必须继续走原来的直接恢复**，不能被顺手改成绑定。`_prewarmWindow()` 因此保持原样，只服务箭头窗口。
+
+合同测试：`test_tip_popup_prewarm_restores_position_as_bindings`（同时锁定箭头窗口不得被改成绑定）。
+
+### 排查提示
+
+如果再次遇到"弹层位置不对"，先分清是哪一类：
+
+| 判别项 | 本问题（Qt.Tool 映射） | 预热切断绑定 |
+|---|---|---|
+| 偏差量 | 水平 −170、垂直 −504（= 窗口高度） | 直接落在 `(0,0)` |
+| 触发窗口类型 | 仅 `Qt.Tool` 宿主 | 任意宿主 |
+| 触发条件 | 无（显示即错） | 首次交互是悬停 |
+| 手动调 `show()` 的探针 | 能复现 | **测不出来**，必须先悬停 |

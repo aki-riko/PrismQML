@@ -93,7 +93,8 @@ Item {
         _prewarmed = true
 
         if (posHelper.hasArrow && arrowWindow) {
-            var arrowPos = posHelper.calculateArrowPosition(pos)
+            // Align arrow with the animated start 动画起点对齐箭头
+            var arrowPos = posHelper.calculateArrowPosition(startPos)
             arrowWindow.showAt(arrowPos)
         }
 
@@ -115,6 +116,15 @@ Item {
         if (!target || (_prewarmed && (!posHelper.hasArrow || _arrowWindow))) return
         if (!_ensureWindows()) return
         _prewarmWindow(_popupWindow)
+        // The main surface is driven by the x/y bindings to _animX/_animY. Parking it
+        // off-screen for the prewarm severs those bindings, and a plain value restore left
+        // the popup frozen at (0,0) for every caller that prewarms on hover before showing.
+        // The arrow window binds nothing, so it must keep the plain restore.
+        // 主表面由 x/y 到 _animX/_animY 的绑定驱动。预热把它停到屏幕外会切断绑定,
+        // 若只把值写回去,凡是先悬停预热再显示的调用方,弹层都会冻在 (0,0);
+        // 箭头窗口没有绑定,必须保持原来的直接恢复。
+        _popupWindow.x = Qt.binding(function() { return control._animX })
+        _popupWindow.y = Qt.binding(function() { return control._animY })
         if (_arrowWindow) _prewarmWindow(_arrowWindow)
         _prewarmed = true
     }
@@ -181,12 +191,14 @@ Item {
         var pos = posHelper.calculatePosition(resolvedPosition)
         _animX = pos.x
         _animY = pos.y
+        _syncArrowPosition()
+    }
 
-        if (posHelper.hasArrow && _arrowWindow) {
-            var arrowPos = posHelper.calculateArrowPosition(pos)
-            _arrowWindow.x = arrowPos.x
-            _arrowWindow.y = arrowPos.y
-        }
+    function _syncArrowPosition() {
+        if (!posHelper.hasArrow || !_arrowWindow) return
+        var arrowPos = posHelper.calculateArrowPosition(Qt.point(_animX, _animY))
+        _arrowWindow.x = arrowPos.x
+        _arrowWindow.y = arrowPos.y
     }
 
     function _triggerPrimaryAction() {
@@ -200,6 +212,10 @@ Item {
     }
 
     visible: false
+    // Sync native arrow with animated surface 同步原生箭头与动画表面
+    on_AnimXChanged: _syncArrowPosition()
+    on_AnimYChanged: _syncArrowPosition()
+
     // Runtime-created direct children are moved when the native surface exists.
     // 原生弹层存在后,运行时直接添加的子项也会被搬迁。
     onChildrenChanged: contentMover.moveContent()

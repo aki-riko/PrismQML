@@ -678,3 +678,16 @@ def test_tip_popup_resolves_target_position_outside_qtobject_helper():
     assert source.index("popupWindow.show(); popupWindow.raise(); popupWindow.requestActivate()") < source.index(
         "var pos = posHelper.calculatePosition(_resolveTargetGlobalPosition())"
     )
+
+
+def test_tip_popup_prewarm_restores_position_as_bindings():
+    entry = _source("prismqml/PrismQML/controls/feedback/Tooltip/TipPopup.qml")
+    source = entry.read_text(encoding="utf-8")
+
+    # 预热把主表面停到屏幕外时必须用绑定恢复 x/y:直接写值会移除绑定,凡是先悬停预热
+    # 再显示的调用方,弹层都会永久冻在 (0,0)(实测 dx=-1240 / dy=-582)。
+    assert "_popupWindow.x = Qt.binding(function() { return control._animX })" in source
+    assert "_popupWindow.y = Qt.binding(function() { return control._animY })" in source
+    # 箭头窗口的 x/y 没有绑定,必须保持原来的直接恢复,不能被顺手改成绑定。
+    assert "window.x = savedX" in source
+    assert "window.y = savedY" in source
