@@ -67,7 +67,9 @@ Item {
     property Item containerItem: directPages
     property Item currentWidget: _getCurrentWidget()
     readonly property var currentItem: _getCurrentItem()
-    readonly property bool busy: lazyHelperLoader.item ? lazyHelperLoader.item.isLoadingSwitching : false
+    readonly property bool busy: (lazyHelperLoader.item
+        ? Boolean(lazyHelperLoader.item.isLoadingSwitching) : false)
+        || animations.running
     property int previousIndex: 0
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1

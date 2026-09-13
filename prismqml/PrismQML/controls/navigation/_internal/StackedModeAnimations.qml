@@ -18,6 +18,8 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property bool _completed: false
     readonly property url _desiredSource: _sourceForType(control.animationType)
+    readonly property bool running: backendLoader.item
+        ? Boolean(backendLoader.item.running) : false
 
     // ==================== Signals 信号 ====================
     signal animationFinished(int currentIndex)
