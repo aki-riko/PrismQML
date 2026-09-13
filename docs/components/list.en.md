@@ -1,6 +1,6 @@
 # Component Cheat Sheet
 
-A quick index of all 193 QML types (including 6 singletons: `Enums`, `Translator`, `DpiManager`, `IconRendererResources`, `NotificationManager`, `PopupUtils`), grouped by category. See the [component overview](index.md) and the category pages for detailed usage.
+A quick index of all 194 QML types (including 6 singletons: `Enums`, `Translator`, `DpiManager`, `IconRendererResources`, `NotificationManager`, `PopupUtils`), grouped by category. See the [component overview](index.md) and the category pages for detailed usage.
 
 ## Core
 
@@ -20,7 +20,7 @@ A quick index of all 193 QML types (including 6 singletons: `Enums`, `Translator
 
 ## Containers
 
-`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
+`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
 
 ## Data
 

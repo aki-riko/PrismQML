@@ -75,6 +75,45 @@ Rectangle {
 - `Enums.ticket.*` — Vintage Ticket geometry and color tokens
 - `Enums.neumorphism.*` — Neumorphism geometry, shadow, and color tokens
 
+## Local skin scopes
+
+`SkinScope` changes the design language for only its subtree. It never calls
+`Enums.setSkin()` and never writes the user's global appearance configuration.
+Use it for an invitation, ticket, or embedded tool that should look different
+from the surrounding application:
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    id: inviteTicket
+    skin: "vintage_ticket"
+
+    Fluent.Card {
+        title: "Invitation"
+        Fluent.Button { text: "Copy" }
+    }
+}
+```
+
+- `skin` accepts the same four values as the global setting; an empty string
+  follows the nearest parent scope.
+- A scope inherits the global light/dark state and base accent, so it updates
+  when the application theme changes.
+- Card, Button, Label, Separator, TicketPaper, DialogBoxCore, ContentFrame,
+  PopupWindowCore, and button dropdown menus use the nearest scope automatically.
+- A popup or dialog declared outside the scope can receive its read-only
+  context explicitly:
+
+```qml
+Fluent.PopupWindowCore {
+    skinContext: inviteTicket.context
+}
+```
+
+`context` is only for cross-parent or cross-window handoff. Ordinary pages only
+need `SkinScope`.
+
 ## Architecture: token-driven, skins decoupled from components
 
 Skin switching is not done with `if neo` in every control — differences are **collapsed into the token layer**:

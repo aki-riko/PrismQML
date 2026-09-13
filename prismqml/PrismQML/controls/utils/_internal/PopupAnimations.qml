@@ -20,6 +20,7 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property alias showAnimation: showAnim
     property alias hideAnimation: hideAnim
+    readonly property var _skin: control.effectiveSkinContext
 
     // ==================== Content 内容 ====================
     ParallelAnimation {
@@ -32,7 +33,7 @@ Item {
             property: "opacity"
             from: 0
             to: 1
-            duration: Enums.popupMetrics.showOpacityDuration
+            duration: _skin.popupMetrics.showOpacityDuration
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
@@ -40,7 +41,7 @@ Item {
             property: "_clipHeight"
             from: 0
             to: animations.control.popupHeight
-            duration: Enums.popupMetrics.showRevealDuration
+            duration: _skin.popupMetrics.showRevealDuration
             easing.type: Easing.OutCubic
         }
     }
@@ -54,7 +55,7 @@ Item {
                 property: "opacity"
                 from: 1
                 to: 0
-                duration: Enums.popupMetrics.hideOpacityDuration
+                duration: _skin.popupMetrics.hideOpacityDuration
                 easing.type: Easing.InQuad
             }
             NumberAnimation {
@@ -62,7 +63,7 @@ Item {
                 property: "_clipHeight"
                 from: animations.control.popupHeight
                 to: 0
-                duration: Enums.popupMetrics.hideRevealDuration
+                duration: _skin.popupMetrics.hideRevealDuration
                 easing.type: Easing.InCubic
             }
         }

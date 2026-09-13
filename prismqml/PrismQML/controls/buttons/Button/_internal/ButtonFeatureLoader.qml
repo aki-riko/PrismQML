@@ -17,20 +17,21 @@ Loader {
     required property var button
     required property Item background
     required property bool mainHovered
+    readonly property var _skin: button.effectiveSkinContext
 
     anchors.fill: parent
     active: button._hasFeatureVisual || button._hasMenuFeature
     onLoaded: {
         if (button._hasMenuFeature
                 && (button.activeFocus
-                    || (button.feature === Enums.button.feature_dropdown
+                    || (button.feature === _skin.button.feature_dropdown
                         && mainHovered))) {
             button._prewarmMenu()
         }
     }
     sourceComponent: button._hasProgressBarFeature
                      ? progressFeatureComponent
-                     : (button.feature === Enums.button.feature_toggle
+                     : (button.feature === _skin.button.feature_toggle
                         ? toggleFeatureComponent
                         : (button._hasMenuFeature
                            ? dropdownComponent : null))
@@ -43,7 +44,7 @@ Loader {
 
             readonly property bool _progressLayerActive:
                 featureLoader.button.feature
-                    === Enums.button.feature_indeterminate_bar
+                    === _skin.button.feature_indeterminate_bar
                 || featureLoader.button.showProgress
 
             anchors.fill: parent
@@ -65,15 +66,16 @@ Loader {
                 layer.effect: MultiEffect {
                     maskEnabled: true
                     maskSource: progressMask
-                    maskThresholdMin: Enums.mask.thresholdMin
-                    maskSpreadAtMin: Enums.mask.spreadAtMin
+                    maskThresholdMin: _skin.mask.thresholdMin
+                    maskSpreadAtMin: _skin.mask.spreadAtMin
                 }
 
                 ButtonProgress {
+                    skinContext: _skin
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    height: Enums.border.thick
+                    height: _skin.border.thick
                     feature: featureLoader.button.feature
                     style: featureLoader.button.style
                     progress: featureLoader.button.progress
@@ -96,6 +98,7 @@ Loader {
         id: dropdownComponent
 
         ButtonDropdown {
+            skinContext: _skin
             isToolButton: featureLoader.button.isToolButton
             feature: featureLoader.button.feature
             menuItems: featureLoader.button._safeMenuItems

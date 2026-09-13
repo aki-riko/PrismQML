@@ -21,7 +21,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
-from prismqml import Skin, getSkin, register_types, setSkin
+from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -186,7 +186,7 @@ def _visibility_chain(item: QQuickItem) -> list[tuple[str, bool, float]]:
     return chain
 
 
-def _create_scene():
+def _create_scene(skin=None, theme=None):
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -194,6 +194,10 @@ def _create_scene():
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    if theme is not None:
+        setTheme(theme)
+    if skin is not None:
+        setSkin(skin)
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     for _ in range(50):
@@ -225,13 +229,16 @@ def _dispose_scene(engine, component, window) -> None:
 @pytest.fixture
 def ticket_scene(qapp):
     previous_skin = getSkin()
+    previous_theme = getTheme()
     windows_before = tuple(QGuiApplication.topLevelWindows())
-    setSkin(Skin.VINTAGE_TICKET)
-    engine, component, window, warnings = _create_scene()
+    engine, component, window, warnings = _create_scene(
+        Skin.VINTAGE_TICKET, Theme.LIGHT
+    )
     try:
         yield window, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
+        setTheme(previous_theme)
         setSkin(previous_skin)
         _pump()
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before

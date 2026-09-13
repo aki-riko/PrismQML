@@ -32,7 +32,7 @@ Fluent.Card { /* ... */ }
 | [Feedback](feedback.md) | ProgressBar · ProgressRing · Toast · InfoBar · ToolTip · Skeleton |
 | [Dialogs](dialogs.md) | MessageBox · ConfirmDialog · MaskedDialog · FlyoutSheet · ProgressDialog · PopupWindowCore |
 | [Navigation](navigation.md) | NavigationBar · NavigationView · TabWidget · Breadcrumb · PipsPager |
-| [Containers](containers.md) | FlowLayout · GridLayout · HBoxLayout · VBoxLayout · ScrollArea · Separator · GroupBox · Drawer · Timeline |
+| [Containers](containers.md) | SkinScope · FlowLayout · GridLayout · HBoxLayout · VBoxLayout · ScrollArea · Separator · GroupBox · Drawer · Timeline |
 | [Charts](charts.md) | ChartView (bar/line/pie, etc.) |
 | [Icons](icons.md) | Icon (built-in Fluent icon set) |
 | [Menus](menus.md) | ContextMenu · MenuBar |

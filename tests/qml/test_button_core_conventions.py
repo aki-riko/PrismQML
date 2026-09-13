@@ -101,15 +101,21 @@ def test_gradient_buttons_share_theme_bound_resource(button_core_scene):
     button_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
     surface_source = BUTTON_SURFACE_SOURCE.read_text(encoding="utf-8")
     enums_source = ENUMS_SOURCE.read_text(encoding="utf-8")
+    context_source = SKIN_CONTEXT_SOURCE.read_text(encoding="utf-8")
 
     assert gradient_a is gradient_b
     assert "property Gradient _gradientDef" not in button_source
-    assert "gradient: surface.buttonControl.style === Enums.button.style_gradient" in surface_source
-    assert "&& !Enums.isVintageTicket ? Enums._buttonGradientDef : null" in surface_source
-    assert "? Enums._buttonGradientDef : null" in surface_source
+    assert "gradient: surface.buttonControl.style === _skin.button.style_gradient" in surface_source
+    assert "&& !_skin.isVintageTicket ? _skin._buttonGradientDef : null" in surface_source
+    assert "? _skin._buttonGradientDef : null" in surface_source
+    # Global Enums keeps its original direct token tree. Local SkinContext owns
+    # a matching gradient so ButtonSurface can switch without global mutation.
+    # 全局 Enums 保持原有直接 token 树；局部 SkinContext 持有同构渐变，
+    # ButtonSurface 因此可以局部切换而不改全局状态。
+    assert "readonly property Gradient _buttonGradientDef: Gradient" in context_source
+    assert "color: Qt.lighter(root.accentColor, _button.gradientLighten)" in context_source
+    assert "color: root.accentColor" in context_source
     assert "readonly property Gradient _buttonGradientDef: Gradient" in enums_source
-    assert "color: Qt.lighter(root.accentColor, _button.gradientLighten)" in enums_source
-    assert "color: root.accentColor" in enums_source
     assert warnings == []
     assert _new_visible_windows(windows_before) == []
 

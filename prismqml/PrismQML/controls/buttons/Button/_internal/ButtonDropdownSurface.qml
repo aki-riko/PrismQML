@@ -14,6 +14,13 @@ Item {
 
     // ==================== Required Props 必需属性 ====================
     required property var dropdownControl
+    // Construction may evaluate child bindings before ButtonDropdown assigns
+    // its scope context. Start from global Enums, then accept the explicit
+    // context binding without producing a transient warning.
+    // 创建期可能先于 ButtonDropdown 注入范围上下文就求值子绑定。先回退全局 Enums，
+    // 随后再接收显式上下文绑定，避免瞬时空值警告。
+    property var skinContext: Enums
+    readonly property var _skin: skinContext || Enums
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool mainHovered: splitMainMouse.containsMouse
@@ -32,15 +39,15 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: splitLine.left
-        anchors.margins: Enums.spacing.micro
-        radius: Math.max(Enums.radius.none,
+        anchors.margins: surface._skin.spacing.micro
+        radius: Math.max(surface._skin.radius.none,
                          surface.dropdownControl.parentRadius - 1)
         color: splitMainMouse.pressed
                ? surface.dropdownControl._splitPressedColor
                : (splitMainMouse.containsMouse
                   ? surface.dropdownControl._splitHoverColor
                   : surface.dropdownControl._splitTransparent)
-        visible: surface.dropdownControl.feature === Enums.button.feature_split
+        visible: surface.dropdownControl.feature === surface._skin.button.feature_split
 
         HoverBehavior on color {
             active: splitMainMouse.containsMouse && !splitMainMouse.pressed
@@ -52,12 +59,13 @@ Item {
     Separator {
         id: splitLine
 
-        type: Enums.separator.vertical
+        skinContext: surface._skin
+        type: surface._skin.separator.vertical
         anchors.right: splitDropArea.left
         anchors.verticalCenter: parent.verticalCenter
-        lineLength: parent.height - Enums.spacing.l
+        lineLength: parent.height - surface._skin.spacing.l
         lineColor: surface.dropdownControl._separatorColor
-        visible: surface.dropdownControl.feature === Enums.button.feature_split
+        visible: surface.dropdownControl.feature === surface._skin.button.feature_split
     }
 
     // Split dropdown area 分离按钮下拉区域
@@ -67,16 +75,16 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.margins: Enums.spacing.micro
-        width: Enums.spacing.xxxl
-        radius: Math.max(Enums.radius.none,
+        anchors.margins: surface._skin.spacing.micro
+        width: surface._skin.spacing.xxxl
+        radius: Math.max(surface._skin.radius.none,
                          surface.dropdownControl.parentRadius - 1)
         color: splitDropMouse.pressed
                ? surface.dropdownControl._splitPressedColor
                : (splitDropMouse.containsMouse
                   ? surface.dropdownControl._splitHoverColor
                   : surface.dropdownControl._splitTransparent)
-        visible: surface.dropdownControl.feature === Enums.button.feature_split
+        visible: surface.dropdownControl.feature === surface._skin.button.feature_split
 
         HoverBehavior on color {
             active: splitDropMouse.containsMouse && !splitDropMouse.pressed
@@ -92,7 +100,7 @@ Item {
                       && !surface.dropdownControl.loading
             cursorShape: enabled
                          && surface.dropdownControl.parentStyle
-                            === Enums.button.style_hyperlink
+                            === surface._skin.button.style_hyperlink
                          ? Qt.PointingHandCursor : Qt.ArrowCursor
             onContainsMouseChanged: {
                 if (splitDropMouse.containsMouse)
@@ -107,26 +115,26 @@ Item {
         id: menuArrow
 
         anchors.centerIn: surface.dropdownControl.feature
-                          === Enums.button.feature_split
+                          === surface._skin.button.feature_split
                           ? splitDropArea : undefined
         anchors.right: surface.dropdownControl.feature
-                       === Enums.button.feature_dropdown
+                       === surface._skin.button.feature_dropdown
                        ? parent.right : undefined
         anchors.rightMargin: surface.dropdownControl.feature
-                             === Enums.button.feature_dropdown
-                             ? Enums.spacing.m : 0
+                             === surface._skin.button.feature_dropdown
+                             ? surface._skin.spacing.m : 0
         anchors.verticalCenter: surface.dropdownControl.feature
-                                === Enums.button.feature_dropdown
+                                === surface._skin.button.feature_dropdown
                                 ? parent.verticalCenter : undefined
         animated: true
         isOpen: (surface.dropdownControl.feature
-                 === Enums.button.feature_dropdown
+                 === surface._skin.button.feature_dropdown
                  && surface.dropdownControl.dropdownOpen)
                 || surface.dropdownControl.isMenuOpen
         color: surface.dropdownControl._arrowColor
-        visible: surface.dropdownControl.feature === Enums.button.feature_split
+        visible: surface.dropdownControl.feature === surface._skin.button.feature_split
                  || (surface.dropdownControl.feature
-                     === Enums.button.feature_dropdown
+                     === surface._skin.button.feature_dropdown
                      && surface.dropdownControl.showDropdownIndicator)
     }
 
@@ -139,11 +147,11 @@ Item {
         enabled: surface.dropdownControl.controlEnabled
                   && !surface.dropdownControl.loading
                   && surface.dropdownControl.feature
-                     === Enums.button.feature_split
-        visible: surface.dropdownControl.feature === Enums.button.feature_split
+                     === surface._skin.button.feature_split
+        visible: surface.dropdownControl.feature === surface._skin.button.feature_split
         cursorShape: enabled
                      && surface.dropdownControl.parentStyle
-                        === Enums.button.style_hyperlink
+                        === surface._skin.button.style_hyperlink
                      ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: surface.dropdownControl.mainButtonClicked()
     }

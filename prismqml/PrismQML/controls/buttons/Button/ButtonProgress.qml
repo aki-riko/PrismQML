@@ -16,27 +16,30 @@ Item {
     required property int style
     required property real progress
     required property bool showProgress
+    // Public component fallback: direct callers retain the global token set.
+    // 公开组件回退：直接调用方继续使用全局 token。
+    property var skinContext: Enums
     
     // ==================== Readonly State 只读状态 ====================
     // Color helpers shared with the ButtonContent ring 与 ButtonContent 圆环一致的颜色辅助
     // Primary/Filled/Gradient uses foreground color (white) Primary/Filled/Gradient使用前景色（白色）
-    readonly property bool _useForegroundColor: style === Enums.button.style_primary ||
-                                                style === Enums.button.style_filled ||
-                                                style === Enums.button.style_gradient
-    readonly property color _progressColor: _useForegroundColor ? Enums.accentForeground : Enums.accentColor
-    readonly property color _trackColor: _useForegroundColor ? Enums.stateColor.onAccentOverlay : Enums.stateColor.progressTrack
+    readonly property bool _useForegroundColor: style === skinContext.button.style_primary ||
+                                                style === skinContext.button.style_filled ||
+                                                style === skinContext.button.style_gradient
+    readonly property color _progressColor: _useForegroundColor ? skinContext.accentForeground : skinContext.accentColor
+    readonly property color _trackColor: _useForegroundColor ? skinContext.stateColor.onAccentOverlay : skinContext.stateColor.progressTrack
     
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.bottom: parent.bottom
-    height: Enums.border.thick
+    height: skinContext.border.thick
     
     // ==================== Content 内容 ====================
     // Progress bar 进度条
     Item {
         id: progressBar
         anchors.fill: parent
-        visible: feature === Enums.button.feature_progress_bar && progressFeature.showProgress
+        visible: feature === skinContext.button.feature_progress_bar && progressFeature.showProgress
 
         // Background track 背景轨道
         Rectangle {
@@ -61,7 +64,7 @@ Item {
         id: indeterminateBar
         anchors.fill: parent
         clip: true
-        visible: feature === Enums.button.feature_indeterminate_bar
+        visible: feature === skinContext.button.feature_indeterminate_bar
 
         // Background track 背景轨道
         Rectangle {

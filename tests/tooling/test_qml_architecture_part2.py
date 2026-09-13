@@ -68,9 +68,10 @@ def test_button_core_keeps_behavior_modularized():
 
     assert 'import "_internal" as ButtonInternal' in source
     assert 'import "_internal/ButtonLogic.js" as ButtonLogic' in source
-    assert "ButtonLogic.click(control, Enums)" in source
+    assert "readonly property var _skin: effectiveSkinContext" in source
+    assert "ButtonLogic.click(control, _skin)" in source
     assert "ButtonLogic.updateTargetColors(" in source
-    assert "ButtonLogic.prewarmMenu(control, Enums," in source
+    assert "ButtonLogic.prewarmMenu(control, _skin," in source
 
 def test_button_countdown_keeps_timer_component_modularized():
     entry = _source(

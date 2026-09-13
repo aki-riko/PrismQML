@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
+import "../../SkinResolver.js" as SkinResolver
 import "_internal" as DialogInternal
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
@@ -20,6 +21,11 @@ Item {
     id: control
     
     // ==================== Public Props 公开属性 ====================
+    // Explicit context is primarily for a dialog created outside the visual
+    // scope that owns its trigger. Ordinary dialogs resolve their nearest
+    // SkinScope automatically.
+    // 显式上下文主要用于对话框定义在触发范围外的情况；普通对话框自动解析最近 SkinScope。
+    property var skinContext: null
     property bool dismissOnScrimClick: false  // Close when overlay scrim is clicked 点击遮罩关闭
     property bool draggable: false              // Allow drag dialog 允许拖拽
     
@@ -31,9 +37,23 @@ Item {
     property Item overlayTarget: null
     
     // Mask color 遮罩颜色
-    property color maskColor: Enums.stateColor.maskHeavy
-    
+    property color maskColor: effectiveSkinContext.stateColor.maskHeavy
+
     // ==================== Internal Props 内部属性 ====================
+    property var _capturedSkinContext: null
+    readonly property var _nearestSkinContext:
+        (skinContext || _capturedSkinContext)
+        ? null : SkinResolver.nearestContext(parent)
+    readonly property var effectiveSkinContext:
+        skinContext || _capturedSkinContext || _nearestSkinContext || Enums
+    // Descendants retain only an explicit or captured context after the dialog
+    // body is reparented to Window.contentItem. Before opening, automatic
+    // children continue walking to their original SkinScope.
+    // 对话框主体重挂到 Window.contentItem 后，后代只保留显式或已捕获上下文；
+    // 打开前自动子项继续向上查找原始 SkinScope。
+    readonly property var _prismSkinScopeContext:
+        skinContext || _capturedSkinContext || null
+    readonly property var _skin: effectiveSkinContext
     property bool _isOpen: false
     property bool _isClosing: false
     property point _dragPos: Qt.point(0, 0)
@@ -48,6 +68,14 @@ Item {
 
     // Open dialog 打开对话框
     function open() {
+        // OverlayDialogCore intentionally stays under Window.contentItem after
+        // its first open. Capture before reparenting so later opens keep the
+        // originating scope instead of falling back to global Enums.
+        // OverlayDialogCore 首次打开后会留在 Window.contentItem 下；在重挂载前捕获，
+        // 后续打开才能继续使用来源范围而不是回退全局 Enums。
+        if (!skinContext && !_capturedSkinContext) {
+            _capturedSkinContext = effectiveSkinContext
+        }
         // Save original parent 保存原始父组件
         if (!_originalParent) {
             _originalParent = control.parent
@@ -123,7 +151,7 @@ Item {
 
     // Layout 布局
     anchors.fill: parent
-    z: Enums.zIndex.modal
+    z: _skin.zIndex.modal
     visible: _isOpen || _isClosing
 
     // ==================== Content 内容 ====================
@@ -133,14 +161,14 @@ Item {
         anchors.fill: parent
         // Keep the scrim below every derived overlay surface regardless of
         // QML inheritance order. 遮罩始终低于派生浮层主体，不受QML继承声明顺序影响。
-        z: Enums.zIndex.background
+        z: _skin.zIndex.background
         color: control.maskColor
         
         // Fade animation 淡入淡出动画
         opacity: control._isOpen ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
-                duration: control._isClosing ? Enums.duration.fast : Enums.duration.medium
+                duration: control._isClosing ? _skin.duration.fast : _skin.duration.medium
                 easing.type: control._isClosing ? Easing.Linear : Easing.InSine
             }
         }

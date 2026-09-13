@@ -17,7 +17,7 @@ Window {
     height: popupControl._outerHeight
     visible: false
     flags: Qt.ToolTip | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
-    color: Enums.transparent
+    color: popupControl.effectiveSkinContext.transparent
     onVisibleChanged: {
         if (visible && popupControl.stealFocus) keyHandler.forceActiveFocus()
         if (!visible) popupControl._handleSurfaceClosed()

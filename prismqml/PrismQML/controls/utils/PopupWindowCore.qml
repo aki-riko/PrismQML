@@ -17,37 +17,38 @@ Item {
     id: control
     
     // ==================== Public Props 公开属性 ====================
+    // The internal bridge captures the trigger context before the popup surface
+    // moves to a native window. 内部桥接会在弹层表面移动到原生窗口前捕获触发方上下文。
+    property alias skinContext: skinContextState.skinContext
+    readonly property alias effectiveSkinContext: skinContextState.effectiveSkinContext
+    readonly property alias _skin: skinContextState.effectiveSkinContext
+    readonly property alias _prismSkinScopeContext: skinContextState.effectiveSkinContext
     property bool isOpen: false
     property bool isClosing: false  // Closing flag, prevent quick reopen 关闭标志
-    property int contentPadding: Enums.spacing.xs  // Core-owned panel padding 基类统一管理的面板内边距
+    property int contentPadding: _skin.spacing.xs  // Core-owned panel padding 基类统一管理的面板内边距
     // Preferred content size drives the panel size unless popupWidth/popupHeight is overridden.
     // 首选内容尺寸自动推导面板尺寸；显式设置 popupWidth/popupHeight 时以外框尺寸为准。
-    property int implicitContentWidth: Math.max(
-        0, Enums.popupMetrics.defaultSize - 2 * contentPadding)
-    property int implicitContentHeight: Math.max(
-        0, Enums.popupMetrics.defaultSize - 2 * contentPadding)
+    property int implicitContentWidth: Math.max(0, _skin.popupMetrics.defaultSize - 2 * contentPadding)
+    property int implicitContentHeight: Math.max(0, _skin.popupMetrics.defaultSize - 2 * contentPadding)
     property int popupWidth: implicitContentWidth + 2 * contentPadding
     property int popupHeight: implicitContentHeight + 2 * contentPadding
     // Actual content viewport after applying the panel padding. 应用面板内边距后的真实内容视口。
-    readonly property int availableContentWidth: Math.max(
-        0, popupWidth - 2 * contentPadding)
-    readonly property int availableContentHeight: Math.max(
-        0, popupHeight - 2 * contentPadding)
-    property int popupRadius: Enums.surfaceRadius(Enums.radius.large)
+    readonly property int availableContentWidth: Math.max(0, popupWidth - 2 * contentPadding)
+    readonly property int availableContentHeight: Math.max(0, popupHeight - 2 * contentPadding)
+    property int popupRadius: _skin.surfaceRadius(_skin.radius.large)
     property int shadowRadius: popupRadius
-    readonly property color _popupBackground: Enums.cardColor
-    readonly property real _popupBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
-    readonly property color _popupBorderColor: Enums.stateColor.border
-    readonly property color _popupShadowColor: Enums.shadow.level8.color
-    readonly property int _popupShadowBlur: Enums.shadow.level8.blur
-    readonly property int _popupShadowOffset: Enums.shadow.level8.offset
-    readonly property real _popupNeumorphicShadowBlur: Enums.neumorphism.popupShadowBlur
-    readonly property real _popupNeumorphicShadowOffset: Enums.neumorphism.popupShadowOffset
-    readonly property real _popupNeumorphicShadowSpread: Enums.neumorphism.popupShadowSpread
+    readonly property color _popupBackground: _skin.cardColor
+    readonly property real _popupBorderWidth: _skin.surfaceBorderWidth(_skin.border.thin)
+    readonly property color _popupBorderColor: _skin.stateColor.border
+    readonly property color _popupShadowColor: _skin.shadow.level8.color
+    readonly property int _popupShadowBlur: _skin.shadow.level8.blur
+    readonly property int _popupShadowOffset: _skin.shadow.level8.offset
+    readonly property real _popupNeumorphicShadowBlur: _skin.neumorphism.popupShadowBlur
+    readonly property real _popupNeumorphicShadowOffset: _skin.neumorphism.popupShadowOffset
+    readonly property real _popupNeumorphicShadowSpread: _skin.neumorphism.popupShadowSpread
     // The panel inset and native surface size must follow the active shadow contract.
     // 面板内缩与原生表面尺寸必须跟随当前阴影合同。
-    readonly property real _panelOffset: Enums.isNeumorphism
-        ? Enums.neumorphism.popupShadowMargin : Enums.popupMetrics.panelOffset
+    readonly property real _panelOffset: _skin.isNeumorphism ? _skin.neumorphism.popupShadowMargin : _skin.popupMetrics.panelOffset
     property bool modal: false
     property bool closeOnClickOutside: true
     property bool stealFocus: true  // Whether to steal focus when opening 打开时是否抢夺焦点
@@ -82,12 +83,9 @@ Item {
     readonly property Item _inlineParent: _targetWindow ? _targetWindow.contentItem : null
     readonly property bool _usesControlsPopup: useInWindowPopup || useQtPopupWindow
     readonly property var _popupWindow: popupWindowLoader.item
-    readonly property int _outerWidth: Math.max(
-        Enums.popupMetrics.minWidth, Math.ceil(popupWidth + 2 * _panelOffset))
-    readonly property int _outerHeight: Math.max(
-        Enums.popupMetrics.minHeight, Math.ceil(popupHeight + 2 * _panelOffset))
-    readonly property bool _surfaceVisible: _usesControlsPopup
-        ? (inlinePopup ? inlinePopup.visible : false) : (_popupWindow ? _popupWindow.visible : false)
+    readonly property int _outerWidth: Math.max(_skin.popupMetrics.minWidth, Math.ceil(popupWidth + 2 * _panelOffset))
+    readonly property int _outerHeight: Math.max(_skin.popupMetrics.minHeight, Math.ceil(popupHeight + 2 * _panelOffset))
+    readonly property bool _surfaceVisible: _usesControlsPopup ? (inlinePopup ? inlinePopup.visible : false) : (_popupWindow ? _popupWindow.visible : false)
 
     // Popup content 弹出内容
     default property alias popupContent: popupSurface.popupContent
@@ -117,7 +115,7 @@ Item {
     }
 
     function _calcSubmenuPosition() {
-        return PopupPositioning.calcSubmenuPosition(control, Qt, Enums)
+        return PopupPositioning.calcSubmenuPosition(control, Qt, _skin)
     }
 
     // Prewarm the native window handle: the first Windows show() blocks ~170ms 预热 native window handle —— 第一次 show() 在 Windows 上会同步阻塞
@@ -192,7 +190,7 @@ Item {
         popupAnimations.hideAnimation.stop()
         _clipHeight = 0
         _shadowVisible = false
-        popupSurface.opacity = Enums.opacityLevel.invisible
+        popupSurface.opacity = _skin.opacityLevel.invisible
     }
     function _handleSurfaceClosed() {
         PopupLifecycle.handleSurfaceClosed(control)
@@ -277,7 +275,7 @@ Item {
         if (!targetCtrl) return
         _submenuPlacement = false
         targetControl = targetCtrl
-        var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + Enums.popupMetrics.controlGap)
+        var pos = targetCtrl.mapToGlobal(0, targetCtrl.height + _skin.popupMetrics.controlGap)
         // Align standard control popups by their left edges. 标准控件弹层统一左边缘对齐
         open(pos.x - _panelOffset, pos.y - _panelOffset)
     }
@@ -294,7 +292,7 @@ Item {
     // Internal: calculate picker position 内部：计算Picker位置
     function _calcPickerPosition(targetCtrl, rowHeight) {
         return PopupPositioning.calcPickerPosition(
-            control, targetCtrl, Qt, Enums, Screen)
+            control, targetCtrl, Qt, _skin, Screen)
     }
     function openAtMouse() {
         // Get cursor position from Qt.application 从Qt.application获取光标位置
@@ -320,6 +318,7 @@ Item {
         if (mouseX !== undefined && mouseY !== undefined) {
             var sourceItem = triggerItem || control.parent
             if (sourceItem && sourceItem.mapToGlobal) {
+                if (!targetControl) targetControl = sourceItem
                 var globalPos = sourceItem.mapToGlobal(mouseX, mouseY)
                 open(globalPos.x, globalPos.y)
                 return
@@ -371,10 +370,15 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _applyTrackedPosition(currentGlobalPos) {
         PopupPositioning.applyTrackedPosition(
-            control, inlinePopup, currentGlobalPos, Qt, Enums, Screen)
+            control, inlinePopup, currentGlobalPos, Qt, _skin, Screen)
     }
-    
+
     // ==================== Content 内容 ====================
+    PopupSkinContext {
+        id: skinContextState
+        host: control
+    }
+
     PopupPrewarmTimer {
         id: prewarmTimer
         host: control
@@ -399,7 +403,7 @@ Item {
         target: control.targetControl
         targetWindow: control._targetWindow
         trackingEnabled: control.isOpen
-        positionEpsilon: Enums.popupMetrics.positionEpsilon
+        positionEpsilon: _skin.popupMetrics.positionEpsilon
         onTargetMoved: (globalPosition) => control._applyTrackedPosition(globalPosition)
         onTargetOutOfView: control.close()
     }
@@ -410,7 +414,7 @@ Item {
         parent: control._inlineParent ? control._inlineParent : control
         width: control._outerWidth
         height: control._outerHeight
-        padding: Enums.spacing.none
+        padding: _skin.spacing.none
         // Preserve the requested anchor instead of centering an oversized popup.
         // 保持请求的锚点，避免超宽弹层被 Qt 自动居中后发生水平漂移。
         margins: -1
@@ -468,6 +472,7 @@ Item {
     PopupSurface {
         id: popupSurface
 
+        skinContext: control.effectiveSkinContext
         _interactionHost: control
         parent: control._usesControlsPopup
             ? inlinePopupContent

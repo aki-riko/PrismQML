@@ -126,6 +126,27 @@ Rectangle {
 }
 ```
 
+### 局部皮肤范围
+
+全局保持 Fluent 时，可以只让一块内容使用另一种设计语言，不会调用
+`setSkin()`，也不会修改用户保存的外观设置：
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    skin: "vintage_ticket"
+
+    Fluent.Card {
+        Fluent.Button { text: "复制邀请" }
+    }
+}
+```
+
+`SkinScope` 继承全局明暗和基础强调色；空 `skin` 跟随最近父范围。卡片、按钮、
+标签、分隔线、票据纸纹、对话框和 popup 会自动继承。定义在范围外的 popup 可显式
+传入 `skinContext: scope.context`。
+
 **架构亮点**：皮肤差异收敛在 token 层（颜色 / 几何 / 阴影），控件本身对皮肤无感知。
 新增皮肤主要扩展 token，只在阴影或交互几何确有差异时增加结构分支。
 

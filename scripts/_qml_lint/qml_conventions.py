@@ -144,7 +144,14 @@ class Frame:
 
 
 def _is_data_resource(path: PurePosixPath) -> bool:
-    return path.name == "Enums.qml" or "PrismEnums" in path.parts
+    # SkinContext is the token assembly behind Enums and SkinScope, so it owns
+    # the isDark / fontFamily inputs instead of proxying them from Enums.
+    # SkinContext 是 Enums 与 SkinScope 背后的 token 装配体，它本身就是
+    # isDark / fontFamily 输入的定义者，而不是从 Enums 代理。
+    return (
+        path.name in {"Enums.qml", "SkinContext.qml"}
+        or "PrismEnums" in path.parts
+    )
 
 
 def _violation(

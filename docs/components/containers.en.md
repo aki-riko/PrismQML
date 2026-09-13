@@ -8,6 +8,24 @@ Layout and container controls.
 - `SplitPane` — draggable split panel
 - `ScrollArea` — scroll area (smooth scrolling + custom scrollbar)
 
+## SkinScope
+
+Apply a different design language to one subtree while preserving the global
+skin and user configuration:
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    skin: "vintage_ticket"
+    Fluent.Card { }
+}
+```
+
+An empty `skin` follows the nearest parent scope. Most content needs no manual
+token wiring; use `skinContext: scope.context` only when a popup or dialog is
+declared outside the scope.
+
 ## Separator
 
 ```qml

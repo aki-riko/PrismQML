@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "../../../SkinResolver.js" as SkinResolver
 
 // Label - Unified label component 统一标签组件
 // Usage: Label { type: Enums.label.type_body; text: "Hello" }
@@ -12,17 +13,21 @@ Text {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property int type: Enums.label.type_body  // Default body type 默认正文类型
+    property var skinContext: null
+    property int type: effectiveSkinContext.label.type_body  // Default body type 默认正文类型
     property url url: ""
     property bool underlineOnHover: true  // Show underline only on hover by default 默认仅悬停时显示下划线
     // Custom text color 自定义文本颜色
-    property color customTextColor: Enums.transparent
+    property color customTextColor: effectiveSkinContext.transparent
 
     // ==================== Internal Props 内部属性 ====================
-    property bool _useCustomColor: customTextColor != Enums.transparent
+    property var _nearestSkinContext: null
+    property bool _useCustomColor: customTextColor != effectiveSkinContext.transparent
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool _isHyperlink: type === Enums.label.type_hyperlink
+    readonly property var effectiveSkinContext:
+        skinContext || _nearestSkinContext || Enums
+    readonly property bool _isHyperlink: type === effectiveSkinContext.label.type_hyperlink
     readonly property bool hovered: _mouseArea.item
         ? _mouseArea.item.containsMouse
         : false
@@ -31,35 +36,35 @@ Text {
         : false
     readonly property int _fontSize: {
         switch (type) {
-            case Enums.label.type_body:
-            case Enums.label.type_body_strong:
-            case Enums.label.type_hyperlink:
-                return Enums.typography.body
-            case Enums.label.type_body_small:
-                return Enums.typography.bodySmall
-            case Enums.label.type_caption:
-                return Enums.typography.caption
-            case Enums.label.type_subtitle:
-                return Enums.typography.titleLarge
-            case Enums.label.type_title:
-                return Enums.typography.displayLarge
-            case Enums.label.type_title_large:
-                return Enums.typography.giant
-            case Enums.label.type_display:
-                return Enums.typography.mega
+            case effectiveSkinContext.label.type_body:
+            case effectiveSkinContext.label.type_body_strong:
+            case effectiveSkinContext.label.type_hyperlink:
+                return effectiveSkinContext.typography.body
+            case effectiveSkinContext.label.type_body_small:
+                return effectiveSkinContext.typography.bodySmall
+            case effectiveSkinContext.label.type_caption:
+                return effectiveSkinContext.typography.caption
+            case effectiveSkinContext.label.type_subtitle:
+                return effectiveSkinContext.typography.titleLarge
+            case effectiveSkinContext.label.type_title:
+                return effectiveSkinContext.typography.displayLarge
+            case effectiveSkinContext.label.type_title_large:
+                return effectiveSkinContext.typography.giant
+            case effectiveSkinContext.label.type_display:
+                return effectiveSkinContext.typography.mega
             default:
-                return Enums.typography.body
+                return effectiveSkinContext.typography.body
         }
     }
     
     readonly property int _fontWeight: {
         switch (type) {
-            case Enums.label.type_body_strong:
-            case Enums.label.type_subtitle:
-            case Enums.label.type_title:
-            case Enums.label.type_title_large:
+            case effectiveSkinContext.label.type_body_strong:
+            case effectiveSkinContext.label.type_subtitle:
+            case effectiveSkinContext.label.type_title:
+            case effectiveSkinContext.label.type_title_large:
                 return Font.DemiBold
-            case Enums.label.type_display:
+            case effectiveSkinContext.label.type_display:
                 return Font.Bold
             default:
                 return Font.Normal
@@ -69,16 +74,16 @@ Text {
     readonly property color _textColor: {
         if (_useCustomColor) return customTextColor
         switch (type) {
-            case Enums.label.type_hyperlink:
-                return Enums.accentColor
-            case Enums.label.type_caption:
-                return Enums.textColor.secondary
-            case Enums.label.type_body:
-            case Enums.label.type_body_strong:
-            case Enums.label.type_body_small:
-                return Enums.stateColor.textStrong
+            case effectiveSkinContext.label.type_hyperlink:
+                return effectiveSkinContext.accentColor
+            case effectiveSkinContext.label.type_caption:
+                return effectiveSkinContext.textColor.secondary
+            case effectiveSkinContext.label.type_body:
+            case effectiveSkinContext.label.type_body_strong:
+            case effectiveSkinContext.label.type_body_small:
+                return effectiveSkinContext.stateColor.textStrong
             default:
-                return Enums.textColor.primary
+                return effectiveSkinContext.textColor.primary
         }
     }
 
@@ -87,12 +92,12 @@ Text {
         if (pressed) {
             return _useCustomColor
                 ? Qt.darker(_textColor, 1.12)
-                : Enums.accentColorDark
+                : effectiveSkinContext.accentColorDark
         }
         if (hovered) {
             return _useCustomColor
                 ? Qt.lighter(_textColor, 1.08)
-                : Enums.accentColorLight
+                : effectiveSkinContext.accentColorLight
         }
         return _textColor
     }
@@ -111,15 +116,27 @@ Text {
     // Set word wrap 设置自动换行
     function setWordWrap(wrap) { wrapMode = wrap ? Text.WordWrap : Text.NoWrap }
 
+    function _resolveSkinContext() {
+        if (skinContext) {
+            _nearestSkinContext = null
+            return
+        }
+        _nearestSkinContext = SkinResolver.nearestContext(parent)
+    }
+
     // Style bindings 样式绑定
-    font.family: Enums.fontFamily
+    font.family: effectiveSkinContext.fontFamily
     font.pixelSize: _fontSize
     font.weight: _fontWeight
     font.underline: _isHyperlink && (!underlineOnHover || hovered)
     color: _interactiveTextColor
-    wrapMode: (type === Enums.label.type_body || type === Enums.label.type_body_strong || type === Enums.label.type_body_small)
+    wrapMode: (type === effectiveSkinContext.label.type_body || type === effectiveSkinContext.label.type_body_strong || type === effectiveSkinContext.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap
-    elide: type === Enums.label.type_display ? Text.ElideRight : Text.ElideNone
+    elide: type === effectiveSkinContext.label.type_display ? Text.ElideRight : Text.ElideNone
+
+    onParentChanged: _resolveSkinContext()
+    onSkinContextChanged: _resolveSkinContext()
+    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     // Hyperlink interaction 超链接交互

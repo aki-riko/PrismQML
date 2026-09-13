@@ -32,15 +32,15 @@ OverlayDialogCore {
     default property alias bodyContent: bodyLayout.data
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _dialogRadius: Enums.surfaceRadius(Enums.radius.dialog)
-    readonly property color _dialogBackground: Enums.dialogColor
-    readonly property real _dialogBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
-    readonly property color _dialogBorderColor: Enums.stateColor.dialogBorder
-    readonly property color _dialogMaskColor: Enums.stateColor.dialogOverlay
-    readonly property color _actionsRowBackground: Enums.stateColor.actionsRowBg
-    readonly property color _dialogShadowColor: Enums.shadow.level16.color
-    readonly property real _dialogShadowBlur: Enums.shadow.level16.blur
-    readonly property real _dialogShadowOffset: Enums.shadow.level16.offset
+    readonly property int _dialogRadius: _skin.surfaceRadius(_skin.radius.dialog)
+    readonly property color _dialogBackground: _skin.dialogColor
+    readonly property real _dialogBorderWidth: _skin.surfaceBorderWidth(_skin.border.thin)
+    readonly property color _dialogBorderColor: _skin.stateColor.dialogBorder
+    readonly property color _dialogMaskColor: _skin.stateColor.dialogOverlay
+    readonly property color _actionsRowBackground: _skin.stateColor.actionsRowBg
+    readonly property color _dialogShadowColor: _skin.shadow.level16.color
+    readonly property real _dialogShadowBlur: _skin.shadow.level16.blur
+    readonly property real _dialogShadowOffset: _skin.shadow.level16.offset
 
     // ==================== Public Methods 公开方法 ====================
 
@@ -101,12 +101,12 @@ OverlayDialogCore {
             offset.y: control._dialogShadowOffset
             opacity: dialogBody.opacity
             scale: dialogBody.scale
-            visible: Enums.usesSoftElevation && !Enums.isNeumorphism
+            visible: _skin.usesSoftElevation && !_skin.isNeumorphism
         }
 
         NeumorphicShadow {
             target: dialogBody
-            visible: Enums.isNeumorphism
+            visible: _skin.isNeumorphism
             opacity: dialogBody.opacity
             scale: dialogBody.scale
             transformOrigin: dialogBody.transformOrigin
@@ -115,7 +115,7 @@ OverlayDialogCore {
 
         NeoShadow {
             target: dialogBody
-            visible: Enums.isNeobrutalism
+            visible: _skin.isNeobrutalism
             opacity: dialogBody.opacity
             scale: dialogBody.scale
             transformOrigin: dialogBody.transformOrigin
@@ -140,17 +140,18 @@ OverlayDialogCore {
 
             TicketPaper {
                 anchors.fill: parent
+                skinContext: control.effectiveSkinContext
             }
             
             Behavior on scale { 
                 NumberAnimation { 
-                    duration: Enums.duration.medium
+                    duration: _skin.duration.medium
                     easing.type: control._isClosing ? Easing.InBack : Easing.OutBack
                 } 
             }
             Behavior on opacity { 
                 NumberAnimation { 
-                    duration: Enums.duration.medium
+                    duration: _skin.duration.medium
                     onRunningChanged: {
                         // Hide after close animation finishes 关闭动画完成后隐藏
                         if (!running && control._isClosing) {
@@ -165,7 +166,7 @@ OverlayDialogCore {
             // Also clear input focus when clicking blank area 同时在点击空白处清除输入焦点
             MouseArea {
                 anchors.fill: parent
-                z: Enums.zIndex.base  // Below content 在内容层之下
+                z: _skin.zIndex.base  // Below content 在内容层之下
                 onClicked: parent.forceActiveFocus()
             }
 
@@ -201,7 +202,7 @@ OverlayDialogCore {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: actionsRow.top
-                anchors.margins: Enums.spacing.xxxl
+                anchors.margins: _skin.spacing.xxxl
                 
                 // Prefer the explicit contentWidth to break the childrenRect binding loop;
                 // fall back to childrenRect when unset (contentWidth <= 0).
@@ -216,7 +217,7 @@ OverlayDialogCore {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                height: control.actionsVisible ? Enums.dialog.actionsRowHeight : 0
+                height: control.actionsVisible ? _skin.dialog.actionsRowHeight : 0
                 visible: control.actionsVisible
                 
                 // Background color 背景色
@@ -224,6 +225,7 @@ OverlayDialogCore {
                 
                 // Top border 顶部边框
                 Separator {
+                    skinContext: control.effectiveSkinContext
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -251,12 +253,12 @@ OverlayDialogCore {
     Binding {
         target: dialogBodyContainer
         property: "width"
-        value: Math.max(Enums.dialog.minWidth, bodyLayout.implicitWidth + Enums.dialog.contentPadding)
+        value: Math.max(_skin.dialog.minWidth, bodyLayout.implicitWidth + _skin.dialog.contentPadding)
     }
     Binding {
         target: dialogBodyContainer
         property: "height"
-        value: bodyLayout.implicitHeight + actionsRow.height + Enums.dialog.contentPadding
+        value: bodyLayout.implicitHeight + actionsRow.height + _skin.dialog.contentPadding
     }
 
 }

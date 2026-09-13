@@ -117,6 +117,29 @@ setSkin(Skin.VINTAGE_TICKET)  # Vintage Ticket
 setSkin(Skin.NEUMORPHISM)     # Neumorphism
 ```
 
+### Local skin scopes
+
+Keep the application globally Fluent while applying another design language to
+one subtree. `SkinScope` never calls `setSkin()` and never changes the user's
+saved appearance:
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    skin: "vintage_ticket"
+
+    Fluent.Card {
+        Fluent.Button { text: "Copy invite" }
+    }
+}
+```
+
+`SkinScope` inherits the global light/dark state and base accent. An empty
+`skin` follows the nearest parent scope. Cards, buttons, labels, separators,
+ticket paper, dialogs, and popups inherit automatically. A popup declared
+outside the scope can receive `skinContext: scope.context` explicitly.
+
 ## 🌗 Theme System
 
 ### Switching themes

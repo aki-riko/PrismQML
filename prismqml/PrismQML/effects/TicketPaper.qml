@@ -5,24 +5,47 @@
 import QtQuick
 import QtQuick.Effects
 import ".."
+import "../SkinResolver.js" as SkinResolver
 
 // TicketPaper - Tiled security-paper texture 平铺防伪票据纸纹
 Item {
     id: control
 
     // ==================== Public Props 公开属性 ====================
-    property color inkColor: Enums.ticket.dividerColor
-    property real patternOpacity: Enums.opacityLevel.faint
+    // Ordinary children find their nearest scope automatically. Reparented
+    // popup/dialog surfaces may pass their captured context explicitly.
+    // 普通子项自动查找最近范围；跨窗口重挂载的弹层和对话框可显式传入已捕获上下文。
+    property var skinContext: null
+    property color inkColor: effectiveSkinContext.ticket.dividerColor
+    property real patternOpacity: effectiveSkinContext.opacityLevel.faint
     property real patternOriginX: 0
     property real patternOriginY: 0
 
     // ==================== Readonly State 只读状态 ====================
+    readonly property var effectiveSkinContext:
+        skinContext || _nearestSkinContext || Enums
     readonly property real _patternSourceX: -Math.max(0, patternOriginX)
     readonly property real _patternSourceY: -Math.max(0, patternOriginY)
 
-    visible: Enums.isVintageTicket
+    // ==================== Internal Props 内部属性 ====================
+    property var _nearestSkinContext: null
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _resolveSkinContext() {
+        if (skinContext) {
+            _nearestSkinContext = null
+            return
+        }
+        _nearestSkinContext = SkinResolver.nearestContext(parent)
+    }
+
+    visible: effectiveSkinContext.isVintageTicket
     opacity: patternOpacity
     clip: true
+
+    onParentChanged: _resolveSkinContext()
+    onSkinContextChanged: _resolveSkinContext()
+    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     Item {

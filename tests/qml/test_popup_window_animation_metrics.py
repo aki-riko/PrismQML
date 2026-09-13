@@ -303,12 +303,13 @@ def test_popup_window_animation_source_uses_role_tokens():
     ):
         assert declaration in metrics_block
     for binding in (
-        "duration: Enums.popupMetrics.showOpacityDuration",
-        "duration: Enums.popupMetrics.showRevealDuration",
-        "duration: Enums.popupMetrics.hideOpacityDuration",
-        "duration: Enums.popupMetrics.hideRevealDuration",
+        "duration: _skin.popupMetrics.showOpacityDuration",
+        "duration: _skin.popupMetrics.showRevealDuration",
+        "duration: _skin.popupMetrics.hideOpacityDuration",
+        "duration: _skin.popupMetrics.hideRevealDuration",
     ):
         assert binding in animation_block
+    assert "readonly property var _skin: control.effectiveSkinContext" in animation_block
     for legacy_name in ("fadeInDuration", "settleDuration", "hideDuration"):
         assert legacy_name not in metrics_block
     assert (

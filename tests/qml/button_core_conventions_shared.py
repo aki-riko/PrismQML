@@ -44,6 +44,10 @@ BUTTON_CORE_SOURCE = (
 
 ENUMS_SOURCE = ROOT / "prismqml" / "PrismQML" / "Enums.qml"
 
+# Theme tokens are assembled by SkinContext; Enums only owns the global instance.
+# 主题 token 由 SkinContext 装配；Enums 只持有全局实例。
+SKIN_CONTEXT_SOURCE = ROOT / "prismqml" / "PrismQML" / "SkinContext.qml"
+
 BUTTON_STYLE_HELPER_SOURCE = BUTTON_CORE_SOURCE.with_name("ButtonStyleHelper.qml")
 
 BUTTON_SURFACE_SOURCE = BUTTON_CORE_SOURCE.parent / "_internal" / "ButtonSurface.qml"

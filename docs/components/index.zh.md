@@ -30,7 +30,7 @@ Fluent.Card { /* ... */ }
 | [反馈](feedback.md) | ProgressBar · ProgressRing · Toast · InfoBar · ToolTip · Skeleton |
 | [弹层](dialogs.md) | MessageBox · ConfirmDialog · MaskedDialog · FlyoutSheet · ProgressDialog · PopupWindowCore |
 | [导航](navigation.md) | NavigationBar · NavigationView · TabWidget · Breadcrumb · PipsPager |
-| [容器](containers.md) | FlowLayout · GridLayout · HBoxLayout · VBoxLayout · ScrollArea · Separator · GroupBox · Drawer · Timeline |
+| [容器](containers.md) | SkinScope · FlowLayout · GridLayout · HBoxLayout · VBoxLayout · ScrollArea · Separator · GroupBox · Drawer · Timeline |
 | [图表](charts.md) | ChartView（柱状/折线/饼图等） |
 | [图标](icons.md) | Icon（内置 Fluent 图标集） |
 | [菜单](menus.md) | ContextMenu · MenuBar |

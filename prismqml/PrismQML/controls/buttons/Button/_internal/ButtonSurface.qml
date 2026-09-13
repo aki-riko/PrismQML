@@ -15,6 +15,7 @@ Item {
 
     // ==================== Required Props 必需属性 ====================
     required property var buttonControl
+    readonly property var _skin: buttonControl.effectiveSkinContext
 
     // ==================== Public Props 公开属性 ====================
     property alias background: background
@@ -35,12 +36,12 @@ Item {
     RectangularShadow {
         anchors.fill: background
         radius: background.radius
-        color: Enums.shadow.level2.color
-        blur: Enums.shadow.level2.blur
+        color: _skin.shadow.level2.color
+        blur: _skin.shadow.level2.blur
         offset.x: 0
-        offset.y: Enums.shadow.level2.offset
-        visible: !surface.buttonControl.flat && Enums.usesSoftElevation
-                 && !Enums.isNeumorphism && !Enums.isNeumorphism
+        offset.y: _skin.shadow.level2.offset
+        visible: !surface.buttonControl.flat && _skin.usesSoftElevation
+                 && !_skin.isNeumorphism && !_skin.isNeumorphism
     }
 
     // Neumorphic shadow surface 新拟态阴影表面
@@ -48,14 +49,14 @@ Item {
         target: background
         inset: surface.buttonControl.pressed
         pressed: surface.buttonControl.pressed
-        visible: !surface.buttonControl.flat && Enums.isNeumorphism
+        visible: !surface.buttonControl.flat && _skin.isNeumorphism
         z: background.z - 1
     }
 
     // Lazy Neo shadow surface 懒加载 Neo 阴影表面
     Loader {
         id: neoShadowLoader
-        active: Enums.isNeobrutalism && !surface.buttonControl.flat
+        active: _skin.isNeobrutalism && !surface.buttonControl.flat
         z: background.z - 1
 
         sourceComponent: ButtonNeoShadow {
@@ -71,13 +72,13 @@ Item {
         anchors.fill: parent
         radius: surface.buttonControl.radius
         color: surface.buttonControl._animatedBgColor
-        border.width: surface.buttonControl.flat ? 0 : Enums.surfaceBorderWidth(
+        border.width: surface.buttonControl.flat ? 0 : _skin.surfaceBorderWidth(
             (surface.buttonControl._styleToggleChecked
-             && surface.buttonControl.style === Enums.button.style_primary)
-                ? Enums.border.normal : Enums.border.thin)
+             && surface.buttonControl.style === _skin.button.style_primary)
+                ? _skin.border.normal : _skin.border.thin)
         border.color: surface.buttonControl._animatedBorderColor
-        gradient: surface.buttonControl.style === Enums.button.style_gradient
-                  && !Enums.isVintageTicket ? Enums._buttonGradientDef : null
+        gradient: surface.buttonControl.style === _skin.button.style_gradient
+                  && !_skin.isVintageTicket ? _skin._buttonGradientDef : null
         transform: surface.pressTransform
     }
 
@@ -88,7 +89,7 @@ Item {
         target: surface.buttonControl
         property: "_animatedBgColor"
         to: surface.buttonControl._targetBgColor
-        duration: Enums.duration.medium
+        duration: _skin.duration.medium
         easing.type: Easing.InOutCubic
     }
 
@@ -98,6 +99,6 @@ Item {
         target: surface.buttonControl
         property: "_animatedBorderColor"
         to: surface.buttonControl._targetBorderColor
-        duration: Enums.duration.medium
+        duration: _skin.duration.medium
     }
 }

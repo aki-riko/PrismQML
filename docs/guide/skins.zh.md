@@ -76,6 +76,40 @@ Rectangle {
 - `Enums.neumorphism.*`：新拟态专属几何、阴影与配色 token
 - `Enums.splashScreenMetrics.*`：启动画面专用度量
 
+## 局部皮肤范围
+
+`SkinScope` 只替换其子树的设计语言，不调用 `Enums.setSkin()`，也不会写入用户的
+全局外观配置。它适合把邀请函、票据、嵌入式工具等局部区域做成与应用主皮肤不同的
+视觉语言：
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    id: inviteTicket
+    skin: "vintage_ticket"
+
+    Fluent.Card {
+        title: "邀请函"
+        Fluent.Button { text: "复制" }
+    }
+}
+```
+
+- `skin` 支持与全局设置相同的四个值；空字符串会跟随最近的父范围。
+- 局部范围继承全局明暗和基础强调色，因此全局切换 light/dark 时局部票据也会同步更新。
+- Card、Button、Label、Separator、TicketPaper、DialogBoxCore、ContentFrame、PopupWindowCore
+  及按钮下拉菜单会自动使用最近范围的 token。
+- popup 或对话框若定义在范围外、但由范围内控件触发，可显式传递只读 context：
+
+```qml
+Fluent.PopupWindowCore {
+    skinContext: inviteTicket.context
+}
+```
+
+`context` 只用于跨父级或跨窗口的上下文转交；普通页面只需要写 `SkinScope`。
+
 ## 架构：token 驱动
 
 皮肤差异优先收敛到 token 层：

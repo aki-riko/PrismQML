@@ -17,11 +17,12 @@ Widget {
  id: control
  
  // ==================== Public Props 公开属性 ====================
- property int cardType: Enums.card.type_default // Card type 卡片类型
- property int borderRadius: Enums.surfaceRadius(Enums.radius.card)// Border radius 圆角
+ readonly property var _skin: effectiveSkinContext
+ property int cardType: _skin.card.type_default // Card type 卡片类型
+ property int borderRadius: _skin.surfaceRadius(_skin.radius.card)// Border radius 圆角
  // Content padding: header cards align with the title; regular cards provide one comfortable inset.
  // 内容内边距：标题卡与标题对齐；普通卡默认提供一层舒适留白。
- property int contentPadding: isHeader ? Enums.spacing.xxxl : Enums.spacing.l
+ property int contentPadding: isHeader ? _skin.spacing.xxxl : _skin.spacing.l
  // autoHeight: 普通卡片高度跟随内容自撑(默认 false 保持固定 cardHeight)。
  // ⚠️ 开启时内容**不要用 anchors.fill: parent**(fill 的子项不计入 childrenRect→自撑失效退回兜底),
  //    用 width: parent.width 让内容自然堆叠撑高。header 卡不受此开关影响(本就按内容算高)。
@@ -38,14 +39,14 @@ Widget {
                                   ? hoverHandler.hovered || _isWindowHoverPointInElevationRegion()
                                   : hoverHandler.hovered
  readonly property bool pressed: mouseArea.pressed
- readonly property bool isNormal: cardType === Enums.card.type_hover
- readonly property bool isElevated: cardType === Enums.card.type_elevated
- readonly property bool isHeader: cardType === Enums.card.type_header
+ readonly property bool isNormal: cardType === _skin.card.type_hover
+ readonly property bool isElevated: cardType === _skin.card.type_elevated
+ readonly property bool isHeader: cardType === _skin.card.type_header
  readonly property Item _hoverWindowContent: Window.window ? Window.window.contentItem : null
- readonly property real elevationOffset: !Enums.isVintageTicket && isElevated && hovered && !pressed
-                                         ? -Enums.spacing.cardElevate : 0
- readonly property real _elevationHitMargin: !Enums.isVintageTicket && isElevated
-                                               ? Enums.spacing.cardElevate + Enums.spacing.micro : 0
+ readonly property real elevationOffset: !_skin.isVintageTicket && isElevated && hovered && !pressed
+                                         ? -_skin.spacing.cardElevate : 0
+ readonly property real _elevationHitMargin: !_skin.isVintageTicket && isElevated
+                                               ? _skin.spacing.cardElevate + _skin.spacing.micro : 0
  // ==================== Signals 信号 ====================
  signal clicked()
 
@@ -80,10 +81,10 @@ Widget {
  // Content size (inherited from Widget) 内容尺寸（继承自Widget）
  // autoHeight 时普通卡片跟随内容自撑(childrenRect + 上下 border 边距, 带最小兜底);
  // 否则保持原行为(固定 cardHeight)。header 卡始终由 card 自身按标题区算高。
- contentWidth: Enums.controlSize.cardContentWidth
+ contentWidth: _skin.controlSize.cardContentWidth
  contentHeight: isHeader ? card.height
-                : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
-                              : Enums.controlSize.cardHeight)
+                : (autoHeight ? Math.max(_skin.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
+                              : _skin.controlSize.cardHeight)
  Component.onDestruction: {
   if (windowHoverHandler && control)
    windowHoverHandler.parent = control
@@ -100,7 +101,7 @@ Widget {
  y: control.elevationOffset
  HoverBehavior on y {
  active: control.hovered && !control.pressed
- enterDuration: Enums.duration.medium
+ enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
  }
@@ -110,14 +111,14 @@ Widget {
  // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
  property color _shadowColor: isElevated && hovered
- ? Enums.shadow.level4.color
- : Enums.shadow.level2.color
+ ? _skin.shadow.level4.color
+ : _skin.shadow.level2.color
  property real _shadowBlur: isElevated && hovered
- ? Enums.shadow.level4.blur
- : Enums.shadow.level2.blur
+ ? _skin.shadow.level4.blur
+ : _skin.shadow.level2.blur
  property real _shadowOffset: isElevated && hovered
- ? Enums.shadow.level4.offset
- : Enums.shadow.level2.offset
+ ? _skin.shadow.level4.offset
+ : _skin.shadow.level2.offset
 
  anchors.fill: card
  radius: card.radius
@@ -125,38 +126,38 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: Enums.usesSoftElevation && !Enums.isNeumorphism && (isElevated || hovered)
+ visible: _skin.usesSoftElevation && !_skin.isNeumorphism && (isElevated || hovered)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  HoverBehavior on _shadowBlur {
  active: control.hovered && !control.pressed
- enterDuration: Enums.duration.medium
+ enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
  HoverBehavior on _shadowColor {
  active: control.hovered && !control.pressed
- enterDuration: Enums.duration.medium
+ enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
  }
 
  NeumorphicShadow {
  target: card
- visible: Enums.isNeumorphism
+ visible: _skin.isNeumorphism
  inset: pressed
  }
 
  // Neobrutalism 硬阴影: 复用 NeoShadow 组件。elevated 卡 hover 时偏移翻倍(阴影加大)。
  Loader {
- active: Enums.isNeobrutalism
+ active: _skin.isNeobrutalism
  z: card.z - 1
 
  sourceComponent: NeoShadow {
  target: card
- offset: (isElevated && hovered && !pressed) ? Enums.neo.shadowOffset * 1.5 : Enums.neo.shadowOffset
+ offset: (isElevated && hovered && !pressed) ? _skin.neo.shadowOffset * 1.5 : _skin.neo.shadowOffset
  HoverBehavior on offset {
  active: control.hovered && !control.pressed
- enterDuration: Enums.duration.medium
+ enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
  }
@@ -170,13 +171,13 @@ Widget {
  // Color handled by token layer under neo, no control-side branch needed 颜色由 token 层(stateColor.controlBg/Hover/Pressed)在 neo 下自动返回白面/灰, 无需控件分支。
  // Default/Header card: no hover effect 默认卡片/标题卡片无悬停效果
  // HeaderCard inherits DefaultCard behavior 标题卡继承默认卡行为
- if (cardType === Enums.card.type_default || cardType === Enums.card.type_header) {
- return Enums.stateColor.controlBg
+ if (cardType === _skin.card.type_default || cardType === _skin.card.type_header) {
+ return _skin.stateColor.controlBg
  }
  // Hover/Elevated: hover effect 悬停/悬浮卡片有悬停效果
- if (pressed) return Enums.stateColor.controlBgPressed
- if (hovered) return Enums.stateColor.controlBgHover
- return Enums.stateColor.controlBg
+ if (pressed) return _skin.stateColor.controlBgPressed
+ if (hovered) return _skin.stateColor.controlBgHover
+ return _skin.stateColor.controlBg
  }
 
  anchors.left: parent.left
@@ -186,7 +187,7 @@ Widget {
  // preferredHeight 优先; header 卡按标题区+分隔线+内容算高; autoHeight 时普通卡按内容自撑; 否则填充父容器(原行为)。
  height: preferredHeight > 0 ? preferredHeight
          : (isHeader ? (headerView.height + separator.height + contentLoader.childrenRect.height + control.contentPadding * 2)
-                     : (autoHeight ? Math.max(Enums.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
+                     : (autoHeight ? Math.max(_skin.controlSize.cardHeight, contentLoader.childrenRect.height + control.contentPadding * 2)
                                    : parent.height))
  radius: control.borderRadius
  
@@ -194,29 +195,31 @@ Widget {
  color: _bgColor
  
     // Border 边框
-    border.width: Enums.surfaceBorderWidth(Enums.border.thin)
-    border.color: Enums.stateColor.borderLight// neo 黑边由 token 自动返回
+    border.width: _skin.surfaceBorderWidth(_skin.border.thin)
+    border.color: _skin.stateColor.borderLight// neo 黑边由 token 自动返回
 
     HoverBehavior on color {
         active: control.hovered && !control.pressed
-        enterDuration: Enums.duration.fast
+        enterDuration: _skin.duration.fast
     }
 
  TicketPaper {
  anchors.fill: parent
+ skinContext: control.effectiveSkinContext
  }
 
  // Header for header cards 标题卡标题区域
  Item {
  id: headerView
  width: parent.width
- height: isHeader ? Enums.controlSize.navBarHeight : 0
+ height: isHeader ? _skin.controlSize.navBarHeight : 0
  visible: isHeader
  
  Label {
- type: Enums.label.type_body_strong
+ skinContext: control.effectiveSkinContext
+ type: _skin.label.type_body_strong
  anchors.left: parent.left
- anchors.leftMargin: Enums.spacing.xxxl
+ anchors.leftMargin: _skin.spacing.xxxl
  anchors.verticalCenter: parent.verticalCenter
  text: control.title
  visible: isHeader
@@ -226,6 +229,7 @@ Widget {
  // Separator 分隔线
  Separator {
  id: separator
+ skinContext: control.effectiveSkinContext
  anchors.top: headerView.bottom
  width: parent.width
  visible: isHeader
@@ -270,7 +274,7 @@ Widget {
  MouseArea {
  id: mouseArea
  anchors.fill: parent
- z: Enums.zIndex.background // Below content to not block child interactions 置于内容下方避免阻挡子组件交互
+ z: _skin.zIndex.background // Below content to not block child interactions 置于内容下方避免阻挡子组件交互
  hoverEnabled: false
  enabled: control.interactionEnabled
  visible: control.interactionEnabled // Do not block events when fully transparent 完全隐藏时不阻挡事件

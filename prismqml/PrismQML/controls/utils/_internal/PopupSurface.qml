@@ -28,6 +28,12 @@ Item {
     required property real popupNeumorphicShadowSpread
     required property real clipHeight
     required property bool shadowVisible
+    // PopupWindowCore passes a captured context because this surface can move
+    // into a native window outside the original SkinScope tree.
+    // PopupWindowCore 传入已捕获上下文，因为该表面可能移动到原始 SkinScope 树外的原生窗口。
+    property var skinContext: Enums
+    readonly property var _skin: skinContext || Enums
+    readonly property var _prismSkinScopeContext: _skin
     property Item _interactionHost: null
 
     default property alias popupContent: contentContainer.data
@@ -35,7 +41,7 @@ Item {
     objectName: "_popupSurface"
     width: outerWidth
     height: outerHeight
-    opacity: Enums.opacityLevel.invisible
+    opacity: _skin.opacityLevel.invisible
 
     // Shadow Layer 阴影层 (z: background to ensure it's behind popupPanel)
     // Surface opacity and cover height animate independently.
@@ -44,7 +50,7 @@ Item {
     // Fluent 使用单层高度阴影；新拟态使用下方的双向阴影。
     RectangularShadow {
         objectName: "_popupShadow"
-        z: Enums.zIndex.background
+        z: _skin.zIndex.background
         x: clipContainer.x
         y: clipContainer.y + (surface.popupHeight - height) / 2
         width: popupPanel.width
@@ -54,7 +60,7 @@ Item {
         blur: surface.popupShadowBlur
         offset.x: 0
         offset.y: surface.popupShadowOffset
-        visible: surface.shadowVisible && Enums.usesSoftElevation && !Enums.isNeumorphism
+        visible: surface.shadowVisible && _skin.usesSoftElevation && !_skin.isNeumorphism
     }
 
     NeumorphicShadow {
@@ -63,27 +69,27 @@ Item {
         offset: surface.popupNeumorphicShadowOffset
         blur: surface.popupNeumorphicShadowBlur
         spread: surface.popupNeumorphicShadowSpread
-        z: Enums.zIndex.background
+        z: _skin.zIndex.background
         anchors.fill: null
         x: clipContainer.x
         y: clipContainer.y + (surface.popupHeight - height) / 2
         width: popupPanel.width
         height: popupPanel.height
-        visible: surface.shadowVisible && Enums.isNeumorphism
+        visible: surface.shadowVisible && _skin.isNeumorphism
     }
 
     // Neobrutalism hard shadow; popup geometry stays explicit.
     // 新粗野硬阴影；弹层继续使用显式几何。
     Rectangle {
         objectName: "_popupNeoShadow"
-        z: Enums.zIndex.background
-        visible: surface.shadowVisible && Enums.isNeobrutalism
-        x: clipContainer.x + Enums.neo.shadowOffset
-        y: clipContainer.y + (surface.popupHeight - height) / 2 + Enums.neo.shadowOffset
+        z: _skin.zIndex.background
+        visible: surface.shadowVisible && _skin.isNeobrutalism
+        x: clipContainer.x + _skin.neo.shadowOffset
+        y: clipContainer.y + (surface.popupHeight - height) / 2 + _skin.neo.shadowOffset
         width: popupPanel.width
         height: popupPanel.height
         radius: surface.popupRadius
-        color: Enums.neo.shadowColor
+        color: _skin.neo.shadowColor
     }
 
     // Clip container for drop-down animation 下拉动画裁剪容器
@@ -125,7 +131,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             height: surface.clipHeight
-                            color: Enums.textColor.primary
+                            color: _skin.textColor.primary
                         }
                     }
                 }
@@ -133,7 +139,7 @@ Item {
             Loader {
                 objectName: "ticketPaperLoader"
                 anchors.fill: parent
-                active: Enums.isVintageTicket
+                active: _skin.isVintageTicket
                 // Complete the surface before its popup can be destroyed. 在弹层可能销毁前同步完成表面创建。
                 asynchronous: false
                 source: Qt.resolvedUrl("../../../effects/TicketPaper.qml")

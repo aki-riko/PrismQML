@@ -313,8 +313,15 @@ def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list
 def _create_scene_from_source(
     source: bytes, source_url: str
 ) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
+    requested_skin = getSkin()
+    requested_theme = getTheme()
     engine = QQmlApplicationEngine()
     register_types(engine)
+    # register_types may bind the process-local test config after callers have
+    # selected a skin. Reapply the requested runtime state after registration.
+    # register_types 可能在调用方选定皮肤后绑定进程内测试配置；注册完成后重新应用请求状态。
+    setTheme(requested_theme)
+    setSkin(requested_skin)
     warnings: list[str] = []
     engine.warnings.connect(
         lambda errors: warnings.extend(error.toString() for error in errors)

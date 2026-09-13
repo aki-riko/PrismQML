@@ -8,6 +8,22 @@
 - `SplitPane` — 可拖拽分割面板
 - `ScrollArea` — 滚动区域（含平滑滚动 + 自绘滚动条）
 
+## SkinScope 局部皮肤范围
+
+让一棵子树使用不同设计语言，同时保留应用全局 skin 和用户配置：
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SkinScope {
+    skin: "vintage_ticket"
+    Fluent.Card { }
+}
+```
+
+空 `skin` 跟随最近父范围。大多数情况不需要手工传 token；只有 popup 或对话框
+定义在范围外时，才使用 `skinContext: scope.context` 转交上下文。
+
 ## Separator 分隔线
 
 ```qml

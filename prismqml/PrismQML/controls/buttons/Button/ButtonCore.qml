@@ -22,20 +22,20 @@ Widget {
     readonly property bool isToolButton: icon !== "" && text === ""
 
     // Button style 按钮样式
-    property int style: Enums.button.style_default
-    property int shape: Enums.button.shape_default
-    property int feature: Enums.button.feature_none
+    property int style: _skin.button.style_default
+    property int shape: _skin.button.shape_default
+    property int feature: _skin.button.feature_none
     property bool showDropdownIndicator: true
-    property int contentAlignment: feature === Enums.button.feature_dropdown && showDropdownIndicator
-                                   ? Enums.button.align_left
-                                   : Enums.button.align_center  // Content alignment 内容对齐
+    property int contentAlignment: feature === _skin.button.feature_dropdown && showDropdownIndicator
+                                   ? _skin.button.align_left
+                                   : _skin.button.align_center  // Content alignment 内容对齐
 
     // Button content 按钮内容
     property string text: ""
     property string icon: ""           // Icon name / image path 图标名或图片路径
     property int iconSize: isToolButton && !_hasMenuFeature
-                           ? Enums.iconSize.xl
-                           : Enums.iconSize.m
+                           ? _skin.iconSize.xl
+                           : _skin.iconSize.m
     default property alias contentData: contentLayer.contentData  // Custom content 自定义内容
     property alias border: surface.border
     property bool hasCustomContent: false
@@ -50,8 +50,8 @@ Widget {
     property var menu: null  // Optional external PopupWindowCore-compatible menu 外部菜单
     property int level: 0
     property string textToCopy: ""
-    property int countdown: Enums.button.countdownDefault
-    property string countdownText: Enums.button.countdownSuffix
+    property int countdown: _skin.button.countdownDefault
+    property string countdownText: _skin.button.countdownSuffix
     property int _countdownRemaining: 0
     property bool _countdownActive: false
     property real _countdownInitialWidth: 0
@@ -61,13 +61,17 @@ Widget {
         menuItems === null || menuItems === undefined ? []
         : (typeof menuItems.length === "number" ? menuItems : [])
 
+    // Active skin context: the nearest SkinScope, or global _skin.
+    // 活动皮肤上下文：最近的 SkinScope，否则全局 Enums。
+    readonly property var _skin: effectiveSkinContext
+
     // Base appearance 基础外观
-    property bool flat: style === Enums.button.style_transparent ||
-                        style === Enums.button.style_text ||
-                        style === Enums.button.style_hyperlink
+    property bool flat: style === _skin.button.style_transparent ||
+                        style === _skin.button.style_text ||
+                        style === _skin.button.style_hyperlink
 
     // Text style 文本样式
-    readonly property int fontSize: Enums.typography.body
+    readonly property int fontSize: _skin.typography.body
     // Optional font flags 可选字体修饰 (e.g. 富文本工具栏 B/I/U/S 按钮)
     property bool fontBold: false
     property bool fontItalic: false
@@ -77,10 +81,10 @@ Widget {
     // Interaction state 交互状态
     property bool pseudoHovered: false
     property bool pseudoPressed: false
-    property bool hovered: feature === Enums.button.feature_split
+    property bool hovered: feature === _skin.button.feature_split
                            ? false : (mouseArea.containsMouse || pseudoHovered)
-    property bool pressed: feature === Enums.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
-    readonly property bool _toolTipHovered: feature === Enums.button.feature_split
+    property bool pressed: feature === _skin.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
+    readonly property bool _toolTipHovered: feature === _skin.button.feature_split
         ? (pseudoHovered || (featureLoader.item &&
             (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
         : hovered
@@ -90,43 +94,43 @@ Widget {
     readonly property bool _styleEffectiveEnabled:
         control.enabled && !control.loading && !control._countdownActive
     readonly property bool _styleToggleChecked:
-        feature === Enums.button.feature_toggle && control.checked
+        feature === _skin.button.feature_toggle && control.checked
     readonly property var styleHelper: ButtonStyle.snapshot(
         style, level, _styleEffectiveEnabled, hovered, pressed,
-        _styleToggleChecked, Enums.isNeobrutalism, Enums.isVintageTicket,
-        Enums.isNeumorphism,
-        Enums.button, Enums.stateColor, Enums.textColor, Enums.statusLevel,
-        Enums.accentColor, Enums.cardColor, Enums.accentForeground,
-        Enums.transparent, Enums.opacityLevel, Enums.neo, Enums.ticket)
+        _styleToggleChecked, _skin.isNeobrutalism, _skin.isVintageTicket,
+        _skin.isNeumorphism, _skin.button, _skin.stateColor,
+        _skin.textColor, _skin.statusLevel, _skin.accentColor,
+        _skin.cardColor, _skin.accentForeground, _skin.transparent,
+        _skin.opacityLevel, _skin.neo, _skin.ticket)
     readonly property color _styleBgColor: styleHelper.bgColor
     readonly property color _styleBorderColor: styleHelper.borderColor
     readonly property color _styleTextColor: styleHelper.textColor
 
     // Appearance and animated colors 外观与动画颜色
-    property int radius: shape === Enums.button.shape_pill ? height / 2
-                         : (Enums.isNeobrutalism ? Enums.neo.radius
-                         : (Enums.isNeumorphism ? Enums.neumorphism.radius
-                            : (Enums.isVintageTicket ? Enums.ticket.radius
-                               : Enums.radius.small)))
+    property int radius: shape === _skin.button.shape_pill ? height / 2
+                         : (_skin.isNeobrutalism ? _skin.neo.radius
+                         : (_skin.isNeumorphism ? _skin.neumorphism.radius
+                            : (_skin.isVintageTicket ? _skin.ticket.radius
+                               : _skin.radius.small)))
     property color color: _styleBgColor
 
     // Neobrutalism target press shift. Neo按压目标位移。
     readonly property real _neoPressTargetShift:
-        (Enums.isNeobrutalism && pressed && !flat) ? Enums.neo.pressOffset : 0
+        (_skin.isNeobrutalism && pressed && !flat) ? _skin.neo.pressOffset : 0
     // The loaded Neo surface owns animation; Fluent keeps no resident Behavior. 动画由已加载的Neo表面持有，Fluent不常驻Behavior。
     property real _neoPressShift:
         surface.animatedPressShift
-    readonly property bool _hasMenuFeature: feature === Enums.button.feature_dropdown ||
-                                            feature === Enums.button.feature_split
+    readonly property bool _hasMenuFeature: feature === _skin.button.feature_dropdown ||
+                                            feature === _skin.button.feature_split
     readonly property bool _hasProgressBarFeature:
-        feature === Enums.button.feature_progress_bar ||
-        feature === Enums.button.feature_indeterminate_bar
+        feature === _skin.button.feature_progress_bar ||
+        feature === _skin.button.feature_indeterminate_bar
     readonly property bool _hasFeatureVisual:
-        _hasProgressBarFeature || feature === Enums.button.feature_toggle
-    readonly property bool _showsDropdownIndicator: feature === Enums.button.feature_dropdown &&
+        _hasProgressBarFeature || feature === _skin.button.feature_toggle
+    readonly property bool _showsDropdownIndicator: feature === _skin.button.feature_dropdown &&
                                                     showDropdownIndicator
-    readonly property int _contentLeadingPadding: _hasMenuFeature ? Enums.spacing.l : Enums.spacing.m
-    readonly property int _contentTrailingPadding: _hasMenuFeature ? Enums.spacing.xs : Enums.spacing.m
+    readonly property int _contentLeadingPadding: _hasMenuFeature ? _skin.spacing.l : _skin.spacing.m
+    readonly property int _contentTrailingPadding: _hasMenuFeature ? _skin.spacing.xs : _skin.spacing.m
 
     // Animated colors with instant press, smooth release 动画颜色：按下瞬间，释放平滑
     property color _animatedBgColor
@@ -154,27 +158,27 @@ Widget {
     function getTextColor() { return _styleTextColor }
 
     // Programmatic click 程序化点击
-    function click() { ButtonLogic.click(control, Enums) }
+    function click() { ButtonLogic.click(control, _skin) }
 
     // Toggle state 切换状态
-    function toggle() { ButtonLogic.toggle(control, Enums) }
+    function toggle() { ButtonLogic.toggle(control, _skin) }
 
     // Set checkable state 设置可切换状态
-    function setCheckable(checkable) { ButtonLogic.setCheckable(control, Enums, checkable) }
+    function setCheckable(checkable) { ButtonLogic.setCheckable(control, _skin, checkable) }
 
     // Check if checkable 检查是否可切换
-    function isCheckable() { return ButtonLogic.isCheckable(control, Enums) }
+    function isCheckable() { return ButtonLogic.isCheckable(control, _skin) }
 
     function _updateTargetColors(hoverActive) {
         ButtonLogic.updateTargetColors(
-            control, Enums, hoverActive,
+            control, _skin, hoverActive,
             surface.bgColorAnimation, surface.borderColorAnimation
         )
     }
 
     function _completeHoverExit() {
         ButtonLogic.completeHoverExit(
-            control, Enums,
+            control, _skin,
             surface.bgColorAnimation, surface.borderColorAnimation
         )
     }
@@ -194,7 +198,7 @@ Widget {
 
 
     // Set flat 设置扁平样式
-    function setFlat(f) { ButtonLogic.setFlat(control, Enums, f) }
+    function setFlat(f) { ButtonLogic.setFlat(control, _skin, f) }
 
 
     function getUrl() { return textToCopy }
@@ -204,11 +208,11 @@ Widget {
     function startCountdown() { ButtonLogic.startCountdown(control) }
 
     function _prewarmMenu() {
-        ButtonLogic.prewarmMenu(control, Enums, featureLoader.item)
+        ButtonLogic.prewarmMenu(control, _skin, featureLoader.item)
     }
 
     function _retryMenuPrewarm() {
-        ButtonLogic.retryMenuPrewarm(control, Enums, featureLoader.item, mouseArea)
+        ButtonLogic.retryMenuPrewarm(control, _skin, featureLoader.item, mouseArea)
     }
 
     function _scheduleMenuPrewarmRetry() {
@@ -218,7 +222,7 @@ Widget {
     }
 
     function _runMenuPrewarmRetry() {
-        ButtonLogic.runMenuPrewarmRetry(control, Enums, featureLoader.item, mouseArea)
+        ButtonLogic.runMenuPrewarmRetry(control, _skin, featureLoader.item, mouseArea)
     }
 
     function _startButtonToolTipTimer() {
@@ -243,18 +247,18 @@ Widget {
     contentWidth: {
         if (_countdownActive && _countdownInitialWidth > 0) return _countdownInitialWidth
         if (isToolButton) {
-            return Enums.controlSize.buttonHeight +
-                   (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
+            return _skin.controlSize.buttonHeight +
+                   (_showsDropdownIndicator ? _skin.controlSize.dropdownArrowWidth : 0)
         }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
         var cw = contentLayer.contentLoader.item ?
             contentLayer.contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
-        var extraWidth = feature === Enums.button.feature_split ? Enums.controlSize.splitButtonArrowWidth :
-                        (_showsDropdownIndicator ? Enums.controlSize.dropdownArrowWidth : 0)
-        if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, Enums.controlSize.buttonHeight)
-        return Math.max(Enums.controlSize.buttonMinWidth, cw + extraWidth)
+        var extraWidth = feature === _skin.button.feature_split ? _skin.controlSize.splitButtonArrowWidth :
+                        (_showsDropdownIndicator ? _skin.controlSize.dropdownArrowWidth : 0)
+        if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, _skin.controlSize.buttonHeight)
+        return Math.max(_skin.controlSize.buttonMinWidth, cw + extraWidth)
     }
-    contentHeight: Enums.controlSize.buttonHeight
+    contentHeight: _skin.controlSize.buttonHeight
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
@@ -277,7 +281,7 @@ Widget {
 
     onShowDropdownIndicatorChanged: {
         if (showDropdownIndicator &&
-                feature === Enums.button.feature_dropdown &&
+                feature === _skin.button.feature_dropdown &&
                 contentLayer.contentLoader.item) {
             contentLayer.contentLoader._indicatorTransitionWidth = Math.max(
                 contentLayer.contentLoader.item.implicitWidth,

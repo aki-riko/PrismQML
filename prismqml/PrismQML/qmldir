@@ -8,6 +8,11 @@ WindowsCore WindowsCore.qml
 NavigationWindowCore NavigationWindowCore.qml
 Windows Windows.qml
 
+# ==================== Appearance 外观 ====================
+# Local skin scope: apply one design language to a subtree without touching
+# the global theme. 局部皮肤范围：让子树使用指定设计语言，不改全局主题。
+SkinScope SkinScope.qml
+
 # ==================== Effects 特效 ====================
 Shadow effects/Shadow.qml
 ColorOverlay effects/ColorOverlay.qml

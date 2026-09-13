@@ -23,6 +23,12 @@ Row {
     required property real progress
     required property color textColor
     required property int fontSize
+    // Public component fallback: direct users of ButtonContent predate local
+    // skin scopes, so keep their global Enums behavior unless a host supplies
+    // an explicit context.
+    // 公开组件回退：直接使用 ButtonContent 的调用方早于局部皮肤范围，未传上下文时
+    // 必须继续保持全局 Enums 行为。
+    property var skinContext: Enums
 
     // ==================== Public Props 公开属性 ====================
     // Optional font flags 可选字体修饰
@@ -38,17 +44,17 @@ Row {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hasIcon: icon !== "" ||
                                     loading ||
-                                    feature === Enums.button.feature_progress_ring ||
-                                    feature === Enums.button.feature_indeterminate_ring
-    readonly property bool _useForegroundColor: style === Enums.button.style_primary ||
-                                                style === Enums.button.style_filled ||
-                                                style === Enums.button.style_gradient
-    readonly property color _ringColor: _useForegroundColor ? Enums.accentForeground : Enums.accentColor
-    readonly property color _ringBorderColor: _useForegroundColor ? Enums.stateColor.onAccentOverlay : Enums.stateColor.loadingBorder
+                                    feature === skinContext.button.feature_progress_ring ||
+                                    feature === skinContext.button.feature_indeterminate_ring
+    readonly property bool _useForegroundColor: style === skinContext.button.style_primary ||
+                                                style === skinContext.button.style_filled ||
+                                                style === skinContext.button.style_gradient
+    readonly property color _ringColor: _useForegroundColor ? skinContext.accentForeground : skinContext.accentColor
+    readonly property color _ringBorderColor: _useForegroundColor ? skinContext.stateColor.onAccentOverlay : skinContext.stateColor.loadingBorder
     readonly property bool _hasDeterminateRing:
-        feature === Enums.button.feature_progress_ring
+        feature === skinContext.button.feature_progress_ring
     readonly property bool _hasIndeterminateRing:
-        feature === Enums.button.feature_indeterminate_ring
+        feature === skinContext.button.feature_indeterminate_ring
     readonly property bool _hasFeatureRing: _hasDeterminateRing || _hasIndeterminateRing
 
     // ==================== Size 尺寸 ====================
@@ -65,7 +71,7 @@ Row {
 
         sourceComponent: ProgressRing {
             anchors.fill: parent
-            strokeWidth: Enums.border.normal
+            strokeWidth: skinContext.border.normal
             color: content.textColor
             indeterminate: true
         }
@@ -84,17 +90,17 @@ Row {
             from: 0
             to: 1
             value: content.progress
-            strokeWidth: Enums.border.normal
+            strokeWidth: skinContext.border.normal
             indeterminate: content._hasIndeterminateRing
             color: content._ringColor
             trackColorLight: content._hasDeterminateRing
                              ? content._ringBorderColor
-                             : Enums.stateColor.track
+                             : skinContext.stateColor.track
             trackColorDark: content._hasDeterminateRing
                             ? content._ringBorderColor
-                            : (Enums.isVintageTicket
-                               ? Enums.stateColor.progressTrack
-                               : Enums.stateColor.whiteOverlay)
+                            : (skinContext.isVintageTicket
+                               ? skinContext.stateColor.progressTrack
+                               : skinContext.stateColor.whiteOverlay)
         }
     }
 
@@ -126,11 +132,11 @@ Row {
             }
             return content.text
         }
-        font.family: Enums.fontFamily
+        font.family: skinContext.fontFamily
         font.pixelSize: content.fontSize
         font.bold: content.fontBold
         font.italic: content.fontItalic
-        font.underline: content.fontUnderline || style === Enums.button.style_hyperlink
+        font.underline: content.fontUnderline || style === skinContext.button.style_hyperlink
         font.strikeout: content.fontStrikeout
         // Bind textColor directly without a Behavior animation. 直接绑定 textColor，不添加 Behavior 动画。
         // A toggle button changes its background immediately when checked. toggle 类按钮从 unchecked 切换到 checked 时背景色会突变。

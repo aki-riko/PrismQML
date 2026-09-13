@@ -1,6 +1,6 @@
 # 组件速查表
 
-全部 193 个 QML 类型（含 6 个 singleton：`Enums`、`Translator`、`DpiManager`、`IconRendererResources`、`NotificationManager`、`PopupUtils`）的快速索引，按分类分组；详细用法见[控件总览](index.md)与各分类页。
+全部 194 个 QML 类型（含 6 个 singleton：`Enums`、`Translator`、`DpiManager`、`IconRendererResources`、`NotificationManager`、`PopupUtils`）的快速索引，按分类分组；详细用法见[控件总览](index.md)与各分类页。
 
 ## 核心
 
@@ -20,7 +20,7 @@
 
 ## 容器
 
-`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
+`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
 
 ## 数据展示
 

@@ -26,6 +26,10 @@ Item {
     required property real parentRadius
     required property int fontSize
     required property color textColor  // Parent button text color 父按钮文字颜色
+    // Public component fallback: direct callers keep the established global
+    // appearance; ButtonCore supplies its local context when scoped.
+    // 公开组件回退：直接调用保持既有全局外观；ButtonCore 位于范围内时会传入局部上下文。
+    property var skinContext: Enums
 
     // ==================== Public Props 公开属性 ====================
     property int parentStyle: 0
@@ -56,34 +60,34 @@ Item {
     readonly property bool dropPressed: dropdownSurface.dropPressed
 
     // Check if style uses accent foreground (white text/icon) 检查是否使用强调前景色（白色文字/图标）
-    readonly property bool _useAccentForeground: parentStyle === Enums.button.style_primary ||
-                                                  parentStyle === Enums.button.style_filled ||
-                                                  parentStyle === Enums.button.style_gradient
+    readonly property bool _useAccentForeground: parentStyle === skinContext.button.style_primary ||
+                                                  parentStyle === skinContext.button.style_filled ||
+                                                  parentStyle === skinContext.button.style_gradient
 
     // Split button hover/pressed colors based on parent style Split按钮悬浮/按下颜色
     // For accent styles (primary/filled/gradient): use on-accent overlays 强调样式用主色上状态层
     // For other styles: use transparent button colors 其他样式用透明按钮颜色
     readonly property color _splitHoverColor: _useAccentForeground
-        ? Enums.stateColor.onAccentHoverOverlay
-        : Enums.stateColor.transparentHover
+        ? skinContext.stateColor.onAccentHoverOverlay
+        : skinContext.stateColor.transparentHover
     readonly property color _splitPressedColor: _useAccentForeground
-        ? Enums.stateColor.onAccentPressedOverlay
-        : Enums.stateColor.transparentPressed
+        ? skinContext.stateColor.onAccentPressedOverlay
+        : skinContext.stateColor.transparentPressed
     readonly property color _splitTransparent: _useAccentForeground
-        ? Enums.stateColor.whiteTransparent
-        : Enums.stateColor.controlBgTransparent
+        ? skinContext.stateColor.whiteTransparent
+        : skinContext.stateColor.controlBgTransparent
 
     // Arrow color based on parent style 箭头颜色
     readonly property color _arrowColor: {
-        if (!dropdownFeature.controlEnabled) return Enums.stateColor.indicatorActive
-        if (_useAccentForeground) return Enums.accentForeground
-        return Enums.textColor.secondary
+        if (!dropdownFeature.controlEnabled) return skinContext.stateColor.indicatorActive
+        if (_useAccentForeground) return skinContext.accentForeground
+        return skinContext.textColor.secondary
     }
 
     // Separator line color 分隔线颜色
     readonly property color _separatorColor: _useAccentForeground
-        ? Enums.stateColor.onAccentOverlay
-        : Enums.stateColor.separator
+        ? skinContext.stateColor.onAccentOverlay
+        : skinContext.stateColor.separator
 
     // ==================== Signals 信号 ====================
     signal menuItemClicked(int index, string text)
@@ -128,7 +132,7 @@ Item {
         var maxW = 0
         // Total horizontal padding: contentContainer margins(xs*2) + itemBg margins(xs*2) + text margins(l*2)
         // 总水平内边距：内容容器边距(xs*2) + 项背景边距(xs*2) + 文本边距(l*2)
-        var itemPadding = Enums.spacing.l * 2 + Enums.spacing.xs * 4
+        var itemPadding = skinContext.spacing.l * 2 + skinContext.spacing.xs * 4
         // Check if any item has icon 检查是否有图标项
         var hasIcon = false
         for (var i = 0; i < _safeMenuItems.length; i++) {
@@ -139,7 +143,7 @@ Item {
             }
         }
         // Add icon space if any item has icon 有图标时加上图标占位空间
-        var iconSpace = hasIcon ? (Enums.iconSize.m + Enums.spacing.m) : 0
+        var iconSpace = hasIcon ? (skinContext.iconSize.m + skinContext.spacing.m) : 0
         for (var j = 0; j < _safeMenuItems.length; j++) {
             var mi = _safeMenuItems[j]
             var text = mi && typeof mi === "object" ? (mi.text || mi) : (mi || "")
@@ -214,7 +218,7 @@ Item {
         console.warn("PrismQML Button.menu must expose isOpen, prewarm(), openAtControl(), and close()")
     }
 
-    Component.onCompleted: _animationDuration = Enums.duration.fast
+    Component.onCompleted: _animationDuration = skinContext.duration.fast
 
     // ==================== Content 内容 ====================
     ButtonInternal.ButtonDropdownPrewarmTimer {
@@ -227,6 +231,7 @@ Item {
     ButtonInternal.ButtonDropdownSurface {
         id: dropdownSurface
 
+        skinContext: dropdownFeature.skinContext || Enums
         dropdownControl: dropdownFeature
     }
     
@@ -246,16 +251,17 @@ Item {
                 for (var i = 0; i < dropdownFeature._safeMenuItems.length; i++) {
                     var item = dropdownFeature._safeMenuItems[i]
                     var text = item && typeof item === "object" ? (item.text || item) : (item || "")
-                    h += (text === "-") ? Enums.controlSize.menuSeparatorHeight : Enums.comboBoxMetrics.itemHeight
+                    h += (text === "-") ? skinContext.controlSize.menuSeparatorHeight : skinContext.comboBoxMetrics.itemHeight
                 }
                 return h
             }
             readonly property int _maxContentHeight: Math.max(
-                0, Enums.comboBoxMetrics.popupMaxHeight - 2 * contentPadding)
+                0, skinContext.comboBoxMetrics.popupMaxHeight - 2 * contentPadding)
             readonly property bool _needsScroll: _itemsHeight > _maxContentHeight
             readonly property var _textMeasure: menuContentLoader.item
                 ? menuContentLoader.item.textMeasure : null
 
+            skinContext: dropdownFeature.skinContext
             implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
             closeOnClickOutside: true
             // Keep button menus in a native popup so they may cross the owner boundary.
@@ -273,15 +279,15 @@ Item {
                     // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
                     TextMetrics {
                         id: textMeasure
-                        font.family: Enums.fontFamily
-                        font.pixelSize: fontSize > 0 ? fontSize : Enums.typography.body
+                        font.family: skinContext.fontFamily
+                        font.pixelSize: fontSize > 0 ? fontSize : skinContext.typography.body
                     }
 
                     Flickable {
                         id: menuFlickable
                         anchors.fill: parent
                         anchors.rightMargin: dropDownMenu._needsScroll
-                                             ? Enums.comboBoxMetrics.scrollBarRightMargin : 0
+                                             ? skinContext.comboBoxMetrics.scrollBarRightMargin : 0
                         contentWidth: width
                         contentHeight: menuColumn.height
                         clip: true
@@ -322,12 +328,12 @@ Item {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
-                        anchors.margins: Enums.spacing.xxs
-                        width: Enums.comboBoxMetrics.scrollBarWidth
+                        anchors.margins: skinContext.spacing.xxs
+                        width: skinContext.comboBoxMetrics.scrollBarWidth
                         active: dropDownMenu._needsScroll
                         sourceComponent: ScrollBarEntry {
                             flickable: menuFlickable
-                            width: Enums.comboBoxMetrics.scrollBarWidth
+                            width: skinContext.comboBoxMetrics.scrollBarWidth
                         }
                     }
                 }

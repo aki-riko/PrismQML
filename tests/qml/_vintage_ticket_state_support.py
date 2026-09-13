@@ -257,14 +257,19 @@ def ticket_scene(qapp):
     previous_theme = getTheme()
     windows_before = tuple(QGuiApplication.topLevelWindows())
     warnings: list[str] = []
-    setSkin(Skin.VINTAGE_TICKET)
-    setTheme(Theme.LIGHT)
     engine = QQmlApplicationEngine()
     engine.warnings.connect(
         lambda errors: warnings.extend(error.toString() for error in errors)
     )
     engine.addImportPath(str(ROOT / "prismqml"))
+    # ConfigManager is process-global and may already be initialized by another
+    # QML test. Register with that existing policy, then apply the ticket state
+    # after registration so the test-process config cannot overwrite it.
+    # ConfigManager 在进程内是全局单例，可能已由其他 QML 测试初始化。这里沿用已有策略，
+    # 并在注册后设置票据状态，避免测试进程配置覆盖夹具。
     register_types(engine)
+    setSkin(Skin.VINTAGE_TICKET)
+    setTheme(Theme.LIGHT)
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     for _ in range(100):

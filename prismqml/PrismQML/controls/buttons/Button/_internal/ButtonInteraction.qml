@@ -12,28 +12,29 @@ MouseArea {
     // ==================== Required Props 必需属性 ====================
     required property var button
     required property var featureItem
+    readonly property var _skin: button.effectiveSkinContext
 
     anchors.fill: parent
     hoverEnabled: true
     enabled: button.enabled && !button.loading
               && !button._countdownActive
-              && button.feature !== Enums.button.feature_split
-    visible: button.feature !== Enums.button.feature_split
-    cursorShape: enabled && button.style === Enums.button.style_hyperlink
+              && button.feature !== _skin.button.feature_split
+    visible: button.feature !== _skin.button.feature_split
+    cursorShape: enabled && button.style === _skin.button.style_hyperlink
                  ? Qt.PointingHandCursor : Qt.ArrowCursor
 
     onClicked: {
-        if (button.feature === Enums.button.feature_toggle) {
+        if (button.feature === _skin.button.feature_toggle) {
             button.checked = !button.checked
             button.toggled(button.checked)
         }
-        if (button.feature === Enums.button.feature_dropdown
+        if (button.feature === _skin.button.feature_dropdown
                 && (button.menu !== null && button.menu !== undefined
                     || button._safeMenuItems.length > 0)) {
             if (featureItem) featureItem.openMenu()
             return
         }
-        if (button.feature === Enums.button.feature_countdown) {
+        if (button.feature === _skin.button.feature_countdown) {
             button._countdownInitialWidth = button.width
             button._countdownRemaining = button.countdown
             button._countdownActive = true

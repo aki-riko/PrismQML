@@ -4,6 +4,7 @@
 
 import QtQuick
 import ".."
+import "../SkinResolver.js" as SkinResolver
 import "../effects"
 
 // ContentFrame - Reusable content area with rounded corner and border 可复用的圆角边框内容区域
@@ -19,11 +20,38 @@ Item {
     property bool ticketPaperEnabled: true
     property real paperOriginX: 0
     property real paperOriginY: 0
+    // Explicit context is used by a window surface that has been reparented.
+    // 普通内容自动继承最近范围；窗口表面重挂后可显式传入上下文。
+    property var skinContext: null
     default property alias content: contentItem.data
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property int _effectiveRadius: Enums.surfaceRadius(cornerRadius)
-    readonly property real _effectiveBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property var effectiveSkinContext:
+        skinContext || _nearestSkinContext || Enums
+    readonly property var _skin: effectiveSkinContext
+    // Automatic scope lookup stays local to descendants; only an explicit
+    // bridge must short-circuit their own ancestor walk.
+    // 后代的自动范围查找保持独立；只有显式桥接才需要截断其自身祖先查找。
+    readonly property var _prismSkinScopeContext: skinContext || null
+    readonly property int _effectiveRadius: _skin.surfaceRadius(cornerRadius)
+    readonly property real _effectiveBorderWidth: _skin.surfaceBorderWidth(_skin.border.thin)
+
+    // ==================== Internal Props 内部属性 ====================
+    property var _nearestSkinContext: null
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _resolveSkinContext() {
+        if (skinContext) {
+            _nearestSkinContext = null
+            return
+        }
+        _nearestSkinContext = SkinResolver.nearestContext(parent)
+    }
+
+    onParentChanged: _resolveSkinContext()
+    onSkinContextChanged: _resolveSkinContext()
+    onEffectiveSkinContextChanged: borderCanvas.requestPaint()
+    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     // Background. 背景。
@@ -35,9 +63,10 @@ Item {
 
         TicketPaper {
             anchors.fill: parent
+            skinContext: root.effectiveSkinContext
             patternOriginX: root.paperOriginX
             patternOriginY: root.paperOriginY
-            visible: root.ticketPaperEnabled && Enums.isVintageTicket
+            visible: root.ticketPaperEnabled && root._skin.isVintageTicket
         }
         
         // Bottom-left corner fill. 左下角填充。
@@ -70,8 +99,8 @@ Item {
             ctx.clearRect(0, 0, w, h)
             // Outlined skins use their ink border; Fluent keeps the content border.
             // 描边皮肤使用自身油墨边框；Fluent 保持内容边框。
-            ctx.strokeStyle = (Enums.hasOutlinedSurfaces
-                ? Enums.borderColor : Enums.stateColor.contentBorder).toString()
+            ctx.strokeStyle = (root._skin.hasOutlinedSurfaces
+                ? root._skin.borderColor : root._skin.stateColor.contentBorder).toString()
             ctx.lineWidth = root._effectiveBorderWidth
             var off = ctx.lineWidth / 2  // Center the stroke on pixels. 将描边中心与像素对齐。
             if (r <= off) {
@@ -109,7 +138,7 @@ Item {
     Connections {
         function onIsDarkChanged() { borderCanvas.requestPaint() }
         function onSkinChanged() { borderCanvas.requestPaint() }
-        target: Enums
+        target: root.effectiveSkinContext
     }
     
     // Content container. 内容容器。
@@ -123,8 +152,9 @@ Item {
         // Clear input focus from blank space; keep this below page content. 点击空白处清除输入焦点，并保持在页面内容下方。
         MouseArea {
             anchors.fill: parent
-            z: Enums.zIndex.background
+            z: root._skin.zIndex.background
             onClicked: contentItem.forceActiveFocus()
         }
     }
+
 }
