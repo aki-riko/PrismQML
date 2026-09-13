@@ -3,7 +3,6 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import "../.."
-import "../../SkinResolver.js" as SkinResolver
 import "_internal" as DialogInternal
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
@@ -19,53 +18,32 @@ import QtQuick.Window  // After library import: native Window type stays unshado
 // - Mask layer with click handling 遮罩层点击处理
 Item {
     id: control
-    
     // ==================== Public Props 公开属性 ====================
-    // Explicit context is primarily for a dialog created outside the visual
-    // scope that owns its trigger. Ordinary dialogs resolve their nearest
-    // SkinScope automatically.
-    // 显式上下文主要用于对话框定义在触发范围外的情况；普通对话框自动解析最近 SkinScope。
-    property var skinContext: null
+    property alias skinContext: _skinContext.skinContext
     property bool dismissOnScrimClick: false  // Close when overlay scrim is clicked 点击遮罩关闭
     property bool draggable: false              // Allow drag dialog 允许拖拽
-    
     // Overlay target 覆盖目标
     // null = stay with current parent (component-level overlay) null = 保持当前父组件（组件级别覆盖）
 
     // Set to Window.window.contentItem for window-level overlay 设置为 Window.window.contentItem 以实现窗口级别覆盖
-
     property Item overlayTarget: null
-    
     // Mask color 遮罩颜色
     property color maskColor: effectiveSkinContext.stateColor.maskHeavy
-
     // ==================== Internal Props 内部属性 ====================
-    property var _capturedSkinContext: null
-    readonly property var _nearestSkinContext:
-        (skinContext || _capturedSkinContext)
-        ? null : SkinResolver.nearestContext(parent)
-    readonly property var effectiveSkinContext:
-        skinContext || _capturedSkinContext || _nearestSkinContext || Enums
-    // Descendants retain only an explicit or captured context after the dialog
-    // body is reparented to Window.contentItem. Before opening, automatic
-    // children continue walking to their original SkinScope.
-    // 对话框主体重挂到 Window.contentItem 后，后代只保留显式或已捕获上下文；
-    // 打开前自动子项继续向上查找原始 SkinScope。
-    readonly property var _prismSkinScopeContext:
-        skinContext || _capturedSkinContext || null
-    readonly property var _skin: effectiveSkinContext
+    property alias _capturedSkinContext: _skinContext.capturedSkinContext
+    readonly property alias _nearestSkinContext: _skinContext.nearestSkinContext
+    readonly property alias effectiveSkinContext: _skinContext.effectiveSkinContext
+    readonly property alias _prismSkinScopeContext: _skinContext.prismSkinScopeContext
+    readonly property alias _skin: _skinContext.skin
     property bool _isOpen: false
     property bool _isClosing: false
     property point _dragPos: Qt.point(0, 0)
     property Item _originalParent: null  // Original parent before reparenting 重新父化前的原始父组件
-    
     // ==================== Signals 信号 ====================
     signal accepted()
     signal rejected()
     signal closed()
-
     // ==================== Public Methods 公开方法 ====================
-
     // Open dialog 打开对话框
     function open() {
         // OverlayDialogCore intentionally stays under Window.contentItem after
@@ -90,7 +68,6 @@ Item {
         _prepareOpen()
         _isOpen = true
     }
-
     // Accept and close 接受并关闭
     function accept() {
         if (!_isOpen) return
@@ -99,7 +76,6 @@ Item {
         accepted()
         _restoreParentTimer.start()
     }
-
     // Reject and close 拒绝并关闭
     function reject() {
         if (!_isOpen) return
@@ -108,7 +84,6 @@ Item {
         rejected()
         _restoreParentTimer.start()
     }
-
     // Close dialog (alias for reject) 关闭对话框
     function close() {
         if (!_isOpen) return
@@ -117,12 +92,10 @@ Item {
         closed()
         _restoreParentTimer.start()
     }
-
     // ==================== Internal Methods 内部方法 ====================
 
     // Extension hook for derived dialog layout 派生对话框布局扩展钩子
     function _prepareOpen() {}
-
     // Resolve overlay target 解析覆盖目标
     function _resolveOverlayTarget() {
         // If overlayTarget is specified, use it 如果指定了overlayTarget则使用它
@@ -138,7 +111,6 @@ Item {
 
         return null
     }
-
     // Restore state after close 关闭后恢复状态
     // 不再 reparent 回 _originalParent — nested OverlayDialog 场景下,外层 dialog 自身
     // 已 reparent 到 contentItem, 内层 reject 后若 reparent 回 bodyLayout (外层 dialog 的子 Item),
@@ -148,12 +120,10 @@ Item {
     function _restoreParent() {
         _isClosing = false
     }
-
     // Layout 布局
     anchors.fill: parent
     z: _skin.zIndex.modal
     visible: _isOpen || _isClosing
-
     // ==================== Content 内容 ====================
     // Mask layer 遮罩层
     Rectangle {
@@ -163,7 +133,6 @@ Item {
         // QML inheritance order. 遮罩始终低于派生浮层主体，不受QML继承声明顺序影响。
         z: _skin.zIndex.background
         color: control.maskColor
-        
         // Fade animation 淡入淡出动画
         opacity: control._isOpen ? 1 : 0
         Behavior on opacity {
@@ -172,7 +141,6 @@ Item {
                 easing.type: control._isClosing ? Easing.Linear : Easing.InSine
             }
         }
-        
         MouseArea {
             anchors.fill: parent
             // Intercept hover/wheel/click so they never reach the ListView/CommandBar below 拦截 hover/wheel/click 防止穿透到下层 ListView/CommandBar 等
@@ -187,10 +155,13 @@ Item {
             }
         }
     }
-
     DialogInternal.OverlayDialogRestoreParentTimer {
         id: _restoreParentTimer
 
+        host: control
+    }
+    DialogInternal.OverlayDialogSkinContext {
+        id: _skinContext
         host: control
     }
 }
