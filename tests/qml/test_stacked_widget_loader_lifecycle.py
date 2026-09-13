@@ -147,6 +147,7 @@ Item {{
         assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-first"
 
         assert QMetaObject.invokeMethod(root, "pushSecond")
+        assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-first"
         assert _evaluate(root, "animationStartedCount") == 0
         _pump(1000)
         assert _evaluate(root, "stack.depth") == 2

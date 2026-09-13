@@ -17,27 +17,70 @@ Item {
     // ==================== Size 尺寸 ====================
     visible: host._useSourceMode
 
+    // Keep dynamic-stack delegates stable when a new URL is appended. A numeric
+    // Repeater model may rebuild all delegates on pageSources replacement,
+    // which reloads the currently visible page and exposes a blank frame.
+    // 动态栈追加 URL 时保持委托稳定。数值 Repeater 模型在替换 pageSources 后
+    // 可能重建全部委托，导致当前页重载并暴露空白帧。
+    function _syncPageModel() {
+        var sources = sourceContainer.host._safePageSources
+        while (sourceModel.count > sources.length) {
+            sourceModel.remove(sourceModel.count - 1)
+        }
+        for (var index = 0; index < sources.length; index++) {
+            var source = sources[index] || ""
+            if (index >= sourceModel.count) {
+                sourceModel.append({"sourceValue": source})
+            } else if (String(sourceModel.get(index).sourceValue)
+                       !== String(source)) {
+                sourceModel.setProperty(index, "sourceValue", source)
+            }
+        }
+        if (sourceContainer.host._loaders.length > sources.length) {
+            sourceContainer.host._loaders = sourceContainer.host._loaders.slice(
+                0, sources.length)
+        }
+    }
+
     // ==================== Content 内容 ====================
+    ListModel {
+        id: sourceModel
+    }
+
     Repeater {
         id: sourceRepeater
 
-        model: sourceContainer.host._useSourceMode
-               ? sourceContainer.host._safePageSources.length : 0
+        model: sourceModel
 
         Loader {
             id: sourceLoader
 
             property bool _loadOnce: false
             property int pageIndex: index
+            property string _loadedSourceText: ""
 
             function _syncSource() {
-                var nextSource = sourceContainer.host._safePageSources[index] || ""
+                var modelEntry = index >= 0 && index < sourceModel.count
+                        ? sourceModel.get(index) : null
+                var nextSource = modelEntry ? modelEntry.sourceValue : ""
                 var nextProperties = sourceContainer.host._pagePropertiesFor(index)
                 if (!nextSource) {
                     sourceLoader.source = ""
+                    sourceLoader._loadedSourceText = ""
                     return
                 }
-                if (sourceLoader.source.toString() !== String(nextSource)) {
+                var nextSourceText = nextSource && nextSource.toString
+                        ? nextSource.toString() : String(nextSource)
+                if (sourceLoader.item && sourceLoader._loadedSourceText === nextSourceText) {
+                    var keys = Object.keys(nextProperties)
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i]
+                        if (key in sourceLoader.item) sourceLoader.item[key] = nextProperties[key]
+                    }
+                    return
+                }
+                if (sourceLoader.source.toString() !== nextSourceText) {
+                    sourceLoader._loadedSourceText = nextSourceText
                     sourceLoader.setSource(nextSource, nextProperties)
                     return
                 }
@@ -109,6 +152,7 @@ Item {
                 sourceContainer.host._traceLazyStage(
                     "stacked.source_loader.loaded.begin", index, "", sourceLoader)
                 _loadOnce = true
+                sourceLoader._loadedSourceText = sourceLoader.source.toString()
                 sourceContainer.host.pageLoaded(index)
                 sourceContainer.host.profileTime("sourceLoader onLoaded index=" + index)
                 sourceContainer.host._traceLazyStage(
@@ -123,4 +167,12 @@ Item {
             }
         }
     }
+
+    Connections {
+        function onPageSourcesChanged() { sourceContainer._syncPageModel() }
+
+        target: sourceContainer.host
+    }
+
+    Component.onCompleted: sourceContainer._syncPageModel()
 }
