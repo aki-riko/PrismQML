@@ -60,7 +60,8 @@ Item {
     property bool _toolTipShowPending: false
     // Resolved nearest scope; null when no ancestor SkinScope exists.
     // 解析出的最近范围；没有祖先 SkinScope 时为 null。
-    property var _nearestSkinContext: null
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(widget.parent)
     readonly property Loader _centerChildrenDelayed: Loader {
         active: widget.centerContent
         onLoaded: widget._scheduleCenterChildren()
@@ -103,17 +104,6 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Runs on creation, reparenting, and explicit context changes only — never
-    // per frame, per hover, or inside animation callbacks.
-    // 只在创建、重挂载与显式上下文变化时执行，不在每帧、hover 或动画回调内执行。
-    function _resolveSkinContext() {
-        if (widget.skinContext) {
-            widget._nearestSkinContext = null
-            return
-        }
-        widget._nearestSkinContext = SkinResolver.nearestContext(widget.parent)
-    }
-
     function _cancelToolTipTimers() {
         if (_toolTipLoader.item) _toolTipLoader.item.cancelTimers()
         _toolTipTimersCanceled()
@@ -161,11 +151,6 @@ Item {
     // Center first child when centerContent is true 当centerContent为true时居中第一个子组件
     onChildrenChanged: if (centerContent) _scheduleCenterChildren()
     onCenterContentChanged: if (centerContent) _scheduleCenterChildren()
-
-    // Skin context resolution 皮肤上下文解析
-    onParentChanged: widget._resolveSkinContext()
-    onSkinContextChanged: widget._resolveSkinContext()
-    Component.onCompleted: widget._resolveSkinContext()
 
     // ==================== Content 内容 ====================
 

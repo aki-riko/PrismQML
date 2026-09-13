@@ -30,28 +30,17 @@ Item {
     readonly property color _itemTextColor: delegateRoot.itemEnabled ? _skin.textColor.primary : _skin.textColor.disabled
 
     // ==================== Internal Props 内部属性 ====================
-    property var _nearestSkinContext: null
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(parent)
     
     // ==================== Signals 信号 ====================
     signal clicked()
     signal pressed()
 
-    function _resolveSkinContext() {
-        if (skinContext) {
-            _nearestSkinContext = null
-            return
-        }
-        _nearestSkinContext = SkinResolver.nearestContext(parent)
-    }
-
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : _skin.comboBoxMetrics.defaultWidth
     height: isSeparator ? _skin.controlSize.menuSeparatorHeight : _skin.comboBoxMetrics.itemHeight
 
-    onParentChanged: _resolveSkinContext()
-    onSkinContextChanged: _resolveSkinContext()
-    Component.onCompleted: _resolveSkinContext()
-    
     // ==================== Content 内容 ====================
     // Separator 分隔线
     Separator {

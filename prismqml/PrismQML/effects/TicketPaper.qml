@@ -28,24 +28,12 @@ Item {
     readonly property real _patternSourceY: -Math.max(0, patternOriginY)
 
     // ==================== Internal Props 内部属性 ====================
-    property var _nearestSkinContext: null
-
-    // ==================== Internal Methods 内部方法 ====================
-    function _resolveSkinContext() {
-        if (skinContext) {
-            _nearestSkinContext = null
-            return
-        }
-        _nearestSkinContext = SkinResolver.nearestContext(parent)
-    }
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(parent)
 
     visible: effectiveSkinContext.isVintageTicket
     opacity: patternOpacity
     clip: true
-
-    onParentChanged: _resolveSkinContext()
-    onSkinContextChanged: _resolveSkinContext()
-    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     Item {

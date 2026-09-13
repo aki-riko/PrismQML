@@ -21,7 +21,8 @@ Text {
     property color customTextColor: effectiveSkinContext.transparent
 
     // ==================== Internal Props 内部属性 ====================
-    property var _nearestSkinContext: null
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(parent)
     property bool _useCustomColor: customTextColor != effectiveSkinContext.transparent
 
     // ==================== Readonly State 只读状态 ====================
@@ -116,14 +117,6 @@ Text {
     // Set word wrap 设置自动换行
     function setWordWrap(wrap) { wrapMode = wrap ? Text.WordWrap : Text.NoWrap }
 
-    function _resolveSkinContext() {
-        if (skinContext) {
-            _nearestSkinContext = null
-            return
-        }
-        _nearestSkinContext = SkinResolver.nearestContext(parent)
-    }
-
     // Style bindings 样式绑定
     font.family: effectiveSkinContext.fontFamily
     font.pixelSize: _fontSize
@@ -133,10 +126,6 @@ Text {
     wrapMode: (type === effectiveSkinContext.label.type_body || type === effectiveSkinContext.label.type_body_strong || type === effectiveSkinContext.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap
     elide: type === effectiveSkinContext.label.type_display ? Text.ElideRight : Text.ElideNone
-
-    onParentChanged: _resolveSkinContext()
-    onSkinContextChanged: _resolveSkinContext()
-    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     // Hyperlink interaction 超链接交互

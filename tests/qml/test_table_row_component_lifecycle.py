@@ -30,9 +30,9 @@ SCENE_URL = QUrl.fromLocalFile(
 # The scroll area carries two overshoot guards and one bounds reconciler.
 # 滚动区域带两个超出门闸与一个边界校正器。
 # TableHeader owns a title row, sort affordance and click area per column.
-# Each rendered label also owns the stable local skin-resolution state.
-# 表头每列拥有标题行、排序图标和点击区域；每个已渲染标签还拥有稳定的局部皮肤解析状态。
-EXPECTED_NORMAL_OBJECTS = 1019
+# Declarative skin lookup adds no signal-handler objects.
+# 表头每列拥有标题行、排序图标和点击区域；声明式皮肤查找不增加信号处理对象。
+EXPECTED_NORMAL_OBJECTS = 963
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window
@@ -197,7 +197,7 @@ def test_table_rows_preserve_rendering_while_components_are_measured(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, table, warnings = _create_scene()
     try:
-        assert _wait_for(lambda: _object_count(table) == EXPECTED_NORMAL_OBJECTS)
+        assert _wait_for(lambda: _object_count(table) == EXPECTED_NORMAL_OBJECTS), _object_count(table)
         rows = _row_delegates(table)
         row_components = [_component_count(row) for row in rows]
         normal_objects = _object_count(table)

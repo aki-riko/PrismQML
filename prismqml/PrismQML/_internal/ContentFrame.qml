@@ -37,21 +37,10 @@ Item {
     readonly property real _effectiveBorderWidth: _skin.surfaceBorderWidth(_skin.border.thin)
 
     // ==================== Internal Props 内部属性 ====================
-    property var _nearestSkinContext: null
+    readonly property var _nearestSkinContext: skinContext
+        ? null : SkinResolver.nearestContext(parent)
 
-    // ==================== Internal Methods 内部方法 ====================
-    function _resolveSkinContext() {
-        if (skinContext) {
-            _nearestSkinContext = null
-            return
-        }
-        _nearestSkinContext = SkinResolver.nearestContext(parent)
-    }
-
-    onParentChanged: _resolveSkinContext()
-    onSkinContextChanged: _resolveSkinContext()
     onEffectiveSkinContextChanged: borderCanvas.requestPaint()
-    Component.onCompleted: _resolveSkinContext()
 
     // ==================== Content 内容 ====================
     // Background. 背景。

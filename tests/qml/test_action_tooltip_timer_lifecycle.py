@@ -229,11 +229,11 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
             shown_objects,
             restored_objects,
         ) == (
-            33,
-            33,
-            39,
-            63,
-            33,
+            30,
+            30,
+            36,
+            59,
+            30,
         )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

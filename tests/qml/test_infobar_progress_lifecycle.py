@@ -168,8 +168,8 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
         )
 
         assert len(timers) == 1
-        # Skin-context resolution adds stable QML objects; timer and branch counts stay unchanged.
-        assert object_count == 70
+        # Declarative skin lookup adds no signal-handler objects. 声明式皮肤查找不增加信号处理对象。
+        assert object_count == 66
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

@@ -318,7 +318,6 @@ Item {
         if (mouseX !== undefined && mouseY !== undefined) {
             var sourceItem = triggerItem || control.parent
             if (sourceItem && sourceItem.mapToGlobal) {
-                if (!targetControl) targetControl = sourceItem
                 var globalPos = sourceItem.mapToGlobal(mouseX, mouseY)
                 open(globalPos.x, globalPos.y)
                 return

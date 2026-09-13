@@ -6,6 +6,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -25,9 +27,18 @@ def _pump(milliseconds: int = 0) -> None:
     loop.exec()
 
 
-def _create_scene(qapp):
+@pytest.fixture(autouse=True)
+def _preserve_global_appearance():
     previous_skin = getSkin()
     previous_theme = getTheme()
+    try:
+        yield
+    finally:
+        setSkin(previous_skin)
+        setTheme(previous_theme)
+
+
+def _create_scene(qapp):
     engine = QQmlApplicationEngine()
     warnings: list[str] = []
     engine.warnings.connect(
@@ -55,9 +66,6 @@ def _create_scene(qapp):
     except Exception:
         engine.deleteLater()
         raise
-    finally:
-        setSkin(previous_skin)
-        setTheme(previous_theme)
 
 
 def test_ticket_scope_changes_real_surfaces_without_touching_global_skin(qapp):

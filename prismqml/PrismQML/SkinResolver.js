@@ -33,6 +33,9 @@ function isValidSkin(name) {
 // This runs only on creation, parent changes, and explicit context changes —
 // never per frame, per hover, or inside animation callbacks.
 // 只在创建、父级变化与显式上下文变化时执行，不在每帧、hover 或动画回调内执行。
+// Call from a property binding so every visited parent and context marker is
+// observed, including changes above the consumer's immediate parent.
+// 必须在属性绑定中调用，追踪每层父级和上下文标记，包括非直接父级的变化。
 function nearestContext(item) {
     var node = item
     var depth = 0
