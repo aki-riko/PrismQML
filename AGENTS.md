@@ -365,6 +365,12 @@ error(f"错误: {e}")
 
 **唯一例外**：性能基准测试中的计时输出可用 `print`。
 
+**默认级别（铁律）**：引擎默认级别为 `INFO`，`DEBUG` 只能显式开启——环境变量
+`PRISM_LOG_LEVEL=DEBUG`（接受级别名或数值，非法值告警并回退 `INFO`），或运行时
+`set_level(logging.DEBUG)`（已从 `prismqml` 根包导出）。因此新增诊断日志一律按分级写：
+可重复出现的运行细节用 `debug`，不得用 `info` 刷屏；状态真实变化或需要用户看见的用 `info`。
+级别同时作用于日志器与全部 handler，并过滤 Qt/QML 转发的 `QtDebugMsg`。
+
 ### 4.8 下拉与菜单必须使用独立原生窗口（铁律）
 
 - 标准下拉、菜单、选择器弹层必须通过 `PopupWindowCore` 使用独立的原生顶层窗口；`Button` 的 `feature_dropdown` / `feature_split` 内置菜单必须保持 `useQtPopupWindow: true`，允许弹层越过宿主窗口边界完整显示。

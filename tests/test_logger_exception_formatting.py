@@ -32,11 +32,16 @@ def project_log_records():
 
     capture = _RecordCapture()
     logger = getLogger().logger
+    # These regressions assert record mapping, so pin DEBUG regardless of the
+    # engine default level. 本组回归校验记录映射，与引擎默认级别无关，故显式固定 DEBUG。
+    previous_level = logger.level
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(capture)
     try:
         yield capture.records
     finally:
         logger.removeHandler(capture)
+        logger.setLevel(previous_level)
 
 
 def _assert_traceback_record(records, marker, error_type, source_text):

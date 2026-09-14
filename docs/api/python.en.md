@@ -198,6 +198,12 @@ Release responses must be strict UTF-8 JSON objects. `tag_name` must be a non-em
 |------|-------------|
 | `Logger` / `getLogger` | Logger |
 | `debug` / `info` / `warning` / `error` / `exception` | Log functions |
+| `set_level` | Set the global log level (numeric, e.g. `logging.DEBUG`) |
+
+The engine defaults to `INFO`; `DEBUG` is opt-in only: set `PRISM_LOG_LEVEL=DEBUG` (a level name or
+number is accepted, an invalid value falls back to `INFO` with a warning), or call
+`set_level(logging.DEBUG)` before creating windows. The level applies to both the logger and every
+handler, and it also filters `QtDebugMsg` records forwarded from Qt/QML.
 
 ## Utilities
 

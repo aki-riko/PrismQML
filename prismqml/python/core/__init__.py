@@ -17,6 +17,7 @@ __all__ = [
     # Logger
     "Logger",
     "getLogger",
+    "set_level",
     "debug",
     "info",
     "warning",
@@ -76,6 +77,7 @@ _LAZY_EXPORTS = {
     # Logger
     "Logger": (".logger", "Logger"),
     "getLogger": (".logger", "getLogger"),
+    "set_level": (".logger", "set_level"),
     "debug": (".logger", "debug"),
     "info": (".logger", "info"),
     "warning": (".logger", "warning"),

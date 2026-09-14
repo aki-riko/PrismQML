@@ -178,6 +178,11 @@ release 响应必须是严格 UTF-8 JSON 对象，`tag_name` 必须是非空字�
 |------|------|
 | `Logger` / `getLogger` | 日志器 |
 | `debug` / `info` / `warning` / `error` / `exception` | 日志函数 |
+| `set_level` | 设置全局日志级别（数值，如 `logging.DEBUG`） |
+
+引擎默认级别为 `INFO`，`DEBUG` 需显式开启：设置环境变量 `PRISM_LOG_LEVEL=DEBUG`（接受级别名或
+数值，非法值回退 `INFO` 并告警），或在创建窗口前调用 `set_level(logging.DEBUG)`。该级别同时作用于
+日志器和全部 handler，并统一过滤 Qt/QML 转发的 `QtDebugMsg`。
 
 ## 工具
 

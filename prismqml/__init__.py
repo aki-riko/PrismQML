@@ -9,7 +9,7 @@ from importlib import import_module as _import_module
 
 # Keep this synchronized with pyproject.toml during release version bumps.
 # 发布升版时与 pyproject.toml 同步，避免导入阶段扫描分发元数据。
-__version__ = "0.5.0.0"
+__version__ = "0.5.0.1"
 __author__ = "aki-riko"
 
 __all__ = [
@@ -55,6 +55,7 @@ __all__ = [
     # Logger
     "Logger",
     "getLogger",
+    "set_level",
     "debug",
     "info",
     "warning",
@@ -165,6 +166,7 @@ _LAZY_EXPORTS = {
     # Logger
     "Logger": (".python.core.logger", "Logger"),
     "getLogger": (".python.core.logger", "getLogger"),
+    "set_level": (".python.core.logger", "set_level"),
     "debug": (".python.core.logger", "debug"),
     "info": (".python.core.logger", "info"),
     "warning": (".python.core.logger", "warning"),

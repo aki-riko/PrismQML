@@ -11,6 +11,8 @@ PrismQML Logger - 统一日志组件 Unified logging component
 - 自动模块标签 Auto module tag from filename
 - 彩色终端输出 Colored terminal output (Windows compatible)
 - 多级别日志 Multi-level logging (DEBUG/INFO/WARNING/ERROR)
+- 默认 INFO，DEBUG 需显式开启 Default INFO level; DEBUG requires explicit opt-in
+  via the PRISM_LOG_LEVEL environment variable or set_level()
 - 日志轮转 Log rotation support
 - 异常堆栈追踪 Exception stack trace
 """
@@ -166,6 +168,40 @@ def _get_module_tag(filename: str) -> str:
     return "".join(part.capitalize() for part in parts)
 
 
+# ==================== Level Resolution 级别解析 ====================
+
+# Environment variable that selects the default level 选择默认级别的环境变量
+LOG_LEVEL_ENV = "PRISM_LOG_LEVEL"
+
+# Engine default: DEBUG is opt-in only 引擎默认级别：DEBUG 仅显式开启
+DEFAULT_LOG_LEVEL = logging.INFO
+
+
+def resolve_log_level(level: Optional[int] = None) -> int:
+    """Resolve the effective level: explicit arg > PRISM_LOG_LEVEL > default.
+    解析生效级别：显式参数 > PRISM_LOG_LEVEL 环境变量 > 默认 INFO。"""
+    if level is not None:
+        return int(level)
+
+    raw = (os.environ.get(LOG_LEVEL_ENV) or "").strip()
+    if not raw:
+        return DEFAULT_LOG_LEVEL
+
+    named = logging.getLevelName(raw.upper())
+    if isinstance(named, int):
+        return named
+    if raw.isdigit():
+        return int(raw)
+
+    logging.getLogger(__name__).warning(
+        "Invalid %s=%r, falling back to %s",
+        LOG_LEVEL_ENV,
+        raw,
+        logging.getLevelName(DEFAULT_LOG_LEVEL),
+    )
+    return DEFAULT_LOG_LEVEL
+
+
 def _create_console_handler(level: int, colored: bool) -> logging.StreamHandler:
     """Create the configured console handler. 创建已配置的控制台处理器。"""
     handler = logging.StreamHandler(sys.stdout)
@@ -223,7 +259,7 @@ class Logger:
         self,
         name: str = "PrismQML",
         log_file: Optional[str] = None,
-        level: int = logging.DEBUG,
+        level: Optional[int] = None,
         max_bytes: int = DEFAULT_MAX_BYTES,
         backup_count: int = DEFAULT_BACKUP_COUNT,
         colored: bool = True,
@@ -232,6 +268,7 @@ class Logger:
             return
 
         self.name = name
+        level = resolve_log_level(level)
         self.logger = logging.getLogger(name)
         self.logger.setLevel(level)
         self.logger.handlers.clear()
@@ -267,6 +304,10 @@ class Logger:
         self, level: int, msg: str, tag: Optional[str] = None, exc_info: bool = False
     ):
         """Internal log method 内部日志方法"""
+        # Skip tag lookup entirely for suppressed levels 被过滤级别直接跳过标签解析
+        if not self.logger.isEnabledFor(level):
+            return
+
         # Auto tag if not provided 未提供则自动标签
         if tag is None:
             tag = self._get_caller_tag()
@@ -310,10 +351,10 @@ _logger: Optional[Logger] = None
 def getLogger(
     name: str = "PrismQML",
     log_file: Optional[str] = None,
-    level: int = logging.DEBUG,
+    level: Optional[int] = None,
     colored: bool = True,
 ) -> Logger:
-    """Get logger singleton 获取日志单例"""
+    """Get logger singleton 获取日志单例（级别见 resolve_log_level）"""
     global _logger
     if _logger is None:
         _logger = Logger(name, log_file, level, colored=colored)
@@ -349,7 +390,7 @@ def exception(msg: str, tag: Optional[str] = None):
 
 
 def set_level(level: int):
-    """Set global log level 设置全局日志级别"""
+    """Set global log level 设置全局日志级别（如 logging.DEBUG 打开调试日志）"""
     getLogger().set_level(level)
 
 
