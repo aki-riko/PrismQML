@@ -232,9 +232,9 @@ def test_lazy_animation_uses_independent_enum_and_circle_backend():
         ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsPageStack.qml"
     ).read_text(encoding="utf-8")
     assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in stacked_source
-    assert "animationType: Enums.lazyAnimation.lazy_circle" in stacked_source
+    assert "animationType: control.lazyAnimationType" in stacked_source
     assert "property int lazyAnimationType: Enums.lazyAnimation.lazy_circle" in window_source
-    assert "lazyAnimationType: Enums.lazyAnimation.lazy_circle" in page_stack_source
+    assert "root.host.lazyAnimationType" in page_stack_source
 
 
 def test_lazy_animation_enum_is_separate_from_stacked_widget_animation_enum():

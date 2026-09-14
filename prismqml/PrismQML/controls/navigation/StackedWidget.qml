@@ -417,7 +417,7 @@ Item {
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
-        animationType: Enums.lazyAnimation.lazy_circle
+        animationType: control.lazyAnimationType
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()
