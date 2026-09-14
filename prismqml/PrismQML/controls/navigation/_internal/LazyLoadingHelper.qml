@@ -23,6 +23,8 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property string loadingText: { Translator._v; return Translator.tr("loading") }
+    property int loadingAnimationType: Enums.animation.opacity
+    property int loadingAnimationDuration: Enums.duration.medium
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
 
     // ==================== Internal Props 内部属性 ====================
@@ -246,9 +248,7 @@ Item {
         _initialLoading = true
         _waitIndicatorFinished = false
         _targetExpansionFinished = false
-        loadingOverlay.start()
-        loadingOverlay.y = 0
-        loadingOverlay.opacity = 1
+        _startLoadingOverlay()
         _trace("helper.initial_loading.start", targetIdx)
         _startLoaderPollingTimer(targetIdx)
     }
@@ -258,9 +258,7 @@ Item {
         if (targetIdx < 0) return
 
         _trace("helper.page_collapse.finish", targetIdx)
-        loadingOverlay.start()
-        loadingOverlay.y = 0
-        loadingOverlay.opacity = 1
+        _startLoadingOverlay()
         _trace("helper.wait_indicator.start", targetIdx)
         _startLoaderActivationTimer(targetIdx)
     }
@@ -282,6 +280,30 @@ Item {
         currentLoader.y = 0
         currentLoader.x = 0
         currentLoader.scale = 1
+    }
+
+    function _startLoadingOverlay() {
+        loadingOverlay.start()
+        loadingOverlay.x = 0
+        loadingOverlay.y = 0
+        loadingOverlay.scale = 1
+        loadingOverlay.opacity = 0
+        switch (loadingAnimationType) {
+        case Enums.animation.slide:
+        case Enums.animation.slide_fade:
+            loadingOverlay.x = width
+            break
+        case Enums.animation.popup:
+            loadingOverlay.y = Enums.controlSize.popUpOffset
+            break
+        case Enums.animation.popdown:
+            loadingOverlay.y = -Enums.controlSize.popUpOffset
+            break
+        case Enums.animation.zoom:
+            loadingOverlay.scale = Enums.opacityLevel.invisible
+            break
+        }
+        loadingOverlayEnterAnimation.restart()
     }
 
     function _handleLoadFailure(targetIdx, errorString) {
@@ -326,7 +348,8 @@ Item {
         id: loadingOverlay
 
         objectName: "lazyLoadingOverlay"
-        anchors.fill: parent
+        width: parent ? parent.width : 0
+        height: parent ? parent.height : 0
         text: helper.loadingText
         // Keep the loading surface transparent so the window Mica backdrop remains visible.
         // 保持加载表面透明，让窗口云母背板持续可见。
@@ -335,9 +358,44 @@ Item {
         visible: false
         opacity: 0
         y: 0
+        x: 0
+        scale: 1
         z: Enums.zIndex.controls
 
         onFinished: helper._completeWaitIndicatorExit()
+    }
+
+    ParallelAnimation {
+        id: loadingOverlayEnterAnimation
+
+        NumberAnimation {
+            target: loadingOverlay
+            property: "x"
+            to: 0
+            duration: helper.loadingAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: loadingOverlay
+            property: "y"
+            to: 0
+            duration: helper.loadingAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: loadingOverlay
+            property: "scale"
+            to: 1
+            duration: helper.loadingAnimationDuration
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: loadingOverlay
+            property: "opacity"
+            to: 1
+            duration: helper.loadingAnimationDuration
+            easing.type: Easing.OutCubic
+        }
     }
     
     // Sequential stage timer 串行阶段计时器

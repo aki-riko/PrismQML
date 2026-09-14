@@ -150,6 +150,16 @@ Item {{
         stack = root.findChild(QObject, "stack")
         _pump(500)
         root.pushPage()
+        overlay = stack.findChild(QObject, "lazyLoadingOverlay")
+        assert overlay is not None
+        assert _wait_for(lambda: overlay.property("visible") is True)
+        helper = next(
+            child for child in stack.findChildren(QObject)
+            if child.metaObject().indexOfProperty("loadingAnimationType") >= 0
+        )
+        assert helper is not None
+        assert helper.property("loadingAnimationType") == stack.property("animationType")
+        assert overlay.property("x") > 0
         assert _wait_for(lambda: stack.property("_displayIndex") == 1)
         loaders = stack.property("_loaders").toVariant()
         target_loader = loaders[1]
