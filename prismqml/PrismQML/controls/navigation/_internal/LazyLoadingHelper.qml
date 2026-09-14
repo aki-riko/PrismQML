@@ -34,6 +34,7 @@ Item {
     property bool _waitIndicatorFinished: false
     property bool _targetExpansionFinished: false
     property bool _initialLoading: false
+    property int _deferredRevealTarget: -1
     
     // ==================== Signals 信号 ====================
     signal loadingComplete(int targetIndex, int previousIndex)
@@ -130,6 +131,12 @@ Item {
 
         _trace("helper.page_render.begin", targetIdx)
         var prevIdx = internalLastIndex
+        if (helper.pageTransition.animationType === Enums.lazyAnimation.none) {
+            _deferredRevealTarget = targetIdx
+            _trace("helper.page_render.defer_until_wait_exit", targetIdx)
+            pageTransition.expand(loaders[targetIdx])
+            return
+        }
         internalLastIndex = targetIdx
         _trace("helper.loading_complete.emit_begin", targetIdx)
         loadingComplete(targetIdx, prevIdx)
@@ -156,6 +163,14 @@ Item {
 
         _waitIndicatorFinished = true
         _trace("helper.wait_indicator.finish", pendingTargetIndex)
+        if (_deferredRevealTarget >= 0) {
+            var revealTarget = _deferredRevealTarget
+            _deferredRevealTarget = -1
+            _trace("helper.page_reveal.after_wait", revealTarget)
+            var prevIdx = internalLastIndex
+            internalLastIndex = revealTarget
+            loadingComplete(revealTarget, prevIdx)
+        }
         _finalizeLoadingSwitch()
     }
 
@@ -191,6 +206,7 @@ Item {
         _waitIndicatorFinished = false
         _targetExpansionFinished = false
         _initialLoading = false
+        _deferredRevealTarget = -1
         loadingOverlay.visible = false
         loadingOverlay.opacity = 0
         loadingOverlay.y = 0

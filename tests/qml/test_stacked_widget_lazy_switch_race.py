@@ -110,3 +110,51 @@ def test_retargeting_to_visible_page_cancels_old_lazy_request(qapp, tmp_path):
         assert visible_indexes == [0]
     finally:
         _dispose(engine, component, root)
+
+
+def test_lazy_none_keeps_regular_stacked_enter_animation(qapp, tmp_path):
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    page_urls = []
+    for index in range(2):
+        page = tmp_path / f"animated_page_{index}.qml"
+        page.write_text('import QtQuick\nItem { objectName: "animated-%d" }\n' % index, encoding="utf-8")
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+    source = f"""
+import QtQuick
+import PrismQML
+Item {{
+    function pushPage() {{ stack.push("{page_urls[1]}", {{}}) }}
+    StackedWidget {{
+        id: stack
+        objectName: "stack"
+        width: 500
+        height: 300
+        dynamicStack: true
+        lazyLoading: true
+        lazyAnimationType: Enums.lazyAnimation.none
+        animationType: Enums.animation.slide_fade
+        animationDuration: 300
+        pageSources: ["{page_urls[0]}"]
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, QUrl("inline:stacked-widget-regular-enter"))
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [error.toString() for error in component.errors()]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        stack = root.findChild(QObject, "stack")
+        _pump(500)
+        root.pushPage()
+        assert _wait_for(lambda: stack.property("_displayIndex") == 1)
+        loaders = stack.property("_loaders").toVariant()
+        target_loader = loaders[1]
+        _pump(40)
+        assert target_loader.property("x") > 0
+        assert stack.property("busy") is True
+    finally:
+        _dispose(engine, component, root)
