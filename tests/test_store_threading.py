@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import threading
 import time
+import gc
+import weakref
 
 import pytest
 import shiboken6
@@ -115,6 +117,37 @@ def test_cancelled_post_set_does_not_break_following_updates(qapp):
     assert store.get("value") == 2
 
 
+def test_post_set_completion_race_with_cancel_does_not_raise(qapp):
+    store = Store("cancel-race")
+    store.define("value", 0)
+    futures = []
+    submitted = threading.Event()
+
+    def worker():
+        future = store.post_set("value", 1)
+        original_set_result = future.set_result
+
+        def cancel_before_completion(result):
+            future.cancel()
+            return original_set_result(result)
+
+        future.set_result = cancel_before_completion
+        futures.append(future)
+        futures.append(store.post_set("value", 2))
+        submitted.set()
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    assert submitted.wait(timeout=1)
+    thread.join(timeout=1)
+    assert not thread.is_alive()
+    assert _pump_until(qapp, lambda: futures[1].done())
+
+    assert futures[0].cancelled()
+    assert futures[1].result() is None
+    assert store.get("value") == 2
+
+
 def test_post_set_queue_is_sliced_for_large_bursts(qapp):
     store = Store("burst-queue")
     store.define("value", 0)
@@ -184,6 +217,34 @@ def test_owner_destruction_cancels_subscription(qapp):
     store.set("value", 1)
 
     assert events == []
+
+
+def test_closed_owner_subscription_releases_callback_and_signal_connection(qapp):
+    store = Store("owner-cleanup")
+    owner = QObject()
+
+    def callback(_new, _old):
+        return None
+
+    callback_ref = weakref.ref(callback)
+    subscription = store.watch("value", callback, owner=owner)
+    subscription.close()
+    del callback
+    gc.collect()
+
+    assert callback_ref() is None
+
+
+def test_batch_context_exit_after_store_close_does_not_underflow(qapp):
+    store = Store("batch-close")
+    context = store.batch()
+    context.__enter__()
+    store.close()
+
+    context.__exit__(None, None, None)
+
+    assert store._batch_depth == 0
+    assert store._batch_mode is False
 
 
 def test_close_fails_queued_updates_without_touching_state(qapp):
@@ -260,5 +321,35 @@ def test_qml_binding_and_connections_receive_owner_thread_updates(qapp):
 
     root.deleteLater()
     qml_store.deleteLater()
+    engine.deleteLater()
+    qapp.processEvents(QEventLoop.AllEvents, 20)
+
+
+def test_qml_facade_is_retained_when_passed_without_python_reference(qapp):
+    store = Store("qml-facade-lifetime")
+    store.define("count", 3)
+    engine = QQmlEngine()
+    engine.rootContext().setContextProperty("appStore", store.as_qml())
+    gc.collect()
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+        import QtQuick
+        Item { property var observed: appStore.binding(\"count\").value }
+        """,
+        QUrl("inline:store-facade-lifetime.qml"),
+    )
+    assert _pump_until(
+        qapp, lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create()
+
+    assert root is not None
+    assert root.property("observed") == 3
+
+    root.deleteLater()
     engine.deleteLater()
     qapp.processEvents(QEventLoop.AllEvents, 20)

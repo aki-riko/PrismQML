@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from collections import deque
-from concurrent.futures import Future
+from concurrent.futures import Future, InvalidStateError
 from threading import RLock, get_ident
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
@@ -70,6 +70,7 @@ class Store:
         # QML keeps a C++ pointer to this object; retain the Python wrapper until close().
         # QML 只保留 C++ 指针，因此必须保留 Python wrapper 到 Store 关闭。
         self._bindings: Dict[str, StoreBinding] = {}
+        self._qml_facades: List[StoreObject] = []
         self._dispatcher = StoreDispatcher()
         self._post_lock = RLock()
         self._post_queue: Deque[Tuple[Future, str, Any, bool]] = deque()
@@ -167,7 +168,9 @@ class Store:
         self.assert_owner_thread()
         if parent is not None and parent.thread() != self._owner_thread:
             raise StoreThreadError("QML facade parent must share the Store Qt thread")
-        return StoreObject(self, parent)
+        facade = StoreObject(self, parent)
+        self._qml_facades.append(facade)
+        return facade
 
     def _record_batch_change(self, key: str, value: Any, old: Any) -> None:
         """Record one delayed batch notification. 记录一项延迟批处理通知。"""
@@ -292,6 +295,7 @@ class Store:
         self._bindings.clear()
         for binding in bindings:
             binding.close()
+        self._qml_facades.clear()
 
     def keys(self) -> List[str]:
         """获取所有状态键。"""
@@ -326,11 +330,15 @@ class Store:
         try:
             self.set(key, value, force)
         except BaseException as exc:
-            if not future.cancelled() and not future.done():
+            try:
                 future.set_exception(exc)
+            except InvalidStateError:
+                pass
         else:
-            if not future.cancelled() and not future.done():
+            try:
                 future.set_result(None)
+            except InvalidStateError:
+                pass
 
     def _post_set_preflight(self) -> Optional[StoreThreadError]:
         """Validate that the owner thread can receive queued work. 校验 Store 线程可接收排队任务。"""
@@ -369,10 +377,21 @@ class Store:
             subscription.close()
             raise StoreThreadError("watch owner must share the Store Qt thread")
 
+        owner_destroying = False
+
         def cancel_on_destroyed(*_args: Any) -> None:
+            nonlocal owner_destroying
+            owner_destroying = True
             subscription.close()
 
         owner.destroyed.connect(cancel_on_destroyed)
+
+        def disconnect_owner() -> None:
+            if owner_destroying:
+                return
+            owner.destroyed.disconnect(cancel_on_destroyed)
+
+        subscription.add_cleanup(disconnect_owner)
 
     def _drain_posted(self) -> None:
         """Drain the FIFO queue on the Store owner thread. 在 Store 线程排空 FIFO 队列。"""
@@ -398,8 +417,10 @@ class Store:
             self._post_queue.clear()
             self._post_scheduled = False
         for future, _key, _value, _force in pending:
-            if not future.done():
+            try:
                 future.set_exception(error)
+            except InvalidStateError:
+                pass
 
 
 class BatchContext:
@@ -428,6 +449,8 @@ class BatchContext:
             raise RuntimeError("BatchContext exited without being entered")
         with self._store._lock:
             self._entered = False
+            if self._store._closed:
+                return False
             self._store._batch_depth -= 1
             if self._store._batch_depth > 0:
                 return False

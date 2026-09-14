@@ -24,8 +24,13 @@ class StoreThreadError(RuntimeError):
 class StoreSubscription:
     """Idempotent watcher handle. 可幂等关闭的 watcher 订阅句柄。"""
 
-    def __init__(self, cancel: Callable[[], None]):
+    def __init__(
+        self,
+        cancel: Callable[[], None],
+        cleanup: Optional[Callable[[], None]] = None,
+    ):
         self._cancel = cancel
+        self._cleanup = cleanup
         self._closed = False
         self._lock = RLock()
 
@@ -41,7 +46,34 @@ class StoreSubscription:
             if self._closed:
                 return
             self._closed = True
-        self._cancel()
+            cancel = self._cancel
+            cleanup = self._cleanup
+            self._cancel = None
+            self._cleanup = None
+        try:
+            if cancel is not None:
+                cancel()
+        finally:
+            if cleanup is not None:
+                cleanup()
+
+    def add_cleanup(self, cleanup: Callable[[], None]) -> None:
+        """Register cleanup for an active subscription. 注册订阅关闭清理动作。"""
+        with self._lock:
+            if self._closed:
+                run_now = True
+            else:
+                run_now = False
+                previous = self._cleanup
+
+                def combined_cleanup() -> None:
+                    if previous is not None:
+                        previous()
+                    cleanup()
+
+                self._cleanup = combined_cleanup
+        if run_now:
+            cleanup()
 
     def __call__(self) -> None:
         """Keep compatibility with the former callable unwatch API. 兼容旧的可调用取消 API。"""
