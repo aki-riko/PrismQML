@@ -185,7 +185,13 @@ Item {
         // 保持 currentIndex 声明式绑定，由 _displayIndex 跟踪实际显示页面。
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIdx
-        if (animations.prepareEnter(targetIdx)) {
+        if (pageTransition.animationType === Enums.lazyAnimation.none) {
+            // With no dedicated lazy transition, reuse the full StackedWidget
+            // transition so L2/L3 still slide/fade as configured by the host.
+            // 没有独立懒加载过渡时，复用宿主 StackedWidget 的完整切换动画，
+            // 确保 L2/L3 仍按 animationType 配置滑入/淡入。
+            host._doAnimation(host.previousIndex, targetIdx)
+        } else if (animations.prepareEnter(targetIdx)) {
             host._doEnterAnimation(targetIdx)
         }
         host.profileTime("lazyHelper loadingComplete done")
