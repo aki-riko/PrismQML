@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+from threading import RLock
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from weakref import ref
 
@@ -26,17 +27,20 @@ class StoreSubscription:
     def __init__(self, cancel: Callable[[], None]):
         self._cancel = cancel
         self._closed = False
+        self._lock = RLock()
 
     @property
     def closed(self) -> bool:
         """Whether this subscription has been cancelled. 是否已取消。"""
-        return self._closed
+        with self._lock:
+            return self._closed
 
     def close(self) -> None:
         """Cancel the watcher once. 只取消 watcher 一次。"""
-        if self._closed:
-            return
-        self._closed = True
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
         self._cancel()
 
     def __call__(self) -> None:
@@ -64,8 +68,8 @@ class StoreBinding(QObject):
 
     valueChanged = Signal()
 
-    def __init__(self, store: "Store", key: str) -> None:
-        super().__init__()
+    def __init__(self, store: "Store", key: str, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent)
         self._store = store
         self._key = key
         binding_ref = ref(self)

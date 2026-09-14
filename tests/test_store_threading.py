@@ -11,6 +11,7 @@ import threading
 import time
 
 import pytest
+import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QThread, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
@@ -46,6 +47,17 @@ def test_direct_cross_thread_set_is_rejected(qapp):
     assert store.get("value") is None
 
 
+def test_qml_facade_rejects_parent_from_another_thread(qapp):
+    store = Store("qml-parent-contract")
+
+    class ForeignParent:
+        def thread(self):
+            return QThread()
+
+    with pytest.raises(StoreThreadError, match="parent must share"):
+        store.as_qml(ForeignParent())
+
+
 def test_post_set_is_fifo_and_notifies_on_owner_thread(qapp):
     store = Store("thread-queue")
     events = []
@@ -73,6 +85,59 @@ def test_post_set_is_fifo_and_notifies_on_owner_thread(qapp):
     assert store.get("value") == 3
 
 
+def test_cancelled_post_set_does_not_break_following_updates(qapp):
+    store = Store("cancelled-queue")
+    store.define("value", 0)
+    events = []
+    store.watch("value", lambda new, old: events.append((new, old)))
+    futures = []
+    submitted = threading.Event()
+    release = threading.Event()
+
+    def worker():
+        futures.append(store.post_set("value", 1))
+        futures.append(store.post_set("value", 2))
+        submitted.set()
+        release.wait(timeout=1)
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    assert submitted.wait(timeout=1)
+    assert futures[0].cancel()
+    release.set()
+    assert _pump_until(qapp, lambda: not thread.is_alive())
+    thread.join(timeout=1)
+    assert _pump_until(qapp, lambda: futures[1].done())
+
+    assert futures[0].cancelled()
+    assert futures[1].result() is None
+    assert events == [(1, 0), (2, 1)]
+    assert store.get("value") == 2
+
+
+def test_post_set_queue_is_sliced_for_large_bursts(qapp):
+    store = Store("burst-queue")
+    store.define("value", 0)
+    events = []
+    store.watch("value", lambda new, old: events.append((new, old)))
+    futures = []
+
+    def worker():
+        for value in range(1, 130):
+            futures.append(store.post_set("value", value))
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+    assert _pump_until(qapp, lambda: not thread.is_alive())
+    thread.join(timeout=1)
+    assert _pump_until(qapp, lambda: all(future.done() for future in futures))
+
+    assert len(events) == 129
+    assert events[0] == (1, 0)
+    assert events[-1] == (129, 128)
+    assert store.get("value") == 129
+
+
 def test_nested_batch_flushes_once_in_first_change_order(qapp):
     store = Store("nested-batch")
     events = []
@@ -88,6 +153,23 @@ def test_nested_batch_flushes_once_in_first_change_order(qapp):
         assert events == []
 
     assert events == [("first", 3, 0), ("second", 2, 0)]
+
+
+def test_batch_context_rejects_repeated_exit_without_corrupting_store(qapp):
+    store = Store("batch-context-lifecycle")
+    context = store.batch()
+    context.__enter__()
+    context.__exit__(None, None, None)
+
+    with pytest.raises(RuntimeError, match="without being entered"):
+        context.__exit__(None, None, None)
+
+    events = []
+    store.define("value", 0)
+    store.watch("value", lambda new, old: events.append((new, old)))
+    with store.batch():
+        store.set("value", 1)
+    assert events == [(1, 0)]
 
 
 def test_owner_destruction_cancels_subscription(qapp):
@@ -171,6 +253,10 @@ def test_qml_binding_and_connections_receive_owner_thread_updates(qapp):
     assert root.property("signalCount") == 1
     assert root.property("lastKey") == "count"
     assert root.property("lastValue") == 7
+
+    binding = store.bind("count")
+    assert shiboken6.isValid(binding)
+    assert store.bind("count") is binding
 
     root.deleteLater()
     qml_store.deleteLater()

@@ -13,6 +13,7 @@ from threading import RLock, get_ident
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import QCoreApplication, QObject, QThread, Signal
+from PySide6.QtQml import QQmlEngine
 
 from ..core.logger import exception
 from ._store_runtime import (
@@ -22,6 +23,8 @@ from ._store_runtime import (
     StoreSubscription,
     StoreThreadError,
 )
+
+_POST_DRAIN_LIMIT = 64
 
 
 def _log_watcher_failure(
@@ -154,12 +157,16 @@ class Store:
         self.assert_owner_thread()
         binding = self._bindings.get(key)
         if binding is None:
-            binding = StoreBinding(self, key)
+            binding = StoreBinding(self, key, parent=self._dispatcher)
+            QQmlEngine.setObjectOwnership(binding, QQmlEngine.ObjectOwnership.CppOwnership)
             self._bindings[key] = binding
         return binding
 
     def as_qml(self, parent: Optional[QObject] = None) -> StoreObject:
         """Create the QML facade. 创建面向 QML 的 Store 门面。"""
+        self.assert_owner_thread()
+        if parent is not None and parent.thread() != self._owner_thread:
+            raise StoreThreadError("QML facade parent must share the Store Qt thread")
         return StoreObject(self, parent)
 
     def _record_batch_change(self, key: str, value: Any, old: Any) -> None:
@@ -319,9 +326,11 @@ class Store:
         try:
             self.set(key, value, force)
         except BaseException as exc:
-            future.set_exception(exc)
+            if not future.cancelled() and not future.done():
+                future.set_exception(exc)
         else:
-            future.set_result(None)
+            if not future.cancelled() and not future.done():
+                future.set_result(None)
 
     def _post_set_preflight(self) -> Optional[StoreThreadError]:
         """Validate that the owner thread can receive queued work. 校验 Store 线程可接收排队任务。"""
@@ -368,13 +377,20 @@ class Store:
     def _drain_posted(self) -> None:
         """Drain the FIFO queue on the Store owner thread. 在 Store 线程排空 FIFO 队列。"""
         self.assert_owner_thread()
-        while True:
+        for _ in range(_POST_DRAIN_LIMIT):
             with self._post_lock:
                 if not self._post_queue:
                     self._post_scheduled = False
                     return
                 future, key, value, force = self._post_queue.popleft()
             self._complete_posted_set(future, key, value, force)
+
+        with self._post_lock:
+            has_pending = bool(self._post_queue)
+            if not has_pending:
+                self._post_scheduled = False
+        if has_pending:
+            self._dispatcher.invokeRequested.emit(self._drain_posted)
 
     def _fail_posted(self, error: BaseException) -> None:
         with self._post_lock:
@@ -391,20 +407,27 @@ class BatchContext:
 
     def __init__(self, store: Store):
         self._store = store
+        self._entered = False
 
     def __enter__(self) -> "BatchContext":
         self._store.assert_owner_thread()
+        if self._entered:
+            raise RuntimeError("BatchContext cannot be entered twice")
         with self._store._lock:
             self._store._ensure_open()
             self._store._batch_depth += 1
             self._store._batch_mode = True
             if self._store._batch_depth == 1:
                 self._store._batch_changes.clear()
+            self._entered = True
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
         self._store.assert_owner_thread()
+        if not self._entered:
+            raise RuntimeError("BatchContext exited without being entered")
         with self._store._lock:
+            self._entered = False
             self._store._batch_depth -= 1
             if self._store._batch_depth > 0:
                 return False

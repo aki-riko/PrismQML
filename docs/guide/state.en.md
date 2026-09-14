@@ -16,6 +16,10 @@ future = store.post_set("count", 10)
 future.result()  # Wait from a worker only; never block the Store thread.
 ```
 
+Calling `future.cancel()` cancels only the waiter's completion notification; it does
+not roll back an update that has already been queued. Later updates remain ordered and
+continue to drain normally.
+
 `get` and `values` may be read from another thread and are protected by a lock.
 They return shallow snapshots, so mutable values should still be copied by callers.
 
