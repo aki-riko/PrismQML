@@ -83,6 +83,8 @@ Python 业务初始化仍同步执行，应保持轻量；该封装异步处理�
 | 名称 | 说明 |
 |------|------|
 | `Store` | 响应式状态存储 |
+| `StoreObject` / `StoreBinding` | QML 门面与逐键可绑定对象 |
+| `StoreSubscription` / `StoreThreadError` | 生命周期订阅句柄与线程契约异常 |
 | `prismqml.python.config` | 配置系统（AppConfig / getConfigManager / SettingsCore / SettingEntry / Validator） |
 
 ## 后台任务

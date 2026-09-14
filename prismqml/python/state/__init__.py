@@ -33,6 +33,7 @@
     unwatch()
 """
 
+from ._store_runtime import StoreBinding, StoreObject, StoreSubscription, StoreThreadError
 from .store import Store
 
-__all__ = ["Store"]
+__all__ = ["Store", "StoreBinding", "StoreObject", "StoreSubscription", "StoreThreadError"]

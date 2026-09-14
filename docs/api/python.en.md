@@ -92,6 +92,8 @@ use Loader Ready as their readiness condition.
 | Name | Description |
 |------|-------------|
 | `Store` | Reactive state store |
+| `StoreObject` / `StoreBinding` | QML facade and per-key bindable object |
+| `StoreSubscription` / `StoreThreadError` | Lifecycle subscription handle and thread-contract error |
 | `prismqml.python.config` | Config system (AppConfig / getConfigManager / SettingsCore / SettingEntry / Validator) |
 
 ## Background tasks

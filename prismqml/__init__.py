@@ -68,6 +68,10 @@ __all__ = [
     "init_style",
     # State
     "Store",
+    "StoreBinding",
+    "StoreObject",
+    "StoreSubscription",
+    "StoreThreadError",
     # QRCode
     "QRCodeGenerator",
     "QRCodeImageProvider",
@@ -182,6 +186,10 @@ _LAZY_EXPORTS = {
     "init_style": (".python.core.utils", "init_style"),
     # State
     "Store": (".python.state.store", "Store"),
+    "StoreBinding": (".python.state", "StoreBinding"),
+    "StoreObject": (".python.state", "StoreObject"),
+    "StoreSubscription": (".python.state", "StoreSubscription"),
+    "StoreThreadError": (".python.state", "StoreThreadError"),
     # QRCode
     "QRCodeGenerator": (".python.providers.qrcode_generator", "QRCodeGenerator"),
     "QRCodeImageProvider": (".python.providers.qrcode_generator", "QRCodeImageProvider"),
