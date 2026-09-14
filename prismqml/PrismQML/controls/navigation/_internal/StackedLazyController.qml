@@ -78,6 +78,10 @@ Item {
         item.targetIndex = Qt.binding(function() { return host.currentIndex })
         item.currentVisibleIndex = Qt.binding(function() { return host._displayIndex })
         item.loadingText = Qt.binding(function() { return host.loadingText })
+        item.loadingAnimationType = Qt.binding(
+            function() { return host.animationType })
+        item.loadingAnimationDuration = Qt.binding(
+            function() { return host.animationDuration })
         item.loaderActivationDelay = Qt.binding(
             function() { return host.lazyActivationDelay })
         item.isPageLoadedFunc = host._isPageLoaded
