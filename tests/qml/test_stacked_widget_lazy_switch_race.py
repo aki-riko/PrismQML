@@ -112,7 +112,7 @@ def test_retargeting_to_visible_page_cancels_old_lazy_request(qapp, tmp_path):
         _dispose(engine, component, root)
 
 
-def test_lazy_none_keeps_regular_stacked_enter_animation(qapp, tmp_path):
+def test_lazy_loading_always_uses_circle_transition(qapp, tmp_path):
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -161,10 +161,13 @@ Item {{
         assert helper.property("loadingAnimationType") == stack.property("animationType")
         assert overlay.property("x") > 0
         assert _wait_for(lambda: stack.property("_displayIndex") == 1)
+        page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
+        assert page_transition is not None
+        assert page_transition.property("animationType") == 7
         loaders = stack.property("_loaders").toVariant()
         target_loader = loaders[1]
         _pump(40)
-        assert target_loader.property("x") > 0
+        assert target_loader.property("x") == 0
         assert stack.property("busy") is True
     finally:
         _dispose(engine, component, root)

@@ -14,7 +14,10 @@ Item {
     required property Item host
     required property Loader lazyHelperLoader
     required property Item pageTransition
-    required property Item animations
+
+    // ==================== Internal Props 内部属性 ====================
+    // Target waiting for the QML lazy circle to finish. 等待 QML 懒加载圆圈完成的目标。
+    property int _qmlLazyTransitionTargetIndex: -1
 
     // ==================== Public Methods 公开方法 ====================
     function preloadLazyHelperWhenReady(reason) {
@@ -30,6 +33,7 @@ Item {
         if (pendingIndex < 0 && helperPendingIndex < 0) return false
 
         host._pendingLazySwitchIndex = -1
+        _qmlLazyTransitionTargetIndex = -1
         if (helper && helper.cancelPendingLoad) helper.cancelPendingLoad()
         host._updateVisibility(host._displayIndex)
         host._traceLazyStage(
@@ -115,14 +119,12 @@ Item {
 
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIndex
-        // Match the pageSources path exactly: the regular enter animation keeps
-        // the minimum-radius reveal frame transparent, so the target appears as
-        // a direct expansion instead of a standalone center circle.
-        // 与 pageSources 路径完全一致：常规入场动画会让最小半径揭幕帧保持透明，
-        // 目标页因此表现为直接展开，而不是先单独显示中心圆圈。
-        if (animations.prepareEnter(targetIndex)) {
-            host._doEnterAnimation(targetIndex)
-        }
+        // Lazy navigation has one visual owner: the circle transition. Make the
+        // target visible before expand() captures it; a second StackedWidget
+        // animation would otherwise run on top of the circle.
+        // 懒加载导航只允许一个视觉所有者：圆圈过渡。展开前先显示目标页供
+        // expand() 抓取，否则第二套 StackedWidget 动画会与圆圈叠加。
+        host._updateVisibility(targetIndex)
         pageTransition.expand(targetWidget)
     }
 
@@ -165,18 +167,26 @@ Item {
 
     function handlePythonLazyExpandFinished() {
         var targetIndex = host._pythonLazyTransitionTargetIndex
-        if (targetIndex < 0) return
-        host._pythonLazyTransitionTargetIndex = -1
-        host._pythonLazyRevealRequested = false
-        // The expansion restores its own source page on finish. When navigation
-        // already moved on, that page is no longer the displayed one, so reassert
-        // the displayed page instead of leaving both visible.
-        // 揭幕结束时会自行恢复其源页可见性。若导航期间已切走，该页不再是当前显示页，
-        // 因此重新校正显示页，避免两页同时可见。
-        if (targetIndex !== host._displayIndex) {
-            host._updateVisibility(host._displayIndex)
+        if (targetIndex >= 0) {
+            host._pythonLazyTransitionTargetIndex = -1
+            host._pythonLazyRevealRequested = false
+            // The expansion restores its own source page on finish. When navigation
+            // already moved on, that page is no longer the displayed one, so reassert
+            // the displayed page instead of leaving both visible.
+            // 揭幕结束时会自行恢复其源页可见性。若导航期间已切走，该页不再是当前显示页，
+            // 因此重新校正显示页，避免两页同时可见。
+            if (targetIndex !== host._displayIndex) {
+                host._updateVisibility(host._displayIndex)
+            }
+            host.currentChanged(targetIndex)
+            host.pythonLazyTransitionFinished(targetIndex)
+            return
         }
-        host.pythonLazyTransitionFinished(targetIndex)
+        if (_qmlLazyTransitionTargetIndex >= 0) {
+            var qmlTargetIndex = _qmlLazyTransitionTargetIndex
+            _qmlLazyTransitionTargetIndex = -1
+            host.currentChanged(qmlTargetIndex)
+        }
     }
 
     function handleLazyLoadingComplete(targetIdx, prevIdx) {
@@ -189,15 +199,12 @@ Item {
         // 保持 currentIndex 声明式绑定，由 _displayIndex 跟踪实际显示页面。
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIdx
-        if (pageTransition.animationType === Enums.lazyAnimation.none) {
-            // With no dedicated lazy transition, reuse the full StackedWidget
-            // transition so L2/L3 still slide/fade as configured by the host.
-            // 没有独立懒加载过渡时，复用宿主 StackedWidget 的完整切换动画，
-            // 确保 L2/L3 仍按 animationType 配置滑入/淡入。
-            host._doAnimation(host.previousIndex, targetIdx)
-        } else if (animations.prepareEnter(targetIdx)) {
-            host._doEnterAnimation(targetIdx)
-        }
+        // Lazy navigation has one visual owner: PageTransition. The target is
+        // made visible here and is then revealed by the circle transition.
+        // 懒加载导航只允许 PageTransition 负责视觉过渡；此处显示目标页，
+        // 随后统一交给圆圈过渡揭幕，禁止叠加 StackedWidget 动画。
+        host._updateVisibility(targetIdx)
+        _qmlLazyTransitionTargetIndex = targetIdx
         host.profileTime("lazyHelper loadingComplete done")
         host._traceLazyStage("stacked.loading_complete.done", targetIdx,
                              "previous=" + prevIdx)

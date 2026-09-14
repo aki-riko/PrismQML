@@ -153,7 +153,9 @@ Item {{
         assert _evaluate(root, "stack.depth") == 2
         assert _evaluate(root, "stack.currentIndex") == 1
         assert _evaluate(root, "stack.currentWidget.item.objectName") == "dynamic-second"
-        assert _evaluate(root, "animationStartedCount") == 1
+        # Lazy pages are revealed by the circle transition only; the regular
+        # StackedWidget animation must not be started as a second visual layer.
+        assert _evaluate(root, "animationStartedCount") == 0
 
         assert QMetaObject.invokeMethod(root, "popCurrent")
         assert _evaluate(root, "stack.depth") == 2

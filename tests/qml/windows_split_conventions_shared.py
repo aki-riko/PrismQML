@@ -407,10 +407,10 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         )
         assert target_page.isVisible()
         assert target_page.x() == 0
-        assert 0 <= target_page.y() <= stack.property("popUpOffset")
-        assert 0 <= target_page.opacity() < 1
+        assert target_page.y() == 0
+        assert target_page.opacity() == 1
         assert target_page.scale() == 1
-        assert animation_started == [True]
+        assert animation_started == []
         assert overlay.property("loading") is True
         assert _wait_for(lambda: overlay.property("finishing") is True)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -419,7 +419,8 @@ def _exercise_loading_overlay_lifecycle(monkeypatch, scene_source):
         assert _wait_for(
             lambda: window.findChild(QQuickItem, "loadingOverlay") is None
         )
-        assert _wait_for(lambda: animation_finished == [True])
+        assert _wait_for(lambda: page_transition.property("active") is False)
+        assert animation_finished == []
         assert current_changes == [1]
         assert not [
             child

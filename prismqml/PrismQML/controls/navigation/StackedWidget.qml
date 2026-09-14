@@ -417,7 +417,7 @@ Item {
 
         objectName: "lazyPageCircleTransition"
         anchors.fill: parent
-        animationType: control.lazyAnimationType
+        animationType: Enums.lazyAnimation.lazy_circle
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()
@@ -452,16 +452,14 @@ Item {
         host: control
     }
 
-    // Lazy switch orchestration 懒切换编排
     StackedLazyController {
         id: lazyController
         host: control
         lazyHelperLoader: lazyHelperLoader
         pageTransition: pageCircleTransition
-        animations: animations
     }
 
-    // Visibility and animation orchestration 可见性与动画编排
+    // Visibility orchestration 可见性编排
     StackedVisibilityController {
         id: visibilityController
         host: control
