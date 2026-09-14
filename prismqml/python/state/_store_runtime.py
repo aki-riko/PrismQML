@@ -159,7 +159,7 @@ class StoreObject(QObject):
         """Return a stable bindable object for one key. 返回指定键的稳定绑定对象。"""
         return self._store.bind(key)
 
-    @Slot(str, result=object)
+    @Slot(str, result="QVariant")
     def value(self, key: str) -> Any:
         """Read a value from QML. 从 QML 读取值。"""
         return self._store.get(key)

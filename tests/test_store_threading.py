@@ -353,3 +353,32 @@ def test_qml_facade_is_retained_when_passed_without_python_reference(qapp):
     root.deleteLater()
     engine.deleteLater()
     qapp.processEvents(QEventLoop.AllEvents, 20)
+
+
+def test_qml_facade_value_returns_primitive_variant(qapp):
+    store = Store("qml-value-variant")
+    store.define("count", 3)
+    qml_store = store.as_qml()
+    engine = QQmlEngine()
+    engine.rootContext().setContextProperty("appStore", qml_store)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""
+        import QtQuick
+        Item { property var observed: appStore.value(\"count\") }
+        """,
+        QUrl("inline:store-value-variant.qml"),
+    )
+    assert _pump_until(
+        qapp, lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert not component.isError(), [error.toString() for error in component.errors()]
+    root = component.create()
+
+    assert root is not None
+    assert root.property("observed") == 3
+
+    root.deleteLater()
+    qml_store.deleteLater()
+    engine.deleteLater()
+    qapp.processEvents(QEventLoop.AllEvents, 20)
