@@ -82,8 +82,12 @@ Item {
         item.targetIndex = Qt.binding(function() { return host.currentIndex })
         item.currentVisibleIndex = Qt.binding(function() { return host._displayIndex })
         item.loadingText = Qt.binding(function() { return host.loadingText })
-        item.loadingAnimationType = Qt.binding(
-            function() { return host.animationType })
+        // The loading overlay is part of the lazy transition, not the regular
+        // page switch. Keep it stationary so slide/fade cannot run alongside
+        // the circle collapse/reveal.
+        // 加载覆盖层属于懒加载过渡，不属于普通切页；固定为无位移入场，
+        // 避免 slide/fade 与圆圈收紧/揭幕同时运行。
+        item.loadingAnimationType = Enums.animation.none
         item.loadingAnimationDuration = Qt.binding(
             function() { return host.animationDuration })
         item.loaderActivationDelay = Qt.binding(

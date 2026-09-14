@@ -158,8 +158,8 @@ Item {{
             if child.metaObject().indexOfProperty("loadingAnimationType") >= 0
         )
         assert helper is not None
-        assert helper.property("loadingAnimationType") == stack.property("animationType")
-        assert overlay.property("x") > 0
+        assert helper.property("loadingAnimationType") == 0
+        assert overlay.property("x") == 0
         assert _wait_for(lambda: stack.property("_displayIndex") == 1)
         page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
         assert page_transition is not None
