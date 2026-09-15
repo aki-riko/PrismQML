@@ -169,8 +169,8 @@ def test_async_qml_page_reports_real_loader_failure(qapp, tmp_path):
     EngineManager.reset()
 
 
-def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_path):
-    """Python 懒加载完成后必须播放目标页入场动画，而不是直接显现。"""
+def test_window_reveals_managed_async_page_without_regular_animation(qapp, tmp_path):
+    """Python 懒加载首次显示仅由圆圈过渡负责。"""
     page_path = tmp_path / "DelayedTargetPage.qml"
     _write_page(page_path, gated=True, ready_delay_ms=500)
 
@@ -290,13 +290,10 @@ def test_window_animates_managed_async_page_after_loading_finishes(qapp, tmp_pat
             f"loading={window._window.property('_pythonLoading')}"
         )
         assert _pump_until(lambda: loading_overlay.property("finishing"))
-        assert any(animation_loading_states), animation_loading_states
-        assert _pump_until(lambda: bool(animation_finished))
-        assert any(0.05 < opacity < 0.95 for _, opacity, _ in page_states), page_states
-        assert any(
-            0.5 < y < float(stack.property("popUpOffset")) - 0.5
-            for _, _, y in page_states
-        ), page_states
+        assert animation_loading_states == []
+        assert animation_finished == []
+        capture_page_state()
+        assert page_states[-1] == (True, 1.0, 0.0)
         assert _pump_until(
             lambda: window._window.findChild(QObject, "loadingOverlay") is None
         )

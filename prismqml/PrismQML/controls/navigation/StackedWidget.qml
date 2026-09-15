@@ -7,9 +7,6 @@ import "../.."
 import "_internal"
 
 // StackedWidget - Unified stacked page switch component 统一堆叠页面组件
-// Supports: Multiple animations 支持多种动画
-// Animation types: None/Opacity/PopUp/PopDown/Slide/SlideFade/Card/Zoom 动画类型
-// Note: Lazy loading is handled by Python side, QML only provides animation 注意：懒加载由 Python 侧处理，QML 只提供动画能力
 Item {
     id: control
     
@@ -237,8 +234,8 @@ Item {
         lazyController.startPythonLazyExpansion(targetIndex)
     }
 
-    function _cancelPythonLazySwitch(targetIndex) {
-        lazyController.cancelPythonLazySwitch(targetIndex)
+    function _cancelPythonLazySwitch(targetIndex, restoreIndex) {
+        lazyController.cancelPythonLazySwitch(targetIndex, restoreIndex)
     }
 
     function _completePythonLazySwitch(targetIndex) {
@@ -261,7 +258,6 @@ Item {
         lazyController.handleLazyLoadingComplete(targetIdx, prevIdx)
     }
 
-    // Animation execution 动画执行
     function _doAnimation(oldIndex, newIndex) {
         visibilityController.doAnimation(oldIndex, newIndex)
     }
@@ -278,7 +274,6 @@ Item {
         visibilityController.updateVisibility(newIndex)
     }
 
-    // Get current index 获取当前索引
     function getCurrentIndex() {
         return currentIndex
     }
@@ -368,6 +363,13 @@ Item {
             _cancelPendingLazySwitch("retargeted")
         }
 
+        if (_pythonLazyTransitionTargetIndex >= 0 &&
+                _pythonLazyTransitionTargetIndex !== currentIndex) {
+            _cancelPythonLazySwitch(
+                _pythonLazyTransitionTargetIndex, currentIndex)
+            return
+        }
+
         if (lazyLoading && !_isPageLoaded(currentIndex)) {
             if (!_pythonPageMode) {
                 // QML pageSources lazy mode is owned by LazyLoadingHelper.
@@ -388,7 +390,6 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Animation helper 动画助手
     StackedModeAnimations {
         id: animations
         control: control
@@ -423,12 +424,10 @@ Item {
         onExpandFinished: control._handlePythonLazyExpandFinished()
     }
 
-    // Direct children container 直接子组件容器
     StackedDirectPages {
         id: directPages
         host: control
     }
-    // pageSources mode 文件路径模式
     StackedSourcePages {
         id: sourcePages
         anchors.fill: parent

@@ -18,21 +18,19 @@ from PySide6.QtQuick import QQuickItem
 
 from ..core.logger import debug, exception, warning, info
 from ._managed_page_lifecycle import ManagedPageLifecycleMixin
+from ._page_layout import (
+    _PAGE_SIZE_BIND_DELAY_MS,
+    _PAGE_SIZE_RETRY_DELAY_MS,
+    _connect_page_size_binding,
+    _emit_page_size_signals,
+    _make_page_size_binder,
+    _resolve_page_layout_item,
+)
 from ._page_prewarm import PagePrewarmMixin
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
-_PAGE_SIZE_BIND_DELAY_MS = 50
-_PAGE_SIZE_RETRY_DELAY_MS = 200
 _NO_PAGE_TARGET = object()
-
-
-def _emit_page_size_signals(page_item: Any) -> None:
-    try:
-        page_item.widthChanged.emit()
-        page_item.heightChanged.emit()
-    except Exception as exc:
-        exception(f"页面尺寸信号触发失败: {type(exc).__name__}: {exc}")
 
 
 def _resolve_async_page_instance(item: Any):
@@ -82,38 +80,6 @@ def _resolve_sync_page_instance(item: Any):
         item._page_instance = page_instance
         return page_instance, "page_class"
     return None, None
-
-
-def _resolve_page_layout_item(page_instance: Any):
-    layout_item = getattr(page_instance, "_prismqml_layout_item", None)
-    return layout_item if layout_item is not None else page_instance._qml_item
-
-
-def _make_page_size_binder(
-    page_instance: Any, page_container: Any, emit_signals: bool
-):
-    from shiboken6 import isValid
-
-    def bind_size():
-        page_item = _resolve_page_layout_item(page_instance)
-        if not isValid(page_item) or not isValid(page_container):
-            return
-        width = page_container.width()
-        height = page_container.height()
-        if width > 0 and height > 0:
-            page_item.setWidth(width)
-            page_item.setHeight(height)
-            if emit_signals:
-                _emit_page_size_signals(page_item)
-
-    return bind_size
-
-
-def _connect_page_size_binding(page_container: Any, bind_size, delays) -> None:
-    page_container.widthChanged.connect(bind_size)
-    page_container.heightChanged.connect(bind_size)
-    for delay in delays:
-        QTimer.singleShot(delay, bind_size)
 
 
 def _has_deferred_queue(page_instance: Any):
@@ -198,7 +164,10 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
             )
             profile("导入 shiboken")
             _connect_page_size_binding(
-                page_container, bind_size, (_PAGE_SIZE_BIND_DELAY_MS,)
+                page_container,
+                bind_size,
+                (_PAGE_SIZE_BIND_DELAY_MS,),
+                QTimer.singleShot,
             )
             profile("绑定尺寸信号")
         else:
@@ -332,16 +301,7 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
                 exception(f"页面切换失败: {type(exc).__name__}: {exc}")
 
     def _start_async_page_load(self, index: int):
-        """异步加载页面（显示loading动画）
-
-        流程：
-        1. 启动QML侧的圆形收紧动画
-        2. 收紧完成后显示_pythonLoading覆盖层
-        3. 延迟16ms让loading动画先渲染
-        4. 创建页面实例
-        5. 如果页面有_deferred_queue，启动分批创建
-        6. 完成后隐藏loading覆盖层
-        """
+        """收紧圆圈后异步创建目标页，并在其就绪时完成切换。"""
         self._current_index = index
         self._mark_page_load_started(index)
         self._mark_foreground_page_load_started(index)
@@ -404,6 +364,7 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
             page_container,
             bind_size,
             (_PAGE_SIZE_BIND_DELAY_MS, _PAGE_SIZE_RETRY_DELAY_MS),
+            QTimer.singleShot,
         )
         if _has_deferred_queue(page_instance):
             page_instance._qml_item.setOpacity(0)

@@ -134,7 +134,7 @@ def _exercise_page_factory_failure(temp_dir):
         window.show()
         pump(80)
         window.setCurrentIndex(1)
-        pump(120)
+        assert wait_for(lambda: calls == 1)
         assert calls == 1
         assert 1 not in window._pages
         assert window._window.property("_pythonLoading") is False
@@ -182,13 +182,12 @@ def _exercise_latest_navigation_wins(temp_dir):
         pump(80)
         window.setCurrentIndex(1)
         window.setCurrentIndex(2)
-        assert wait_for(lambda: 1 in window._pages and 2 in window._pages)
-        assert page_a.start_count == page_b.start_count == 1
+        assert wait_for(lambda: 2 in window._pages)
+        assert 1 not in window._pages
+        assert page_a.start_count == 0
+        assert page_b.start_count == 1
         assert wait_for(lambda: window._window.property("_pythonLoading") is True)
         assert window._window.property("_pythonPendingIndex") == 2
-
-        page_a.page_ready.emit()
-        pump(40)
 
         assert window.currentIndex() == 2
         assert window._foreground_page_load_index == 2

@@ -30,11 +30,16 @@ Item {
         var helper = lazyHelperLoader.item
         var helperPendingIndex = helper && helper.pendingTargetIndex !== undefined
                 ? helper.pendingTargetIndex : -1
-        if (pendingIndex < 0 && helperPendingIndex < 0) return false
+        var pythonTargetIndex = host._pythonLazyTransitionTargetIndex
+        if (pendingIndex < 0 && helperPendingIndex < 0 &&
+                pythonTargetIndex < 0) return false
 
         host._pendingLazySwitchIndex = -1
         _qmlLazyTransitionTargetIndex = -1
         if (helper && helper.cancelPendingLoad) helper.cancelPendingLoad()
+        if (pythonTargetIndex >= 0) {
+            cancelPythonLazySwitch(pythonTargetIndex)
+        }
         host._updateVisibility(host._displayIndex)
         host._traceLazyStage(
             "stacked.lazy_switch.cancel", host.currentIndex,
@@ -132,8 +137,11 @@ Item {
         pageTransition.expand(targetWidget)
     }
 
-    function cancelPythonLazySwitch(targetIndex) {
+    function cancelPythonLazySwitch(targetIndex, restoreIndex) {
         pageTransition.stop()
+        if (restoreIndex !== undefined && restoreIndex >= 0) {
+            host._displayIndex = restoreIndex
+        }
         host._updateVisibility(host._displayIndex)
         host._pythonLazyTransitionTargetIndex = -1
         host._pythonLazyRevealRequested = false

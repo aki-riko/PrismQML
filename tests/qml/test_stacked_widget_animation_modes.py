@@ -38,7 +38,9 @@ def _evaluate(root: QObject, expression: str):
     return value[0] if isinstance(value, tuple) else value
 
 
-def _build_stack(engine: QQmlApplicationEngine, mode_name: str):
+def _build_stack(
+    engine: QQmlApplicationEngine, mode_name: str, *, lazy_loading: bool = False
+):
     component = QQmlComponent(engine)
     source = f"""
 import QtQuick
@@ -54,6 +56,7 @@ Item {{
         id: stack
         objectName: "animationStack"
         anchors.fill: parent
+        lazyLoading: {str(lazy_loading).lower()}
         animationType: Enums.animation.{mode_name}
         animationDuration: {ANIMATION_DURATION_MS}
 
@@ -171,33 +174,27 @@ def test_all_modes_preserve_forward_and_backward_states(qapp, mode_name):
         _dispose(engine, component, root)
 
 
-def _assert_enter_start(mode_name: str, stack: QObject, page: QObject) -> None:
-    offset = _number(stack, "popUpOffset")
-    if mode_name == "opacity":
-        _assert_close(_number(page, "opacity"), 0)
-    elif mode_name in {"popup", "popdown"}:
-        _assert_close(_number(page, "y"), offset if mode_name == "popup" else -offset)
-        _assert_close(_number(page, "opacity"), 0)
-    elif mode_name in {"slide", "card"}:
-        _assert_close(_number(page, "x"), _number(stack, "width"))
-    else:
-        _assert_close(_number(page, "scale"), 0)
+def _assert_lazy_reveal_start(page: QObject) -> None:
+    for name, expected in (("x", 0), ("y", 0), ("scale", 1), ("opacity", 1)):
+        _assert_close(_number(page, name), expected)
 
 
 @pytest.mark.parametrize("mode_name", MODE_NAMES)
-def test_all_modes_preserve_enter_only_states(qapp, mode_name):
+def test_python_lazy_switch_defers_to_circle_reveal(qapp, mode_name):
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root, stack, page0, page1 = _build_stack(engine, mode_name)
+    component, root, stack, page0, page1 = _build_stack(
+        engine, mode_name, lazy_loading=True
+    )
     try:
-        finished = QSignalSpy(stack.animationFinished)
+        finished = QSignalSpy(stack.pythonLazyTransitionFinished)
         blocker = QSignalBlocker(stack)
         assert stack.setProperty("currentIndex", 1)
         del blocker
         assert bool(_evaluate(root, "stack._completePythonLazySwitch(1)"))
         assert not bool(page0.property("visible"))
         assert bool(page1.property("visible"))
-        _assert_enter_start(mode_name, stack, page1)
+        _assert_lazy_reveal_start(page1)
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_enter_resting_state(page1, page0)
     finally:
