@@ -33,7 +33,7 @@ Flickable {
     contentHeight: messageColumn.height
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    interactive: false
+    interactive: _hostControl ? _hostControl.dragScrollEnabled : true
 
     onContentYChanged: {
         if (_hostControl && !_hostControl._adjustingScroll)

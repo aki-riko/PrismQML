@@ -36,6 +36,8 @@ Item {
     // Virtual scrolling: off by default (keeps original full render, backward compatible).
     property bool virtualized: false
     property bool showScrollBar: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
 
     // Key of the selected item (highlights it via selectedRole); empty = no highlight 选中项的 key 值(配合 selectedRole 高亮当前选中卡片);为空不高亮
@@ -337,7 +339,7 @@ Item {
         clip: true
         cacheBuffer: 600
         reuseItems: true   // Reuse delegates, no re-instantiation on scroll (key perf for large lists) 复用 delegate,滚动时不重复实例化(大列表性能关键)
-        interactive: false // Disable native flick, let SmoothScrollHelper take over 关原生 flick,交给 SmoothScrollHelper 接管(否则平滑滚动不生效)
+        interactive: control.dragScrollEnabled
         boundsBehavior: Flickable.DragAndOvershootBounds
         onContentYChanged: {
             if (contentHeight > height && contentY + height >= contentHeight - 600)

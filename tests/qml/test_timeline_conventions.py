@@ -39,6 +39,39 @@ def test_timeline_nonvirtual_header_and_card_clicks(timeline_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
+
+def test_timeline_virtual_viewport_supports_native_drag(timeline_scene):
+    """Virtual timeline scrolling must accept native touch/mouse drags. 虚拟时间线必须支持原生触摸/鼠标拖拽。"""
+    window, _timeline, virtual_timeline, warnings, windows_before = timeline_scene
+    viewport, _helper = _virtual_viewport_and_helper(virtual_timeline)
+    assert viewport.property("interactive") is True
+    viewport.setProperty("contentY", viewport.property("originY"))
+    _pump(60)
+    pos = viewport.mapToScene(
+        QPointF(viewport.width() / 2, viewport.height() * 0.75)
+    ).toPoint()
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    for _ in range(12):
+        pos = QPoint(pos.x(), pos.y() - 12)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    _pump(220)
+    assert viewport.property("contentY") > 0
+
+    virtual_timeline.setProperty("dragScrollEnabled", False)
+    _pump(60)
+    assert viewport.property("interactive") is False
+    virtual_timeline.setProperty("dragScrollEnabled", True)
+    _pump(60)
+    assert viewport.property("interactive") is True
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
 def test_timeline_status_connectors_share_the_node_center(timeline_scene):
     window, timeline, virtual_timeline, warnings, windows_before = timeline_scene
 

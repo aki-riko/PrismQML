@@ -44,6 +44,8 @@ Item {
     property url assistantAvatarSource: ""
     property bool showAssistantAvatar: true
     property bool showScrollBar: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
 
     // ==================== Internal Props 内部属性 ====================

@@ -270,6 +270,7 @@ def test_long_mixed_session_keeps_only_viewport_bubbles_alive(qapp):
 
         viewport = message_list.findChild(QQuickItem, "chatMessageViewport")
         assert viewport is not None
+        assert viewport.property("interactive") is True
         bottom_gap = viewport.property("contentHeight") - (
             viewport.property("contentY") + viewport.property("height")
         )
