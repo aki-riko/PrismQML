@@ -55,13 +55,46 @@ def test_popup_scroll_supports_native_drag(scroll_scene):
     _pump(60)
     pos = popup.mapToScene(QPointF(popup.width() / 2, popup.height() * 0.75)).toPoint()
     QTest.mousePress(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
-    for _ in range(12):
+    for _ in range(6):
         pos = QPoint(pos.x(), pos.y() - 12)
         QTest.mouseMove(window, pos)
         _pump(16)
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
     _pump(220)
     assert popup.property("contentY") > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_native_drag_then_wheel_continues_from_current_position(scroll_scene):
+    """Native drag must rebase smooth scrolling before the next wheel tick. 原生拖拽后下一次滚轮必须从当前位置继续。"""
+    window, items, warnings, windows_before = scroll_scene
+    flick = next(
+        item
+        for item in items["defaultArea"].findChildren(QQuickItem)
+        if "QQuickFlickable" in item.metaObject().className()
+    )
+    assert flick.property("interactive") is True
+    flick.setProperty("contentY", flick.property("originY"))
+    _pump(60)
+    pos = flick.mapToScene(QPointF(flick.width() / 2, flick.height() * 0.75)).toPoint()
+    QTest.mousePress(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    for _ in range(3):
+        pos = QPoint(pos.x(), pos.y() - 10)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    assert _wait_for(lambda: not flick.property("moving"), timeout_ms=3_000)
+    dragged_y = float(flick.property("contentY"))
+    assert dragged_y > 0
+
+    event = _send_wheel(window, items["defaultArea"], 120)
+    assert event.isAccepted()
+    _pump(45)
+    helper = _smooth_scroll_helper(items["defaultArea"], Qt.Orientation.Vertical)
+    assert float(helper.property("targetPos")) < dragged_y
+    _pump(700)
+    assert float(flick.property("contentY")) < dragged_y
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

@@ -50,6 +50,14 @@ Item {
         _smoothY = _targetY
     }
 
+    // Rebase after native touch/mouse flicking. 原生触摸/鼠标拖拽结束后重新校准。
+    function syncPosition() {
+        if (!flickable) return
+        _boundaryTargetY = 0
+        _targetY = flickable.contentY
+        _smoothY = flickable.contentY
+    }
+
     function _reconcileBounds() {
         if (_boundaryTargetY === 0 && !smoothYAnimation.running) {
             var currentY = Math.max(_minY, Math.min(_maxY, flickable.contentY))
@@ -87,6 +95,14 @@ Item {
             _targetY = flickable.contentY
             _smoothY = flickable.contentY
         }
+    }
+
+    Connections {
+        function onMovementEnded() {
+            control.syncPosition()
+        }
+
+        target: control.flickable
     }
 
     Behavior on _smoothY {

@@ -437,6 +437,8 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    ScrollBarInternal.SmoothScrollNativeMovementSync { scrollHelper: helper }
+
     // Refresh-synchronized axis drivers 跟随刷新率的双轴驱动器
     ScrollBarInternal.SmoothScrollFrameDriver {
         id: verticalFrameDriverObject
@@ -491,7 +493,6 @@ Item {
         verticalAxis: false
     }
 
-    // Auto wheel handler 自动滚轮处理
     ScrollBarInternal.SmoothScrollWheelArea {
         scrollHelper: helper
     }
