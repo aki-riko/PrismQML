@@ -74,6 +74,7 @@ Item {
 
     // Fill parent to receive wheel events 填充父级以接收滚轮事件
     anchors.fill: parent
+    z: Enums.zIndex.controlsAbove
 
     // Sync contentY with animated value 同步contentY与动画值
     on_SmoothYChanged: if (flickable) flickable.contentY = _smoothY

@@ -89,7 +89,7 @@ Item {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
-        z: Enums.zIndex.background
+        z: Enums.zIndex.controlsAbove
         onWheel: (event) => {
             if (!mixin.active) {
                 event.accepted = false

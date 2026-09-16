@@ -18,8 +18,12 @@ MouseArea {
     anchors.fill: parent
     enabled: scrollHelper.handleWheel
     visible: scrollHelper.handleWheel
+    acceptedButtons: Qt.NoButton
     propagateComposedEvents: true
-    z: Enums.zIndex.background
+    // Stay above the interactive Flickable so wheel input cannot fall through
+    // to native scrolling and cancel the smooth animation. 保持在可交互 Flickable
+    // 之上，避免滚轮穿透触发原生滚动并打断平滑动画。
+    z: Enums.zIndex.controlsAbove
 
     onWheel: (event) => {
         // Check if scroll is needed 检查是否需要滚动

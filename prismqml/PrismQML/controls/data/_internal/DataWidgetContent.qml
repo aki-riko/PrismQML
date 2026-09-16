@@ -51,6 +51,7 @@ Item {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         hoverEnabled: control.hoverElevation
+        z: Enums.zIndex.controlsAbove
 
         onWheel: (event) => {
             if (listView.contentHeight <= listView.height) {

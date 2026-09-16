@@ -224,9 +224,10 @@ Item {
     // Mouse wheel 鼠标滚轮
     MouseArea {
         anchors.fill: flickable
+        acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
         hoverEnabled: false  // Prevent hover interference with child components 防止干扰子组件hover状态
-        z: Enums.zIndex.background
+        z: Enums.zIndex.controlsAbove
         onWheel: (event) => {
             var horizontal = (event.modifiers & Qt.ShiftModifier) && control._canScrollH
             var useV = !horizontal && control._canScrollV
