@@ -16,6 +16,8 @@ Item {
     property bool showScrollBar: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart
@@ -132,7 +134,7 @@ Item {
         contentWidth: contentHolder.implicitWidth + control.padding * 2
         contentHeight: contentHolder.implicitHeight + control.padding * 2
         clip: true
-        interactive: false
+        interactive: control.dragScrollEnabled
         Item {
             id: contentHolder
             objectName: "contentHolder"

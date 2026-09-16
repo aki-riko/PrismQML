@@ -43,6 +43,8 @@ Rectangle {
 
     // Smooth scroll 平滑滚动
     property bool smoothScroll: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart

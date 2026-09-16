@@ -25,6 +25,8 @@ Item {
     property bool alwaysShowScrollBar: false  // true=滚动条常显, false=AsNeeded
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart
@@ -83,7 +85,7 @@ Item {
         spacing: control.spacing
         reuseItems: control.reuseItems
         clip: true
-        interactive: false
+        interactive: control.dragScrollEnabled
         cacheBuffer: control.cacheBuffer >= 0 ? control.cacheBuffer : itemHeight * 10
         currentIndex: control.currentIndex
         onCurrentIndexChanged: control.indexChanged(currentIndex)

@@ -13,6 +13,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QObject,
+    QPoint,
     QPointF,
     QTimer,
     Qt,
@@ -22,6 +23,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import configure_qml_environment, register_types
 
@@ -115,6 +117,9 @@ Window {
 INITIAL_OVERFLOW_SCENE_SOURCE = SCENE_SOURCE.replace(
     b"contentTotalWidth: 0",
     b"contentTotalWidth: 720",
+).replace(
+    b'listModel: ["Alpha", "Beta", "Gamma", "Delta"]',
+    b'listModel: ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta", "Iota", "Kappa"]',
 )
 QT_FAILURE_TYPES = {
     QtMsgType.QtWarningMsg,
@@ -217,11 +222,39 @@ def _qt_failures(messages) -> list[str]:
     ]
 
 
+def _drag_list_view(window: QQuickWindow, list_view: QQuickItem) -> float:
+    """Drag the shared DataWidget ListView and return its settled offset. 拖拽共享数据视口并返回停稳偏移。"""
+    list_view.setProperty("contentY", list_view.property("originY"))
+    _pump(60)
+    pos = list_view.mapToScene(
+        QPointF(list_view.width() / 2, list_view.height() * 0.75)
+    ).toPoint()
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    for _ in range(12):
+        pos = QPoint(pos.x(), pos.y() - 12)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    _pump(220)
+    return float(list_view.property("contentY"))
+
+
 def test_initial_horizontal_overflow_preloads_before_user_input(qapp):
     """Initial real overflow must preload its interactive branch. 初始真实溢出须预热交互分支。"""
     scene = _create_scene(INITIAL_OVERFLOW_SCENE_SOURCE)
     engine, component, window, widget, messages, previous_handler = scene
     try:
+        list_view = next(
+            item
+            for item in widget.findChildren(QQuickItem)
+            if "QQuickListView" in item.metaObject().className()
+        )
+        assert list_view.property("interactive") is True
+        assert _drag_list_view(window, list_view) > 0
         mixins = _horizontal_mixins(widget)
         assert len(mixins) == 1
         assert widget.property("_horizontalScrollRequested") is True

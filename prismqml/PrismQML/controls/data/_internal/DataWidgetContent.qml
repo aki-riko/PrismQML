@@ -257,7 +257,7 @@ Item {
                                        Math.max(0, parent.height)) : 0
                         clip: true
                         boundsBehavior: Flickable.DragAndOvershootBounds
-                        interactive: false
+                        interactive: control.dragScrollEnabled
                         cacheBuffer: 600
                         reuseItems: true
                         contentWidth: control.contentTotalWidth > width

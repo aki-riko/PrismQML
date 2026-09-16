@@ -12,12 +12,16 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QPoint,
+    QPointF,
     QTimer,
     QUrl,
+    Qt,
 )
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import Skin, getSkin, register_types, setSkin
 from scripts.qml_conventions import scan_source_text
@@ -158,6 +162,27 @@ def _dispose_scene(engine, component, window) -> None:
     QCoreApplication.processEvents()
 
 
+def _drag_viewport(window, viewport: QQuickItem) -> float:
+    """Drag one native Flickable viewport and return its settled offset. 拖拽原生视口并返回停稳偏移。"""
+    viewport.setProperty("contentY", viewport.property("originY"))
+    _pump(60)
+    pos = viewport.mapToScene(
+        QPointF(viewport.width() / 2, viewport.height() * 0.75)
+    ).toPoint()
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    for _ in range(12):
+        pos = QPoint(pos.x(), pos.y() - 12)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos
+    )
+    _pump(220)
+    return float(viewport.property("contentY"))
+
+
 @pytest.fixture
 def scroll_area_scene(qapp):
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -215,6 +240,28 @@ def test_scroll_area_switches_list_grid_and_back(scroll_area_scene):
     assert QMetaObject.invokeMethod(window, "showDefault")
     assert _wait_for(lambda: window.property("areaType") == window.property("defaultType"))
     assert _wait_for(lambda: window.property("areaContentHeight") == pytest.approx(452))
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_scroll_area_supports_native_drag_for_all_modes(scroll_area_scene):
+    """All public modes must expose native touch/mouse drag scrolling. 三种公开模式都必须支持原生触摸/鼠标拖拽滚动。"""
+    window, area, warnings, windows_before = scroll_area_scene
+
+    for show_mode in ("showDefault", "showList", "showGrid"):
+        assert QMetaObject.invokeMethod(window, show_mode)
+        assert _wait_for(lambda: area.property("flickableItem") is not None)
+        viewport = area.property("flickableItem")
+        assert viewport.property("interactive") is True, show_mode
+        assert _drag_viewport(window, viewport) > 0, show_mode
+
+        area.setProperty("dragScrollEnabled", False)
+        _pump(60)
+        assert viewport.property("interactive") is False, show_mode
+        area.setProperty("dragScrollEnabled", True)
+        _pump(60)
+        assert viewport.property("interactive") is True, show_mode
+
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
