@@ -17,6 +17,7 @@ from PySide6.QtCore import (
     qInstallMessageHandler,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem
 
 from prismqml import configure_qml_environment, register_types
 
@@ -101,6 +102,15 @@ def test_sort_items_preserves_complete_rows_without_qml_warnings(qapp):
         messages.clear()
 
         widget.seedSortItems()
+        viewport = next(
+            item
+            for item in widget.findChildren(QQuickItem)
+            if "QQuickListView" in item.metaObject().className()
+        )
+        assert viewport.property("interactive") is True
+        widget.setProperty("dragScrollEnabled", False)
+        assert viewport.property("interactive") is False
+        widget.setProperty("dragScrollEnabled", True)
         widget.setSelectionMode(2)
         widget.setItemSelected(0, True)
         widget.setItemSelected(2, True)

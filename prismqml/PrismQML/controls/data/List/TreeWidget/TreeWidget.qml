@@ -46,6 +46,8 @@ Rectangle {
     property int borderRadius: Enums.radius.large
     property bool selectOnRightClick: false
     property bool showScrollBar: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.scroll
@@ -254,7 +256,7 @@ Rectangle {
                         ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    interactive: false
+                    interactive: control.dragScrollEnabled
                     model: internalModel
                     delegate: TreeWidgetDelegate {}
 

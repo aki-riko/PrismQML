@@ -17,6 +17,7 @@ from PySide6.QtCore import (
     qInstallMessageHandler,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem
 
 from prismqml import configure_qml_environment, register_types
 
@@ -134,6 +135,15 @@ def test_tree_widget_public_items_and_sort_preserve_identity(qapp):
 
         widget.seedItems()
         _pump()
+        viewport = next(
+            item
+            for item in widget.findChildren(QQuickItem)
+            if "QQuickListView" in item.metaObject().className()
+        )
+        assert viewport.property("interactive") is True
+        widget.setProperty("dragScrollEnabled", False)
+        assert viewport.property("interactive") is False
+        widget.setProperty("dragScrollEnabled", True)
         assert widget.topLevelItemCount() == 3
         assert widget.count() == 4
 

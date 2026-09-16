@@ -36,6 +36,8 @@ Rectangle {
     property alias currentIndex: listView.currentIndex
     property bool selectOnRightClick: false
     property bool showScrollBar: true
+    // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     property int scrollBarWidth: Enums.controlSize.scrollBarWidth
     property color checkedColor: Enums.accentColor
     property color checkedColorDark: Enums.accentColor
@@ -264,7 +266,7 @@ Rectangle {
             ? Math.min(control._scrollBarGutter, Math.max(0, parent.width)) : 0
         clip: true
         boundsBehavior: Flickable.DragAndOvershootBounds
-        interactive: false
+        interactive: control.dragScrollEnabled
         // Performance: reuse delegates and prerender offscreen boundaries. 性能：复用委托并预渲染屏外边界。
         reuseItems: true
         cacheBuffer: 600
