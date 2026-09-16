@@ -45,6 +45,26 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
+
+def test_popup_scroll_supports_native_drag(scroll_scene):
+    """Popup scrolling must accept native touch/mouse drags. 弹层滚动必须支持原生触摸/鼠标拖拽。"""
+    window, items, warnings, windows_before = scroll_scene
+    popup = items["popupFlick"]
+    assert popup.property("interactive") is True
+    popup.setProperty("contentY", popup.property("originY"))
+    _pump(60)
+    pos = popup.mapToScene(QPointF(popup.width() / 2, popup.height() * 0.75)).toPoint()
+    QTest.mousePress(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    for _ in range(12):
+        pos = QPoint(pos.x(), pos.y() - 12)
+        QTest.mouseMove(window, pos)
+        _pump(16)
+    QTest.mouseRelease(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
+    _pump(220)
+    assert popup.property("contentY") > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
 def test_scroll_area_discards_stale_bounce_peak_after_gui_stall(scroll_scene):
     window, items, warnings, windows_before = scroll_scene
     area = items["defaultArea"]

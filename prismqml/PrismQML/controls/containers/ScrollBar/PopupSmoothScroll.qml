@@ -22,6 +22,8 @@ Item {
     property int duration: Enums.duration.scroll
     property real step: Enums.spacing.xxxl * 2  // Smaller step for popup 弹窗较小步长
     property int easing: Easing.OutCubic
+    // Enable native touch/mouse drag scrolling when content overflows 内容溢出时启用原生触摸/鼠标拖拽滚动
+    property bool dragScrollEnabled: true
     
     // ==================== Internal Props 内部属性 ====================
     property real _targetY: 0
@@ -97,6 +99,18 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    // The helper owns popup scrolling, so expose the native Flickable gesture
+    // path without changing non-scrollable popups. helper 负责弹层滚动，仅在内容
+    // 溢出时开放原生手势，不改变无滚动内容的弹层行为。
+    Binding {
+        target: control.flickable
+        property: "interactive"
+        value: control.dragScrollEnabled
+            && control.flickable
+            && control.flickable.contentHeight > control.flickable.height
+        when: control.enabled && control.flickable !== null
+    }
+
     // Wheel handler 滚轮处理
     // WheelHandler receives events in parent's area WheelHandler在父级区域接收事件
     WheelHandler {
