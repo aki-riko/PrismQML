@@ -225,6 +225,18 @@ def _copy_area(code_block: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _copy_feedback_expired(view: QQuickItem) -> bool:
+    code_block = _block_loaders(view)[1].property("item")
+    copy_area = _copy_area(code_block)
+    feedback_timer = next(
+        child
+        for child in copy_area.children()
+        if child.metaObject().indexOfProperty("interval") >= 0
+        and child.metaObject().indexOfProperty("repeat") >= 0
+    )
+    return not copy_area.property("_copied") and not feedback_timer.property("running")
+
+
 def _point_for(window: QQuickWindow, item: QQuickItem) -> QPoint:
     point = item.mapToItem(
         window.contentItem(), QPointF(item.width() / 2, item.height() / 2)
@@ -349,7 +361,10 @@ def test_code_block_first_click_copies_and_feedback_expires(qapp):
         assert _wait_for(lambda: clipboard.text() == "print('one')")
         assert _wait_for(lambda: _class_count(view, "QQuickTextEdit") == 0)
 
-        _pump(feedback_duration + 40)
+        assert _wait_for(
+            lambda: _copy_feedback_expired(view),
+            timeout_ms=feedback_duration + 1_000,
+        )
         code_block = _block_loaders(view)[1].property("item")
         copy_area = _copy_area(code_block)
         feedback_timer = next(
