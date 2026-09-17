@@ -43,6 +43,9 @@ Item {
     // Prev button 上一页按钮
     Rectangle {
         id: prevBtn
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(prevArea.containsMouse, prevArea.pressed)
         anchors.left: control.isHorizontal ? parent.left : undefined
         anchors.top: control.isHorizontal ? undefined : parent.top
         anchors.verticalCenter: control.isHorizontal ? parent.verticalCenter : undefined
@@ -50,7 +53,7 @@ Item {
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
         radius: control._navButtonRadius
-        color: prevArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
+        color: prevBtn._touchActive ? control._navButtonHoverColor : control._navButtonIdleColor
         visible: control._safeCurrentIndex > 0
         
         Icon {
@@ -144,6 +147,9 @@ Item {
     // Next button 下一页按钮
     Rectangle {
         id: nextBtn
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(nextArea.containsMouse, nextArea.pressed)
         anchors.right: control.isHorizontal ? parent.right : undefined
         anchors.bottom: control.isHorizontal ? undefined : parent.bottom
         anchors.verticalCenter: control.isHorizontal ? parent.verticalCenter : undefined
@@ -151,7 +157,7 @@ Item {
         width: Enums.iconSize.xl
         height: Enums.iconSize.xl
         radius: control._navButtonRadius
-        color: nextArea.containsMouse ? control._navButtonHoverColor : control._navButtonIdleColor
+        color: nextBtn._touchActive ? control._navButtonHoverColor : control._navButtonIdleColor
         visible: control._safeCurrentIndex < control._safePageCount - 1
         
         Icon {

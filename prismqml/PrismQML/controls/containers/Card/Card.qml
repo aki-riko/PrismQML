@@ -39,11 +39,14 @@ Widget {
                                   ? hoverHandler.hovered || _isWindowHoverPointInElevationRegion()
                                   : hoverHandler.hovered
  readonly property bool pressed: mouseArea.pressed
+ // Touch has no hover preview: on touch the hover treatment follows the press
+ // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+ readonly property bool _touchActive: Touch.feedback(hovered, pressed)
  readonly property bool isNormal: cardType === _skin.card.type_hover
  readonly property bool isElevated: cardType === _skin.card.type_elevated
  readonly property bool isHeader: cardType === _skin.card.type_header
  readonly property Item _hoverWindowContent: Window.window ? Window.window.contentItem : null
- readonly property real elevationOffset: !_skin.isVintageTicket && isElevated && hovered && !pressed
+ readonly property real elevationOffset: !_skin.isVintageTicket && isElevated && _touchActive && !pressed
                                          ? -_skin.spacing.cardElevate : 0
  readonly property real _elevationHitMargin: !_skin.isVintageTicket && isElevated
                                                ? _skin.spacing.cardElevate + _skin.spacing.micro : 0
@@ -100,7 +103,7 @@ Widget {
  transform: Translate {
  y: control.elevationOffset
  HoverBehavior on y {
- active: control.hovered && !control.pressed
+ active: control._touchActive && !control.pressed
  enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
@@ -110,13 +113,13 @@ Widget {
  // Shadow layer 阴影层
  // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
- property color _shadowColor: isElevated && hovered
+ property color _shadowColor: isElevated && _touchActive
  ? _skin.shadow.level4.color
  : _skin.shadow.level2.color
- property real _shadowBlur: isElevated && hovered
+ property real _shadowBlur: isElevated && _touchActive
  ? _skin.shadow.level4.blur
  : _skin.shadow.level2.blur
- property real _shadowOffset: isElevated && hovered
+ property real _shadowOffset: isElevated && _touchActive
  ? _skin.shadow.level4.offset
  : _skin.shadow.level2.offset
 
@@ -126,16 +129,16 @@ Widget {
  blur: _shadowBlur
  offset.x: 0
  offset.y: _shadowOffset
- visible: _skin.usesSoftElevation && !_skin.isNeumorphism && (isElevated || hovered)
+ visible: _skin.usesSoftElevation && !_skin.isNeumorphism && (isElevated || _touchActive)
 
  // Shadow properties based on type and state 根据类型和状态计算阴影
  HoverBehavior on _shadowBlur {
- active: control.hovered && !control.pressed
+ active: control._touchActive && !control.pressed
  enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
  HoverBehavior on _shadowColor {
- active: control.hovered && !control.pressed
+ active: control._touchActive && !control.pressed
  enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
@@ -154,9 +157,9 @@ Widget {
 
  sourceComponent: NeoShadow {
  target: card
- offset: (isElevated && hovered && !pressed) ? _skin.neo.shadowOffset * 1.5 : _skin.neo.shadowOffset
+ offset: (isElevated && _touchActive && !pressed) ? _skin.neo.shadowOffset * 1.5 : _skin.neo.shadowOffset
  HoverBehavior on offset {
- active: control.hovered && !control.pressed
+ active: control._touchActive && !control.pressed
  enterDuration: _skin.duration.medium
  easingType: Easing.OutCubic
  }
@@ -176,7 +179,7 @@ Widget {
  }
  // Hover/Elevated: hover effect 悬停/悬浮卡片有悬停效果
  if (pressed) return _skin.stateColor.controlBgPressed
- if (hovered) return _skin.stateColor.controlBgHover
+ if (_touchActive) return _skin.stateColor.controlBgHover
  return _skin.stateColor.controlBg
  }
 
@@ -199,7 +202,7 @@ Widget {
     border.color: _skin.stateColor.borderLight// neo 黑边由 token 自动返回
 
     HoverBehavior on color {
-        active: control.hovered && !control.pressed
+        active: control._touchActive && !control.pressed
         enterDuration: _skin.duration.fast
     }
 

@@ -41,12 +41,18 @@ Item {
             // Month/Year title 月年标题
             Rectangle {
                 id: titleBtn
+
+                // ==================== Readonly State 只读状态 ====================
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(titleArea.containsMouse, titleArea.pressed)
+
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 width: titleText.width + Enums.spacing.xl
                 height: parent.height
                 radius: Enums.radius.small
-                color: titleArea.containsMouse
+                color: _touchActive
                     ? Enums.stateColor.calendarNavHover : Enums.transparent
 
                 Label {
@@ -182,6 +188,11 @@ Item {
                                 return t > Math.min(s, e) && t < Math.max(s, e)
                             }
 
+                            // ==================== Readonly State 只读状态 ====================
+                            // Touch has no hover preview: on touch the hover treatment follows the press
+                            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                            readonly property bool _touchActive: Touch.feedback(hovered, cellArea.pressed)
+
                             width: dayGrid.width / 7
                             height: Enums.controlSize.calendarCellHeight
                             color: Enums.transparent
@@ -225,7 +236,7 @@ Item {
                                     : (dayCell.selected || dayCell.isRangeStart
                                        || dayCell.isRangeEnd)
                                         ? Enums.stateColor.transparentPressed
-                                        : dayCell.hovered
+                                        : dayCell._touchActive
                                             ? Enums.stateColor.transparentHover
                                             : Enums.transparent
                                 border.width: (dayCell.selected || dayCell.isRangeStart

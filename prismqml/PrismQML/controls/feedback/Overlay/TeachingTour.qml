@@ -301,7 +301,8 @@ Item {
                 objectName: "teachingTourScrimArea"
                 anchors.fill: parent
                 enabled: control.blockOutsideInput
-                hoverEnabled: true
+                // Pointer-only hover preview interception; off on touch 只服务鼠标悬浮预览, 触摸端关闭
+                hoverEnabled: !Touch.isTouch
                 acceptedButtons: Qt.AllButtons
                 containmentMask: QtObject {
                     function contains(point: point): bool {

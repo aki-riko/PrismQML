@@ -96,7 +96,10 @@ DataWidgetCore {
                     model: root._safeColumns || []
                     delegate: Item {
                         readonly property var columnData: modelData || ({})
-                        property bool _hovered: _headerCellHover.containsMouse
+                        // Touch has no hover preview: on touch the hover treatment follows the press
+                        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                        property bool _hovered: Touch.feedback(_headerCellHover.containsMouse,
+                                                              _headerCellHover.pressed)
 
                         width: {
                             var safeColumns = root._safeColumns || []

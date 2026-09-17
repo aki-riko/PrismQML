@@ -222,11 +222,13 @@ Rectangle {
     }
     
     // Mouse tracking for interaction 鼠标交互追踪
+    // Pointer-following interaction is a mouse affordance: disabled on touch
+    // 跟随指针的交互效果属于鼠标专属反馈, 触摸端关闭
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: root.interactive
+        hoverEnabled: root.interactive && !Touch.isTouch
         onPositionChanged: (mouse) => {
-            if (root.interactive) {
+            if (root.interactive && !Touch.isTouch) {
                 root.mousePos = Qt.point(mouse.x, mouse.y)
             }
         }

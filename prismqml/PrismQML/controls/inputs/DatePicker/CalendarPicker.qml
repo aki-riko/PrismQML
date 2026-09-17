@@ -75,6 +75,10 @@ Rectangle {
         return hasDate ? (year + Enums.calendarPicker.dateSeparator + (month < Enums.calendarPicker.twoDigitThreshold ? Enums.calendarPicker.datePadCharacter : "") + month + Enums.calendarPicker.dateSeparator + (day < Enums.calendarPicker.twoDigitThreshold ? Enums.calendarPicker.datePadCharacter : "") + day) : placeholderText
     }
 
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
+
     // ==================== Signals 信号 ====================
     signal dateChanged(int year, int month, int day)
     signal rangeChanged(date startDate, date endDate)
@@ -160,7 +164,7 @@ Rectangle {
     color: {
         if (!enabled) return Enums.stateColor.controlBgDisabled
         if (mouseArea.pressed) return Enums.stateColor.controlBgPressed
-        if (mouseArea.containsMouse) return Enums.stateColor.controlBgHover
+        if (_touchActive) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
 

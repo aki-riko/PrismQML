@@ -424,8 +424,8 @@ QtObject {
  readonly property int lineEditLabelWidth: 250 // Floating-label LineEdit default width 浮动标签输入框默认宽度
  readonly property int lineEditTagWidth: 300 // Tag LineEdit default width 标签输入框默认宽度
  readonly property int focusLineHeight: 10 // FocusLine height 焦点线高度
- readonly property int wheelPickerItemHeight: 34 // CycleWheelPicker item height 滚轮选择器项高度
- readonly property int wheelPickerRowHeight: 36 // CycleWheelPicker row height 滚轮选择器行高（与 calendarGridHeight 36×6=216 对齐）
+ readonly property int wheelPickerItemHeight: Math.max(34, root.touchTargetFloor) // CycleWheelPicker item height 滚轮选择器项高度
+ readonly property int wheelPickerRowHeight: Math.max(36, root.touchTargetFloor) // CycleWheelPicker row height 滚轮选择器行高（与 calendarGridHeight 36×6=216 对齐）
  readonly property int wheelPickerAreaHeight: 216 // CycleWheelPicker wheel area height 滚轮区域高度（6 行 × 36px）
  readonly property int wheelPickerMaxFlickVelocity: 800 // Wheel picker maximum flick velocity 滚轮选择器最大甩动速度
  readonly property int wheelPickerFlickDeceleration: 1500 // Wheel picker flick deceleration 滚轮选择器甩动减速度
@@ -442,7 +442,7 @@ QtObject {
  // Container controls 容器控件
  readonly property int commandBarMoreWidth: 40 // CommandBar more button width 命令栏更多按钮宽度
  readonly property int commandBarSeparatorWidth: 8 // CommandBar separator width 命令栏分隔线宽度
- readonly property int toolBoxItemHeight: 44 // Tool box item height 工具箱项高度
+ readonly property int toolBoxItemHeight: Math.max(44, root.touchTargetFloor) // Tool box item height 工具箱项高度
  readonly property int expanderIconSize: 32 // Expander icon size 展开器图标尺寸
  readonly property int countdownDigitSize: 50 // Countdown digit box size 倒计时数字框尺寸
  readonly property int scrollBarWidth: 8 // ScrollBar width 滚动条宽度
@@ -453,7 +453,7 @@ QtObject {
  // ComboBox tree controls 下拉树控件
  readonly property int treeIndentSize: 16 // Tree indent/icon size 树形缩进/图标尺寸
  readonly property int treeCheckboxSize: 18 // Tree checkbox size 树形复选框尺寸
- readonly property int treeItemHeight: 36 // Tree item height 树形项高度
+ readonly property int treeItemHeight: Math.max(36, root.touchTargetFloor) // Tree item height 树形项高度
  readonly property int treeIndicatorMargin: 17 // Tree indicator vertical margin 树形指示条垂直边距
  // Calendar controls 日历控件
  readonly property int calendarNavButtonSize: 32 // Calendar nav button size 日历导航按钮尺寸
@@ -586,7 +586,7 @@ QtObject {
  readonly property int popupDefaultHeight: 200
  readonly property int popupMaxHeight: 300
  readonly property int popupDefaultMaxItems: 9
- readonly property int itemHeight: 32
+ readonly property int itemHeight: Math.max(32, root.touchTargetFloor)
  readonly property int popupPadding: 8
  readonly property int scrollBarWidth: 6
  readonly property int scrollBarRightMargin: 8

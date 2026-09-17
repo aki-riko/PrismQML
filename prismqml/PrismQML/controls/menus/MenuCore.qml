@@ -384,7 +384,9 @@ PopupWindowCore {
  Component {
  id: mouseAreaComponent
  MouseArea {
- hoverEnabled: true
+ // Selectable custom widgets only need the click; hover is pointer-only
+ // 可点自定义组件只需要点击; hover 属纯指针语义, 触摸端关闭追踪
+ hoverEnabled: !Touch.isTouch
  cursorShape: Qt.ArrowCursor
  }
  }

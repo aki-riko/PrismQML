@@ -84,6 +84,11 @@ Widget {
     property bool hovered: feature === _skin.button.feature_split
                            ? false : (mouseArea.containsMouse || pseudoHovered)
     property bool pressed: feature === _skin.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
+
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
+
     readonly property bool _toolTipHovered: feature === _skin.button.feature_split
         ? (pseudoHovered || (featureLoader.item &&
             (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
@@ -96,7 +101,7 @@ Widget {
     readonly property bool _styleToggleChecked:
         feature === _skin.button.feature_toggle && control.checked
     readonly property var styleHelper: ButtonStyle.snapshot(
-        style, level, _styleEffectiveEnabled, hovered, pressed,
+        style, level, _styleEffectiveEnabled, _touchActive, pressed,
         _styleToggleChecked, _skin.isNeobrutalism, _skin.isVintageTicket,
         _skin.isNeumorphism, _skin.button, _skin.stateColor,
         _skin.textColor, _skin.statusLevel, _skin.accentColor,

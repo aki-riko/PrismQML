@@ -20,6 +20,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: hoverHandler.hovered
     readonly property bool pressed: tapHandler.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     // Intrinsic width, so hosts can size to content instead of filling.
     // 固有宽度, 便于宿主按内容而非填充来定宽。
     readonly property real contentWidth: navContent.implicitWidth
@@ -33,9 +36,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Enums.radius.small
-        visible: !control.selected && (control.hovered || control.pressed)
+        visible: !control.selected && (control._touchActive || control.pressed)
         color: control.pressed ? Enums.stateColor.transparentPressed :
-               control.hovered ? Enums.stateColor.transparentHover :
+               control._touchActive ? Enums.stateColor.transparentHover :
                Enums.transparent
     }
 

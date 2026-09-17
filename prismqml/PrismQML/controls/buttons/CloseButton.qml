@@ -24,6 +24,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -40,9 +43,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: control.width / 2
-        color: control.pressed ? control.pressedBgColor : (control.hovered ? control.hoverBgColor : Enums.stateColor.controlBgTransparent)
+        color: control.pressed ? control.pressedBgColor : (control._touchActive ? control.hoverBgColor : Enums.stateColor.controlBgTransparent)
         HoverBehavior on color {
-            active: control.hovered && !control.pressed
+            active: control._touchActive && !control.pressed
             enterDuration: Enums.duration.fast
         }
     }
@@ -53,9 +56,9 @@ Item {
         anchors.centerIn: parent
         icon: Enums.icon.dismiss
         iconSize: control.iconSizeValue
-        color: control.hovered ? control.hoverIconColor : control.normalIconColor
+        color: control._touchActive ? control.hoverIconColor : control.normalIconColor
         HoverBehavior on color {
-            active: control.hovered
+            active: control._touchActive
             enterDuration: Enums.duration.fast
         }
     }

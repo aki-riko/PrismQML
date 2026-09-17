@@ -25,6 +25,9 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: actionEnabled && mouseArea.containsMouse
     readonly property bool pressed: actionEnabled && mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property color iconColor: Enums.isDark
         ? Enums.windowButtonColors.iconLight
         : Enums.windowButtonColors.iconDark
@@ -51,7 +54,7 @@ Rectangle {
             ? (Enums.isDark
                 ? Enums.windowButtonColors.normalPressedDark
                 : Enums.windowButtonColors.normalPressedLight)
-            : (control.hovered
+            : (control._touchActive
                 ? (Enums.isDark
                     ? Enums.windowButtonColors.normalHoverDark
                     : Enums.windowButtonColors.normalHoverLight)

@@ -69,7 +69,9 @@ Item {
     // 用 HoverHandler 判定：传统 MouseArea 的 containsMouse 会被子元素自带的 hover MouseArea
     //   「偷走」（停在 delegate 里的按钮上时变 false），导致悬停子元素时自动播放又恢复。
     readonly property bool _isHovered: rootHover.hovered
-    readonly property bool _navVisible: _hasNavButtons && _isHovered
+    // Hover-revealed nav buttons must stay reachable on touch, so they stay visible there
+    // 依赖 hover 揭示的导航按钮在触摸端常显, 否则触摸端无法翻页
+    readonly property bool _navVisible: _hasNavButtons && Touch.reveal(_isHovered)
     property Item _contentArea: null
     property Item _indicator: null
     property Item _prevNavButton: null

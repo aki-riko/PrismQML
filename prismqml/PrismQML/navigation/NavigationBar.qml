@@ -147,7 +147,8 @@ NavigationPanelCore {
         objectName: "navigationBarScrollRail"
         flickable: topFlickable
         active: control.scrollRailEnabled
-        hostHovered: hostHover.hovered
+        // The hover-revealed rail stays revealed on touch 悬停显形的滚动轨在触摸端常显
+        hostHovered: Touch.reveal(hostHover.hovered)
     }
 
     // Bottom fixed items 底部固定项

@@ -92,6 +92,9 @@ NavigationPanelCore {
         id: returnBtn
 
         readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.s) / 2
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(returnArea.containsMouse, returnArea.pressed)
 
         visible: control.showReturnButton
         anchors.top: parent.top
@@ -102,7 +105,7 @@ NavigationPanelCore {
         width: control.compactButtonWidth  // Always compact width 始终紧凑宽度
         height: Enums.controlSize.navItemHeight
         radius: Enums.radius.card
-        color: returnArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
+        color: returnBtn._touchActive ? Enums.stateColor.hover : Enums.transparent
         
         Row {
             anchors.left: parent.left
@@ -129,6 +132,9 @@ NavigationPanelCore {
         id: menuBtn
 
         readonly property int iconCenterMargin: (control.compactButtonWidth - Enums.iconSize.m) / 2
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(menuArea.containsMouse, menuArea.pressed)
 
         anchors.top: returnBtn.visible ? returnBtn.bottom : parent.top
         anchors.topMargin: returnBtn.visible ? Enums.controlSize.navItemSpacing : (control.titleBarHeight + Enums.controlSize.navPanelPaddingV)
@@ -137,7 +143,7 @@ NavigationPanelCore {
         width: control.compactButtonWidth  // Always compact width 始终紧凑宽度
         height: Enums.controlSize.navItemHeight
         radius: Enums.radius.card
-        color: menuArea.containsMouse ? Enums.stateColor.hover : Enums.transparent
+        color: menuBtn._touchActive ? Enums.stateColor.hover : Enums.transparent
         
         Icon {
             anchors.left: parent.left
@@ -244,7 +250,8 @@ NavigationPanelCore {
         objectName: "navigationViewScrollRail"
         flickable: topFlickable
         active: control.scrollRailEnabled
-        hostHovered: hostHover.hovered
+        // The hover-revealed rail stays revealed on touch 悬停显形的滚动轨在触摸端常显
+        hostHovered: Touch.reveal(hostHover.hovered)
     }
     
     // Bottom fixed items 底部固定项

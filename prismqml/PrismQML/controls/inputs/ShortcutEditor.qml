@@ -27,6 +27,9 @@ InputCore {
     // ==================== Readonly State 只读状态 ====================
     readonly property var keyList: shortcut ? shortcut.split("+") : []
     readonly property bool _needsScroll: contentLayer.contentWidth > contentLayer.width
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
 
     // ==================== Signals 信号 ====================
     signal shortcutRecorded(string newShortcut)
@@ -62,7 +65,7 @@ InputCore {
     implicitWidth: Math.max(Enums.controlSize.shortcutPickerMinWidth, contentLayer.contentRow.implicitWidth + Enums.spacing.xl * 2)
     implicitHeight: Enums.controlSize.inputHeightLarge
     focused: recording || keyCapture.activeFocus
-    hovered: mouseArea.containsMouse
+    hovered: _touchActive
     on_SmoothContentXChanged: contentLayer.contentX = _smoothContentX
     onRecordingChanged: {
         if (recording) {

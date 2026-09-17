@@ -75,10 +75,14 @@ Item {
         
         // Automatic option 自动选项
         Rectangle {
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            readonly property bool _touchActive: Touch.feedback(autoArea.containsMouse, autoArea.pressed)
+
             visible: control.showAutomatic
             width: parent.width
             height: Enums.controlSize.inputHeight
-            color: autoArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
+            color: _touchActive ? Enums.stateColor.controlBgHover : Enums.transparent
             radius: Enums.radius.small
             
             Row {
@@ -135,13 +139,18 @@ Item {
                     model: control._safeThemeColors
                     
                     Rectangle {
+                        // Touch has no hover preview: on touch the hover treatment follows the press
+                        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                        readonly property bool _touchActive: Touch.feedback(cellArea.containsMouse,
+                                                                           cellArea.pressed)
+
                         width: control.cellSize
                         height: control.cellSize
                         color: modelData || Enums.transparent
                         radius: Enums.radius.tiny
                         border.width: {
                             if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
-                            return cellArea.containsMouse ? Enums.border.thin : Enums.border.none
+                            return _touchActive ? Enums.border.thin : Enums.border.none
                         }
                         border.color: {
                             if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase())
@@ -182,13 +191,18 @@ Item {
                     model: control._safeStandardColors
                     
                     Rectangle {
+                        // Touch has no hover preview: on touch the hover treatment follows the press
+                        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                        readonly property bool _touchActive: Touch.feedback(stdArea.containsMouse,
+                                                                           stdArea.pressed)
+
                         width: control.cellSize
                         height: control.cellSize
                         color: modelData || Enums.transparent
                         radius: Enums.radius.tiny
                         border.width: {
                             if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase()) return Enums.colorPickerMetrics.paletteSelectedBorderWidth
-                            return stdArea.containsMouse ? Enums.border.thin : Enums.border.none
+                            return _touchActive ? Enums.border.thin : Enums.border.none
                         }
                         border.color: {
                             if (control.selectedColor.toString().toUpperCase() === String(modelData).toUpperCase())
@@ -213,10 +227,14 @@ Item {
         
         // More Colors option 更多颜色选项
         Rectangle {
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            readonly property bool _touchActive: Touch.feedback(moreArea.containsMouse, moreArea.pressed)
+
             visible: control.showMoreColors
             width: parent.width
             height: Enums.controlSize.inputHeight
-            color: moreArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
+            color: _touchActive ? Enums.stateColor.controlBgHover : Enums.transparent
             radius: Enums.radius.small
             
             Row {

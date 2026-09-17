@@ -139,7 +139,9 @@ Item {
                     anchors.fill: parent
                     type: Enums.label.type_caption
                     text: control._categoryLabelTexts[index] || ""
-                    color: control.hoveredIndex === index
+                    // Cross-highlight preview follows the pointer, which is a mouse-only affordance
+                    // 交叉高亮预览跟随指针, 属于鼠标专属效果, 触摸端关闭
+                    color: !Touch.isTouch && control.hoveredIndex === index
                            ? Enums.textColor.primary : Enums.textColor.tertiary
                     horizontalAlignment: Text.AlignRight
                     verticalAlignment: Text.AlignVCenter
@@ -147,13 +149,15 @@ Item {
                     rightPadding: Enums.spacing.s
 
                     HoverBehavior on color {
-                        active: control.hoveredIndex === index
+                        active: !Touch.isTouch && control.hoveredIndex === index
                         enterDuration: Enums.duration.fast
                     }
 
                     MouseArea {
                         anchors.fill: parent
-                        hoverEnabled: true
+                        // Hover hit testing depends on pointer coordinates, so it is a mouse-only affordance
+                        // 命中检测依赖指针坐标, 属于鼠标专属反馈, 触摸端关闭
+                        hoverEnabled: !Touch.isTouch
                         enabled: !control.viewportTransitionActive
                         onEntered: control.xLabelHovered(index)
                         onExited: control.xLabelHovered(-1)
@@ -230,19 +234,23 @@ Item {
                         index, control.chartData.length, control._categoryLabelStride
                     )
                     text: control._categoryLabelTexts[index] || ""
-                    color: control.hoveredIndex === index
+                    // Cross-highlight preview follows the pointer, which is a mouse-only affordance
+                    // 交叉高亮预览跟随指针, 属于鼠标专属效果, 触摸端关闭
+                    color: !Touch.isTouch && control.hoveredIndex === index
                            ? Enums.textColor.primary : Enums.textColor.tertiary
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
 
                     HoverBehavior on color {
-                        active: control.hoveredIndex === index
+                        active: !Touch.isTouch && control.hoveredIndex === index
                         enterDuration: Enums.duration.fast
                     }
 
                     MouseArea {
                         anchors.fill: parent
-                        hoverEnabled: true
+                        // Hover hit testing depends on pointer coordinates, so it is a mouse-only affordance
+                        // 命中检测依赖指针坐标, 属于鼠标专属反馈, 触摸端关闭
+                        hoverEnabled: !Touch.isTouch
                         enabled: !control.viewportTransitionActive
                         onEntered: control.xLabelHovered(index)
                         onExited: control.xLabelHovered(-1)

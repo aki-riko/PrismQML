@@ -78,13 +78,16 @@ Item {
             spacing: Enums.spacing.xxs
             visible: root.isDonut && (root.donutCenterText !== "" || root.donutCenterSubtext !== "" || root.emphasisCenter)
             
+            // The resting text must not be suppressed by a lingering touch hover; only the
+            // mouse hover preview replaces it
+            // 静态文字不能被触摸端残留的悬停压掉, 只有鼠标悬停预览才会替换它
             // Static center text 静态中心文字
             Label {
                 anchors.horizontalCenter: parent.horizontalCenter
                 type: Enums.label.type_body_strong
                 text: root.donutCenterText
                 font.pixelSize: Enums.typography.title
-                visible: root.donutCenterText !== "" && (!root.emphasisCenter || root.hoveredIndex < 0)
+                visible: root.donutCenterText !== "" && (!root.emphasisCenter || Touch.isTouch || root.hoveredIndex < 0)
             }
             
             Label {
@@ -92,7 +95,7 @@ Item {
                 type: Enums.label.type_caption
                 text: root.donutCenterSubtext
                 color: Enums.textColor.secondary
-                visible: root.donutCenterSubtext !== "" && (!root.emphasisCenter || root.hoveredIndex < 0)
+                visible: root.donutCenterSubtext !== "" && (!root.emphasisCenter || Touch.isTouch || root.hoveredIndex < 0)
             }
             
             // Emphasis center label (shown on hover) 悬停时中心强调标签
@@ -107,7 +110,9 @@ Item {
                 }
                 font.pixelSize: Enums.typography.displayLarge
                 color: root.hoveredIndex >= 0 ? root.getColor(root.hoveredIndex) : Enums.textColor.primary
-                visible: root.emphasisCenter && root.hoveredIndex >= 0
+                // Hover emphasis follows the pointer, which is a mouse-only affordance
+                // 悬停强调跟随指针, 属于鼠标专属效果, 触摸端关闭
+                visible: !Touch.isTouch && root.emphasisCenter && root.hoveredIndex >= 0
                 
                 transform: Scale {
                     origin.x: emphasisValue.width / 2
@@ -141,14 +146,18 @@ Item {
                     return d ? (d.label || "") : ""
                 }
                 color: Enums.textColor.secondary
-                visible: root.emphasisCenter && root.hoveredIndex >= 0
+                // Hover emphasis follows the pointer, which is a mouse-only affordance
+                // 悬停强调跟随指针, 属于鼠标专属效果, 触摸端关闭
+                visible: !Touch.isTouch && root.emphasisCenter && root.hoveredIndex >= 0
             }
         }
     }
     
     // Tooltip 提示框
     ChartTooltip {
-        visible: root.hoveredIndex >= 0 && root.chartData.length > 0
+        // Hover-revealed tooltip is a mouse-only preview; on touch it would linger with no hover to clear it
+        // 悬停揭示的提示框只对鼠标有意义; 触摸端没有 hover 可清除, 会一直残留
+        visible: !Touch.isTouch && root.hoveredIndex >= 0 && root.chartData.length > 0
         x: Math.min(chartArea.x + chartArea.width / 2 - width / 2, root.width - width - Enums.spacing.m)
         y: chartArea.y + Enums.spacing.m
         

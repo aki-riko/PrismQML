@@ -25,6 +25,11 @@ Item {
     property bool hovered: cellMouseArea.containsMouse
     property bool selected: pinControl._isCellSelected(index)
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, cellMouseArea.pressed)
+
     // ==================== Size 尺寸 ====================
     width: Enums.controlSize.pinBoxCellSize
     height: Enums.controlSize.pinBoxCellSize
@@ -64,7 +69,7 @@ Item {
             if (!pinControl.enabled) return Enums.stateColor.controlBgDisabled
             if (cellItem.selected) return Enums.accentColor
             if (cellItem.isCurrentCell) return Enums.cardColor
-            if (cellItem.hovered) return Enums.stateColor.controlBgHover
+            if (cellItem._touchActive) return Enums.stateColor.controlBgHover
             return Enums.stateColor.controlBg
         }
 
@@ -73,16 +78,16 @@ Item {
             if (cellItem.selected) return Enums.accentColor
             if (Enums.hasOutlinedSurfaces) return cellItem.isCurrentCell ? Enums.accentColor : Enums.stateColor.border
             if (!pinControl.enabled) return Enums.stateColor.borderLight
-            if (cellItem.hovered) return Enums.stateColor.borderStrong
+            if (cellItem._touchActive) return Enums.stateColor.borderStrong
             return Enums.stateColor.inputBorderNormal
         }
 
         HoverBehavior on color {
-            active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
+            active: cellItem._touchActive && !cellItem.isCurrentCell && !cellItem.selected
             enterDuration: Enums.duration.fast
         }
         HoverBehavior on border.color {
-            active: cellItem.hovered && !cellItem.isCurrentCell && !cellItem.selected
+            active: cellItem._touchActive && !cellItem.isCurrentCell && !cellItem.selected
             enterDuration: Enums.duration.fast
         }
 

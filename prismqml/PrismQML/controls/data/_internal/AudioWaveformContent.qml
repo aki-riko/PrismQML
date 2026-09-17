@@ -28,10 +28,10 @@ ShadowedRectangle {
     radius: waveformControl._waveformRadius
     border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: waveformControl._waveformBorderColor
-    shadowLevel: waveformControl._hovered ? Enums.shadow.level4 : Enums.shadow.level2
+    shadowLevel: waveformControl._touchActive ? Enums.shadow.level4 : Enums.shadow.level2
 
     HoverBehavior on border.color {
-        active: waveformControl._hovered && !waveformControl._pressed
+        active: waveformControl._touchActive && !waveformControl._pressed
         animationEnabled: waveformControl.animated
         enterDuration: Enums.duration.fast
     }
@@ -123,7 +123,7 @@ ShadowedRectangle {
                     color: _played ? waveformControl.progressColor : waveformControl.waveColor
 
                     // Subtle glow effect for active bars 活跃条的微妙发光效果
-                    opacity: bar._played ? 1.0 : (waveformControl._hovered ? 0.85 : 0.7)
+                    opacity: bar._played ? 1.0 : (waveformControl._touchActive ? 0.85 : 0.7)
 
                     // Scale animation on hover 悬停时的缩放动画
                     transform: Scale {
@@ -138,7 +138,7 @@ ShadowedRectangle {
                     }
 
                     HoverBehavior on opacity {
-                        active: waveformControl._hovered && !waveformControl._pressed
+                        active: waveformControl._touchActive && !waveformControl._pressed
                         animationEnabled: waveformControl.animated
                         enterDuration: Enums.duration.fast
                     }
@@ -178,7 +178,9 @@ ShadowedRectangle {
         // Hover position indicator 悬停位置指示器
         Rectangle {
             id: hoverIndicator
-            visible: waveformControl._hovered && !waveformControl._pressed
+            // Pointer-only hover preview: it follows mouseX, which carries no meaning on touch
+            // 指针专属的悬停预览: 它跟随 mouseX, 触摸端没有意义
+            visible: !Touch.isTouch && waveformControl._hovered && !waveformControl._pressed
             x: Math.max(0, Math.min(mouseArea.mouseX - parent.anchors.margins - 1, parent.width - 2))
             anchors.top: parent.top
             anchors.bottom: parent.bottom

@@ -19,6 +19,9 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: chart.hoveredIndex === index
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, barArea.pressed)
     readonly property real barValue: modelData && modelData.value !== undefined ? modelData.value : 0
     readonly property bool isPositiveValue: chart.isPositive(barValue)
     readonly property real barRatio: chart.getBarRatio(barValue)
@@ -50,7 +53,7 @@ Item {
         id: barCanvas
 
         property color barColor: control.barColor
-        property bool barHovered: control.hovered
+        property bool barHovered: control._touchActive
         property bool isPositive: control.isPositiveValue
 
         anchors.horizontalCenter: control.horizontal ? undefined : parent.horizontalCenter
@@ -164,17 +167,18 @@ Item {
                 ? barCanvas.y - height - Enums.spacing.xs
                 : barCanvas.y + barCanvas.height + Enums.spacing.xs)
         text: control.barValue
-        font.weight: control.hovered ? Font.DemiBold : Font.Normal
-        color: control.hovered ? Enums.textColor.primary : Enums.textColor.secondary
+        font.weight: control._touchActive ? Font.DemiBold : Font.Normal
+        color: control._touchActive ? Enums.textColor.primary : Enums.textColor.secondary
         visible: control.chart.showValues
 
         HoverBehavior on color {
-            active: control.hovered
+            active: control._touchActive
             enterDuration: Enums.duration.fast
         }
     }
 
     MouseArea {
+        id: barArea
         anchors.fill: parent
         hoverEnabled: true
         onEntered: control.barHovered(control.index)

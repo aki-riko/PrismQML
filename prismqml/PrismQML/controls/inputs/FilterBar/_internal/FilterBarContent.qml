@@ -20,6 +20,12 @@ Item {
     property alias itemRepeater: itemRepeater
     readonly property real contentWidth: filterRow.implicitWidth
 
+    // ==================== Readonly State 只读状态 ====================
+    // Item row height and its matching selection pill: both rise together on touch so
+    // the pill never desyncs from the row it backs
+    // 项行高度与其配套选中药丸: 触摸端一并抬到最小目标尺寸, 避免药丸与项行高度错位
+    readonly property int _itemHeight: Touch.target(30)
+
     anchors.fill: parent
 
     // ==================== Content 内容 ====================
@@ -48,7 +54,7 @@ Item {
             visible: filterControl.exclusive && itemRepeater.count > 0
             x: refreshTrigger >= 0 ? filterControl.getItemX(targetIndex) : 0
             width: refreshTrigger >= 0 ? filterControl.getItemWidth(targetIndex) : 0
-            height: 30
+            height: content._itemHeight
             radius: Enums.surfaceRadius(Enums.radius.small)
             color: Enums.accentColor
 
@@ -94,15 +100,20 @@ Item {
                     readonly property string itemText: parsedData.text
                     readonly property bool hasIcon: itemIcon !== ""
                     readonly property bool hasText: itemText !== ""
+                    // Touch has no hover preview: on touch the hover treatment follows the press
+                    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
                     width: itemContentRow.implicitWidth + Enums.spacing.xl * 2
-                    height: 30
+                    // Interactive target: raised to the touch minimum off desktop
+                    // 交互目标尺寸: 非桌面端抬到触摸下限
+                    height: content._itemHeight
                     radius: Enums.surfaceRadius(Enums.radius.small)
 
                     // Background: transparent for exclusive (indicator handles it), colored for multi 背景：互斥模式透明（指示器处理），多选模式着色
                     color: filterControl.exclusive ?
-                        (hovered && !selected ? Enums.stateColor.filterItemHover : Enums.transparent) :
-                        filterControl.getItemBackgroundColor(selected, hovered)
+                        (_touchActive && !selected ? Enums.stateColor.filterItemHover : Enums.transparent) :
+                        filterControl.getItemBackgroundColor(selected, _touchActive)
 
                     // Scale animation - bounce effect for multi-select 缩放动画 - 多选模式弹性效果
                     scale: pressed ? 0.92 : 1.0
@@ -110,7 +121,7 @@ Item {
 
                     // Animations 动画
                     HoverBehavior on color {
-                        active: filterItem.hovered && !filterItem.pressed
+                        active: filterItem._touchActive && !filterItem.pressed
                         enterDuration: Enums.duration.normal
                         easingType: Easing.OutCubic
                     }

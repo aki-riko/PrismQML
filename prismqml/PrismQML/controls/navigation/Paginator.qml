@@ -176,6 +176,10 @@ Item {
                         property int pageNum: root._loadedPageStart + index
                         property bool isCurrentPage: pageNum === root.currentPage
 
+                        // Touch has no hover preview: on touch the hover treatment follows the press
+                        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                        readonly property bool _touchActive: Touch.feedback(pageMouseArea.containsMouse, pageMouseArea.pressed)
+
                         x: (pageNum - 1) * root._itemWidth
                         width: root._buttonSize
                         height: root._buttonSize
@@ -184,10 +188,10 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: root._pageRadius
-                            color: pageMouseArea.containsMouse && !pageDelegate.isCurrentPage
+                            color: pageDelegate._touchActive && !pageDelegate.isCurrentPage
                                    ? root._pageHoverColor : root._pageIdleColor
                             HoverBehavior on color {
-                                active: pageMouseArea.containsMouse &&
+                                active: pageDelegate._touchActive &&
                                         !pageDelegate.isCurrentPage
                                 enterDuration: Enums.duration.fast
                             }

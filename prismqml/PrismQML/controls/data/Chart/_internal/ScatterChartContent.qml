@@ -308,7 +308,10 @@ Item {
                     sizeCache[seriesIndex] = seriesData.symbolSize ||
                             (point.isEffect ? root._defaultEffectSymbolSize : root.defaultSymbolSize)
                 }
-                var hovered = seriesIndex === root.hoveredSeriesIndex &&
+                // Point highlight follows the pointer, which is a mouse-only affordance
+                // 散点高亮跟随指针, 属于鼠标专属效果, 触摸端关闭
+                var hovered = !Touch.isTouch &&
+                              seriesIndex === root.hoveredSeriesIndex &&
                               point.pointIndex === root.hoveredPointIndex
                 var hoverScale = hovered && !point.isEffect ? 1.3 : 1
                 var symbolSize = sizeCache[seriesIndex] * progress * hoverScale

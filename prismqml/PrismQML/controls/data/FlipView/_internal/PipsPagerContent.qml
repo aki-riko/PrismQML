@@ -74,6 +74,11 @@ Item {
             model: content.pagerControl._pipCount
 
             Item {
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(pipMouse.containsMouse,
+                                                                   pipMouse.pressed)
+
                 width: content.pagerControl._cellSize
                 height: content.pagerControl._cellSize
                 x: content.pagerControl.vertical
@@ -84,24 +89,24 @@ Item {
                 Rectangle {
                     anchors.centerIn: parent
                     width: (index === content.pagerControl.currentIndex
-                            || pipMouse.containsMouse)
+                            || _touchActive)
                         ? content.pagerControl._activeDiameter
                         : content.pagerControl._normalDiameter
                     height: width
                     radius: width / 2
                     color: index === content.pagerControl.currentIndex
                            ? content.pagerControl._pipActiveColor
-                           : (pipMouse.containsMouse
+                           : (_touchActive
                               ? content.pagerControl._pipHoverColor
                               : content.pagerControl._pipInactiveColor)
 
                     HoverBehavior on width {
-                        active: pipMouse.containsMouse
+                        active: _touchActive
                                 && index !== content.pagerControl.currentIndex
                         enterDuration: Enums.duration.fast
                     }
                     HoverBehavior on color {
-                        active: pipMouse.containsMouse
+                        active: _touchActive
                                 && index !== content.pagerControl.currentIndex
                         enterDuration: Enums.duration.fast
                     }

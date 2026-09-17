@@ -90,13 +90,17 @@ ComboBoxCore {
                         delegate: Rectangle {
                             property bool selected: control._safeSelectedIndices.indexOf(index) >= 0
 
+                            // Touch has no hover preview: on touch the hover treatment follows the press
+                            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                            readonly property bool _touchActive: Touch.feedback(itemArea.containsMouse, itemArea.pressed)
+
                             width: multiColumn.width
                             height: Enums.comboBoxMetrics.itemHeight
                             radius: Enums.radius.small
 
                             color: {
                                 if (itemArea.pressed) return Enums.stateColor.menuItemPressed
-                                if (itemArea.containsMouse) return Enums.stateColor.menuItemHover
+                                if (_touchActive) return Enums.stateColor.menuItemHover
                                 return Enums.transparent
                             }
 
@@ -110,7 +114,7 @@ ComboBoxCore {
                                 CheckIndicator {
                                     anchors.verticalCenter: parent.verticalCenter
                                     checkState: selected ? 2 : 0
-                                    hovered: itemArea.containsMouse
+                                    hovered: _touchActive
                                     pressed: itemArea.pressed
                                     checkedColor: control.accentColor
                                 }

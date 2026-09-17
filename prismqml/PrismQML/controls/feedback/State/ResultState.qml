@@ -28,6 +28,10 @@ Item {
             default: return "Info"
         }
     }
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(actionArea.containsMouse,
+                                                       actionArea.pressed)
 
     signal actionClicked()
     
@@ -96,9 +100,10 @@ Item {
             objectName: "resultStateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + 32
-            height: Enums.controlSize.inputHeightLarge - 4
+            // Touch: raise the 36px action target to the 48px floor 触摸端把 36px 操作目标抬到 48 下限
+            height: Touch.target(Enums.controlSize.inputHeightLarge - 4)
             radius: Enums.surfaceRadius(Enums.radius.small)
-            color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            color: actionArea.pressed ? Enums.accentColorDark : (_touchActive ? Enums.accentColorLight : Enums.accentColor)
             border.width: Enums.surfaceBorderWidth(Enums.border.none)
             shadowVisible: Enums.isNeumorphism
             neumorphicPressed: actionArea.pressed

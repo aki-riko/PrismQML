@@ -27,6 +27,9 @@ Rectangle {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: itemArea.containsMouse
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, itemArea.pressed)
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
@@ -75,7 +78,7 @@ Rectangle {
         if (!enabled) return Enums.transparent
         if (itemArea.pressed) return _itemPressedColor
         if (checkable && checked) return _itemPressedColor
-        if (hovered) return _itemHoverColor
+        if (_touchActive) return _itemHoverColor
         return Enums.transparent
     }
     

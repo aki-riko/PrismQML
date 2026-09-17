@@ -80,6 +80,11 @@ Item {
 
         property real handleValue: 0
 
+        // ==================== Readonly State 只读状态 ====================
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(rangeHandleArea.containsMouse, rangeHandleArea.pressed)
+
         signal valueChanged(real v)
 
         width: Enums.controlSize.switchHeight
@@ -115,14 +120,14 @@ Item {
             // Handle inner circle: shrinks on press, grows on hover 内圆:按下缩小,悬停放大
             width: rangeHandleArea.pressed
                 ? Enums.iconSize.micro
-                : (rangeHandleArea.containsMouse
+                : (rangeHandle._touchActive
                     ? Enums.iconSize.xs : Enums.iconSize.tiny)
             height: width
             radius: width / 2
             color: sliderControl._handleInnerColor
 
             HoverBehavior on width {
-                active: rangeHandleArea.containsMouse
+                active: rangeHandle._touchActive
                     && !rangeHandleArea.pressed
                 enterDuration: Enums.duration.fast
                 easingType: Easing.OutCubic

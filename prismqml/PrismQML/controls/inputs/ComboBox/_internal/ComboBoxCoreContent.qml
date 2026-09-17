@@ -29,6 +29,11 @@ Item {
     property alias comboTextMeasureLoader: comboTextMeasureLoader
     property alias popup: comboPopup
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(comboControl.hovered, comboControl.pressed)
+
     anchors.fill: parent
 
     // ==================== Content 内容 ====================
@@ -88,7 +93,7 @@ Item {
             if (!comboControl.enabled) return Enums.stateColor.controlBgDisabled
             if (comboControl.popupVisible) return Enums.stateColor.controlBgPressed
             if (comboControl.pressed) return Enums.stateColor.controlBgPressed
-            if (comboControl.hovered) return Enums.stateColor.controlBgHover
+            if (content._touchActive) return Enums.stateColor.controlBgHover
             return Enums.stateColor.controlBg
         }
 
@@ -107,7 +112,7 @@ Item {
 
         // Color animation (not applied during close to avoid delay) 颜色动画
         HoverBehavior on color {
-            active: comboControl.hovered && !comboControl.pressed &&
+            active: content._touchActive && !comboControl.pressed &&
                     !comboControl.popupVisible
             animationEnabled: !comboPopup.isClosing
             enterDuration: Enums.duration.fast

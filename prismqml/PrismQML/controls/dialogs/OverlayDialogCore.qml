@@ -150,7 +150,10 @@ Item {
             anchors.fill: parent
             // Intercept hover/wheel/click so they never reach the ListView/CommandBar below 拦截 hover/wheel/click 防止穿透到下层 ListView/CommandBar 等
             // (默认 hoverEnabled=false, 不接 hover 时下层 hover 高亮仍可见)
-            hoverEnabled: true
+            // Hover interception only serves the pointer hover preview, so it stays off on
+            // touch, where lower controls suppress their own hover via Touch.feedback
+            // hover 拦截只服务于鼠标悬浮预览, 触摸端关闭; 下层控件由 Touch.feedback 自行抑制残留
+            hoverEnabled: !Touch.isTouch
             acceptedButtons: Qt.AllButtons
             onWheel: (wheel) => wheel.accepted = true
             onClicked: {

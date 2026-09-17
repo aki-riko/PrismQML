@@ -26,6 +26,14 @@ QML probe 的稳定合同是：
 - singleton 必须经真实 QML 引擎创建并读取，创建期 Qt warning、critical、fatal 为 0。
 - required-property 跳过项必须与 probe 中声明的允许集合完全一致；不得在本文写死会随组件注册变化的 OK 数或总数。
 - 出现非零结果时必须分析具体错误；需要判定新增回归时，在改动前基线 worktree 运行同一 probe 对比结果。
+- 触摸适配改动必须额外运行 `--touch` 模式（注入 `isTouch=true` 的 `PlatformInfo`，让
+  `Touch` 与 `Enums.controlSize` 走真实触摸分支）：
+
+  ```powershell
+  .\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py --touch
+  ```
+
+  同一条合同生效：退出码 0、错误数 0、required-property 跳过集合与默认模式完全一致。
 
 Windows 原生 Mica 仅在显式配置 `-DPRISM_BUILD_NATIVE_TESTS=ON` 后运行：
 

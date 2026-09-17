@@ -48,6 +48,9 @@ Item {
             Item {
                 property bool filled: index < control.value
                 property bool hovered: starArea.containsMouse
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(hovered, starArea.pressed)
 
                 width: starSize
                 height: starSize
@@ -58,16 +61,16 @@ Item {
                     icon: parent.filled ? Enums.icon.star_filled : Enums.icon.star_outline
                     iconSize: starSize
                     color: parent.filled ? control._effectiveFillColor :
-                           (parent.hovered ? control._effectiveHoverColor : control._effectiveOutlineColor)
+                           (parent._touchActive ? control._effectiveHoverColor : control._effectiveOutlineColor)
                     
-                    scale: parent.hovered ? 1.15 : 1.0
+                    scale: parent._touchActive ? 1.15 : 1.0
                     HoverBehavior on scale {
-                        active: !!(parent && parent.hovered)
+                        active: !!(parent && parent._touchActive)
                         enterDuration: Enums.duration.fast
                         easingType: Easing.OutBack
                     }
                     HoverBehavior on color {
-                        active: !!(parent && parent.hovered)
+                        active: !!(parent && parent._touchActive)
                         enterDuration: Enums.duration.normal
                     }
                 }

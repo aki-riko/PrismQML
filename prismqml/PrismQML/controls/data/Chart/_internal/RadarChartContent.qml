@@ -272,7 +272,10 @@ Item {
                         point, region, Enums.spacing.xs + Enums.border.thin)) {
                     continue
                 }
-                var hovered = seriesIndex === root.hoveredSeriesIndex &&
+                // Point highlight follows the pointer, which is a mouse-only affordance
+                // 折点高亮跟随指针, 属于鼠标专属效果, 触摸端关闭
+                var hovered = !Touch.isTouch &&
+                              seriesIndex === root.hoveredSeriesIndex &&
                               point.pointIndex === root.hoveredPointIndex
                 var dotSize = hovered ? 5 : 3
                 ctx.beginPath()
@@ -313,7 +316,9 @@ Item {
             for (var seriesIndex = 0; seriesIndex < root._seriesPointGeometry.length; seriesIndex++) {
                 var points = root._seriesPointGeometry[seriesIndex]
                 var color = root.getSeriesColor(seriesIndex)
-                var hovered = seriesIndex === root.hoveredSeriesIndex
+                // Series area highlight follows the pointer, which is a mouse-only affordance
+                // 系列区域高亮跟随指针, 属于鼠标专属效果, 触摸端关闭
+                var hovered = !Touch.isTouch && seriesIndex === root.hoveredSeriesIndex
                 drawSeriesArea(ctx, points, color, hovered)
                 drawCount += drawSeriesPoints(
                     ctx, points, color, seriesIndex, region, fullPaint

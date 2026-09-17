@@ -25,6 +25,14 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(control.hovered, control.pressed)
+    // Icons light up on hover; on touch the press is the preview
+    // 图标 hover 点亮; 触摸端没有 hover, 改由按压点亮 (桌面表达式与之逐字符等价)
+    readonly property bool _iconActive: Touch.isTouch
+        ? control.pressed
+        : control.hovered && !control.pressed
     readonly property color accentColor: Enums.accentColor
     readonly property int _navItemRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property color _navItemBackground: {
@@ -33,8 +41,8 @@ Item {
             if (Enums.isVintageTicket) return Enums.ticket.muted
             return Enums.stateColor.navSelected
         }
-        if (control.pressed || control.hovered) {
-            return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
+        if (control.pressed || control._touchActive) {
+            return control._touchActive ? Enums.stateColor.hover : Enums.stateColor.pressed
         }
         return Enums.transparent
     }
@@ -130,7 +138,7 @@ Item {
                     control.selected && control.selectedIcon ? control.selectedIcon : control.icon
                 )
                 fillMode: Image.PreserveAspectFit
-                opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+                opacity: !control._iconActive && !control.selected ? Enums.opacityLevel.secondary : 1
 
                 // High quality scaling 高质量缩放
                 sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
@@ -144,7 +152,7 @@ Item {
                 }
 
                 HoverBehavior on opacity {
-                    active: control.hovered && !control.pressed
+                    active: control._touchActive && !control.pressed
                     enterDuration: Enums.duration.fast
                 }
             }
@@ -169,7 +177,7 @@ Item {
                     sourceSize: Qt.size(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                     smooth: true
                     antialiasing: true
-                    opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+                    opacity: !control._iconActive && !control.selected ? Enums.opacityLevel.secondary : 1
 
                     layer.enabled: avatarImage.status === Image.Ready
                     layer.smooth: true
@@ -188,7 +196,7 @@ Item {
                     }
 
                     HoverBehavior on opacity {
-                        active: control.hovered && !control.pressed
+                        active: control._touchActive && !control.pressed
                         enterDuration: Enums.duration.fast
                     }
                 }
@@ -204,10 +212,10 @@ Item {
                 anchors.centerIn: parent
                 text: control.selected && control.selectedIcon ? control.selectedIcon : control.icon
                 color: control._navItemContentColor
-                opacity: (control.pressed || !control.hovered) && !control.selected ? Enums.opacityLevel.secondary : 1
+                opacity: !control._iconActive && !control.selected ? Enums.opacityLevel.secondary : 1
 
                 HoverBehavior on opacity {
-                    active: control.hovered && !control.pressed
+                    active: control._touchActive && !control.pressed
                     enterDuration: Enums.duration.fast
                 }
                 Behavior on color { ColorAnimation { duration: Enums.duration.fast } }

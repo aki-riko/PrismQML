@@ -38,6 +38,9 @@ Rectangle {
     readonly property int _codeFontSize: Enums.typography.caption
     readonly property string _codeFontFamily: Enums.fontMonospace
     readonly property int _headerHeight: Enums.controlSize.codeBlockHeaderHeight
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(copyBtn.containsMouse, copyBtn.pressed)
 
     // ==================== Size 尺寸 ====================
     color: _blockBackground
@@ -98,7 +101,7 @@ Rectangle {
             Rectangle {
                 anchors.fill: parent
                 radius: control._copyRadius
-                color: copyBtn.containsMouse ? control._copyHover : Enums.transparent
+                color: control._touchActive ? control._copyHover : Enums.transparent
 
                 Text {
                     anchors.centerIn: parent

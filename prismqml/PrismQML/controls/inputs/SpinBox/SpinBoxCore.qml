@@ -216,7 +216,10 @@ InputCore {
         id: wheelHandler
         anchors.fill: parent
         z: Enums.zIndex.controls
-        hoverEnabled: true
+        // Pointer-only wheel surface: the wheel needs a pointer and this area never reads
+        // containsMouse, so touch needs no hover tracking here.
+        // 纯指针滚轮面: 滚轮必须有指针, 本区域也不读取 containsMouse, 触摸端无需 hover 追踪。
+        hoverEnabled: !Touch.isTouch
         acceptedButtons: Qt.NoButton
         
         onWheel: function(wheel) {

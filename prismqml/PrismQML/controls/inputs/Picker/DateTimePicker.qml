@@ -304,7 +304,7 @@ Rectangle {
 
     color: {
         if (pickerMouseArea && pickerMouseArea.pressed) return Enums.stateColor.controlBgPressed
-        if (pickerMouseArea && pickerMouseArea.containsMouse) return Enums.stateColor.controlBgHover
+        if (pickerMouseArea && Touch.feedback(pickerMouseArea.containsMouse, pickerMouseArea.pressed)) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
     border.width: Enums.surfaceBorderWidth(Enums.border.thin)

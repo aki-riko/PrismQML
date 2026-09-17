@@ -340,7 +340,10 @@ Rectangle {
             width: listView.width - listView.leftMargin - listView.rightMargin
             itemIndex: delegateItem.index
             itemData: ({ text: _text, icon: _icon, data: {} })
-            hovered: control._hoverRow === delegateItem.index
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            hovered: Touch.feedback(control._hoverRow === delegateItem.index,
+                                    control._pressedRow === delegateItem.index)
             pressed: control._pressedRow === delegateItem.index
             selected: control._isRowSelected(delegateItem.index)
             

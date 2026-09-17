@@ -15,12 +15,19 @@ Rectangle {
     // ==================== Required Props 必需属性 ====================
     required property var wheelControl
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(upArea.containsMouse, upArea.pressed)
+
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
     height: Enums.controlSize.wheelPickerItemHeight
-    color: upArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-    visible: wheelControl.showScrollButtons && wheelControl._hovered
+    color: _touchActive ? Enums.stateColor.controlBgHover : Enums.transparent
+    // Hover-revealed scroll affordance: on touch it must stay reachable, so it stays visible
+    // 悬停才揭示的滚动按钮: 触摸端必须保持可点, 因此常显
+    visible: wheelControl.showScrollButtons && Touch.reveal(wheelControl._hovered)
     z: Enums.zIndex.popup
 
     Icon {
@@ -44,13 +51,21 @@ Rectangle {
 
     Rectangle {
         id: downButton
+
+        // ==================== Readonly State 只读状态 ====================
+        // Touch has no hover preview: on touch the hover treatment follows the press
+        // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+        readonly property bool _touchActive: Touch.feedback(downArea.containsMouse, downArea.pressed)
+
         parent: wheelControl
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         height: Enums.controlSize.wheelPickerItemHeight
-        color: downArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.transparent
-        visible: wheelControl.showScrollButtons && wheelControl._hovered
+        color: _touchActive ? Enums.stateColor.controlBgHover : Enums.transparent
+        // Hover-revealed scroll affordance: on touch it must stay reachable, so it stays visible
+        // 悬停才揭示的滚动按钮: 触摸端必须保持可点, 因此常显
+        visible: wheelControl.showScrollButtons && Touch.reveal(wheelControl._hovered)
         z: Enums.zIndex.popup
 
         Icon {

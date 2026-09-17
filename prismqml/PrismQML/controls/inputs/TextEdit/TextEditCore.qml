@@ -34,8 +34,10 @@ InputCore {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
+    // Pointer-position-only effect: link hit-testing exists to shape the mouse cursor
+    // 指针坐标专属效果: 链接命中测试只服务于鼠标光标, 触摸端关闭
     readonly property string _hoveredLink: {
-        if (!_isBrowser || !hoverHandler.hovered) return ""
+        if (Touch.isTouch || !_isBrowser || !hoverHandler.hovered) return ""
         var position = hoverHandler.point.position
         var editorPosition = control.mapToItem(textEdit, position.x, position.y)
         return textEdit.linkAt(editorPosition.x, editorPosition.y)

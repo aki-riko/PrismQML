@@ -36,6 +36,12 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var control: dataControl
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    // wheelArea accepts no buttons, so on touch the hover elevation simply stays off
+    // wheelArea 不接受任何按键, 因此触摸端悬停抬升直接保持关闭
+    readonly property bool _touchActive:
+        Touch.feedback(wheelArea.containsMouse, wheelArea.pressed)
 
     // ==================== Public Methods 公开方法 ====================
     function createHorizontalScrollMixin() {
@@ -73,7 +79,7 @@ Item {
         // Cache the public token after construction so teardown no longer reads the singleton.
         // 构造完成后缓存公开 token，销毁期不再读取 singleton。
         property var _staticFallbackShadow: null
-        property var _resolvedLevel: control.hoverElevation && wheelArea.containsMouse
+        property var _resolvedLevel: control.hoverElevation && contentLayer._touchActive
                                    ? (Enums.shadow ? Enums.shadow.level4 : null)
                                    : control.shadowLevel
         property var _activeLevel: _resolvedLevel
@@ -102,13 +108,13 @@ Item {
                   : (_staticFallbackShadow ? _staticFallbackShadow.offset : 0)
 
         HoverBehavior on blur {
-            active: wheelArea.containsMouse
+            active: contentLayer._touchActive
             animationEnabled: control.animated && control.hoverElevation
             enterDuration: Enums.duration.elevation
             easingType: Easing.OutCubic
         }
         HoverBehavior on offset {
-            active: wheelArea.containsMouse
+            active: contentLayer._touchActive
             animationEnabled: control.animated && control.hoverElevation
             enterDuration: Enums.duration.elevation
             easingType: Easing.OutCubic

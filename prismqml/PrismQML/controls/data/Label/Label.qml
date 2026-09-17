@@ -35,6 +35,9 @@ Text {
     readonly property bool pressed: _mouseArea.item
         ? _mouseArea.item.pressed
         : false
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property int _fontSize: {
         switch (type) {
             case effectiveSkinContext.label.type_body:
@@ -95,7 +98,7 @@ Text {
                 ? Qt.darker(_textColor, 1.12)
                 : effectiveSkinContext.accentColorDark
         }
-        if (hovered) {
+        if (_touchActive) {
             return _useCustomColor
                 ? Qt.lighter(_textColor, 1.08)
                 : effectiveSkinContext.accentColorLight
@@ -121,7 +124,7 @@ Text {
     font.family: effectiveSkinContext.fontFamily
     font.pixelSize: _fontSize
     font.weight: _fontWeight
-    font.underline: _isHyperlink && (!underlineOnHover || hovered)
+    font.underline: _isHyperlink && (!underlineOnHover || _touchActive)
     color: _interactiveTextColor
     wrapMode: (type === effectiveSkinContext.label.type_body || type === effectiveSkinContext.label.type_body_strong || type === effectiveSkinContext.label.type_body_small)
               ? Text.WordWrap : Text.NoWrap

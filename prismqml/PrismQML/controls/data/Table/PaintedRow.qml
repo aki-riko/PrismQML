@@ -126,9 +126,11 @@ Item {
     }
 
     // Lightweight hover hit testing emits only; it does not draw a background. 轻量 hover 命中检测只发信号，不绘制背景。
+    // The hit test depends on pointer coordinates, so it is a mouse-only affordance
+    // 命中检测依赖指针坐标, 属于鼠标专属反馈, 触摸端关闭
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: !Touch.isTouch
         acceptedButtons: Qt.NoButton  // Let the parent ListView delegate handle clicks 由上层 ListView 委托处理点击
         onPositionChanged: function(mouse) {
             var columns = root._safeColumns

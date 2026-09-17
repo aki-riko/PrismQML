@@ -27,6 +27,11 @@ Row {
 
             // ==================== Readonly State 只读状态 ====================
             readonly property bool hovered: headerHoverArea.containsMouse
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            readonly property bool _touchActive: Touch.feedback(
+                hovered, sortArea.pressed || resizeHandle.pressed
+            )
             readonly property bool sortable: root.table.sortingEnabled && !!columnData.role
             readonly property bool sorted: root.table.sortColumn === index
 
@@ -83,10 +88,10 @@ Row {
                     type: 1
                     lineWidth: Enums.border.medium
                     lineLength: parent.height * 0.5
-                    opacity: headerItem.hovered || resizeHandle.pressed ? 1.0 : 0.4
+                    opacity: headerItem._touchActive || resizeHandle.pressed ? 1.0 : 0.4
 
                     HoverBehavior on opacity {
-                        active: headerItem.hovered && !resizeHandle.pressed
+                        active: headerItem._touchActive && !resizeHandle.pressed
                         enterDuration: Enums.duration.fast
                         easingType: Easing.OutCubic
                     }

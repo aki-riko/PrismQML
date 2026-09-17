@@ -31,13 +31,13 @@ Widget {
     property var getBackgroundColor: function() {
         if (!enabled) return Enums.stateColor.controlBgDisabled
         if (pressed) return Enums.stateColor.controlBgPressed
-        if (hovered) return Enums.stateColor.controlBgHover
+        if (_touchActive) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
     }
 
     property var getBorderColor: function() {
         if (!enabled) return Enums.stateColor.borderLight
-        if (hovered) return Enums.stateColor.borderStrong
+        if (_touchActive) return Enums.stateColor.borderStrong
         return Enums.stateColor.border
     }
 
@@ -53,6 +53,9 @@ Widget {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     // State string (for debug) 状态字符串
     readonly property string buttonState: {
         if (!enabled) return "disabled"
@@ -117,7 +120,7 @@ Widget {
         border.color: control.getBorderColor()
         
         HoverBehavior on color {
-            active: control.hovered && !control.pressed
+            active: control._touchActive && !control.pressed
             enterDuration: Enums.duration.fast
         }
     }

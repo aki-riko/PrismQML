@@ -23,11 +23,14 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(control.hovered, control.pressed)
     readonly property color accentColor: Enums.accentColor
     readonly property int _navItemRadius: Enums.radius.card
     readonly property color _navItemBackground: {
         if (control.selected) return Enums.stateColor.navSelected
-        if (control.pressed || control.hovered) return control.hovered ? Enums.stateColor.hover : Enums.stateColor.pressed
+        if (control.pressed || control._touchActive) return control._touchActive ? Enums.stateColor.hover : Enums.stateColor.pressed
         return Enums.transparent
     }
     readonly property int _navItemBorderWidth: 0

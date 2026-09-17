@@ -10,6 +10,7 @@ required property 的内部子模块会被归类为预期跳过；--full-require
 使用真实依赖 wrapper 创建这些模块，使 Skin 专项覆盖可以达到全部注册项。
 
 用法: python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python tests/qml/probe_all_components.py
+     追加 --touch 会注入 isTouch=true 的 PlatformInfo, 用同一条契约探测触摸分支。
 退出码: 0=无非预期错误, 1=有非预期加载错误
 """
 import argparse
@@ -28,6 +29,8 @@ configure_qml_test_process()
 
 from PySide6.QtCore import (
     QEventLoop,
+    QObject,
+    Property,
     QTimer,
     QUrl,
     QtMsgType,
@@ -39,6 +42,30 @@ from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMPONENT_LOAD_TIMEOUT_MS = 10_000
+
+
+class TouchPlatformInfo(QObject):
+    """Synthetic touch host capability for --touch. --touch 用的合成触摸宿主能力。
+
+    与 C++ 宿主 prism::PlatformInfo 暴露同名只读属性, 让 Enums.controlSize 的触摸
+    下限与控件的 Touch 分支走真实触摸路径。
+    """
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+    def _is_touch(self) -> bool:
+        return True
+
+    def _target_size(self) -> int:
+        return 48
+
+    isTouch = Property(bool, _is_touch, constant=True)
+    isMobile = Property(bool, _is_touch, constant=True)
+    isCompact = Property(bool, _is_touch, constant=True)
+    touchTargetSize = Property(int, _target_size, constant=True)
+    platformName = Property(str, lambda self: "android", constant=True)
+
 
 EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "ButtonContent": "ButtonCore 内部内容区, required 属性由 ButtonCore 注入",
@@ -150,6 +177,11 @@ def parse_args():
         "--full-required",
         action="store_true",
         help="使用依赖 wrapper 创建全部 required-property 内部模块",
+    )
+    parser.add_argument(
+        "--touch",
+        action="store_true",
+        help="注入 isTouch=true 的 PlatformInfo, 探测触摸分支",
     )
     return parser.parse_args()
 
@@ -402,9 +434,15 @@ def main():
     if args.theme:
         package.setTheme(package.Theme(args.theme))
     engine = QQmlEngine()
+    touch_info = None
+    if args.touch:
+        touch_info = TouchPlatformInfo(engine)
+        engine.rootContext().setContextProperty("PlatformInfo", touch_info)
     package.register_types(engine)
     engine.addImportPath(str(package_root))
     types = parse_qmldir(qmldir)
+    if args.touch:
+        print("[probe] 触摸模式: PlatformInfo.isTouch=true, touchTargetSize=48")
     results = collect_results(engine, types, args.full_required)
     QTimer.singleShot(0, app.quit)
     app.exec()

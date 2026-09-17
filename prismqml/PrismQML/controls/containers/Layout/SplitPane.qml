@@ -37,14 +37,17 @@ Item {
     readonly property real _effectiveSplitPosition: _boundedSplitPosition(splitPosition)
     readonly property real _firstExtent: _availableSize * _effectiveSplitPosition
     readonly property real _secondExtent: Math.max(0, _availableSize - _firstExtent)
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(handleArea.containsMouse, handleArea.pressed)
     readonly property color _splitHandleColor: handleArea.pressed
         ? Enums.stateColor.controlBgPressed
-        : (handleArea.containsMouse ? Enums.stateColor.controlBgHover
-                                    : Enums.stateColor.controlBgTransparent)
+        : (_touchActive ? Enums.stateColor.controlBgHover
+                        : Enums.stateColor.controlBgTransparent)
     readonly property color _splitGripColor: handleArea.pressed
         ? Enums.stateColor.indicatorActive
-        : (handleArea.containsMouse ? Enums.stateColor.indicatorHover
-                                    : Enums.stateColor.indicator)
+        : (_touchActive ? Enums.stateColor.indicatorHover
+                        : Enums.stateColor.indicator)
 
     // ==================== Public Methods 公开方法 ====================
     // Get child count 获取子组件数量
@@ -116,7 +119,7 @@ Item {
         // Default transparent, tint only on hover/press 默认透明，悬停/按下才着色
         color: control._splitHandleColor
         HoverBehavior on color {
-            active: handleArea.containsMouse && !handleArea.pressed
+            active: _touchActive && !handleArea.pressed
             enterDuration: Enums.duration.fast
         }
 
@@ -125,7 +128,7 @@ Item {
             id: grip
 
             readonly property real gripThickness: Enums.border.thick
-            readonly property int gripLength: (handleArea.containsMouse || handleArea.pressed) ? 36 : 24
+            readonly property int gripLength: (_touchActive || handleArea.pressed) ? 36 : 24
 
             anchors.centerIn: parent
             radius: Enums.radius.pill
@@ -138,15 +141,15 @@ Item {
             color: control._splitGripColor
 
             HoverBehavior on width {
-                active: handleArea.containsMouse && !handleArea.pressed
+                active: _touchActive && !handleArea.pressed
                 enterDuration: Enums.duration.fast
             }
             HoverBehavior on height {
-                active: handleArea.containsMouse && !handleArea.pressed
+                active: _touchActive && !handleArea.pressed
                 enterDuration: Enums.duration.fast
             }
             HoverBehavior on color {
-                active: handleArea.containsMouse && !handleArea.pressed
+                active: _touchActive && !handleArea.pressed
                 enterDuration: Enums.duration.fast
             }
         }

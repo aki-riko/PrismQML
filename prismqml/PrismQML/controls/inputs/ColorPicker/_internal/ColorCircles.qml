@@ -43,9 +43,14 @@ Item {
                 property bool hovered: circleArea.containsMouse
                 readonly property string _colorText:
                     modelData === null || modelData === undefined ? "" : String(modelData)
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(hovered, circleArea.pressed)
 
-                width: control.circleSize + Enums.spacing.m
-                height: control.circleSize + Enums.spacing.m
+                // Touch reaches the 48dp minimum hit target; the circle glyph keeps its own size
+                // 触摸端命中目标抬到 48dp 下限; 圆形色块自身尺寸保持不变
+                width: Touch.target(control.circleSize + Enums.spacing.m)
+                height: Touch.target(control.circleSize + Enums.spacing.m)
                 
                 // Outer selection ring 外部选中环
                 Rectangle {
@@ -71,9 +76,9 @@ Item {
                     color: circleItem._colorText || Enums.transparent
                     
                     // Hover effect 悬停效果
-                    opacity: circleArea.containsMouse ? Enums.colorPickerMetrics.circleHoverOpacity : Enums.opacityLevel.visible
+                    opacity: _touchActive ? Enums.colorPickerMetrics.circleHoverOpacity : Enums.opacityLevel.visible
                     HoverBehavior on opacity {
-                        active: circleArea.containsMouse
+                        active: _touchActive
                         enterDuration: Enums.duration.fast
                     }
                 }

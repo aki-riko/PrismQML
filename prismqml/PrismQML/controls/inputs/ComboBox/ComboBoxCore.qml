@@ -59,7 +59,13 @@ Widget {
     readonly property bool _inputFocused: editable && editableInput.activeFocus
     // MouseArea disabled during close, read state directly 关闭期间直接读取状态
     // Editable mode needs to check both input and arrow area hover editable模式检测两个区域
-    readonly property bool hovered: mouseArea.containsMouse || (editable && editableClickArea.containsMouse)
+    // Touch has no hover preview: on touch the hover treatment follows the press. Mapping at
+    // the source covers every consumer (ComboBoxStyleHelper + ComboBoxCoreContent).
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效; 在源头映射可覆盖全部消费者。
+    readonly property bool hovered: Touch.feedback(
+        mouseArea.containsMouse || (editable && editableClickArea.containsMouse),
+        mouseArea.pressed || (editable && editableClickArea.pressed)
+    )
     readonly property bool pressed: mouseArea.pressed
     readonly property bool popupVisible: isOpen || _popup.isClosing
     readonly property color focusedBorderColor: Enums.isDark ? focusedBorderColorDark : focusedBorderColorLight

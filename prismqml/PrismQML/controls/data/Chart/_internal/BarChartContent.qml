@@ -390,7 +390,10 @@ Item {
     Canvas {
         id: singleBarIndicator
         anchors.fill: parent
-        visible: !root.isMultiSeries && !root.isHorizontal && root.hoveredIndex >= 0
+        // Pointer-only hover crosshair; on touch it would stick with no way to clear it
+        // 指针专属的悬停指示线; 触摸端松手后无法清除会残留
+        visible: !Touch.isTouch && !root.isMultiSeries && !root.isHorizontal
+                 && root.hoveredIndex >= 0
         
         onPaint: {
             var ctx = getContext("2d")

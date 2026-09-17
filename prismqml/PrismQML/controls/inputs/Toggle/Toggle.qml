@@ -46,7 +46,9 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _tv: Translator._v
-    readonly property bool hovered: mouseArea.containsMouse
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool hovered: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
     readonly property bool pressed: mouseArea.pressed
     readonly property bool _isCheckBox: controlType === Enums.toggle.control_checkbox
     readonly property bool _isRadio: controlType === Enums.toggle.control_radio

@@ -20,6 +20,9 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property int _indicatorRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property bool _hasCheckState: checkState !== Enums.toggle.state_unchecked
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property real _indicatorBorderWidth: {
         if (Enums.hasOutlinedSurfaces) return Enums.surfaceBorderWidth(Enums.border.thin)
         return _hasCheckState ? Enums.border.none : Enums.border.medium
@@ -32,11 +35,11 @@ Rectangle {
         }
         if (_hasCheckState) {
             if (pressed) return Qt.darker(checkedColor, 1.15)
-            if (hovered) return Qt.lighter(checkedColor, 1.08)
+            if (_touchActive) return Qt.lighter(checkedColor, 1.08)
             return checkedColor
         }
         if (pressed) return Enums.stateColor.checkBoxFillPressed
-        if (hovered) return Enums.stateColor.checkBoxFillHover
+        if (_touchActive) return Enums.stateColor.checkBoxFillHover
         return Enums.stateColor.checkBoxFill
     }
     readonly property color _indicatorBorderColor: {
@@ -44,7 +47,7 @@ Rectangle {
         if (_hasCheckState) return Enums.transparent
         if (!enabled) return Enums.stateColor.disabledBorder
         if (pressed) return Enums.stateColor.togglePressed
-        if (hovered) return Enums.stateColor.toggleBorderHover
+        if (_touchActive) return Enums.stateColor.toggleBorderHover
         return Enums.stateColor.toggleBorder
     }
     readonly property color _checkIconColor: {
@@ -66,11 +69,11 @@ Rectangle {
     border.color: _indicatorBorderColor
 
     HoverBehavior on color {
-        active: hovered && !pressed
+        active: _touchActive && !pressed
         enterDuration: Enums.duration.fast
     }
     HoverBehavior on border.color {
-        active: hovered && !pressed
+        active: _touchActive && !pressed
         enterDuration: Enums.duration.fast
     }
 

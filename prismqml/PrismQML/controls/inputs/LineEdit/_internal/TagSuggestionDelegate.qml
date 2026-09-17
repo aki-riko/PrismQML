@@ -14,9 +14,15 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     property string itemText: ""
     property bool selected: false
-    
+
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
+
     // ==================== Signals 信号 ====================
     signal itemClicked(string text)
+
     
     // ==================== Size 尺寸 ====================
     height: Enums.controlSize.inputHeight
@@ -24,7 +30,7 @@ Rectangle {
     // Visual style 视觉样式
     radius: Enums.radius.small
     color: mouseArea.pressed ? Enums.stateColor.menuItemPressed
-         : (mouseArea.containsMouse || delegateRoot.selected) ? Enums.stateColor.menuItemHover
+         : (delegateRoot._touchActive || delegateRoot.selected) ? Enums.stateColor.menuItemHover
          : Enums.transparent
     
     // ==================== Content 内容 ====================

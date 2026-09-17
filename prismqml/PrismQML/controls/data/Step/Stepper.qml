@@ -92,6 +92,10 @@ Item {
                 readonly property bool isCurrent: index === control._safeCurrentStep
                 readonly property bool isActive: index <= control._safeCurrentStep
                 readonly property string stepIcon: control._getStepIcon(modelData)
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(indicatorArea.containsMouse,
+                                                                   indicatorArea.pressed)
 
                 width: parent.width / Math.max(1, control._safeSteps.length)
                 height: parent.height
@@ -178,10 +182,16 @@ Item {
                                 onClicked: control.stepClicked(index)
                                 onEntered: indicator.scale = 1.08
                                 onExited: indicator.scale = 1.0
+                                // Touch has no hover preview: the same scale follows the press
+                                // and resets on release, since touch never emits an exit
+                                // 触摸没有 hover 预览: 同一缩放改为跟随按压并在松手复位,
+                                // 因为触摸端不会派发 exit
+                                onPressedChanged: if (Touch.isTouch)
+                                                      indicator.scale = indicatorArea.pressed ? 1.08 : 1.0
                             }
                             
                             HoverBehavior on scale {
-                                active: indicatorArea.containsMouse
+                                active: _touchActive
                                 enterDuration: Enums.duration.fast
                                 easingType: Easing.OutQuad
                             }

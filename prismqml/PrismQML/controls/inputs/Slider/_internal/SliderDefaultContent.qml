@@ -20,6 +20,9 @@ Item {
     readonly property bool hovered: handleArea.containsMouse
         || trackArea.containsMouse || wheelArea.containsMouse
     readonly property bool pressed: handleArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Size 尺寸 ====================
     anchors.fill: parent
@@ -136,13 +139,13 @@ Item {
             // Handle inner circle: shrinks on press, grows on hover 内圆:按下缩小,悬停放大
             width: handleArea.pressed
                 ? Enums.iconSize.micro
-                : (content.hovered ? Enums.iconSize.xs : Enums.iconSize.tiny)
+                : (content._touchActive ? Enums.iconSize.xs : Enums.iconSize.tiny)
             height: width
             radius: width / 2
             color: sliderControl._handleInnerColor
 
             HoverBehavior on width {
-                active: content.hovered && !content.pressed
+                active: content._touchActive && !content.pressed
                 enterDuration: Enums.duration.fast
                 easingType: Easing.OutCubic
             }

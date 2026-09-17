@@ -29,6 +29,9 @@ Item {
         && headerArea.containsMouse
     readonly property bool pressed: !expanderControl.disabled
         && headerArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Size 尺寸 ====================
     anchors.top: parent.top
@@ -123,7 +126,7 @@ Item {
                 radius: Enums.surfaceRadius(Enums.radius.small)
                 color: {
                     if (headerRoot.pressed) return Enums.stateColor.expandBtnPressed
-                    if (headerRoot.hovered) return Enums.stateColor.expandBtnHover
+                    if (headerRoot._touchActive) return Enums.stateColor.expandBtnHover
                     return Enums.transparent
                 }
             }

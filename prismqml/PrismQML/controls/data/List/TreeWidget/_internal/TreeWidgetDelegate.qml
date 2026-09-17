@@ -37,6 +37,11 @@ Rectangle {
     property bool pressed: itemArea.pressed
     property real branchOffset: Enums.spacing.m + depth * (control ? control.indentWidth : Enums.spacing.xl)
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
+
     // ==================== Size 尺寸 ====================
     width: listView ? listView.width : 0
     height: control ? control.itemHeight : Enums.controlSize.treeItemHeight
@@ -60,12 +65,12 @@ Rectangle {
         // Transparent black to translucent gray would otherwise flash dirty gray frames.
         // 否则透明黑到半透明灰的中间帧会闪过脏灰。
         color: {
-            if (delegateRoot.selected || delegateRoot.hovered)
+            if (delegateRoot.selected || delegateRoot._touchActive)
                 return Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover)
             return Enums.cardColor
         }
         HoverBehavior on color {
-            active: delegateRoot.hovered && !delegateRoot.pressed
+            active: delegateRoot._touchActive && !delegateRoot.pressed
             enterDuration: Enums.duration.fast
         }
     }

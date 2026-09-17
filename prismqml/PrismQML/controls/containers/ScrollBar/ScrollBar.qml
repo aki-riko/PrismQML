@@ -29,7 +29,10 @@ Rectangle {
     readonly property color _scrollHandleDefaultColor: Enums.stateColor.scrollHandleDefault
     readonly property color _scrollHandleHoverColor: Enums.stateColor.scrollHandleHover
     readonly property color _scrollHandlePressedColor: Enums.accentColor
-    readonly property color _scrollHandleColor: handleArea.pressed ? _scrollHandlePressedColor : (handleArea.containsMouse ? _scrollHandleHoverColor : _scrollHandleDefaultColor)
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(handleArea.containsMouse, handleArea.pressed)
+    readonly property color _scrollHandleColor: handleArea.pressed ? _scrollHandlePressedColor : (_touchActive ? _scrollHandleHoverColor : _scrollHandleDefaultColor)
 
     // ==================== Internal Methods 内部方法 ====================
     function _safeRatio(viewSize, contentSize) {
@@ -72,7 +75,7 @@ Rectangle {
         color: control._scrollHandleColor
         
         HoverBehavior on color {
-            active: handleArea.containsMouse && !handleArea.pressed
+            active: _touchActive && !handleArea.pressed
             enterDuration: Enums.duration.fast
         }
         

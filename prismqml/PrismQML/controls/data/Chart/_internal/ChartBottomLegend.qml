@@ -63,6 +63,9 @@ Item {
             Item {
                 property bool hovered: root.hoveredIndex === index
                 property bool isItemHidden: root.isHidden(index)
+                // Touch has no hover preview: on touch the hover treatment follows the press
+                // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+                readonly property bool _touchActive: Touch.feedback(hovered, itemArea.pressed)
 
                 width: itemRow.width + Enums.spacing.s
                 height: itemRow.height + Enums.spacing.xs
@@ -70,12 +73,12 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: root._itemRadius
-                    color: hovered && !isItemHidden ? root._itemHoverColor : Enums.transparent
-                    border.width: hovered && Enums.border.none
+                    color: _touchActive && !isItemHidden ? root._itemHoverColor : Enums.transparent
+                    border.width: _touchActive && Enums.border.none
                     border.color: root._itemBorderColor
 
                     HoverBehavior on color {
-                        active: hovered
+                        active: _touchActive
                         enterDuration: Enums.duration.fast
                     }
                 }
@@ -94,9 +97,13 @@ Item {
                         height: root.legendStyle === "line" ? Enums.border.medium : Enums.spacing.m
                         radius: root.legendStyle === "dot" ? width / 2 : Enums.radius.micro
                         color: isItemHidden ? Enums.textColor.tertiary : root.getItemColor(index)
-                        opacity: root.hoveredIndex === -1 || hovered ? 1.0 : Enums.opacityLevel.medium
+                        // Hover-preview dimming is a mouse-only affordance: on touch there is no hovered
+                        // item to preview, so the icons stay at full opacity
+                        // 悬停预览淡化属于鼠标专属效果: 触摸端没有"悬停项"可预览, 图标常显不透明
+                        opacity: Touch.reveal(root.hoveredIndex === -1 || hovered)
+                                 ? 1.0 : Enums.opacityLevel.medium
                         HoverBehavior on opacity {
-                            active: hovered
+                            active: _touchActive
                             enterDuration: Enums.duration.fast
                         }
                         Behavior on color { ColorAnimation { duration: Enums.duration.fast } }
@@ -117,18 +124,19 @@ Item {
                     Label {
                         type: Enums.label.type_caption
                         text: root.getItemLabel(index)
-                        font.weight: hovered ? Font.DemiBold : Font.Normal
+                        font.weight: _touchActive ? Font.DemiBold : Font.Normal
                         font.strikeout: isItemHidden
                         color: isItemHidden ? Enums.textColor.tertiary 
-                               : (hovered ? Enums.textColor.primary : Enums.textColor.secondary)
+                               : (_touchActive ? Enums.textColor.primary : Enums.textColor.secondary)
                         HoverBehavior on color {
-                            active: hovered
+                            active: _touchActive
                             enterDuration: Enums.duration.fast
                         }
                     }
                 }
                 
                 MouseArea {
+                    id: itemArea
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: root.clickable ? Qt.PointingHandCursor : Qt.ArrowCursor

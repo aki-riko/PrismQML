@@ -24,6 +24,9 @@ Item {
     readonly property color _handleColor: Enums.themeColors.accentForeground
     readonly property color _handleIconColor: Enums.gray.text
     readonly property real _safePosition: isFinite(position) ? Math.max(0, Math.min(1, position)) : 0.5
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(dragArea.containsMouse, dragArea.pressed)
     
     signal positionModified(real newPosition)
     
@@ -181,9 +184,9 @@ Item {
         width: Enums.spacing.xxl
         height: Enums.spacing.xxl
         radius: width / 2
-        scale: dragArea.pressed ? 0.95 : (dragArea.containsMouse ? 1.08 : 1.0)
+        scale: dragArea.pressed ? 0.95 : (control._touchActive ? 1.08 : 1.0)
         HoverBehavior on scale {
-            active: dragArea.containsMouse && !dragArea.pressed
+            active: control._touchActive && !dragArea.pressed
             enterDuration: Enums.duration.fast
             easingType: Easing.OutBack
         }

@@ -334,7 +334,9 @@ Item {
     // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
-        hoverEnabled: root.hoverDetectEnabled
+        // Pointer-following hover (crosshair, tooltip anchor) is a mouse-only affordance
+        // 跟随指针的悬停 (十字线、提示框锚点) 属于鼠标专属效果, 触摸端关闭
+        hoverEnabled: !Touch.isTouch && root.hoverDetectEnabled
         cursorShape: Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton
         propagateComposedEvents: true

@@ -28,6 +28,11 @@ Item {
     property bool hasIcon: itemIcon !== ""
     property bool hasText: itemText !== ""
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
+
     // ==================== Size 尺寸 ====================
     width: Math.max(Enums.controlSize.segmentedMinWidth, itemContent.implicitWidth + Enums.spacing.l * 2)
     height: segmentedControl.height - Enums.spacing.xxs * 2
@@ -41,10 +46,10 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Enums.surfaceRadius(Enums.radius.small)
-        visible: !segmentItem.selected && (segmentItem.hovered || segmentItem.pressed)
+        visible: !segmentItem.selected && (segmentItem._touchActive || segmentItem.pressed)
         color: {
             if (segmentItem.pressed) return Enums.stateColor.segmentedPressed
-            if (segmentItem.hovered) return Enums.stateColor.segmentedHover
+            if (segmentItem._touchActive) return Enums.stateColor.segmentedHover
             return Enums.transparent
         }
     }

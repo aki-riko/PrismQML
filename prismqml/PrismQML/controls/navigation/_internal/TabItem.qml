@@ -48,6 +48,9 @@ Item {
     property bool selected: index === host.currentIndex
     property bool hovered: tabHoverHandler.hovered
     property bool pressed: tabTapHandler.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property bool isDragSource: host._dragging && index === host._dragSourceIndex
     readonly property int visualIndex: {
         if (!host._dragging) return index
@@ -101,14 +104,14 @@ Item {
             if (tabItem.isDragSource) return Enums.stateColor.tabDragSource
             if (tabItem.selected) return Enums.transparent
             if (tabItem.pressed) return Enums.stateColor.tabPressed
-            if (tabItem.hovered) return Enums.stateColor.hover
+            if (tabItem._touchActive) return Enums.stateColor.hover
             return Enums.transparent
         }
         border.width: tabItem.isDragSource ? host._selectedTabBorderWidth : 0
         border.color: Enums.isDark ? Enums.stateColor.borderLight : Enums.stateColor.border
 
         HoverBehavior on color {
-            active: tabItem.hovered && !tabItem.pressed
+            active: tabItem._touchActive && !tabItem.pressed
             enterDuration: Enums.duration.fast
         }
     }
@@ -232,7 +235,10 @@ Item {
         size: Enums.iconSize.xxl
         iconSizeValue: Enums.iconSize.tiny
         normalIconColor: Enums.secondaryForeground
-        visible: tabItem._tabClosable && (tabItem.selected || tabItem.hovered)
+        // Hover only reveals the close affordance on desktop; with no hover preview on
+        // touch it must stay reachable, so closable tabs keep it visible there
+        // 桌面端仅由 hover 揭示关闭入口; 触摸端没有 hover 预览, 可关闭标签需常显该入口
+        visible: tabItem._tabClosable && Touch.reveal(tabItem.selected || tabItem.hovered)
         enabled: tabItem._tabEnabled
         z: Enums.zIndex.header
         onClicked: host.tabClosed(index)
@@ -330,9 +336,9 @@ Item {
             if (index >= (host._safeTabs || []).length - 1) return false
             if (tabItem.selected) return false
             if (index + 1 === host.currentIndex) return false
-            if (tabItem.hovered) return false
+            if (tabItem._touchActive) return false
             var nextItem = repeater.itemAt(index + 1)
-            if (nextItem && nextItem.hovered) return false
+            if (nextItem && nextItem._touchActive) return false
             return true
         }
     }

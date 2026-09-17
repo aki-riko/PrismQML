@@ -24,14 +24,17 @@ Item {
     property bool showProgressIndicator: true  // Show progress line 显示进度线
 
     // ==================== Internal Props 内部属性 ====================
-    property real _hoverScaleProgress: _hovered ? 1.0 : 0.0
+    property real _hoverScaleProgress: _touchActive ? 1.0 : 0.0
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _hovered: contentLayer.hovered
     readonly property bool _pressed: contentLayer.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(_hovered, _pressed)
     readonly property int _waveformRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property int _waveformInnerRadius: Enums.radius.small
-    readonly property color _waveformBorderColor: control._hovered ? Enums.accentColor : Enums.stateColor.cardBorder
+    readonly property color _waveformBorderColor: control._touchActive ? Enums.accentColor : Enums.stateColor.cardBorder
     readonly property color _progressOverlayColor: Enums.stateColor.accentSubtle
     readonly property var _safeWaveformData: _normalizeWaveformData(waveformData)
     readonly property real _safeProgress: isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0
@@ -109,7 +112,7 @@ Item {
     }
 
     HoverBehavior on _hoverScaleProgress {
-        active: control._hovered && !control._pressed
+        active: control._touchActive && !control._pressed
         animationEnabled: control.animated
         enterDuration: Enums.duration.medium
         easingType: Easing.OutCubic

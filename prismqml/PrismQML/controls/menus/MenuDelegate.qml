@@ -32,6 +32,9 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     readonly property var _nearestSkinContext: skinContext
         ? null : SkinResolver.nearestContext(parent)
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(delegateMouseArea.containsMouse, delegateMouseArea.pressed)
     
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -65,7 +68,7 @@ Item {
             if (!delegateRoot.itemEnabled) return _skin.transparent
             if (delegateMouseArea.pressed) return delegateRoot._itemPressedColor
             if (delegateRoot.selected) return delegateRoot._itemPressedColor
-            if (delegateMouseArea.containsMouse) return delegateRoot._itemHoverColor
+            if (delegateRoot._touchActive) return delegateRoot._itemHoverColor
             return _skin.transparent
         }
         

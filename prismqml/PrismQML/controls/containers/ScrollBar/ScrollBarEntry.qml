@@ -25,7 +25,10 @@ Rectangle {
  readonly property color _scrollThumbDefaultColor: Enums.stateColor.scrollHandleDefault
  readonly property color _scrollThumbHoverColor: Enums.stateColor.scrollHandleHover
  readonly property color _scrollThumbPressedColor: Enums.accentColor
- readonly property color _scrollThumbColor: thumbPointHandler.active ? _scrollThumbPressedColor : (hovered ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
+ // Touch has no hover preview: on touch the hover treatment follows the press
+ // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+ readonly property bool _touchActive: Touch.feedback(hovered, thumbPointHandler.active)
+ readonly property color _scrollThumbColor: thumbPointHandler.active ? _scrollThumbPressedColor : (_touchActive ? _scrollThumbHoverColor : _scrollThumbDefaultColor)
 
  // ==================== Signals 信号 ====================
  signal valueChanged(int value)
@@ -75,10 +78,10 @@ Rectangle {
  radius: width / 2
  color: Enums.transparent
  visible: active // Only visible when needed 仅需要时可见
- opacity: (hovered || thumbPointHandler.active) ? 1 : 0.6
+ opacity: (_touchActive || thumbPointHandler.active) ? 1 : 0.6
  
  HoverBehavior on opacity {
- active: control.hovered && !thumbPointHandler.active
+ active: control._touchActive && !thumbPointHandler.active
  animationEnabled: control._animEnabled
  enterDuration: Enums.duration.normal
  }
@@ -112,7 +115,7 @@ Rectangle {
  color: control._scrollThumbColor
  
  HoverBehavior on color {
- active: control.hovered && !thumbPointHandler.active
+ active: control._touchActive && !thumbPointHandler.active
  enterDuration: Enums.duration.fast
  }
  

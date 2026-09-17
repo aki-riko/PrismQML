@@ -19,10 +19,15 @@ Rectangle {
     property int buttonWidth: Enums.window.captionButtonWidth
     property int buttonHeight: Enums.window.captionButtonHeight
     property int buttonRadius: 0
-    readonly property color iconColor: area.containsMouse && captionBtn.isClose
+    readonly property color iconColor: _touchActive && captionBtn.isClose
         ? Enums.windowButtonColors.iconLight
         : (Enums.isDark ? Enums.windowButtonColors.iconLight : Enums.windowButtonColors.iconDark)
     
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(area.containsMouse, area.pressed)
+
     signal clicked()
     
     width: buttonWidth
@@ -35,7 +40,7 @@ Rectangle {
                 ? Enums.windowButtonColors.closePressed 
                 : (Enums.isDark ? Enums.windowButtonColors.normalPressedDark : Enums.windowButtonColors.normalPressedLight)
         }
-        if (area.containsMouse) {
+        if (_touchActive) {
             return isClose 
                 ? Enums.windowButtonColors.closeHover 
                 : (Enums.isDark ? Enums.windowButtonColors.normalHoverDark : Enums.windowButtonColors.normalHoverLight)

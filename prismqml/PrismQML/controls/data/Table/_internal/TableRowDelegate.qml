@@ -33,6 +33,11 @@ Rectangle {
     property bool hovered: false
     property int editColumnIndex: -1
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(rowDelegate.hovered, mouseArea.pressed)
+
     width: table._hasHorizontalScroll ? table._effectiveContentWidth - 10
                                       : table.listView.width - 10
     height: table.rowHeight
@@ -44,11 +49,11 @@ Rectangle {
             ? table.alternateColor : table.cardColor
         var selected = table._isRowSelected(rowDelegate.index)
         if (selected) {
-            return rowDelegate.hovered ? Enums.stateColor.selectedHover
-                                       : Enums.stateColor.selected
+            return rowDelegate._touchActive ? Enums.stateColor.selectedHover
+                                            : Enums.stateColor.selected
         }
         if (mouseArea.pressed) return Qt.tint(base, Enums.stateColor.listItemPressed)
-        if (rowDelegate.hovered) return Qt.tint(base, Enums.stateColor.listItemHover)
+        if (rowDelegate._touchActive) return Qt.tint(base, Enums.stateColor.listItemHover)
         return base
     }
 
@@ -66,7 +71,7 @@ Rectangle {
         NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
     }
     HoverBehavior on color {
-        active: rowDelegate.hovered && !mouseArea.pressed
+        active: rowDelegate._touchActive && !mouseArea.pressed
         animationEnabled: !rowDelegate.recycling
         enterDuration: Enums.duration.fast
     }

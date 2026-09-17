@@ -16,6 +16,11 @@ Item {
     property string description: ""
     property string actionText: ""
     
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(actionArea.containsMouse,
+                                                       actionArea.pressed)
+
     signal actionClicked()
     
     implicitWidth: 300
@@ -58,9 +63,11 @@ Item {
             objectName: "emptyStateActionSurface"
             anchors.horizontalCenter: parent.horizontalCenter
             width: actionBtnText.implicitWidth + 24
-            height: 32
+            // Interactive target: raised to the touch minimum off desktop
+            // 交互目标尺寸: 非桌面端抬到触摸下限
+            height: Touch.target(32)
             radius: Enums.surfaceRadius(Enums.radius.small)
-            color: actionArea.pressed ? Enums.accentColorDark : (actionArea.containsMouse ? Enums.accentColorLight : Enums.accentColor)
+            color: actionArea.pressed ? Enums.accentColorDark : (_touchActive ? Enums.accentColorLight : Enums.accentColor)
             border.width: Enums.surfaceBorderWidth(Enums.border.none)
             shadowVisible: Enums.isNeumorphism
             neumorphicPressed: actionArea.pressed

@@ -74,11 +74,13 @@ Avatar {
 
     // ==================== Content 内容 ====================
     // Hover overlay 悬停遮罩
+    // The overlay carries the change affordance, so it stays visible on touch
+    // 遮罩承载"更换"入口, 触摸端无 hover 预览: 该入口常显
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
         color: Enums.stateColor.dialogOverlay
-        opacity: hovered ? 1 : 0
+        opacity: Touch.reveal(hovered) ? 1 : 0
         antialiasing: true
         
         HoverBehavior on opacity {
@@ -109,7 +111,11 @@ Avatar {
     // Interaction 交互
     MouseArea {
         id: mouseArea
-        anchors.fill: parent
+        // Touch: widen only the tap area to the 48px minimum, the visual stays put
+        // 触摸端只把可点区域补到 48px 下限, 视觉尺寸不变 (桌面 Math.max(x, 0) === x)
+        anchors.centerIn: parent
+        width: Math.max(parent.width, Touch.minTargetSize)
+        height: Math.max(parent.height, Touch.minTargetSize)
         enabled: control.enabled
         hoverEnabled: true
         onEntered: control._prewarmDialogs()

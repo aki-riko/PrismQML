@@ -184,8 +184,10 @@ DialogBoxCore {
                     font.pixelSize: Enums.typography.body
                     onLinkActivated: (url) => Qt.openUrlExternally(url)
 
+                    // The pointer cursor is a mouse-only affordance, so it stays off on touch
+                    // 指针光标只对鼠标有意义, 触摸端关闭该效果
                     HoverHandler {
-                        cursorShape: parent.hoveredLink !== ""
+                        cursorShape: !Touch.isTouch && parent.hoveredLink !== ""
                                      ? Qt.PointingHandCursor : Qt.ArrowCursor
                     }
                 }

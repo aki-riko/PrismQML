@@ -58,6 +58,9 @@ Widget {
     property real _dragSourceOffsetX: 0
     property real _dragPointerRowX: 0
     readonly property bool _dragging: _dragSourceIndex >= 0
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(addHoverHandler.hovered, addTapHandler.pressed)
 
     // Add button is exposed for popup anchoring without exposing implementation ids.
     // 对外暴露添加按钮供弹层锚定，但不暴露内部实现对象。
@@ -260,7 +263,7 @@ Widget {
         anchors.bottom: tabBarBg.bottom
         anchors.bottomMargin: (control._tabBarHeight - Enums.controlSize.closeButtonSize) / 2
         z: Enums.zIndex.controls
-        color: addHoverHandler.hovered ? Enums.stateColor.hover : Enums.transparent
+        color: control._touchActive ? Enums.stateColor.hover : Enums.transparent
 
         Icon {
             anchors.centerIn: parent
@@ -276,6 +279,7 @@ Widget {
         }
 
         TapHandler {
+            id: addTapHandler
             enabled: control.interactionEnabled
             onTapped: control.tabAddClicked()
         }

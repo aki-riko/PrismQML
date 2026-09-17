@@ -161,8 +161,10 @@ Item {
                 var sliceAngle = sliceAngles[i]
                 var endAngle = startAngle + sliceAngle * frameProgress
                 
-                var hovered = (i === hoveredIndex)
-                var isPreviousHovered = (i === previousHoveredIndex)
+                // Slice pop-out and brightness follow the pointer, which is a mouse-only affordance
+                // 扇区弹出与提亮跟随指针, 属于鼠标专属效果, 触摸端关闭
+                var hovered = !Touch.isTouch && (i === hoveredIndex)
+                var isPreviousHovered = !Touch.isTouch && (i === previousHoveredIndex)
                 var offsetX = 0, offsetY = 0
                 
                 // Fluent Design: subtle offset on hover 悬停时微妙偏移

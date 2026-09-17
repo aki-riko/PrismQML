@@ -27,8 +27,11 @@ Item {
  readonly property int _profileRadius: Enums.radius.small
  readonly property color _profileHoverColor: Enums.stateColor.hover
  readonly property color _profilePressedColor: Enums.stateColor.pressed
+ // Touch has no hover preview: on touch the hover treatment follows the press
+ // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+ readonly property bool _touchActive: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
  readonly property color _profileBackground: mouseArea.pressed ? control._profilePressedColor
-        : (mouseArea.containsMouse ? control._profileHoverColor : Enums.transparent)
+        : (control._touchActive ? control._profileHoverColor : Enums.transparent)
  readonly property color _profileTitleColor: Enums.textColor.primary
  readonly property color _profileSubtitleColor: Enums.textColor.secondary
  
@@ -47,7 +50,7 @@ Item {
  color: control._profileBackground
  
  HoverBehavior on color {
- active: mouseArea.containsMouse && !mouseArea.pressed
+ active: control._touchActive && !mouseArea.pressed
  enterDuration: Enums.duration.fast
  }
  }

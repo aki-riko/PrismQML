@@ -44,13 +44,13 @@ Item {
                          surface.dropdownControl.parentRadius - 1)
         color: splitMainMouse.pressed
                ? surface.dropdownControl._splitPressedColor
-               : (splitMainMouse.containsMouse
+               : (Touch.feedback(splitMainMouse.containsMouse, splitMainMouse.pressed)
                   ? surface.dropdownControl._splitHoverColor
                   : surface.dropdownControl._splitTransparent)
         visible: surface.dropdownControl.feature === surface._skin.button.feature_split
 
         HoverBehavior on color {
-            active: splitMainMouse.containsMouse && !splitMainMouse.pressed
+            active: Touch.feedback(splitMainMouse.containsMouse, splitMainMouse.pressed) && !splitMainMouse.pressed
             enterDuration: surface.dropdownControl._animationDuration
         }
     }
@@ -81,13 +81,13 @@ Item {
                          surface.dropdownControl.parentRadius - 1)
         color: splitDropMouse.pressed
                ? surface.dropdownControl._splitPressedColor
-               : (splitDropMouse.containsMouse
+               : (Touch.feedback(splitDropMouse.containsMouse, splitDropMouse.pressed)
                   ? surface.dropdownControl._splitHoverColor
                   : surface.dropdownControl._splitTransparent)
         visible: surface.dropdownControl.feature === surface._skin.button.feature_split
 
         HoverBehavior on color {
-            active: splitDropMouse.containsMouse && !splitDropMouse.pressed
+            active: Touch.feedback(splitDropMouse.containsMouse, splitDropMouse.pressed) && !splitDropMouse.pressed
             enterDuration: surface.dropdownControl._animationDuration
         }
 

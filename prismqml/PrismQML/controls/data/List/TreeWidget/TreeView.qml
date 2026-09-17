@@ -86,6 +86,9 @@ DataWidgetCore {
             property bool hovered: control._hoverIndex === index
             property bool pressed: _itemArea.pressed
             property real branchOffset: Enums.spacing.m + depth * control.indentWidth
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
             width: ListView.view ? ListView.view.width : 0
             height: control.itemHeight
@@ -103,11 +106,11 @@ DataWidgetCore {
                 radius: Enums.radius.small
                 // Keep both animation endpoints opaque to avoid gray trails while moving across rows.
                 // 动画两端都保持不透明，避免鼠标划过多行时出现灰色拖影。
-                color: delegateRoot.hovered
+                color: delegateRoot._touchActive
                        ? Qt.tint(Enums.cardColor, Enums.stateColor.treeItemHover)
                        : Enums.cardColor
                 HoverBehavior on color {
-                    active: delegateRoot.hovered && !delegateRoot.pressed
+                    active: delegateRoot._touchActive && !delegateRoot.pressed
                     enterDuration: Enums.duration.fast
                 }
             }

@@ -74,6 +74,10 @@ ComboBoxCore {
             id: fontItemBg
             property bool selected: index === control.currentIndex
 
+            // Touch has no hover preview: on touch the hover treatment follows the press
+            // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+            readonly property bool _touchActive: Touch.feedback(fontItemArea.containsMouse, fontItemArea.pressed)
+
             width: ListView.view ? ListView.view.width : Enums.comboBox.fontDelegateFallbackWidth
             height: control.popupItemHeight
             radius: Enums.radius.small
@@ -81,7 +85,7 @@ ComboBoxCore {
             color: {
                 if (fontItemArea.pressed) return Enums.stateColor.menuItemPressed
                 if (selected) return Enums.stateColor.menuItemPressed
-                if (fontItemArea.containsMouse) return Enums.stateColor.menuItemHover
+                if (_touchActive) return Enums.stateColor.menuItemHover
                 return Enums.transparent
             }
 

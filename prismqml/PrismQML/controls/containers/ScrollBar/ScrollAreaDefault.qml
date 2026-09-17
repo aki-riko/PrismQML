@@ -46,7 +46,9 @@ Item {
         scrollViewportState.reserveHorizontalGutter
     readonly property real _scrollBarGutter:
         Math.max(0, scrollBarWidth) + Enums.spacing.xs
-    readonly property int _activeCursorShape: cursorHandler.hovered
+    // The hit-test cursor is a pointer-only affordance, so it stays off on touch
+    // 命中测试光标只对指针有意义, 触摸端关闭该效果
+    readonly property int _activeCursorShape: !Touch.isTouch && cursorHandler.hovered
         ? _cursorShapeAt(cursorHandler.point.position.x, cursorHandler.point.position.y)
         : Qt.ArrowCursor
 

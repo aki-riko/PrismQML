@@ -19,6 +19,9 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _effectiveHovered: hovered || switchArea.containsMouse
     readonly property bool _effectivePressed: pressed || switchArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(_effectiveHovered, _effectivePressed)
     readonly property color _trackColor: {
         if (Enums.isNeumorphism) {
             if (!enabled) return Enums.neumorphism.muted
@@ -32,11 +35,11 @@ Rectangle {
             if (!enabled) return checked ? Enums.stateColor.primaryDisabled : Enums.stateColor.controlBgDisabled
             if (checked) {
                 if (_effectivePressed) return Qt.darker(checkedColor, 1.1)
-                if (_effectiveHovered) return Qt.lighter(checkedColor, 1.06)
+                if (_touchActive) return Qt.lighter(checkedColor, 1.06)
                 return checkedColor
             }
             if (_effectivePressed) return Enums.stateColor.checkBoxFillPressed
-            if (_effectiveHovered) return Enums.stateColor.checkBoxFillHover
+            if (_touchActive) return Enums.stateColor.checkBoxFillHover
             return Enums.stateColor.checkBoxFill
         }
         if (!enabled) {

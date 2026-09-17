@@ -28,6 +28,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: delegateMouseArea.containsMouse || expandMouseArea.containsMouse
     readonly property bool pressed: delegateMouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Signals 信号 ====================
     signal clicked()
@@ -47,7 +50,7 @@ Item {
         color: {
             if (!delegateRoot.itemEnabled) return Enums.transparent
             if (delegateRoot.pressed) return delegateRoot._itemPressedColor
-            if (delegateRoot.hovered) return delegateRoot._itemHoverColor
+            if (delegateRoot._touchActive) return delegateRoot._itemHoverColor
             return Enums.transparent
         }
     }
@@ -95,7 +98,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             checkState: delegateRoot.checkState
             enabled: delegateRoot.itemEnabled
-            hovered: delegateRoot.hovered
+            hovered: delegateRoot._touchActive
             pressed: delegateRoot.pressed
             visible: delegateRoot.checkable
         }

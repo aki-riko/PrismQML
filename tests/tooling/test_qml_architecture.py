@@ -539,7 +539,10 @@ def test_sidebars_share_one_scroll_rail_implementation():
         assert "flickable: topFlickable" in source, relative
         # 悬停整个侧边栏才显形, 而非只悬停那条看不见的细线。
         # Reveal on hovering the sidebar, not the invisible hairline itself.
-        assert "hostHovered: hostHover.hovered" in source, relative
+        # 触摸端没有 hover, 轨道必须常显, 因此显形判断统一经 Touch.reveal 映射。
+        # Touch has no hover, so the rail stays revealed; the decision goes through
+        # Touch.reveal (desktop: identical to hostHover.hovered).
+        assert "hostHovered: Touch.reveal(hostHover.hovered)" in source, relative
         assert "HoverHandler {" in source, relative
         # 轨道必须与 Flickable 同级: 放进 Flickable 里会随内容滚走。同级即同缩进,
         # 嵌套会更深, 所以比对缩进能真正区分二者(仅比对文本先后则区分不了)。

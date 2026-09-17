@@ -25,6 +25,11 @@ Item {
     property real _brightness: Enums.colorPickerMetrics.dialogBrightnessDefault
     property int _alpha: Enums.colorPickerMetrics.dialogAlphaDefault
 
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(modeArea.containsMouse, modeArea.pressed)
+
     // ==================== Signals 信号 ====================
     signal accepted(color value)
     signal rejected()
@@ -135,7 +140,7 @@ Item {
                 width: Enums.colorPickerMetrics.dropdownModeWidth
                 height: Enums.controlSize.inputHeightCompact
                 radius: Enums.surfaceRadius(Enums.radius.small)
-                color: modeArea.containsMouse ? Enums.stateColor.controlBgHover : Enums.stateColor.controlBg
+                color: control._touchActive ? Enums.stateColor.controlBgHover : Enums.stateColor.controlBg
                 border.width: Enums.surfaceBorderWidth(Enums.border.thin)
                 border.color: Enums.stateColor.border
                 

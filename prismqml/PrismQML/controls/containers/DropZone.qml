@@ -40,6 +40,9 @@ Rectangle {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse || browseFileBtn.hovered || browseFolderBtn.hovered
     readonly property bool dragActive: dropArea.containsDrag
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, mouseArea.pressed)
     readonly property var _safeAllowedExtensions:
         allowedExtensions === null || allowedExtensions === undefined ? []
         : (typeof allowedExtensions.length === "number" ? allowedExtensions : [])
@@ -90,6 +93,9 @@ Rectangle {
     border.width: Enums.border.none
 
     onHoveredChanged: dashedBorder.requestPaint()
+    // The canvas paints from _touchActive, so a press/release must repaint it too
+    // 画布由 _touchActive 决定描边色, 因此触摸端按压/松开也需要重绘
+    on_TouchActiveChanged: dashedBorder.requestPaint()
     onDragActiveChanged: dashedBorder.requestPaint()
     
     // ==================== Content 内容 ====================
@@ -103,7 +109,7 @@ Rectangle {
             ctx.clearRect(0, 0, width, height)
             ctx.setLineDash([6, 4])
             ctx.strokeStyle = dragActive ? Enums.accentColor :
-                             (hovered ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)
+                             (_touchActive ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)
             ctx.lineWidth = 1.5
             ctx.beginPath()
             ctx.roundedRect(1, 1, width - 2, height - 2, control.radius, control.radius)

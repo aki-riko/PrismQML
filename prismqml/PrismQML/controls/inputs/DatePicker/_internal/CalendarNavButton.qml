@@ -14,14 +14,19 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     property string icon: Enums.icon.chevron_up
     
+    // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(navArea.containsMouse, navArea.pressed)
+
     signal clicked()
     
     width: 32
     height: 34
     radius: Enums.radius.small
-    color: navArea.pressed 
+    color: navArea.pressed
         ? Enums.stateColor.calendarNavPressed
-        : (navArea.containsMouse 
+        : (_touchActive
             ? Enums.stateColor.calendarNavHover
             : Enums.transparent)
     
