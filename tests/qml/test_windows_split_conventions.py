@@ -4,11 +4,15 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Domain bucket 1/1 of the former test_windows_split_conventions.py."""
 import pytest  # noqa: F401
+from prismqml import Skin, getSkin, setSkin
 from windows_split_conventions_shared import *
 from windows_split_conventions_shared import (
+    PANEL_SHADOW_PATH,
     _FakeNativeWindow,
     _UnavailableMicaManager,
+    _panel_shadow_items,
     _pump,
+    _set_pane_expanded,
     _wait_for,
     _new_visible_windows,
     _create_scene,
@@ -342,3 +346,84 @@ def test_windows_bar_source_conventions_and_startup_gate():
         "            ? root.hostWindow.bottomNavigationItems : []"
         in content_source
     )
+
+def test_windows_split_panel_shadow_source_conventions():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = PANEL_SHADOW_PATH.read_text(encoding="utf-8")
+    helper_path = PurePosixPath(PANEL_SHADOW_PATH.relative_to(ROOT).as_posix())
+    assert scan_source_text(helper_source, helper_path) == []
+    assert "NavigationPanelShadow {" in source
+    assert "panel: navContainer" in source
+    assert "active: navInterface.isExpanded" in source
+    assert "required property var panel" in helper_source
+    assert "required property bool active" in helper_source
+    # Only the pane's outer edge may be painted. 只允许绘制面板外缘。
+    assert "clip: true" in helper_source
+    assert "anchors.leftMargin: root._paneWidth" in helper_source
+    assert "x: -root._paneWidth" in helper_source
+    assert "visible: opacity > Enums.opacityLevel.invisible" in helper_source
+    # Elevation tokens stay in Enums. 高度阴影 token 统一取自 Enums。
+    assert "color: Enums.shadow.level8.color" in helper_source
+    assert "blur: Enums.shadow.level8.blur" in helper_source
+    assert "offset.x: Enums.shadow.level8.offset" in helper_source
+    assert "radius: Enums.surfaceRadius(Enums.radius.large)" in helper_source
+    assert "Enums.usesSoftElevation" in helper_source
+
+def test_windows_split_panel_shadow_tracks_the_expanded_pane(monkeypatch, qapp):
+    """The pane shadow follows the animated pane edge and exists only expanded.
+
+    面板阴影跟随动画中的面板边缘，且只在展开时存在。
+
+    Shadow pixels are deliberately not sampled: automated runs use the offscreen
+    platform, whose Software scene graph draws no shader-based shadows at all, so
+    a pixel assertion would only describe that backend. This gate pins the state
+    and geometry that decide where the shadow may be painted.
+    这里刻意不采样阴影像素：自动运行使用 offscreen 平台，其 Software 场景图完全不绘制
+    基于着色器的阴影，像素断言只会描述该后端。本门禁固化决定阴影绘制范围的状态与几何。
+    """
+    previous_skin = getSkin()
+    setSkin(Skin.FLUENT)
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    try:
+        engine, component, window, warnings = _create_scene(
+            monkeypatch, SPLIT_SCENE_SOURCE
+        )
+        try:
+            assert _wait_for(lambda: window.property("navigationView") is not None)
+            shadow, silhouette = _panel_shadow_items(window)
+            assert shadow is not None and silhouette is not None
+            compact_width = window.property("navCompactWidth")
+            expand_width = window.property("navExpandWidth")
+
+            # A collapsed pane is flush with the content seam and casts nothing.
+            # 收起面板与内容接缝齐平，不投射阴影。
+            assert shadow.property("clip") is True
+            assert shadow.isVisible() is False
+            assert abs(shadow.x() - compact_width) < 0.5
+            assert abs(shadow.y()) < 0.5
+            assert abs(silhouette.width() - compact_width) < 0.5
+            assert abs(silhouette.x() + compact_width) < 0.5
+            assert abs(silhouette.height() - shadow.height()) < 0.5
+
+            assert _set_pane_expanded(window, True)
+            assert _wait_for(lambda: abs(shadow.x() - expand_width) < 0.5)
+            assert _wait_for(lambda: shadow.property("opacity") == 1)
+            assert shadow.isVisible() is True
+            # Clip boundary and silhouette stay locked to the pane edge, so only
+            # the shadow spilling past that edge can ever be painted.
+            # 裁剪边界与轮廓始终锁在面板边缘，因此只会绘制越过该边缘的阴影。
+            assert abs(shadow.x() - expand_width) < 0.5
+            assert abs(silhouette.width() - expand_width) < 0.5
+            assert abs(silhouette.x() + expand_width) < 0.5
+            assert warnings == []
+
+            assert _set_pane_expanded(window, False)
+            assert _wait_for(lambda: shadow.isVisible() is False)
+            assert shadow.property("opacity") == 0
+            assert warnings == []
+            assert _new_visible_windows(windows_before, window) == []
+        finally:
+            _dispose_scene(engine, component, window)
+            assert _new_visible_windows(windows_before) == []
+    finally:
+        setSkin(previous_skin)

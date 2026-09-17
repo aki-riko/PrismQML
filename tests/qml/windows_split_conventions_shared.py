@@ -54,7 +54,13 @@ BAR_STARTUP_TIMER_PATH = INTERNAL_PATH / "WindowsBarStartupTimer.qml"
 
 BAR_CONTENT_SOURCE_PATH = INTERNAL_PATH / "WindowsBarContent.qml"
 
+PANEL_SHADOW_PATH = INTERNAL_PATH / "NavigationPanelShadow.qml"
+
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+
+PANEL_SHADOW_NAME = "navigationPanelShadow"
+
+PANEL_SHADOW_SOURCE_NAME = "navigationPanelShadowSource"
 
 SCENE_URL = QUrl.fromLocalFile(
     str(INTERNAL_PATH / "windows-split-conventions.qml")
@@ -233,6 +239,24 @@ def _new_visible_windows(windows_before, *allowed):
         and not any(window is existing for existing in windows_before)
         and not any(window is expected for expected in allowed)
     ]
+
+def _panel_shadow_items(window):
+    """Return the pane shadow layer and its silhouette. 返回面板阴影层与其轮廓。"""
+    return (
+        window.findChild(QQuickItem, PANEL_SHADOW_NAME),
+        window.findChild(QQuickItem, PANEL_SHADOW_SOURCE_NAME),
+    )
+
+def _set_pane_expanded(window, expanded: bool) -> bool:
+    """Drive the pane through its real menu action. 用真实菜单动作驱动面板展开状态。"""
+    navigation = window.property("navigationView")
+    if navigation is None:
+        return False
+    if navigation.property("isExpanded") is expanded:
+        return True
+    if not QMetaObject.invokeMethod(navigation, "toggle"):
+        return False
+    return _wait_for(lambda: navigation.property("isExpanded") is expanded)
 
 def _create_scene(monkeypatch, scene_source, activate=True):
     engine = QQmlApplicationEngine()

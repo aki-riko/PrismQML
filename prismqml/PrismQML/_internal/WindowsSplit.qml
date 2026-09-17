@@ -114,6 +114,14 @@ NavigationWindowCore {
  }
  }
  
+ // Expanded navigation panel edge shadow. 展开导航面板边缘阴影。
+ NavigationPanelShadow {
+ objectName: "navigationPanelShadow"
+
+ panel: navContainer
+ active: navInterface.isExpanded
+ }
+
  // Navigation panel container. 导航面板容器。
  Item {
  id: navContainer
