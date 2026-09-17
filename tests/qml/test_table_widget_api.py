@@ -134,6 +134,13 @@ Item {
     readonly property real fittedContentWidth: fittedTable.contentTotalWidth
     readonly property real fittedViewportWidth: fittedTable.listView.width
     readonly property var fittedColumnWidths: fittedTable._columnPixelWidths
+    readonly property bool precisionFitHasHorizontalScroll:
+        precisionFitTable._hasHorizontalScroll
+    readonly property bool precisionFitHorizontalScrollRequested:
+        precisionFitTable._horizontalScrollRequested
+    readonly property real precisionFitContentWidth: precisionFitTable.contentTotalWidth
+    readonly property real precisionFitViewportWidth: precisionFitTable.listView.width
+    readonly property var precisionFitColumnWidths: precisionFitTable._columnPixelWidths
     readonly property bool ratioOverflowHasHorizontalScroll: ratioOverflowTable._hasHorizontalScroll
     readonly property bool ratioOverflowHorizontalScrollRequested:
         ratioOverflowTable._horizontalScrollRequested
@@ -143,8 +150,8 @@ Item {
 
     function resizeFittedTable(tableWidth) { fittedTable.width = tableWidth }
 
-    width: 1120
-    height: 240
+    width: 1600
+    height: 480
 
     TableWidget {
         id: fittedTable
@@ -184,6 +191,25 @@ Item {
             { text: "Right", role: "right", width: 240 }
         ]
         tableData: [{ left: "A", right: "B" }]
+    }
+
+    TableWidget {
+        id: precisionFitTable
+
+        y: 240
+        width: 1490
+        height: 220
+        columns: [
+            { text: "Entry", role: "entry", width: 0.15 },
+            { text: "Item", role: "item", width: 0.28 },
+            { text: "Quantity", role: "quantity", width: 0.07 },
+            { text: "Cost", role: "cost", width: 0.11 },
+            { text: "Price", role: "price", width: 0.11 },
+            { text: "Value", role: "value", width: 0.11 },
+            { text: "Profit", role: "profit", width: 0.11 },
+            { text: "", role: "actions", width: 0.06 }
+        ]
+        tableData: [{ entry: "Now", item: "A", quantity: 1, cost: 1, price: 1, value: 1, profit: 0 }]
     }
 }
 """
@@ -536,6 +562,17 @@ def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
         assert content_width == viewport_width
         assert root.property("fittedHasHorizontalScroll") is False
         assert root.property("fittedHorizontalScrollRequested") is False
+
+        precision_viewport_width = float(root.property("precisionFitViewportWidth"))
+        precision_content_width = float(root.property("precisionFitContentWidth"))
+        precision_column_widths = _variant(root.property("precisionFitColumnWidths"))
+
+        assert precision_viewport_width > 0
+        assert sum(precision_column_widths) == precision_content_width
+        assert precision_content_width == precision_viewport_width
+        assert root.property("precisionFitHasHorizontalScroll") is False
+        assert root.property("precisionFitHorizontalScrollRequested") is False
+
         assert root.property("ratioOverflowHasHorizontalScroll") is True
         assert root.property("ratioOverflowHorizontalScrollRequested") is True
         assert root.property("absoluteOverflowHasHorizontalScroll") is True
