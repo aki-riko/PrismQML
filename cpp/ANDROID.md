@@ -116,6 +116,10 @@ cmake --build .artifacts/cpp/android-arm64
 
 - **触摸反馈采用"按压驱动"**：Qt 会把触摸按压合成为 hover 且松手后不派发 leave，
   直接采信 `hovered` 会留下残留高亮；因此触摸端 hover 视觉只在按压期间生效。
+- **触摸端不显示 tooltip（维护者决策）**：`TooltipCore.show()` 在触摸端不置位、
+  `WidgetToolTipSupport` 的悬浮计时器直接返回、两处 Slider 的提示 Loader 在触摸端不创建；
+  由 `tests/qml/test_touch_adaptation.py` 运行时锁定（桌面仍正常弹出）。
+- **遮罩类附属内容不常显**：`AvatarSelector` 的"更换头像"遮罩在触摸端只在按压期间显示。
 - **尺寸下限**：`Enums`/`SkinContext` 把 `Touch.minTargetSize`（触摸 48 / 桌面 0）
   注入 `Metrics.touchTargetFloor`，26 个交互 token 以
   `Math.max(原值, root.touchTargetFloor)` 表达；本地字面值控件在消费点包

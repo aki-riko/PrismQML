@@ -23,6 +23,15 @@ import QtQuick
 //   readonly property bool _active: Touch.feedback(hovered, pressed)
 //   color: Touch.feedback(hovered, pressed) ? Enums.stateColor.hover : Enums.transparent
 //   visible: Touch.reveal(hovered)   // hover 才揭示的附属控件, 触摸端常显
+//
+// 约定 (维护者决策):
+//   - 触摸端**不显示任何 tooltip**: Qt 会把触摸按压合成为 hover 且松手不派发 leave,
+//     提示弹出后没有任何事件能清掉它。提示入口由 TooltipCore.show() 与
+//     WidgetToolTipSupport 的悬浮计时器统一关闭, 两处 Slider 提示 Loader 在触摸端不创建。
+//     TooltipCore.qml 已接近其行数门禁上限, 因此守卫写成 `= !Touch.isTouch` 的赋值形式
+//     而不是新增分支; 改动时不要为了可读性把行数顶破架构门禁。
+//   - 触摸端不常显遮罩类附属内容: 需要反馈的视觉用 feedback(), 只有真正的入口控件
+//     (滚动轨/翻页箭头/关闭按钮) 才用 reveal()。
 QtObject {
     id: touch
 

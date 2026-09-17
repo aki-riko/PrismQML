@@ -67,8 +67,6 @@ TOUCH_EXEMPT = {
         "无 hover 视觉; MouseArea 只做光标/预热/登录模式切换",
     "controls/buttons/Button/_internal/ButtonInteraction.qml":
         "纯 MouseArea, hover 只触发菜单预热, 自身无视觉",
-    "controls/containers/_internal/WidgetToolTipSupport.qml":
-        "hover 只驱动 tooltip 计时与预热, 属逻辑非视觉",
     "controls/data/Carousel/_internal/CarouselFactories.qml":
         "揭示决策已在 Carousel.qml 经 Touch.reveal 完成, 此处只是创建顺序闩",
     "controls/data/Chart/_internal/BoxplotChartArea.qml":
@@ -76,9 +74,9 @@ TOUCH_EXEMPT = {
     "controls/data/Chart/_internal/BoxplotChartContent.qml":
         "hover 是指针到索引的命中管线, 其点击路径依赖它, 属逻辑非视觉",
     "controls/feedback/Tooltip/TipPopup.qml":
-        "不可见 Item, hover 只触发 prewarm",
+        "不可见 Item, hover 只触发 prewarm; 触摸端不显示 tooltip, 显示路径由 TooltipCore 统一关闭",
     "controls/inputs/ImageCropper.qml":
-        "无 hover 视觉, hover 只触发 prewarm",
+        "无 hover 视觉, hover 只触发 prewarm; 触摸端不显示 tooltip",
     "controls/inputs/InputCore.qml":
         "hovered 是公开转发状态, 本文件无 hover 视觉 (hoverEnabled 只服务 cursorShape)",
     "controls/inputs/LineEdit/LineEditLabel.qml":
@@ -88,7 +86,7 @@ TOUCH_EXEMPT = {
     "controls/inputs/LineEdit/TagLineEdit.qml":
         "HoverHandler 仅向上转发 hovered, 全仓无视觉消费者",
     "controls/menus/_internal/ActionTooltipShowTimer.qml":
-        "hover 只驱动动作 tooltip 的延时计时",
+        "hover 只驱动动作 tooltip 的延时计时; 触摸端不显示 tooltip, 由 TooltipCore 统一关闭",
     "controls/inputs/CycleWheelPicker.qml":
         "hover 揭示的滚动按钮已在 _internal/CycleWheelPickerButtons.qml 经 Touch.reveal 常显",
 }
@@ -208,4 +206,36 @@ def test_hover_input_helpers_are_fed_by_touch_aware_owners():
         assert spec["marker"] in code_only(owner_source), (
             f"{helper} 的 hover 入参必须由 {spec['owner']} 经触摸适配喂入 "
             f"({spec['note']}); 缺少标记: {spec['marker']}"
+        )
+
+
+# 决策: 触摸端不显示任何 tooltip(没有 hover 预览可清除, 松手后必然残留)。
+# Decision: touch shows no tooltip at all, so every entry point stays shut.
+TOOLTIP_TOUCH_GUARDS = {
+    "controls/feedback/Tooltip/TooltipCore.qml": (
+        "_pendingShow = !Touch.isTouch",
+        "_windowRequested = !Touch.isTouch",
+        "if (!_pendingShow || Touch.isTouch) return",
+    ),
+    "controls/containers/_internal/WidgetToolTipSupport.qml": (
+        "if (Touch.isTouch) return",
+    ),
+}
+TOOLTIP_TOUCH_LOADERS = (
+    "controls/inputs/Slider/_internal/SliderDefaultContent.qml",
+    "controls/inputs/Slider/_internal/SliderRangeContent.qml",
+)
+
+
+def test_touch_mode_shows_no_tooltip():
+    for relative, markers in TOOLTIP_TOUCH_GUARDS.items():
+        source = code_only((QML_ROOT / relative).read_text(encoding="utf-8"))
+        for marker in markers:
+            assert marker in source, (
+                f"{relative} 必须在触摸端挡住 tooltip; 缺少标记: {marker}"
+            )
+    for relative in TOOLTIP_TOUCH_LOADERS:
+        source = code_only((QML_ROOT / relative).read_text(encoding="utf-8"))
+        assert "active: !Touch.isTouch" in source, (
+            f"{relative} 的提示 Loader 在触摸端不得创建"
         )

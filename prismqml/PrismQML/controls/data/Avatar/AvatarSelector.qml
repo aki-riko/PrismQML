@@ -74,13 +74,13 @@ Avatar {
 
     // ==================== Content 内容 ====================
     // Hover overlay 悬停遮罩
-    // The overlay carries the change affordance, so it stays visible on touch
-    // 遮罩承载"更换"入口, 触摸端无 hover 预览: 该入口常显
+    // Desktop: hover preview. Touch: only while pressing, never pinned on screen
+    // 桌面端 hover 预览; 触摸端只在按压期间显示, 不会常驻遮住头像
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
         color: Enums.stateColor.dialogOverlay
-        opacity: Touch.reveal(hovered) ? 1 : 0
+        opacity: Touch.feedback(hovered, mouseArea.pressed) ? 1 : 0
         antialiasing: true
         
         HoverBehavior on opacity {

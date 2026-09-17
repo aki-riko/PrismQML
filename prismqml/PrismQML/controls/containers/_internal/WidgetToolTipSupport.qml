@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "../../.."
 
 // WidgetToolTipSupport - Lazy hover and tooltip prewarm support Widget 懒加载悬浮与工具提示预热支持
 MouseArea {
@@ -24,6 +25,10 @@ MouseArea {
     }
 
     function showToolTip() {
+        // Touch shows no tooltip 触摸端不显示提示
+        // 触摸端没有 hover 预览可清除提示, 且不会有 leave 事件; 见 TooltipCore.show()。
+        // Touch has no hover preview / leave event, so tooltips stay off. See TooltipCore.show().
+        if (Touch.isTouch) return
         if (!widget || widget.toolTipText === "") return
         widget._toolTipShowPending = true
         _prewarm()
@@ -44,6 +49,8 @@ MouseArea {
     }
 
     function startShowTimer() {
+        // Touch shows no tooltip 触摸端不显示提示: 合成的 hover 永远不会收到 leave
+        if (Touch.isTouch) return
         _showScheduled = true
         if (_popupLoader.item) {
             _showRequestedAt = 0
@@ -73,7 +80,9 @@ MouseArea {
 
     anchors.fill: parent
     objectName: "_hoverArea"
-    hoverEnabled: true
+    // Touch keeps hover off: no tooltip on touch, so nothing needs hover tracking
+    // 触摸端不显示提示, 因此不需要 hover 追踪 (桌面不变)
+    hoverEnabled: !Touch.isTouch
     acceptedButtons: Qt.NoButton
     propagateComposedEvents: true
 

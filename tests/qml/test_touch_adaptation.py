@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Property, QUrl
+from PySide6.QtCore import QMetaObject, QObject, Property, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml import register_types
@@ -23,6 +23,29 @@ ROOT = Path(__file__).resolve().parents[2]
 PROBE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "touch-adaptation-probe.qml")
 )
+TOOLTIP_PROBE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "touch-adaptation-tooltip-probe.qml")
+)
+
+# Decision: touch shows no tooltip. 决策: 触摸端不显示任何提示。
+TOOLTIP_PROBE_SOURCE = """
+import QtQuick
+import PrismQML
+
+Item {
+    TooltipCore {
+        id: tip
+        text: "tip"
+    }
+
+    readonly property bool windowRequested: tip._windowRequested
+    readonly property bool pendingShow: tip._pendingShow
+    readonly property bool probeTouch: Touch.isTouch
+    readonly property int probeMinTarget: Touch.minTargetSize
+
+    function trigger() { tip.show() }
+}
+"""
 
 PROBE_SOURCE = """
 import QtQuick
@@ -172,7 +195,8 @@ class _PlatformInfo(QObject):
     platformName = Property(str, _platform_name, constant=True)
 
 
-def _create_probe(platform_info: _PlatformInfo | None):
+def _create_probe(platform_info: _PlatformInfo | None, source: str = PROBE_SOURCE,
+                  url: QUrl = PROBE_URL):
     engine = QQmlEngine()
     assert engine.rootContext() is not None
     if platform_info is not None:
@@ -180,7 +204,7 @@ def _create_probe(platform_info: _PlatformInfo | None):
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(PROBE_SOURCE.encode("utf-8"), PROBE_URL)
+    component.setData(source.encode("utf-8"), url)
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
@@ -256,5 +280,32 @@ def test_touch_metrics_are_raised_and_feedback_follows_press(qapp):
         assert _read(obj, "nestedA") is True
         assert _read(obj, "nestedB") is True
         assert _read(obj, "nestedC") is True
+    finally:
+        _dispose(engine, component, obj)
+
+
+def test_tooltip_stays_shut_on_touch_and_opens_on_desktop(qapp):
+    """Decision: touch shows no tooltip. 决策: 触摸端不显示提示。"""
+    engine, component, obj = _create_probe(None, TOOLTIP_PROBE_SOURCE, TOOLTIP_PROBE_URL)
+    try:
+        assert _read(obj, "probeTouch") is False
+        assert QMetaObject.invokeMethod(obj, "trigger")
+        assert _read(obj, "windowRequested") is True
+        assert _read(obj, "pendingShow") is True
+    finally:
+        _dispose(engine, component, obj)
+
+    # Hold a strong reference: an inline temporary would be collected by Python and
+    # PlatformInfo would silently degrade to non-touch.
+    # 必须持有强引用: 内联临时对象会被回收, PlatformInfo 会静默退化为非触摸。
+    touch_info = _PlatformInfo(True)
+    engine, component, obj = _create_probe(
+        touch_info, TOOLTIP_PROBE_SOURCE, TOOLTIP_PROBE_URL
+    )
+    try:
+        assert _read(obj, "probeTouch") is True
+        assert QMetaObject.invokeMethod(obj, "trigger")
+        assert _read(obj, "windowRequested") is False
+        assert _read(obj, "pendingShow") is False
     finally:
         _dispose(engine, component, obj)

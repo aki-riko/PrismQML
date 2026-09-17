@@ -43,9 +43,9 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function show() {
-        _pendingShow = true
-        _windowRequested = true
-        _scheduleOpen()
+        _pendingShow = !Touch.isTouch  // 触摸端不显示提示 (no hover preview to clear it)
+        _windowRequested = !Touch.isTouch
+        if (_pendingShow) _scheduleOpen()
     }
 
     function hide() {
@@ -74,7 +74,7 @@ Item {
     }
 
     function _doOpen() {
-        if (!_pendingShow) return
+        if (!_pendingShow || Touch.isTouch) return
         if (!control.parent) return
         var host = tooltipWindowLoader.item
         if (!host) return

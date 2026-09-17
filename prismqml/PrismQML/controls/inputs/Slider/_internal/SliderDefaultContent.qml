@@ -153,8 +153,10 @@ Item {
 
         // Create the tooltip on first hover/press, then reuse it.
         // 首次悬停/按下时创建提示，随后复用。
+        // Touch shows no tooltip, so it is never created there 触摸端不显示提示, 因此不创建
         Loader {
-            active: content.hovered || content.pressed || item !== null
+            active: !Touch.isTouch
+                && (content.hovered || content.pressed || item !== null)
             sourceComponent: TooltipCore {
                 x: (parent.width - width) / 2
                 y: -height - Enums.spacing.m

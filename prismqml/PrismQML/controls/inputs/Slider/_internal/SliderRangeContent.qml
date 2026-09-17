@@ -134,9 +134,11 @@ Item {
             }
         }
 
+        // Touch shows no tooltip, so it is never created there 触摸端不显示提示, 因此不创建
         Loader {
-            active: rangeHandleArea.containsMouse
-                || rangeHandleArea.pressed || item !== null
+            active: !Touch.isTouch
+                && (rangeHandleArea.containsMouse
+                    || rangeHandleArea.pressed || item !== null)
             sourceComponent: TooltipCore {
                 x: (parent.width - width) / 2
                 y: -height - Enums.spacing.m
