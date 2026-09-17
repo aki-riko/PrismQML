@@ -18,6 +18,26 @@
 #include <QQuickWindow>
 #include <QQmlContext>
 #include <QQmlApplicationEngine>
+
+#ifdef Q_OS_ANDROID
+#include <android/log.h>
+
+// Android: forward Qt messages to logcat 把 Qt 消息转发到 logcat
+static void prismAndroidMessageHandler(QtMsgType type,
+                                       const QMessageLogContext &,
+                                       const QString &msg)
+{
+    int priority = ANDROID_LOG_INFO;
+    switch (type) {
+    case QtDebugMsg: priority = ANDROID_LOG_DEBUG; break;
+    case QtInfoMsg: priority = ANDROID_LOG_INFO; break;
+    case QtWarningMsg: priority = ANDROID_LOG_WARN; break;
+    case QtCriticalMsg: priority = ANDROID_LOG_ERROR; break;
+    case QtFatalMsg: priority = ANDROID_LOG_FATAL; break;
+    }
+    __android_log_print(priority, "PrismQML", "%s", qPrintable(msg));
+}
+#endif
 #include <QImage>
 #include <QTimer>
 #include <QSqlDatabase>
@@ -46,6 +66,12 @@ static QString seedDemoDb() {
 
 int main(int argc, char *argv[]) {
     using namespace prism;
+
+#ifdef Q_OS_ANDROID
+    // Android 丢弃 release 应用的 stderr: 把 Qt 消息转发到 logcat, 否则
+    // QML 加载失败/警告在真机上不可见 (tag: PrismQML).
+    qInstallMessageHandler(prismAndroidMessageHandler);
+#endif
 
     App app(argc, argv);
     setSkin(Skin::Fluent);

@@ -99,20 +99,44 @@ cmake --build .artifacts/cpp/android-arm64
 | 自动更新 | QNetwork 下载 exe | 禁用（须走应用商店） |
 | 触摸 | 鼠标 hover | `PlatformInfo.isTouch=true`, touchTargetSize=48 |
 
-## 五、QML 触摸适配（待完善，见 §六）
+## 五、QML 触摸适配（已完成，见 §六）
 
-引擎 QML 控件原为鼠标桌面设计，移动端需适配：
-- 80 个控件依赖 hover（触摸无害降级，但缺触摸反馈）
-- 导航壳层 BAR/SPLIT 为侧边栏，窄屏需改底部 Tab/抽屉
-- 控件用固定像素尺寸，触摸目标偏小（应 ≥48px）
+引擎 QML 控件原为鼠标桌面设计，移动端适配已按统一规范完成，覆盖
+`prismqml/PrismQML` 下所有在**代码**里使用 hover 原语的 QML 文件（公开控件 +
+`_internal` 委托，共 92 个文件）。
 
-**适配地基已就绪**：`PlatformInfo`（isMobile/isCompact/touchTargetSize）已注入
-QML context，控件可防御式读取做响应式：
-```qml
-// QML 控件可这样响应式适配 (PlatformInfo 由 C++ 宿主注入)
-height: (typeof PlatformInfo !== "undefined" && PlatformInfo.isTouch)
-        ? PlatformInfo.touchTargetSize : 32
+### 适配约定（`prismqml/PrismQML/Touch.qml` 单例，由 qmldir 注册）
+
+| 规则 | 用法 | 桌面语义（不变式） |
+|------|------|-------------------|
+| R1 视觉反馈 | `Touch.feedback(hovered, pressed)` | `=== hovered` |
+| R2 hover 揭示 | `Touch.reveal(hovered)` | `=== hovered` |
+| R3 指针专属 | `!Touch.isTouch && <原表达式>` | `=== <原表达式>` |
+| R4 尺寸 | `Touch.target(size)`，或 `Enums.*` token 的 `touchTargetFloor` | `=== size` / 原字面值 |
+
+- **触摸反馈采用"按压驱动"**：Qt 会把触摸按压合成为 hover 且松手后不派发 leave，
+  直接采信 `hovered` 会留下残留高亮；因此触摸端 hover 视觉只在按压期间生效。
+- **尺寸下限**：`Enums`/`SkinContext` 把 `Touch.minTargetSize`（触摸 48 / 桌面 0）
+  注入 `Metrics.touchTargetFloor`，26 个交互 token 以
+  `Math.max(原值, root.touchTargetFloor)` 表达；本地字面值控件在消费点包
+  `Touch.target(...)`。字形/圆点/指示条/滑轨尺寸不放大。
+- **桌面不变式**：非触摸平台（Python 宿主无 `PlatformInfo`，桌面 C++ 宿主
+  `isTouch=false`）全部规则退化为原表达式，桌面像素与行为零变化。
+
+### 门禁
+
+```powershell
+# 代码级扫描: 每个 hover 文件必须引用 Touch. 或进入带理由的豁免表;
+# 同时锁定 Touch 单例注册、交互 token 下限、两个 hover 入参助手的喂入方
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 300 -- .\.venv\Scripts\python.exe -m pytest tests\tooling\test_touch_adaptation_gate.py
+# 触摸分支全组件加载（RELEASING.md 规定触摸改动必跑）
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 180 -- .\.venv\Scripts\python.exe tests\qml\probe_all_components.py --touch
 ```
+
+### 响应式（宿主注入 `PlatformInfo`）
+
+`PlatformInfo`（isMobile/isCompact/touchTargetSize）由 C++ 宿主注入 QML context，
+控件可防御式读取；窄屏底部 Tab 已由 `BottomTabBar` + `WindowsBar` 承担切换。
 
 ## 六、状态
 
@@ -132,6 +156,16 @@ height: (typeof PlatformInfo !== "undefined" && PlatformInfo.isTouch)
 - 🟡 触摸适配：导航壳层窄屏底部 Tab 已做（BottomTabBar + WindowsBar 响应式，
   程序化验证 nb/bt visible 切换）；80 控件的触摸态/尺寸细化为渐进工作（PlatformInfo
   地基已备）。
+- ✅ **arm64 真机运行成功**：OnePlus PKG110 / Android 16 / arm64-v8a / 1264×2780 /
+  density 560（逻辑宽 ≈361dp，走窄屏 compact 分支）。`cpp/build_android_apk.bat`
+  → debug keystore + `apksigner` 签名 → `adb install`：`DEMO_OK` + 进程常驻；
+  底部 Tab 点击可切换页面（用户页 10 行 SqlListModel 渲染、设置页 skin=fluent）；
+  触摸按压期间显示高亮反馈、松手后无 hover 残留。首次运行前必须先修下方
+  "资源模块的静态 QML 插件必须显式注册"，否则根窗口创建失败、进程秒退(退出码 2)。
+- ✅ **触摸适配完成**：92 个 hover 依赖 QML 文件按 §五 的 R1–R5 规则适配，桌面逐像素
+  零变化；门禁为 `tests/tooling/test_touch_adaptation_gate.py` + `probe_all_components.py
+  --touch`，另有 `tests/qml/test_touch_adaptation.py` 锁定桌面 token 原值与触摸语义。
+
 
 ### 关键踩坑记录
 
@@ -150,3 +184,23 @@ height: (typeof PlatformInfo !== "undefined" && PlatformInfo.isTouch)
 - **compileSdk 要 android-35**：AGP AAR metadata 检查要求。
 - **QML 资源用 rcc 显式预编译**：AUTORCC 对 CMake 生成的 .qrc 不可靠。
 - **QT_HOST_PATH 必传** desktop Qt 路径(取 moc/rcc 主机工具)。
+- **资源模块的静态 QML 插件必须显式注册**：CMake 为 qrc 模块生成
+  `prismqml_runtime_qmldir`，其中带 `plugin prismqmlruntimeplugin` +
+  `classname PrismQMLRuntimePlugin`；该插件以 `QT_PLUGIN;QT_STATICPLUGIN` 编进
+  libprism。桌面/PySide 走磁盘模块的**无插件** qmldir，所以问题只在 qrc 路径暴露：
+  Android 链接器会丢弃没有被引用的静态插件注册符号，资源模块加载即报
+  `module "PrismQML" plugin "prismqmlruntimeplugin" not found`，`Window::build()`
+  失败 → `DEMO_FAIL` → 进程以退出码 2 秒退。修法：宿主入口保留
+  `cpp/src/App.cpp` 的 `Q_IMPORT_QML_PLUGIN(PrismQMLRuntimePlugin)`（测试用
+  `Q_IMPORT_QML_PLUGIN` 早就这么做了，宿主缺这一步）。
+- **Android release 应用丢弃 stderr**：Qt 的 qInfo/qWarning 在真机上默认不可见，
+  `log.redirect-stdio` 只对 debuggable 应用生效。`cpp/demo/main.cpp` 在
+  `Q_OS_ANDROID` 下安装 `qInstallMessageHandler` 把消息转发到 logcat（tag
+  `PrismQML`），否则只会看到"进程秒退"而拿不到 QML 错误。
+- **release apk 与 debug keystore 的签名冲突**：换密钥重建后 `adb install -r` 会报
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE`，需先 `adb uninstall <pkg>`；78MB 的 apk 用
+  `adb install` 流式安装可能超时，改成 `adb push /data/local/tmp/` + `pm install -r -t`
+  更稳。
+- **`addPage` 早于 `show()` 会打印"未找到页面容器 page_N"**：此时窗口 QML 尚未
+  `build()`，容器还不存在；页面会在首次 `navigateTo` 时正常加载（真机点击 Tab 即渲染），
+  该警告不表示页面不可用。

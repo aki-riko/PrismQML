@@ -16,8 +16,21 @@
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QQmlExtensionPlugin>
 #include <QObject>
 #include <QDebug>
+
+// Static QML plugin registration 静态 QML 插件注册
+//
+// 资源模块的 qmldir (CMake 生成的 prismqml_runtime_qmldir) 声明了
+// `plugin prismqmlruntimeplugin`, 而该插件以 QT_STATICPLUGIN 编进 libprism。磁盘模块
+// (桌面/PySide) 用的是无插件 qmldir, 所以只有 qrc 资源模块 (Android) 需要这一步;
+// 缺少它时资源模块加载会报 `module "PrismQML" plugin "prismqmlruntimeplugin" not found`,
+// 根窗口创建失败。这里显式导入, 保证任何链接 libprism 的宿主都注册该静态插件。
+// The resource-module qmldir declares the plugin, and the plugin is compiled into
+// libprism as a static plugin; the disk module (desktop/PySide) uses a plugin-free
+// qmldir, so only the qrc resource module (Android) needs this import.
+Q_IMPORT_QML_PLUGIN(PrismQMLRuntimePlugin)
 
 namespace prism {
 
