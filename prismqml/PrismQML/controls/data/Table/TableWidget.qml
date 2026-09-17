@@ -138,23 +138,7 @@ DataWidgetCore {
                 for (var t = 0; t < widths.length; t++) widths[t] = Math.floor(widths[t] * scale)
             }
         }
-        _normalizeViewportFitRounding(widths)
         _columnPixelWidths = widths
-    }
-
-    function _normalizeViewportFitRounding(widths) {
-        if (!widths.length) return
-        var viewportWidth = root._columnViewportWidth
-        if (viewportWidth <= 0) return
-
-        var totalWidth = 0
-        for (var index = 0; index < widths.length; index++) totalWidth += widths[index]
-
-        // Collapse IEEE-754 noise when columns exactly fit the viewport.
-        // 消除列宽恰好铺满视口时的 IEEE-754 尾差，避免误触发横向滚动。
-        var tolerance = Math.max(1, Math.abs(viewportWidth)) * Number.EPSILON * widths.length
-        if (Math.abs(totalWidth - viewportWidth) <= tolerance)
-            widths[widths.length - 1] += viewportWidth - totalWidth
     }
 
     // Default measureWidth: string-cast rowData[role], estimate by char width 默认 measureWidth: 取 rowData[role] 转字符串, 按字符宽度估算
@@ -379,7 +363,7 @@ DataWidgetCore {
         for (var i = 0; i < _columnPixelWidths.length; i++) {
             total += _columnPixelWidths[i] || 0
         }
-        return total
+        return Math.abs(total - _columnViewportWidth) <= Math.max(1, Math.abs(_columnViewportWidth)) * Number.EPSILON * _columnPixelWidths.length ? _columnViewportWidth : total
     }
 
     // Triggers: columns array / data / root width changed 触发条件: columns 数组变 / 数据变 / root 宽度变

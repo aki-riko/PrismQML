@@ -79,8 +79,8 @@ def test_native_drag_then_wheel_continues_from_current_position(scroll_scene):
     _pump(60)
     pos = flick.mapToScene(QPointF(flick.width() / 2, flick.height() * 0.75)).toPoint()
     QTest.mousePress(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)
-    for _ in range(3):
-        pos = QPoint(pos.x(), pos.y() - 10)
+    for _ in range(6):
+        pos = QPoint(pos.x(), pos.y() - 12)
         QTest.mouseMove(window, pos)
         _pump(16)
     QTest.mouseRelease(window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, pos)

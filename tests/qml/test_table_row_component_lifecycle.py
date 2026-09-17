@@ -27,12 +27,12 @@ SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "table-row-component-lifecycle.qml")
 )
 # TableWidgetContent adds one visual owner; frame-synchronized scrolling removes one.
-# The scroll area carries two overshoot guards and one bounds reconciler.
-# 滚动区域带两个超出门闸与一个边界校正器。
+# The scroll area carries two overshoot guards, one bounds reconciler and one
+# native movement synchronizer. 滚动区域带两个超出门闸、一个边界校正器与一个原生移动同步器。
 # TableHeader owns a title row, sort affordance and click area per column.
 # Declarative skin lookup adds no signal-handler objects.
 # 表头每列拥有标题行、排序图标和点击区域；声明式皮肤查找不增加信号处理对象。
-EXPECTED_NORMAL_OBJECTS = 963
+EXPECTED_NORMAL_OBJECTS = 964
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

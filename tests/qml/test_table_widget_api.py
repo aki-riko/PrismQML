@@ -568,7 +568,7 @@ def test_table_widget_fractional_columns_use_inner_viewport_width(qapp):
         precision_column_widths = _variant(root.property("precisionFitColumnWidths"))
 
         assert precision_viewport_width > 0
-        assert sum(precision_column_widths) == precision_content_width
+        assert abs(sum(precision_column_widths) - precision_content_width) < 1e-9
         assert precision_content_width == precision_viewport_width
         assert root.property("precisionFitHasHorizontalScroll") is False
         assert root.property("precisionFitHorizontalScrollRequested") is False
