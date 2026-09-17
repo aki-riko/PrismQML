@@ -23,6 +23,10 @@ Item {
     property alias customContent: customContentLoader.sourceComponent
     readonly property bool hasCustomContent:
         customContentLoader.sourceComponent !== null && customContentLoader.item !== null
+    // Text-only toasts never exceed this width; long messages fold instead of
+    // stretching the toast. Custom content keeps its own natural size.
+    // 纯文本 Toast 不超过该宽度: 长消息折行而不是横向拉长; 自定义内容仍按自身自然尺寸。
+    readonly property real textMaxWidth: Enums.controlSize.toastWidth
     readonly property real calculatedContentWidth: {
         var baseWidth = Enums.spacing.m * 2
         if (toast._isRingMode || toast._isBarMode) {
@@ -48,17 +52,31 @@ Item {
         }
 
         var targetWidth = baseWidth + textW
+        if (!hasCustomContent) {
+            targetWidth = Math.min(targetWidth, textMaxWidth)
+        }
         return Math.min(
             Math.max(targetWidth, Enums.controlSize.toastWidth),
             Enums.controlSize.toastMaxWidth
         )
     }
     readonly property real horizontalHeight: {
-        var contentH = 0
-        if (toast.title !== "") contentH += titleText.contentHeight + Enums.spacing.xs
-        if (toast.message !== "") contentH += messageText.contentHeight
-        var h = contentH + Enums.spacing.l * 2
-        return Math.max(Enums.controlSize.toastHeight, h)
+        // The horizontal layout stacks title above message, so the card must cover
+        // both bands: title + gap + message. Counting real rendered heights keeps a
+        // wrapped title or message inside the card instead of spilling outside it.
+        // 水平布局中标题与消息上下堆叠, 卡片必须覆盖两段文本: 标题 + 间距 + 消息。
+        // 计入真实渲染高度, 折行的标题或消息留在卡片内而不是溢出。
+        var textH = 0
+        var titleH = 0
+        if (toast.title !== "") {
+            titleH = titleText.contentHeight
+            textH = titleH
+        }
+        if (toast.message !== "") {
+            textH += (titleH > 0 ? Enums.spacing.xs : 0) + messageText.contentHeight
+        }
+        var h = Enums.spacing.l + textH + Enums.spacing.l
+        return Math.max(Enums.controlSize.toastHeight, Math.ceil(h))
     }
     readonly property real verticalHeight: {
         // Use childrenRect because Column implicitHeight can lag wrapped children. childrenRect 兜底, Column implicitHeight 对折行子项可能滞后
@@ -164,6 +182,12 @@ Item {
         // Content 内容（水平模式）
         Label {
             id: messageText
+
+            // Horizontal space kept clear for the close button 为关闭按钮预留的水平空间
+            readonly property real messageTextRightReserve: closeBtn.visible
+                ? closeBtn.width + Enums.spacing.l + Enums.spacing.m
+                : Enums.spacing.l
+
             anchors.left: toast._isRingMode
                 ? toastProgressModeLoader.right
                 : (toast._isBarMode ? toastIconContainer.right : parent.left)
@@ -178,6 +202,10 @@ Item {
             color: Enums.textColor.secondary
             visible: text !== "" && !toast._isVertical
             // Width from anchors left/right so Text.Wrap can fold long lines 用 anchors 左右约束确定宽度→触发自动换行;Text.Wrap 处理硬换行+长行折行
+            // Explicit width is required: a Wrap Text without a width keeps its full
+            // single-line width once the card is clamped to the default maximum width.
+            // 必须显式给出宽度: 卡片封顶到默认最大宽度后, 无宽度的 Wrap 文本仍保持整行自然宽度。
+            width: Math.max(0, parent.width - x - messageTextRightReserve)
             wrapMode: Text.Wrap
             verticalAlignment: Text.AlignTop
         }

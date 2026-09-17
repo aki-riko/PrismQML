@@ -47,6 +47,35 @@ Item {{
     }}
 }}
 """.encode("utf-8")
+# Horizontal layout must stay at the default width and stack its text instead of
+# widening like a banner. 水平布局必须保持默认宽度, 文本上下堆叠而不是像横幅一样横向变宽。
+MID_MESSAGE = "仓库正被另一个 Git 操作占用，本次操作未执行，请稍后重试"
+HORIZONTAL_SCENE_SOURCE = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    readonly property int spacingM: Enums.spacing.m
+    readonly property int spacingL: Enums.spacing.l
+    readonly property int toastWidth: Enums.controlSize.toastWidth
+    readonly property int toastMaxWidth: Enums.controlSize.toastMaxWidth
+    readonly property int toastHeight: Enums.controlSize.toastHeight
+
+    width: 1000
+    height: 400
+
+    Toast {{
+        objectName: "horizontalToast"
+        desktopMode: true
+        duration: 0
+        visible: true
+        orient: Qt.Horizontal
+        severity: "error"
+        title: "操作失败"
+        message: {MID_MESSAGE!r}
+    }}
+}}
+""".encode("utf-8")
 
 
 def _pump(milliseconds: int = 10) -> None:
@@ -55,12 +84,12 @@ def _pump(milliseconds: int = 10) -> None:
     loop.exec()
 
 
-def _create_scene():
+def _create_scene(source: bytes = SCENE_SOURCE):
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
+    component.setData(source, SCENE_URL)
     for _ in range(50):
         if component.status() != QQmlComponent.Status.Loading:
             break
@@ -103,6 +132,33 @@ def test_vertical_toast_wraps_downward_with_full_bottom_padding(qapp):
         body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
         expected_bottom_gap = root.property("spacingM") + root.property("spacingL")
         assert toast.height() - body_bottom == pytest.approx(expected_bottom_gap)
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_horizontal_toast_keeps_default_width_and_wraps_message(qapp):
+    """Horizontal toasts must wrap at the default width instead of stretching.
+    水平布局须在默认宽度处折行, 不允许横向拉长。"""
+    engine, component, root = _create_scene(HORIZONTAL_SCENE_SOURCE)
+    try:
+        toast = root.findChild(QQuickItem, "horizontalToast")
+        assert toast is not None
+        body = _visible_text_item(toast, MID_MESSAGE)
+
+        assert toast.property("orient") == 1  # Qt.Horizontal
+        assert toast.width() == pytest.approx(root.property("toastWidth"))
+        assert toast.width() < root.property("toastMaxWidth")
+        assert body.property("lineCount") > 1
+        assert toast.height() == pytest.approx(toast.property("implicitHeight"))
+
+        # The message must stay inside the card instead of overflowing it.
+        # 消息必须留在卡片内, 不得溢出卡片。
+        body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
+        card_bottom = toast.height() - root.property("spacingM")
+        assert body_bottom <= card_bottom
     finally:
         root.deleteLater()
         del component
