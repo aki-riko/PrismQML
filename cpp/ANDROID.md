@@ -138,6 +138,21 @@ cmake --build .artifacts/cpp/android-arm64
 `PlatformInfo`（isMobile/isCompact/touchTargetSize）由 C++ 宿主注入 QML context，
 控件可防御式读取；窄屏底部 Tab 已由 `BottomTabBar` + `WindowsBar` 承担切换。
 
+### 已知触摸尺寸例外（需父级几何配合，本次未抬到 48dp）
+
+这些交互目标的放大必须同时改父级固定几何或弹层宽度，否则会溢出/裁切或互相抢命中，
+按 R4 规则"跳过并说明"处理：
+
+| 目标 | 现状 | 阻塞原因 |
+|------|------|----------|
+| `DatePicker/_internal/CalendarNavButton` | 32×34 | 弹层 `calendarPopupHeight=300` 可用约 276px，桌面已用 34+32+216=282px；抬到 48 会把日历网格挤出弹层 |
+| `navigation/PipsPager` 上一个/下一个按钮 | 20×20 | `PipsPagerCore._cellSize=12` 步距下每侧仅约 24px 余量，48px 命中区会与圆点区重叠 |
+| `ColorPicker/_internal/ColorPalette` 色块 | 28 | 10 列固定网格 + `palettePopupWidth=360`，28→48 会溢出被裁切 |
+| 图表 `ChartBottomLegend` 图例项 | 32 | 图表区只预留固定 32px 图例带，需同时改各图表的预留高度 |
+| `controlSize.lineEditClearButtonSize` | 20 | 位于 32px 输入框内，需为该按钮单独做透明命中区扩展 |
+
+其余交互尺寸已在 token 层（`root.touchTargetFloor`）或在消费点（`Touch.target`）抬到 ≥48。
+
 ## 六、状态
 
 - ✅ 代码层条件编译就绪，桌面零回归

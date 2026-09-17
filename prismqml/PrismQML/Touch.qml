@@ -61,6 +61,11 @@ QtObject {
     }
 
     // Hover-revealed affordances must stay reachable on touch 触摸端 hover 揭示的控件需常显
+    //
+    // 触摸端恒为 true: 悬停才出现的附属控件(滚动轨/翻页箭头/关闭按钮/更换遮罩)若在
+    // 触摸端继续隐藏就没有入口。调用方需自行确认该附属控件常显是安全的。
+    // Always true on touch: hover-only affordances (scroll rail, nav arrows, close
+    // button, change overlay) would otherwise be unreachable.
     function reveal(hovered) {
         return touch.isTouch || hovered === true
     }
@@ -69,4 +74,9 @@ QtObject {
     function target(desktopSize) {
         return Math.max(desktopSize, touch.minTargetSize)
     }
+
+    // 备注: feedback() 可以安全地嵌套/重复施加 —— 触摸端 f(f(h,p),p) = f(p,p) = p,
+    // 桌面端两端都等于 h。因此"父组件先映射、子委托再映射"的链路(Toggle→指示器、
+    // ListWidget→ListWidgetItem、ComboBoxCore→ComboBoxCoreContent)无需去重。
+    // Note: nested/duplicated feedback() is idempotent in both modes.
 }

@@ -76,6 +76,17 @@ QtObject {
     // Hover-revealed affordances 依赖 hover 揭示的控件
     readonly property bool revealHovered: Touch.reveal(true)
     readonly property bool revealIdle: Touch.reveal(false)
+
+    // Nested mapping must be idempotent: several controls feed an already mapped
+    // state into another Touch.feedback (Toggle -> indicator, ListWidget ->
+    // ListWidgetItem, ComboBoxCore -> ComboBoxCoreContent).
+    // 嵌套映射必须幂等: 多个控件把已映射的状态再喂给下一层 Touch.feedback。
+    readonly property bool nestedA: Touch.feedback(Touch.feedback(true, false), false)
+        === Touch.feedback(true, false)
+    readonly property bool nestedB: Touch.feedback(Touch.feedback(false, true), true)
+        === Touch.feedback(false, true)
+    readonly property bool nestedC: Touch.feedback(Touch.feedback(true, true), true)
+        === Touch.feedback(true, true)
 }
 """
 
@@ -210,6 +221,9 @@ def test_desktop_metrics_and_feedback_are_unchanged(qapp):
         assert _read(obj, "feedbackNone") is False
         assert _read(obj, "revealHovered") is True
         assert _read(obj, "revealIdle") is False
+        assert _read(obj, "nestedA") is True
+        assert _read(obj, "nestedB") is True
+        assert _read(obj, "nestedC") is True
     finally:
         _dispose(engine, component, obj)
 
@@ -238,5 +252,9 @@ def test_touch_metrics_are_raised_and_feedback_follows_press(qapp):
         # Hover-revealed affordances stay visible on touch 依赖 hover 揭示的控件在触摸端常显
         assert _read(obj, "revealHovered") is True
         assert _read(obj, "revealIdle") is True
+        # Nested mapping stays idempotent on touch too 触摸端嵌套映射同样幂等
+        assert _read(obj, "nestedA") is True
+        assert _read(obj, "nestedB") is True
+        assert _read(obj, "nestedC") is True
     finally:
         _dispose(engine, component, obj)

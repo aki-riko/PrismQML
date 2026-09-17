@@ -176,18 +176,25 @@ Item {
                             // Hover effect 悬停效果
                             MouseArea {
                                 id: indicatorArea
+                                // Single source for the hover/press scale and its reset
+                                // 悬停/按压缩放与其复位值的唯一来源
+                                readonly property real _hoverScale: 1.08
+                                readonly property real _restScale: 1.0
+
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 hoverEnabled: true
                                 onClicked: control.stepClicked(index)
-                                onEntered: indicator.scale = 1.08
-                                onExited: indicator.scale = 1.0
+                                onEntered: indicator.scale = indicatorArea._hoverScale
+                                onExited: indicator.scale = indicatorArea._restScale
                                 // Touch has no hover preview: the same scale follows the press
                                 // and resets on release, since touch never emits an exit
                                 // 触摸没有 hover 预览: 同一缩放改为跟随按压并在松手复位,
                                 // 因为触摸端不会派发 exit
                                 onPressedChanged: if (Touch.isTouch)
-                                                      indicator.scale = indicatorArea.pressed ? 1.08 : 1.0
+                                                      indicator.scale = indicatorArea.pressed
+                                                          ? indicatorArea._hoverScale
+                                                          : indicatorArea._restScale
                             }
                             
                             HoverBehavior on scale {

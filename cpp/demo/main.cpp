@@ -18,6 +18,11 @@
 #include <QQuickWindow>
 #include <QQmlContext>
 #include <QQmlApplicationEngine>
+#include <QImage>
+#include <QTimer>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QFile>
 
 #ifdef Q_OS_ANDROID
 #include <android/log.h>
@@ -38,11 +43,6 @@ static void prismAndroidMessageHandler(QtMsgType type,
     __android_log_print(priority, "PrismQML", "%s", qPrintable(msg));
 }
 #endif
-#include <QImage>
-#include <QTimer>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QFile>
 
 // 建一个临时 SQLite 作 demo 数据源, 返回路径
 static QString seedDemoDb() {
