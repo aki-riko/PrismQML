@@ -16,8 +16,8 @@ QtObject {
  property real devicePixelRatio: 1
  // Skin palette single sources of truth are injected by Enums 皮肤配色真相源由 Enums 注入
  property var constants: null
- // Touch target floor injected by Enums/SkinContext (0 = desktop metrics untouched)
- // 触摸目标下限由 Enums/SkinContext 注入 (0 表示桌面度量不变)
+ // Touch target floor injected by Enums/SkinContext; 0 keeps desktop metrics
+ // 触摸目标下限由 Enums/SkinContext 注入; 0 表示桌面度量不变
  property int touchTargetFloor: 0
 
  function _physicalPixelWidth(designWidth) {
@@ -133,12 +133,7 @@ QtObject {
  }
  
  // ==================== Mask 遮罩参数 ====================
- readonly property QtObject mask: QtObject {
- readonly property real thresholdMin: 0.5 // Mask threshold minimum 遮罩阈值最小值
- readonly property real spreadAtMin: 0.0 // Mask spread at minimum 遮罩最小扩散
- readonly property real thresholdFull: 0.0 // Full mask threshold 完全遮罩阈值
- readonly property real spreadFull: 1.0 // Full mask spread 完全遮罩扩散
- }
+ readonly property QtObject mask: MetricsInternal.MetricsMask {}
  
  // ==================== Blur 模糊半径 ====================
  readonly property QtObject blur: QtObject {

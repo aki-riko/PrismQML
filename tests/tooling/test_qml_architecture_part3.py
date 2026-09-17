@@ -283,6 +283,19 @@ def test_metrics_keeps_shadow_logic_modularized():
         assert f"readonly property QtObject level{level}: QtObject {{" in helper_source
         assert f"function applyLevel{level}(target)" in helper_source
 
+def test_metrics_keeps_mask_tokens_modularized():
+    entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    helper = _source("prismqml/PrismQML/PrismEnums/_internal/MetricsMask.qml")
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 900
+    assert helper.exists()
+    assert "readonly property QtObject mask: MetricsInternal.MetricsMask {}" in source
+    assert "readonly property QtObject mask: QtObject {" not in source
+    for token in ("thresholdMin", "spreadAtMin", "thresholdFull", "spreadFull"):
+        assert f"readonly property real {token}:" in helper_source
+
 def test_combo_box_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")
     helper = _source(
