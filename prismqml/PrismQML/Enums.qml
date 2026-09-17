@@ -166,6 +166,7 @@ Item {
         isNeumorphism: root.isNeumorphism
         devicePixelRatio: DpiManager.devicePixelRatio
         constants: _constants
+        touchTargetFloor: Touch.minTargetSize
     }
     Orient { id: _orient }
     Flow { id: _flow }

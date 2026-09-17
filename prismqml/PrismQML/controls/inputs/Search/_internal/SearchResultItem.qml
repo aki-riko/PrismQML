@@ -30,13 +30,16 @@ Rectangle {
     property bool pressed: false
 
     // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property color _bgColor: {
         if (selected) {
-            return hovered ? Enums.stateColor.selectedHover
-                           : Enums.stateColor.selected
+            return _touchActive ? Enums.stateColor.selectedHover
+                                : Enums.stateColor.selected
         }
         if (pressed) return Enums.stateColor.listItemPressed
-        if (hovered) return Enums.stateColor.listItemHover
+        if (_touchActive) return Enums.stateColor.listItemHover
         return Enums.transparent
     }
 
@@ -53,7 +56,7 @@ Rectangle {
     radius: Enums.radius.card
 
     HoverBehavior on color {
-        active: hovered && !pressed
+        active: _touchActive && !pressed
         enterDuration: Enums.duration.fast
     }
 

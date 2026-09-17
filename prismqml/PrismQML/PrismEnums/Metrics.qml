@@ -16,6 +16,9 @@ QtObject {
  property real devicePixelRatio: 1
  // Skin palette single sources of truth are injected by Enums 皮肤配色真相源由 Enums 注入
  property var constants: null
+ // Touch target floor injected by Enums/SkinContext (0 = desktop metrics untouched)
+ // 触摸目标下限由 Enums/SkinContext 注入 (0 表示桌面度量不变)
+ property int touchTargetFloor: 0
 
  function _physicalPixelWidth(designWidth) {
  var ratio = root.devicePixelRatio > 0 ? root.devicePixelRatio : 1
@@ -323,25 +326,25 @@ QtObject {
  readonly property int switchHeight: 24
  readonly property int switchThumb: 20
  // Input controls 输入控件
- readonly property int inputHeight: 32 // Fluent Design standard height 标准高度（与 buttonHeight 对齐）
+ readonly property int inputHeight: Math.max(32, root.touchTargetFloor) // Fluent Design standard height 标准高度（与 buttonHeight 对齐）
  readonly property int inputDefaultWidth: 200 // Input default width 输入框默认宽度
- readonly property int inputHeightLarge: 40
- readonly property int inputHeightCompact: 28
+ readonly property int inputHeightLarge: Math.max(40, root.touchTargetFloor)
+ readonly property int inputHeightCompact: Math.max(28, root.touchTargetFloor)
  readonly property int inputHeightLabel: 56 // Label input height (with floating label) 带浮动标签输入框高度
  readonly property int textEditScrollThumbMinHeight: 20 // TextEdit scroll thumb minimum height 多行文本滚动拇指最小高度
  readonly property int inputLabelTextHeight: 24 // Floating label text field height 浮动标签文本框高度
- readonly property int pickerRow: 36
+ readonly property int pickerRow: Math.max(36, root.touchTargetFloor)
  // Navigation controls 导航控件
  readonly property int navBarHeight: 48 // Top navigation bar height
  readonly property int navBarWidth: 68 // NavigationBar width (64px button + 2px margins) 导航栏宽度
  readonly property int navBarItemWidth: 64 // NavigationBarItem width 导航栏项宽度
  readonly property int navBarItemHeight: 60 // NavigationBarItem height 导航栏项高度
  readonly property int bottomTabBarHeight: 56 // BottomTabBar height 底部导航栏高度
- readonly property int tabBarHeight: 40 // TabBar height
- readonly property int segmentedHeight: 36 // SegmentedControl height
+ readonly property int tabBarHeight: Math.max(40, root.touchTargetFloor) // TabBar height
+ readonly property int segmentedHeight: Math.max(36, root.touchTargetFloor) // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
- readonly property int segmentedToolSize: 36 // Segmented tool item size 分段工具项尺寸
- readonly property int commandBarButtonSize: 36 // CommandBar button size (square) 命令栏按钮尺寸（正方形）
+ readonly property int segmentedToolSize: Math.max(36, root.touchTargetFloor) // Segmented tool item size 分段工具项尺寸
+ readonly property int commandBarButtonSize: Math.max(36, root.touchTargetFloor) // CommandBar button size (square) 命令栏按钮尺寸（正方形）
  readonly property int statusBarHeight: 24 // StatusBar height 状态栏高度
  // Feedback controls 反馈控件
  readonly property int tooltipHeight: 28 // Tooltip height (single line) 提示单行高度
@@ -362,8 +365,8 @@ QtObject {
  readonly property int dropFileHeight: 140 // DropZone default height 拖放组件默认高度
  readonly property int splitPaneMinimumSize: 50 // SplitPane pane minimum extent 分割面板最小范围
  // Calendar controls 日历控件
- readonly property int calendarCell: 32 // Calendar day cell size 日历日期单元格尺寸
- readonly property int calendarCellHeight: 36 // Calendar cell row height 日历单元格行高
+ readonly property int calendarCell: Math.max(32, root.touchTargetFloor) // Calendar day cell size 日历日期单元格尺寸
+ readonly property int calendarCellHeight: Math.max(36, root.touchTargetFloor) // Calendar cell row height 日历单元格行高
  // Timeline controls 时间线控件
  // Keep (timelineIcon - timelineIconText) even so anchors.centerIn resolves to a
  // whole-pixel gap. An odd difference makes Qt round the anchor center and offsets
@@ -376,17 +379,17 @@ QtObject {
  readonly property int timelineCardIconText: 8 // Timeline card icon inner text size 时间线卡片图标内文字尺寸
  readonly property int timelineGraphNode: 10 // Timeline graph commit node size 时间线图提交节点尺寸
  // Button controls 按钮控件
- readonly property int closeButton: 32 // Close button size 关闭按钮尺寸
+ readonly property int closeButton: Math.max(32, root.touchTargetFloor) // Close button size 关闭按钮尺寸
  readonly property int buttonMinWidth: 80 // Button minimum width 按钮最小宽度
- readonly property int buttonHeight: 32 // Button height 按钮高度
- readonly property int toolButtonWidth: 36 // ToolButton width 工具按钮宽度
+ readonly property int buttonHeight: Math.max(32, root.touchTargetFloor) // Button height 按钮高度
+ readonly property int toolButtonWidth: Math.max(36, root.touchTargetFloor) // ToolButton width 工具按钮宽度
  readonly property int splitButtonArrowWidth: 26 // Split button arrow area width 分割按钮箭头区域宽度
  readonly property int splitButtonContentOffset: 13 // Split button content offset 分割按钮内容偏移
  readonly property int dropdownArrowWidth: 20 // Dropdown button arrow width 下拉按钮箭头宽度
  // Dialog controls 对话框控件
- readonly property int dialogButtonHeight: 32 // Dialog button height 对话框按钮高度
+ readonly property int dialogButtonHeight: Math.max(32, root.touchTargetFloor) // Dialog button height 对话框按钮高度
  // Navigation item controls 导航项控件
- readonly property int topNavItemHeight: 36 // top-nav window nav item height 顶部导航项高度
+ readonly property int topNavItemHeight: Math.max(36, root.touchTargetFloor) // top-nav window nav item height 顶部导航项高度
  readonly property int topNavItemPadding: 24 // top-nav window nav item padding 顶部导航项内边距
  readonly property int topNavIndicatorHeight: 3 // top-nav window indicator height 顶部导航指示条高度
  readonly property int navIndicatorHeight: 16 // Navigation indicator height 导航指示条高度
@@ -394,21 +397,21 @@ QtObject {
  readonly property int navIndicatorWidth: 3 // Navigation indicator width 导航指示条宽度
  readonly property int navPanelExpandWidth: 320 // Navigation panel expand width (WinUI NavigationView OpenPaneLength) 导航面板展开宽度
  readonly property int navPanelCompactWidth: 48 // Navigation panel compact width 导航面板折叠宽度
- readonly property int navItemHeight: 40 // Navigation item height 导航项高度
+ readonly property int navItemHeight: Math.max(40, root.touchTargetFloor) // Navigation item height 导航项高度
  readonly property int navItemSpacing: 4 // Navigation item spacing 导航项间距
  readonly property int navPanelPaddingV: 5 // Navigation panel vertical padding 导航面板垂直内边距
  readonly property int navPanelPaddingH: 4 // Navigation panel horizontal padding 导航面板水平内边距
  // Icon controls 图标控件
  readonly property int checkIconSize: 12 // CheckIcon/CloseIcon size 勾选/关闭图标尺寸
  readonly property int chevronIconSize: 10 // ChevronIcon size 箭头图标尺寸
- readonly property int flipViewNavButton: 28 // FlipView nav button size 翻页导航按钮尺寸
+ readonly property int flipViewNavButton: Math.max(28, root.touchTargetFloor) // FlipView nav button size 翻页导航按钮尺寸
  // Table controls 表格控件
- readonly property int tableHeaderHeight: 44 // Table header height 表头高度
+ readonly property int tableHeaderHeight: Math.max(44, root.touchTargetFloor) // Table header height 表头高度
  readonly property int tableRowHeight: 48 // Table row height 行高
  readonly property int tablePaginationHeight: 50 // Table pagination height 分页高度
  // Feedback controls 反馈控件
  readonly property int resultStateIconSize: 80 // ResultState icon container 结果状态图标容器
- readonly property int emptyStateButtonHeight: 32 // EmptyState button height 空状态按钮高度
+ readonly property int emptyStateButtonHeight: Math.max(32, root.touchTargetFloor) // EmptyState button height 空状态按钮高度
  readonly property int stateDescMaxWidth: 280 // StateWidget result description max width 结果描述最大宽度
  readonly property int stateDescEmptyWidth: 260 // StateWidget empty description max width 空状态描述最大宽度
  readonly property int stateButtonPaddingLarge: 32 // StateWidget result button padding 结果按钮内边距
@@ -421,7 +424,7 @@ QtObject {
  readonly property int shortcutKeyMinWidth: 36 // ShortcutEditor key min width 快捷键最小宽度
  readonly property int shortcutKeyMaxWidth: 50 // ShortcutEditor key max width 快捷键最大宽度
  readonly property int shortcutPickerMinWidth: 180 // ShortcutEditor min width 快捷键选择器最小宽度
- readonly property int closeButtonSize: 28 // CloseButton default size 关闭按钮默认尺寸
+ readonly property int closeButtonSize: Math.max(28, root.touchTargetFloor) // CloseButton default size 关闭按钮默认尺寸
  readonly property int lineEditClearButtonSize: 20 // LineEdit clear button size 单行输入清除按钮尺寸
  readonly property int lineEditLabelWidth: 250 // Floating-label LineEdit default width 浮动标签输入框默认宽度
  readonly property int lineEditTagWidth: 300 // Tag LineEdit default width 标签输入框默认宽度
@@ -482,7 +485,7 @@ QtObject {
  readonly property int chartDefaultHeight: 300 // Chart default height 图表默认高度
  readonly property int listDefaultWidth: 200 // List default width 列表默认宽度
  readonly property int listDefaultHeight: 300 // List default height 列表默认高度
- readonly property int listItemHeight: 36 // List item height 列表项高度(与 Tree/Table 统一)
+ readonly property int listItemHeight: Math.max(36, root.touchTargetFloor) // List item height 列表项高度(与 Tree/Table 统一)
  readonly property int listRevealDiameter: 120 // List item reveal highlight diameter 列表项悬浮光晕直径
  readonly property int tableDefaultWidth: 400 // Table default width 表格默认宽度
  readonly property int tableDefaultHeight: 300 // Table default height 表格默认高度

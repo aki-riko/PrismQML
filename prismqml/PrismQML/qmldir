@@ -4,6 +4,7 @@ module PrismQML
 singleton Enums Enums.qml
 singleton Translator Translator.qml
 singleton DpiManager DpiManager.qml
+singleton Touch Touch.qml
 WindowsCore WindowsCore.qml
 NavigationWindowCore NavigationWindowCore.qml
 Windows Windows.qml

@@ -26,6 +26,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
     readonly property bool pressed: mouseArea.pressed
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     readonly property color contentColor: checked ? Enums.chipColors.checkedText : Enums.foregroundColor
     readonly property int _chipRadius: Enums.surfaceRadius(Enums.radius.small)
     readonly property real _chipBorderWidth: Enums.hasOutlinedSurfaces
@@ -82,7 +85,7 @@ Item {
         color: {
             if (checked) return Enums.accentColor
             if (pressed) return Enums.stateColor.chipBgPressed
-            if (hovered) return Enums.stateColor.chipBgHover
+            if (_touchActive) return Enums.stateColor.chipBgHover
             return Enums.stateColor.chipBg
         }
 
@@ -92,7 +95,7 @@ Item {
 
         // Animations 动画
         HoverBehavior on color {
-            active: control.hovered && !control.pressed
+            active: control._touchActive && !control.pressed
             enterDuration: Enums.duration.fast
         }
         Behavior on border.width {

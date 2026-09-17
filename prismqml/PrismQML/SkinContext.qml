@@ -325,6 +325,7 @@ Item {
         isNeumorphism: root.isNeumorphism
         devicePixelRatio: root.devicePixelRatio
         constants: _constants
+        touchTargetFloor: Touch.minTargetSize
     }
 
     // ==================== Skin-Independent Token Modules 与皮肤无关的 token 模块 ====================

@@ -22,15 +22,18 @@ Rectangle {
     property bool pressed: itemArea.pressed
 
     // ==================== Readonly State 只读状态 ====================
+    // Touch has no hover preview: on touch the hover treatment follows the press
+    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    readonly property bool _touchActive: Touch.feedback(hovered, pressed)
     // Compose every state into an opaque color so ColorAnimation does not flash dirty gray 将所有状态合成为不透明颜色，避免插值时闪过脏灰
     readonly property color _bgColor: {
         var base = Enums.cardColor
         if (selected) {
-            return hovered ? Enums.stateColor.selectedHover
-                           : Enums.stateColor.selected
+            return _touchActive ? Enums.stateColor.selectedHover
+                                : Enums.stateColor.selected
         }
         if (pressed) return Qt.tint(base, Enums.stateColor.listItemPressed)
-        if (hovered) return Qt.tint(base, Enums.stateColor.listItemHover)
+        if (_touchActive) return Qt.tint(base, Enums.stateColor.listItemHover)
         return base
     }
     readonly property color _revealGlowColor: Enums.stateColor.listItemRevealGlow
@@ -58,16 +61,17 @@ Rectangle {
     radius: Enums.radius.card
 
     HoverBehavior on color {
-        active: hovered && !pressed
+        active: _touchActive && !pressed
         enterDuration: Enums.duration.fast
     }
 
     // ==================== Content 内容 ====================
     // Reveal highlight 悬浮光晕
+    // Pointer-following glow is a mouse affordance: suppress it on touch 跟随指针的光晕属于鼠标反馈, 触摸端关闭
     Item {
         anchors.fill: parent
         clip: true
-        visible: hovered && !pressed
+        visible: !Touch.isTouch && hovered && !pressed
 
         Rectangle {
             id: revealGlow
@@ -78,9 +82,9 @@ Rectangle {
             y: itemArea.mouseY - height / 2
             color: root._revealGlowColor
 
-            opacity: hovered ? 1 : 0
+            opacity: _touchActive ? 1 : 0
             HoverBehavior on opacity {
-                active: hovered && !pressed
+                active: _touchActive && !pressed
                 enterDuration: Enums.duration.normal
                 easingType: Easing.OutCubic
             }
