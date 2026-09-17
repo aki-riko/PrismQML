@@ -21,12 +21,16 @@ import "_internal" as SearchInternal
 // 受控+非受控双兼容: 不接信号也能跑(默认清空+关闭),接信号后完全控制
 // 后续动作.
 //
+// 分组: entry.section 非空且 sectionHeaders=true 时按 section 分组显示标题行,
+// 分组顺序取各 section 在排名结果中首次出现的顺序,组内保持 score 排名.
+// 关闭 sectionHeaders 或所有 entry 都没有 section 时,视觉与不分组完全一致.
+//
 // 用法:
 //   Fluent.LocalSearchBar {
 //       placeholderText: '搜索设置...'
 //       entries: [
 //           { title: '云母效果', subtitle: '个性化', icon: 'Color',
-//             keywords: ['mica'], data: { panelIdx: 1 } },
+//             section: '外观', keywords: ['mica'], data: { panelIdx: 1 } },
 //           ...
 //       ]
 //       onEntrySelected: function(entry) {
@@ -43,7 +47,7 @@ Item {
     property var matchKeys: ['title', 'subtitle', 'keywords']
     property bool fuzzyMatch: true
     property int maxSuggestions: 5
-    property bool sectionHeaders: true   // Not implemented yet (v2) 暂未实现 (v2)
+    property bool sectionHeaders: true   // Group results by entry.section 按 entry.section 分组显示标题
     property bool highlightMatches: true
     property string emptyText: ''  // Defaults to i18n key 默认走 i18n no_results
 
@@ -238,6 +242,7 @@ Item {
             matchKeys: control.matchKeys
             fuzzyMatch: control.fuzzyMatch
             maxSuggestions: control.maxSuggestions
+            sectionHeaders: control.sectionHeaders
             highlightMatches: control.highlightMatches
             emptyText: {
                 Translator._v

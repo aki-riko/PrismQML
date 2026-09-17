@@ -606,6 +606,7 @@ QtObject {
  readonly property int resultListWidth: 360
  readonly property int resultEmptyHeight: 60
  readonly property int resultItemHeight: 48
+ readonly property int resultSectionHeaderHeight: 32 // Group header row height 分组标题行高
  readonly property int resultIconSize: 18
  readonly property int resultIndicatorWidth: 3
  }
