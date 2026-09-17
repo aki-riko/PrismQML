@@ -10,7 +10,7 @@ import pytest
 from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import register_types
+from prismqml import Skin, getSkin, register_types, setSkin
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +30,7 @@ Item {
     readonly property int textContentPadding: Enums.spacing.m
     readonly property int buttonHeight: Enums.controlSize.buttonHeight
     readonly property int buttonMinWidth: Enums.controlSize.buttonMinWidth
+    readonly property int splitButtonArrowWidth: Enums.controlSize.splitButtonArrowWidth
 
     width: 320
     height: 120
@@ -46,6 +47,15 @@ Item {
         x: 40
         icon: Enums.icon.image
         iconSize: Enums.iconSize.m
+    }
+
+    Button {
+        id: iconSplitButton
+        objectName: "iconSplitButton"
+        x: 96
+        icon: Enums.icon.checkmark
+        feature: Enums.button.feature_split
+        menuItems: ["More"]
     }
 
     Button {
@@ -176,6 +186,33 @@ def test_icon_only_button_respects_explicit_icon_size(button_scene):
     assert _icon_item(button).property("iconSize") == root.property(
         "regularIconSize"
     )
+    assert warnings == []
+
+
+def test_icon_split_button_reserves_the_standard_split_dropdown_area(button_scene):
+    root, warnings = button_scene
+    button = _button(root, "iconSplitButton")
+    expected_width = (
+        root.property("buttonHeight") + root.property("splitButtonArrowWidth")
+    )
+
+    previous_skin = getSkin()
+    try:
+        for skin in (
+            Skin.FLUENT,
+            Skin.NEOBRUTALISM,
+            Skin.VINTAGE_TICKET,
+            Skin.NEUMORPHISM,
+        ):
+            setSkin(skin)
+            _pump()
+            assert button.property("isToolButton")
+            assert button.property("contentWidth") == pytest.approx(expected_width)
+            assert button.width() == pytest.approx(expected_width)
+            assert button.height() == pytest.approx(root.property("buttonHeight"))
+    finally:
+        setSkin(previous_skin)
+        _pump()
     assert warnings == []
 
 

@@ -129,6 +129,9 @@ Widget {
         _hasProgressBarFeature || feature === _skin.button.feature_toggle
     readonly property bool _showsDropdownIndicator: feature === _skin.button.feature_dropdown &&
                                                     showDropdownIndicator
+    readonly property int _menuFeatureTrailingWidth: feature === _skin.button.feature_split
+        ? _skin.controlSize.splitButtonArrowWidth
+        : (_showsDropdownIndicator ? _skin.controlSize.dropdownArrowWidth : 0)
     readonly property int _contentLeadingPadding: _hasMenuFeature ? _skin.spacing.l : _skin.spacing.m
     readonly property int _contentTrailingPadding: _hasMenuFeature ? _skin.spacing.xs : _skin.spacing.m
 
@@ -247,14 +250,12 @@ Widget {
     contentWidth: {
         if (_countdownActive && _countdownInitialWidth > 0) return _countdownInitialWidth
         if (isToolButton) {
-            return _skin.controlSize.buttonHeight +
-                   (_showsDropdownIndicator ? _skin.controlSize.dropdownArrowWidth : 0)
+            return _skin.controlSize.buttonHeight + _menuFeatureTrailingWidth
         }
         // Transparent/text/hyperlink styles have no minimum width 透明/文本/超链接样式无最小宽度
         var cw = contentLayer.contentLoader.item ?
             contentLayer.contentLoader.item.width + _contentLeadingPadding + _contentTrailingPadding : 0
-        var extraWidth = feature === _skin.button.feature_split ? _skin.controlSize.splitButtonArrowWidth :
-                        (_showsDropdownIndicator ? _skin.controlSize.dropdownArrowWidth : 0)
+        var extraWidth = _menuFeatureTrailingWidth
         if (flat || _hasMenuFeature) return Math.max(cw + extraWidth, _skin.controlSize.buttonHeight)
         return Math.max(_skin.controlSize.buttonMinWidth, cw + extraWidth)
     }
