@@ -174,6 +174,37 @@ Window {
 """
 
 
+SCROLL_AREA_LABEL_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 360
+    height: 180
+    visible: true
+
+    ScrollArea {
+        anchors.fill: parent
+        padding: 0
+
+        Item {
+            width: 360
+            height: 360
+
+            Label {
+                objectName: "scrollAreaLabelLink"
+                x: 24
+                y: 32
+                text: "Open warehouse"
+                type: Enums.label.type_hyperlink
+            }
+        }
+    }
+}
+"""
+
+
 DIALOG_SCENE = b"""
 import QtQuick
 import QtQuick.Window
@@ -427,6 +458,20 @@ def test_label_hyperlink_uses_text_only_press_feedback(qapp) -> None:
         assert label.property("hovered") is False
         assert label.property("_interactiveTextColor") == label.property("_textColor")
         assert label.property("font").underline() is False
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_scroll_area_preserves_label_hyperlink_cursor(qapp) -> None:
+    engine, component, window, warnings = _create_scene(SCROLL_AREA_LABEL_SCENE)
+    try:
+        label = window.findChild(QQuickItem, "scrollAreaLabelLink")
+        assert label is not None
+
+        _move_to_item(window, label, label.boundingRect().center())
+        assert label.property("hovered") is True
+        _assert_pointing_cursor(window)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
