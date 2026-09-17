@@ -22,12 +22,11 @@
 - ✅ **阶段 4**：Store / Logger / SystemTrayIcon / SingleInstance 应用框架能力；
   单元测试 `prism_test_store` 全通过。
 - ✅ **阶段 5**：CMake 安装导出（`find_package(prism)`）+ README + 本文档。
-- ✅ **阶段 6**：桌面补齐——Updater（语义版本比较 + GitHub releases）/
-  ScreenEyedropperManager（全屏取色）/ QRCodeGenerator（接口完整，编码降级）/
-  SqlListModel（QtSql 分页 + LRU，真实 SQLite 250 行测试通过）。测试 26 断言全 PASS。
-- ⬜ **按需**：完整 QR 编码器 / SqlListModel keyset 游标·多 shard（Rust FFI）/
-  TableListModel / Updater 静默安装——边界明确，需求驱动。
-- 🟡 **阶段 7 移动端（代码层就绪，真机构建待环境）**：
+- ✅ **阶段 6**：桌面补齐——Updater（语义版本比较 + GitHub releases + 静默安装）/
+  ScreenEyedropperManager（全屏取色）/ QRCodeGenerator（内建完整编码器）/
+  SqlListModel（QtSql 分页 + LRU + keyset 游标 + 多 shard fan-out）/
+  TableListModel；对应 C++ 测试已纳入构建门禁。
+- 🟡 **阶段 7 移动端（apk 构建与 emulator 验证已完成，控件级触摸细化进行中）**：
   - Platform.h 平台条件编译宏 + Window 移动端全屏 + PlatformInfo 触摸适配地基
     （isMobile/isTouch/touchTargetSize/isCompact），均测试验证。
   - prism_mobile_verify 库坐实移动分支语法/类型正确（桌面编译器强制 PRISM_MOBILE）。
