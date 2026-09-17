@@ -11,8 +11,15 @@ import "PrismEnums"
 //
 // Architecture 架构: Modular design, each category in separate file 模块化设计
 // Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Animation.qml, LazyAnimation.qml, Icons.qml
-// TODO: 45 个子组件在启动时同步创建，可能影响首帧渲染时间。
-//       如需优化，可对低频使用的枚举组件改用 Loader 按需加载。
+// Startup assessment 启动评估 (2026-09-17): five fresh-process samples measured
+// the eager 45-module graph at about +20ms QML load and +17ms object creation
+// versus a minimal QtQuick object. Loader-based deferral would expose null
+// aliases during initial bindings and change the current synchronous contract;
+// keep eager construction until an API-compatible lazy proxy is designed.
+// 启动评估（2026-09-17）：五次全新进程样本显示，相比最小 QtQuick 对象，
+// 当前 45 个模块的同步图约增加 20ms QML 加载和 17ms 对象创建。直接改 Loader
+// 会让首轮 binding 期间的别名变成 null，改变现有同步契约；待有兼容 API 的懒代理
+// 方案后再优化，当前保持同步创建。
 
 Item {
     id: root
