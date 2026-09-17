@@ -446,6 +446,53 @@ def test_scroll_area_variants_geometry_and_public_methods(scroll_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
+def test_nested_blocking_wheel_handler_consumes_wheel_before_outer_area(scroll_scene):
+    """A nested blocking wheel handler must win over the outer scroll area. 内层 blocking 滚轮处理器必须优先于外层滚动区。"""
+def _nested_scene_items(items):
+    outer = items["nestedTarget"]
+    host = items["nestedEditorHost"]
+    inner = next(
+        child
+        for child in host.findChildren(QQuickItem)
+        if child.objectName() == "nestedEditor"
+    )
+    return outer, host, inner
+
+
+def _wheel_at(window, item, delta):
+    """Dispatch a real wheel event through Qt hit testing. 通过 Qt 命中测试派发真实滚轮事件。"""
+    center = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
+    QTest.wheelEvent(
+        window,
+        QPoint(round(center.x()), round(center.y())),
+        QPoint(0, delta),
+    )
+    _pump(120)
+
+
+def test_nested_blocking_wheel_handler_consumes_wheel_before_outer_area(scroll_scene):
+    """A nested blocking wheel handler must win over the outer scroll area. 内层 blocking 滚轮处理器必须优先于外层滚动区。"""
+    window, items, warnings, windows_before = scroll_scene
+    outer, host, inner = _nested_scene_items(items)
+    inner.setProperty("contentY", 0.0)
+    outer.setProperty("contentY", 0.0)
+    _pump(60)
+
+    _wheel_at(window, host, -120)
+    _pump(120)
+
+    assert float(inner.property("contentY")) > 0, (
+        "nested scrollable input did not scroll:",
+        inner.property("contentY"),
+    )
+    assert abs(float(outer.property("contentY"))) <= 1, (
+        "outer scroll area stole the wheel event:",
+        outer.property("contentY"),
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_scroll_bar_sources_follow_conventions():
     violations = []
     source_paths = sorted(SOURCE_DIR.glob("*.qml")) + [

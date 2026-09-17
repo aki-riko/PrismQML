@@ -157,6 +157,8 @@ def _create_scene():
             "defaultArea",
             "listArea",
             "gridArea",
+            "nestedTarget",
+            "nestedEditorHost",
         )
     }
     assert all(items.values())

@@ -28,6 +28,7 @@ Window {
     readonly property real listY: listArea.contentY
     readonly property real listContentHeight: listArea.contentHeight
     readonly property int listCount: listArea.count
+    readonly property real nestedOuterY: nestedTarget.contentY
     readonly property real gridY: gridArea.contentY
     readonly property real gridOriginY: gridArea.gridView.originY
     readonly property real gridContentHeight: gridArea.contentHeight
@@ -214,6 +215,79 @@ Window {
         delegate: gridDelegate
         cellWidth: 60
         cellHeight: 40
+    }
+
+    // Scrollable target plus a SmoothScrollHelper, matching how ScrollAreaList
+    // and the other list-shaped areas are built. The wheel layer under test is
+    // SmoothScrollHelper's internal SmoothScrollWheelArea overlay. A nested
+    // control inside the target consumes wheel via a blocking WheelHandler,
+    // matching a focused multiline text editor, and must win over that overlay.
+    Flickable {
+        id: nestedTarget
+        objectName: "nestedTarget"
+        x: 520
+        y: 20
+        width: 220
+        height: 140
+        contentWidth: width
+        contentHeight: 800
+        clip: true
+        interactive: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        Item {
+            id: nestedEditorHost
+            objectName: "nestedEditorHost"
+            x: 10
+            y: 10
+            width: 200
+            height: 60
+
+            Flickable {
+                id: nestedEditor
+                objectName: "nestedEditor"
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: 400
+                clip: true
+                interactive: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                Rectangle {
+                    width: nestedEditor.width
+                    height: 400
+                }
+
+                WheelHandler {
+                    blocking: true
+
+                    onWheel: function(wheel) {
+                        var delta = -wheel.angleDelta.y / 120 * 20
+                        var limit = Math.max(
+                            0, nestedEditor.contentHeight - nestedEditor.height
+                        )
+                        var target = Math.max(
+                            0, Math.min(limit, nestedEditor.contentY + delta)
+                        )
+                        if (Math.abs(target - nestedEditor.contentY) < 1) {
+                            wheel.accepted = false
+                            return
+                        }
+                        nestedEditor.contentY = target
+                        wheel.accepted = true
+                    }
+                }
+            }
+        }
+    }
+
+    Internal.SmoothScrollHelper {
+        id: nestedHelper
+        objectName: "nestedHelper"
+        target: nestedTarget
+        orientation: Qt.Vertical
+        step: 60
+        handleWheel: true
     }
 }
 """

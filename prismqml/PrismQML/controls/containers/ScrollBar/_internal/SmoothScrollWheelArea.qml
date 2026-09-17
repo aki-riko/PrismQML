@@ -20,10 +20,18 @@ MouseArea {
     visible: scrollHelper.handleWheel
     acceptedButtons: Qt.NoButton
     propagateComposedEvents: true
-    // Stay above the interactive Flickable so wheel input cannot fall through
-    // to native scrolling and cancel the smooth animation. 保持在可交互 Flickable
-    // 之上，避免滚轮穿透触发原生滚动并打断平滑动画。
-    z: Enums.zIndex.controlsAbove
+    // Keep the wheel layer below the Flickable it overlays. The overlay is a
+    // sibling of the target, so any non-negative z outranks the target together
+    // with every control nested inside it (focused text editors, spin boxes).
+    // That made wheel input skip a nested scrollable input and scroll the outer
+    // list instead. Staying below lets nested controls consume the wheel first;
+    // the nested-scroll dispatcher still routes unhandled wheel deltas here,
+    // so smooth scrolling and native-drag rebasing keep working.
+    // 滚轮层保持在所属 Flickable 之下。本覆盖层与目标同级，任何非负 z 都会连同
+    // 目标内部的控件(聚焦文本编辑器、SpinBox 等)一起被压过，导致滚轮跳过内层可滚
+    // 输入控件而滚动外层列表。置于其下可让内层控件优先消费滚轮；未被消费的滚轮仍由
+    // 嵌套滚动调度器转发到此，平滑滚动与原生拖拽重置照常生效。
+    z: Enums.zIndex.background
 
     onWheel: (event) => {
         // Check if scroll is needed 检查是否需要滚动
