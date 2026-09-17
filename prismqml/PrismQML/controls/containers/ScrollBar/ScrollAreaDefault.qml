@@ -18,6 +18,8 @@ Item {
     property bool smoothScroll: true
     // Enable native touch/mouse drag scrolling 启用原生触摸/鼠标拖拽滚动
     property bool dragScrollEnabled: true
+    // Optional resolver for content-specific pointer cursors 可选的内容专用指针光标解析器
+    property var cursorShapeResolver: null
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart
@@ -226,7 +228,9 @@ Item {
         anchors.fill: flickable
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
-        hoverEnabled: false  // Prevent hover interference with child components 防止干扰子组件hover状态
+        hoverEnabled: typeof control.cursorShapeResolver === "function"
+        cursorShape: typeof control.cursorShapeResolver === "function"
+            ? control.cursorShapeResolver(mouseX, mouseY) : Qt.ArrowCursor
         z: Enums.zIndex.controlsAbove
         onWheel: (event) => {
             var horizontal = (event.modifiers & Qt.ShiftModifier) && control._canScrollH

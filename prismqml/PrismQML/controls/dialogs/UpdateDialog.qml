@@ -160,9 +160,16 @@ DialogBoxCore {
             border.color: Enums.stateColor.cardBorder
 
             ScrollArea {
+                id: releaseNotesScroll
+
                 anchors.fill: parent
                 anchors.margins: Enums.border.thin
                 padding: Enums.spacing.m
+                cursorShapeResolver: function(x, y) {
+                    var textPoint = releaseNotesScroll.mapToItem(mdText, x, y)
+                    return mdText.linkAt(textPoint.x, textPoint.y) !== ""
+                        ? Qt.PointingHandCursor : Qt.ArrowCursor
+                }
 
                 Text {
                     id: mdText
