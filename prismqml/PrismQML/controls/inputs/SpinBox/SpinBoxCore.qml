@@ -54,6 +54,14 @@ InputCore {
     readonly property Item _buttonGroup: spinButtonsLoader.item
     readonly property Item _increaseButton: _buttonGroup ? _buttonGroup.increaseButton : null
     readonly property Item _decreaseButton: _buttonGroup ? _buttonGroup.decreaseButton : null
+    // Unit icons reserve their own room so long values never run under them 图标单位自留空间,长数值不会压到图标
+    readonly property real _unitIconInset: iconSize + Enums.spacing.xs
+    readonly property real _textLeftInset: (_buttonGroup
+        ? _buttonGroup.textLeftInset : Enums.spacing.xs)
+        + (prefixIcon !== "" ? _unitIconInset : 0)
+    readonly property real _textRightInset: (_buttonGroup
+        ? _buttonGroup.textRightInset : Enums.spacing.xs)
+        + (suffixIcon !== "" ? _unitIconInset : 0)
 
     // ==================== Signals 信号 ====================
     signal valueUpdated(real value)  // Internal alias 内部别名
@@ -167,10 +175,8 @@ InputCore {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: control._buttonGroup
-                            ? control._buttonGroup.textLeftInset : Enums.spacing.xs
-        anchors.rightMargin: control._buttonGroup
-                             ? control._buttonGroup.textRightInset : Enums.spacing.xs
+        anchors.leftMargin: control._textLeftInset
+        anchors.rightMargin: control._textRightInset
         
         text: control.displayValue
         font.family: Enums.fontFamily

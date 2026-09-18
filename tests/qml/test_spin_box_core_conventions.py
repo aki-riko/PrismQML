@@ -758,8 +758,12 @@ def _assert_unit_icons_beside_value(window, spin_box):
     spacing = window.property("unitIconSpacing")
     assert abs(prefix.x() + prefix.width() - (value_left - spacing)) <= 1
     assert abs(suffix.x() - (value_right + spacing)) <= 1
-    assert prefix.x() >= editor.x()
-    assert suffix.x() + suffix.width() <= editor.x() + editor.width()
+    # 图标只允许占用为它预留的边距：既不出控件，也不越进数值文本框
+    inset = window.property("unitIconSize") + spacing
+    assert prefix.x() >= editor.x() - inset
+    assert suffix.x() + suffix.width() <= editor.x() + editor.width() + inset
+    assert prefix.x() >= 0
+    assert suffix.x() + suffix.width() <= spin_box.width()
 
 
 def _assert_unit_icons_hidden_without_source(spin_box):
@@ -782,16 +786,21 @@ def test_spin_box_unit_icons_render_beside_the_value(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_spin_box_without_unit_icons_keeps_the_value_field(qapp):
+def test_spin_box_unit_icons_reserve_value_field_room(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_icon_scene()
     try:
         plain = controls["withoutIcons"]
         _assert_unit_icons_hidden_without_source(plain)
         plain_editor = _text_input(plain)
-        icon_editor = _text_input(controls["withIcons"])
-        assert plain_editor.x() == icon_editor.x()
-        assert plain_editor.width() == icon_editor.width()
+        both_editor = _text_input(controls["withIcons"])
+        suffix_editor = _text_input(controls["untintedIcon"])
+        inset = window.property("unitIconSize") + window.property("unitIconSpacing")
+        # 未设图标时文本框与基线一致；设了图标就按图标脚印收窄，长数值不会压到图标
+        assert suffix_editor.x() == plain_editor.x()
+        assert suffix_editor.width() == plain_editor.width() - inset
+        assert both_editor.x() == plain_editor.x() + inset
+        assert both_editor.width() == plain_editor.width() - inset * 2
         assert plain.property("displayValue") == controls["withIcons"].property(
             "displayValue"
         )
@@ -838,6 +847,9 @@ def test_spin_box_unit_icon_source_conventions_and_tokens():
     assert "required property var textInputItem" in unit_source
     assert "TextMetrics {" in unit_source
     assert "readonly property real valueLeft" in unit_source
+    assert "readonly property real prefixReserve" in unit_source
+    assert "readonly property real suffixReserve" in unit_source
+    assert "readonly property real iconMaxX" in unit_source
     path = PurePosixPath(unit_path.relative_to(ROOT).as_posix())
     violations = scan_source_text(unit_source, path)
     assert [
