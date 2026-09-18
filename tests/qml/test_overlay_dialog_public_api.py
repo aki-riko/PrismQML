@@ -177,7 +177,12 @@ def test_overlay_dialog_parent_geometry_uses_anchor_binding_without_connections(
         QML_ROOT / "controls" / "dialogs" / "OverlayDialogCore.qml"
     ).read_text(encoding="utf-8")
 
-    assert "anchors.fill: parent" in source
+    # 父级几何必须走声明式绑定（不用 Connections/手写 handler）；
+    # 用几何绑定而非 anchors：对话框常被声明在布局里，布局子项的 anchors 属未定义行为。
+    root_block = source.split("// ==================== Content 内容 ====================")[0]
+    assert "width: parent ? parent.width : 0" in root_block
+    assert "height: parent ? parent.height : 0" in root_block
+    assert "anchors." not in root_block
     assert "onParentChanged:" not in source
     assert "target: control.parent" not in source
     assert "function onWidthChanged()" not in source

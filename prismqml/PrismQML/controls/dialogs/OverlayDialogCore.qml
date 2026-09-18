@@ -69,6 +69,9 @@ Item {
         if (target && target !== control.parent) {
             control.parent = target
         }
+        // Rebind parent geometry: a Layout may have taken over width/height before
+        // 重建父级几何: 此前可能已被布局接管过宽高
+        _fillOverlayHost()
 
         _prepareOpen()
         _isOpen = true
@@ -101,6 +104,14 @@ Item {
 
     // Extension hook for derived dialog layout 派生对话框布局扩展钩子
     function _prepareOpen() {}
+
+    // Re-establish parent geometry bindings after reparenting 重挂父级后重新建立父级几何绑定
+    // A Layout may have overwritten width/height while the dialog lived inside it.
+    // 对话框位于布局内时, 布局可能已覆盖宽高, 因此打开时重建绑定。
+    function _fillOverlayHost() {
+        width = Qt.binding(function() { return parent ? parent.width : 0 })
+        height = Qt.binding(function() { return parent ? parent.height : 0 })
+    }
     // Resolve overlay target 解析覆盖目标
     function _resolveOverlayTarget() {
         // If overlayTarget is specified, use it 如果指定了overlayTarget则使用它
@@ -126,7 +137,13 @@ Item {
         _isClosing = false
     }
     // Layout 布局
-    anchors.fill: parent
+    // Parent geometry via plain bindings instead of anchors: dialogs are commonly
+    // declared inside a Layout, and anchoring a layout-managed item is undefined behavior.
+    // 父级几何用普通绑定而非 anchors: 对话框常被声明在布局里, 布局子项使用 anchors 属未定义行为。
+    x: 0
+    y: 0
+    width: parent ? parent.width : 0
+    height: parent ? parent.height : 0
     z: _skin.zIndex.modal
     visible: _isOpen || _isClosing
     // ==================== Content 内容 ====================

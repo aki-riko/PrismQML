@@ -903,6 +903,24 @@ def test_spin_box_unit_icon_theme_awareness_controls_tinting(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_spin_box_unit_icon_follows_typing(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_icon_scene()
+    try:
+        spin_box = controls["typingBox"]
+        icon = _unit_icons(spin_box)[1]
+        # 输入过程中图标必须随数字增长实时后移（displayValue 只在提交后更新，不能拿来定位）
+        before = icon.x()
+        _type_digits(window, spin_box, "12345")
+        assert icon.x() > before, (before, icon.x())
+        assert icon.x() + icon.width() <= spin_box.width()
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_spin_box_unit_icon_source_conventions_and_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     unit_path = SOURCE_PATH.parent / "_internal" / "SpinBoxUnitIcons.qml"
@@ -925,6 +943,9 @@ def test_spin_box_unit_icon_source_conventions_and_tokens():
     assert "readonly property real valueLeft" in unit_source
     assert "readonly property real textWidth" in unit_source
     assert "readonly property real iconMaxX" in unit_source
+    # 定位必须用输入框实时文本，不能在提交后才更新的 displayValue
+    assert "text: unitIcons.textInputItem.text" in unit_source
+    assert "spinControl.displayValue" not in unit_source
     path = PurePosixPath(unit_path.relative_to(ROOT).as_posix())
     violations = scan_source_text(unit_source, path)
     assert [

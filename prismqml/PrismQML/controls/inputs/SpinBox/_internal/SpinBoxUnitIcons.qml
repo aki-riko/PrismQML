@@ -37,7 +37,9 @@ Item {
     TextMetrics {
         id: valueMetrics
         font: unitIcons.textInputItem.font
-        text: unitIcons.spinControl.displayValue
+        // Live text, not displayValue: the value updates only on commit, the icon must
+        // follow every keystroke 用输入框实时文本而非 displayValue,图标必须逐键跟随
+        text: unitIcons.textInputItem.text
     }
 
     // Leading unit icon 前置图标单位

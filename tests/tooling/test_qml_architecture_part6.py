@@ -52,13 +52,17 @@ def test_overlay_dialog_keeps_restore_timer_modularized():
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 175
+    # 父级几何改用绑定 + 打开时重建（布局子项不可用 anchors），行数预算同步 +15
+    assert len(source.splitlines()) < 190
     assert helper.exists()
     assert len(helper_source.splitlines()) < 25
     assert 'import "_internal" as DialogInternal' in source
     assert "DialogInternal.OverlayDialogRestoreParentTimer {" in source
     assert "id: _restoreParentTimer" in source
     assert "host: control" in source
+    assert "function _fillOverlayHost()" in source
+    assert "_fillOverlayHost()" in source
+    assert "anchors.fill: parent" not in source.split("// ==================== Content")[0]
     assert "\n    Timer {" not in source
     assert "required property var host" in helper_source
     assert 'objectName: "overlayDialogRestoreParentTimer"' in helper_source
