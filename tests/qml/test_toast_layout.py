@@ -98,6 +98,21 @@ Item {{
             }}
         }}
     }}
+
+    // Long wrapped message in the default horizontal layout, long enough to grow
+    // past the minimum toast height on every font. 默认水平布局下的长折行消息,
+    // 长到在任何字体下都必须超过 Toast 最小高度。
+    Toast {{
+        objectName: "longHorizontalToast"
+        y: 300
+        desktopMode: true
+        duration: 0
+        visible: true
+        orient: Qt.Horizontal
+        severity: "error"
+        title: "操作失败"
+        message: {LONG_MESSAGE!r}
+    }}
 }}
 """.encode("utf-8")
 
@@ -204,6 +219,33 @@ def test_horizontal_toast_keeps_default_width_and_wraps_message(qapp):
         body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
         card_bottom = toast.height() - root.property("spacingM")
         assert body_bottom <= card_bottom
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_horizontal_toast_grows_for_wrapped_message_and_keeps_bottom_padding(qapp):
+    """The horizontal layout must grow with its wrapped text.
+
+    水平布局必须随折行文本一起撑高: 消息底边到 Toast 底边必须保留与垂直布局
+    相同的完整底部内边距(卡片内边距 + 阴影外边距), 否则最后一行会被裁掉。
+    """
+    engine, component, root = _create_scene(HORIZONTAL_SCENE_SOURCE)
+    try:
+        toast = root.findChild(QQuickItem, "longHorizontalToast")
+        assert toast is not None
+        body = _visible_text_item(toast, LONG_MESSAGE)
+
+        assert body.property("lineCount") > 1
+        assert toast.width() == pytest.approx(root.property("toastWidth"))
+        assert toast.height() > root.property("toastHeight")
+        assert toast.height() == pytest.approx(toast.property("implicitHeight"))
+
+        body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
+        expected_bottom_gap = root.property("spacingM") + root.property("spacingL")
+        assert toast.height() - body_bottom == pytest.approx(expected_bottom_gap)
     finally:
         root.deleteLater()
         del component

@@ -63,6 +63,13 @@ Item {
             Enums.controlSize.toastMaxWidth
         )
     }
+    // Vertical chrome both layouts must reserve: card padding (l*2), the
+    // contentLayer margins (m*2) and the card elevate offset. Without it a
+    // wrapped message loses its bottom padding and the last line is clipped.
+    // 两种布局都必须预留的垂直占用: 卡片内边距(l*2)、contentLayer 外边距(m*2)
+    // 与卡片抬升偏移。缺了它, 折行消息会丢掉底部内边距并裁掉最后一行。
+    readonly property real layoutVerticalChrome:
+        Enums.spacing.m * 2 + Enums.spacing.cardElevate + Enums.spacing.l * 2
     readonly property real horizontalHeight: {
         // The horizontal layout stacks title above message, so the card must cover
         // both bands: title + gap + message. Counting real rendered heights keeps a
@@ -78,15 +85,13 @@ Item {
         if (toast.message !== "") {
             textH += (titleH > 0 ? Enums.spacing.xs : 0) + messageText.contentHeight
         }
-        var h = Enums.spacing.l + textH + Enums.spacing.l
-        return Math.max(Enums.controlSize.toastHeight, Math.ceil(h))
+        return Math.max(
+            Enums.controlSize.toastHeight, Math.ceil(textH + layoutVerticalChrome)
+        )
     }
     readonly property real verticalHeight: {
         // Use childrenRect because Column implicitHeight can lag wrapped children. childrenRect 兜底, Column implicitHeight 对折行子项可能滞后
-        var h = verticalLayout.childrenRect.height
-            + Enums.spacing.m * 2
-            + Enums.spacing.cardElevate
-            + Enums.spacing.l * 2
+        var h = verticalLayout.childrenRect.height + layoutVerticalChrome
         return Math.max(Enums.controlSize.toastHeight, h)
     }
 
