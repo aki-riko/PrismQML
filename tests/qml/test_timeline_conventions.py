@@ -661,3 +661,85 @@ def test_timeline_pulse_is_shared_and_bounded(timeline_scene):
     assert max(samples) - min(samples) > 0.02, samples
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+def test_timeline_nonvirtual_card_action_link_click(timeline_scene):
+    window, timeline, _virtual_timeline, warnings, windows_before = timeline_scene
+    cards, card_data, actions = [], [], []
+    timeline.setProperty("items", [
+        {
+            "title": "Plan",
+            "status": "info",
+            "cards": [
+                {"text": "One", "commit": "one", "actionText": "跳转"},
+                {"text": "Two", "commit": "two"},
+            ],
+        }
+    ])
+    _pump(30)
+    timeline.cardClicked.connect(
+        lambda group, index, text: cards.append((group, index, text))
+    )
+    timeline.cardClickedData.connect(
+        lambda group, index, data: card_data.append((group, index, data))
+    )
+    timeline.cardActionClicked.connect(
+        lambda group, index, data: actions.append((group, index, data))
+    )
+    links = _named_visible_descendants(timeline, "timelineCardAction")
+    assert len(links) == 1
+    action = links[0]
+    center = action.mapToScene(
+        QPointF(action.width() / 2, action.height() / 2)
+    ).toPoint()
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, center
+    )
+    assert _wait_for(lambda: len(actions) == 1)
+    assert actions[0][0:2] == (0, 0)
+    assert actions[0][2]["commit"] == "one"
+    assert actions[0][2]["actionText"] == "跳转"
+    assert cards == []
+    assert card_data == []
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+def test_timeline_virtual_card_action_link_click(timeline_scene):
+    window, _timeline, virtual_timeline, warnings, windows_before = timeline_scene
+    cards, card_data, actions = [], [], []
+    window.setProperty("virtualItems", [
+        {
+            "title": "Group 0",
+            "status": "info",
+            "cards": [
+                {"text": "Card 0A", "commit": "a0", "actionText": "跳转"},
+                {"text": "Card 0B", "commit": "b0"},
+            ],
+        }
+    ])
+    _pump(30)
+    virtual_timeline.cardClicked.connect(
+        lambda group, index, text: cards.append((group, index, text))
+    )
+    virtual_timeline.cardClickedData.connect(
+        lambda group, index, data: card_data.append((group, index, data))
+    )
+    virtual_timeline.cardActionClicked.connect(
+        lambda group, index, data: actions.append((group, index, data))
+    )
+    links = _named_visible_descendants(virtual_timeline, "timelineCardAction")
+    assert len(links) == 1
+    action = links[0]
+    center = action.mapToScene(
+        QPointF(action.width() / 2, action.height() / 2)
+    ).toPoint()
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, center
+    )
+    assert _wait_for(lambda: len(actions) == 1)
+    assert actions[0][0:2] == (0, 0)
+    assert actions[0][2]["commit"] == "a0"
+    assert actions[0][2]["actionText"] == "跳转"
+    assert cards == []
+    assert card_data == []
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []

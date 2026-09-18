@@ -76,6 +76,11 @@ Item {
     // cardClickedData: 回传完整 card 对象(含调用方自定义字段,如业务 id/hash)
     // cardClickedData: emits the full card object (carrying caller's custom fields, e.g. business id/hash)
     signal cardClickedData(int groupIndex, int cardIndex, var cardData)
+    // cardActionClicked: 卡片动作链接(文本来自 card.actionText,如"跳转")被点击,回传完整 card 对象。
+    // 动作链接点击不触发 cardClicked/cardClickedData。
+    // cardActionClicked: a card's action link (text from card.actionText, e.g. "jump") was clicked,
+    // emitting the full card object. Action clicks do not emit cardClicked/cardClickedData.
+    signal cardActionClicked(int groupIndex, int cardIndex, var cardData)
     // Fires near the bottom in virtual scroll mode (paginated load-more) 虚拟滚动模式下滚动到接近底部时触发(用于分页加载更多)
     signal reachedEnd()
 

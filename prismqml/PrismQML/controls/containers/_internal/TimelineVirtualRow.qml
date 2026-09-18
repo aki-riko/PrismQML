@@ -238,14 +238,36 @@ Item {
                         Label {
                             id: cardTitle
                             type: Enums.label.type_body
-                            width: cardTimeBadge.visible
-                                ? Math.max(0, parent.width - cardTimeBadge.width - parent.spacing)
-                                : parent.width
+                            width: Math.max(0, parent.width
+                                - (cardAction.visible
+                                    ? cardAction.width + parent.spacing : 0)
+                                - (cardTimeBadge.visible
+                                    ? cardTimeBadge.width + parent.spacing : 0))
                             text: rowDelegate.model.text || ""
                             color: (rowDelegate.model.strikeOut || false)
                                 ? Enums.textColor.secondary : Enums.textColor.primary
                             wrapMode: Text.Wrap
                             font.strikeout: rowDelegate.model.strikeOut || false
+                        }
+
+                        Label {
+                            id: cardAction
+                            objectName: "timelineCardAction"
+                            // Same guard as graph labels: a recycled row can briefly
+                            // carry undefined cardData, so resolve through cardData.
+                            // 与 labels 同样守卫 cardData:行复用的瞬间可能刚变 undefined。
+                            readonly property string _actionText: {
+                                const data = rowDelegate.model.cardData
+                                return data && typeof data === "object"
+                                    ? (data.actionText || "") : ""
+                            }
+                            visible: _actionText !== ""
+                            type: Enums.label.type_hyperlink
+                            text: _actionText
+                            onClicked: control.cardActionClicked(
+                                rowDelegate.model.groupIndex,
+                                rowDelegate.model.cardIndex,
+                                rowDelegate.model.cardData)
                         }
 
                         Rectangle {

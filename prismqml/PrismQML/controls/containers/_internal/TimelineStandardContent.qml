@@ -157,6 +157,9 @@ Column {
                             property string cardTimePeriod: cardData
                                 && typeof cardData === "object"
                                 ? (cardData.timePeriod || "") : ""
+                            property string cardActionText: cardData
+                                && typeof cardData === "object"
+                                ? (cardData.actionText || "") : ""
                             readonly property bool isSelected: timeline.selectedKey !== undefined
                                 && cardData && typeof cardData === "object"
                                 && cardData[timeline.selectedRole] === timeline.selectedKey
@@ -233,17 +236,28 @@ Column {
                                             Label {
                                                 id: cardTitle
                                                 type: Enums.label.type_body
-                                                width: cardTimeBadge.visible
-                                                    ? Math.max(0, parent.width
-                                                        - cardTimeBadge.width
-                                                        - parent.spacing)
-                                                    : parent.width
+                                                width: Math.max(0, parent.width
+                                                    - (cardAction.visible
+                                                        ? cardAction.width + parent.spacing : 0)
+                                                    - (cardTimeBadge.visible
+                                                        ? cardTimeBadge.width + parent.spacing : 0))
                                                 text: cardItem.cardText
                                                 color: cardItem.hasStrikeOut
                                                     ? Enums.textColor.secondary
                                                     : Enums.textColor.primary
                                                 wrapMode: Text.Wrap
                                                 font.strikeout: cardItem.hasStrikeOut
+                                            }
+                                            Label {
+                                                id: cardAction
+                                                objectName: "timelineCardAction"
+                                                visible: cardItem.cardActionText !== ""
+                                                type: Enums.label.type_hyperlink
+                                                text: cardItem.cardActionText
+                                                onClicked: timeline.cardActionClicked(
+                                                    groupItem.index,
+                                                    cardItem.index,
+                                                    cardItem.modelData)
                                             }
                                             Rectangle {
                                                 id: cardTimeBadge
