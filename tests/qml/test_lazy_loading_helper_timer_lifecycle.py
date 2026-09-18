@@ -73,6 +73,9 @@ Window {
     function beginSwitch() {
         lazyHelper.showLoadingAndSwitch(1)
     }
+    function beginInitialLoading() {
+        lazyHelper.showInitialLoading(1)
+    }
     function markTargetLoaded() {
         targetLoaded = true
     }
@@ -417,6 +420,25 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
             if candidate.isVisible()
             and not any(candidate is existing for existing in windows_before)
         ] == []
+
+
+def test_initial_loading_overlay_finishes_after_fast_page_ready(qapp):
+    """启动首屏快速就绪后，加载覆盖层不得重新显示。"""
+    engine, component, window, helper, overlay, warnings = _create_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "beginInitialLoading")
+        assert _wait_for(lambda: overlay.property("visible") is True)
+
+        # Complete the page before the overlay enter animation has finished.
+        # This is the startup timing that previously let the enter animation
+        # overwrite the exit animation and leave the spinner visible.
+        assert QMetaObject.invokeMethod(window, "markTargetLoaded")
+        assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
+        assert _wait_for(lambda: overlay.property("visible") is False)
+        assert overlay.property("finishing") is False
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
 
 
 def test_lazy_loading_helper_source_reuses_one_stage_timer():
