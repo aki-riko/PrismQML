@@ -105,7 +105,7 @@ Item {
 
     function _pollLoader(targetIdx) {
         if (targetIdx !== pendingTargetIndex) {
-            _stopStageTimer()
+            _rearmDroppedPhase()
             return
         }
 
@@ -121,8 +121,40 @@ Item {
         }
     }
 
+    function _rearmDroppedPhase() {
+        // A retarget that lands between arming a phase callback and its timeout
+        // must not drop the switch. The render phase timer is single-shot, so
+        // returning here leaves no owner for the loading overlay exit and the
+        // overlay (spinner + caption) stays on screen forever. Re-arm the phase
+        // for the index that is actually pending. A cancelled switch keeps its
+        // old behaviour: isLoadingSwitching is false there, so the timer stops.
+        // 目标索引在阶段回调武装与触发之间变化时不得丢弃整次切换。渲染阶段计时器是
+        // 单次的, 就此 return 会让遮罩退场失去持有者, 遮罩(转圈+文案)会永久留在
+        // 屏幕上。此处为真正待处理的索引重新武装对应阶段。已取消的切换保持原行为:
+        // 那种情况 isLoadingSwitching 为 false, 计时器停止。
+        var pending = pendingTargetIndex
+        if (!isLoadingSwitching || pending < 0) {
+            _trace("helper.dropped_phase.stop", pending)
+            _stopStageTimer()
+            return
+        }
+        _trace("helper.dropped_phase.rearm", pending)
+        if (isPageLoadFailedFunc(pending)) {
+            _handleLoadFailure(pending, pageLoadErrorFunc(pending))
+            return
+        }
+        if (isPageLoadedFunc(pending)) {
+            _startPageRenderTimer(pending)
+            return
+        }
+        _startLoaderPollingTimer(pending)
+    }
+
     function _completePageRender(targetIdx) {
-        if (targetIdx !== pendingTargetIndex) return
+        if (targetIdx !== pendingTargetIndex) {
+            _rearmDroppedPhase()
+            return
+        }
 
         if (_initialLoading) {
             _initialLoading = false

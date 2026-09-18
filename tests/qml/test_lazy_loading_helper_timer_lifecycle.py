@@ -13,6 +13,7 @@ import sys
 
 import shiboken6
 from PySide6.QtCore import (
+    Q_ARG,
     QCoreApplication,
     QEvent,
     QEventLoop,
@@ -473,3 +474,140 @@ def test_activation_interval_reads_collapse_duration_from_transition():
         "                            - Enums.lazyLoadingTransitionMetrics"
         ".coverDuration" not in source
     )
+
+
+RETARGET_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+import "../../prismqml/PrismQML/controls/navigation/_internal"
+import "../../prismqml/PrismQML/controls/navigation"
+
+Window {
+    id: root
+
+    property bool targetLoaded: false
+    property int activatedCount: 0
+    property string stageLog: ""
+
+    function beginInitialLoading() { lazyHelper.showInitialLoading(1) }
+    function markTargetLoaded() { targetLoaded = true }
+    function simulateRetarget(newIndex) { lazyHelper.pendingTargetIndex = newIndex }
+
+    width: 360
+    height: 220
+    visible: true
+    color: "#18202b"
+
+    Loader {
+        id: firstPage
+        objectName: "firstPage"
+        anchors.fill: parent
+        sourceComponent: Rectangle { color: "#b3d9485f" }
+    }
+    Loader {
+        id: secondPage
+        objectName: "secondPage"
+        anchors.fill: parent
+        sourceComponent: Rectangle { color: "#3487eb" }
+        active: false
+    }
+    Loader {
+        id: thirdPage
+        objectName: "thirdPage"
+        anchors.fill: parent
+        sourceComponent: Rectangle { color: "#49d98f" }
+        active: false
+    }
+
+    PageTransition {
+        id: sharedTransition
+        objectName: "lazyPageCircleTransition"
+        anchors.fill: parent
+        animationType: Enums.lazyAnimation.none
+    }
+
+    LazyLoadingHelper {
+        id: lazyHelper
+        objectName: "lazyHelper"
+        anchors.fill: parent
+        loaders: [firstPage, secondPage, thirdPage]
+        targetIndex: 1
+        currentVisibleIndex: 0
+        loadingText: ""
+        pageTransition: sharedTransition
+        loaderActivationDelay: Enums.duration.none
+        isPageLoadedFunc: function(index) { return index !== 0 && root.targetLoaded }
+        isPageLoadFailedFunc: function(index) { return false }
+        pageLoadErrorFunc: function(index) { return "" }
+        activateLoaderFunc: function(index) {
+            root.activatedCount += 1
+            if (index === 1) secondPage.active = true
+            if (index === 2) thirdPage.active = true
+        }
+        diagnosticFunc: function(stage, index, details) { root.stageLog += stage + ";" }
+        onLoadingComplete: function(targetIndex, previousIndex) {
+            firstPage.visible = false
+        }
+    }
+}
+"""
+
+
+def test_retarget_during_render_phase_still_hides_the_loading_overlay(qapp):
+    """阶段回调被丢弃时遮罩必须重新武装并收尾。
+
+    The render phase timer is single-shot. A retarget landing between arming that
+    callback and its timeout used to return immediately, leaving no owner for the
+    overlay exit: the spinner and caption stayed on screen forever.
+    渲染阶段计时器是单次的。目标索引在回调武装与触发之间变化时, 旧实现直接 return,
+    遮罩退场便失去持有者: 转圈与文案永久留在屏幕上。
+    """
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        RETARGET_SCENE_SOURCE,
+        QUrl.fromLocalFile(
+            str(ROOT / "tests" / "qml" / "lazy-loading-helper-retarget.qml")
+        ),
+    )
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    helper = window.findChild(QQuickItem, "lazyHelper")
+    overlay = window.findChild(QQuickItem, "lazyLoadingOverlay")
+    assert helper is not None
+    assert overlay is not None
+    try:
+        assert _wait_for(window.isExposed)
+        assert QMetaObject.invokeMethod(window, "beginInitialLoading")
+        assert _wait_for(lambda: overlay.property("visible") is True)
+        assert QMetaObject.invokeMethod(window, "markTargetLoaded")
+        _pump()
+        # Retarget while the single-shot render phase callback is still armed.
+        # 在单次渲染阶段回调仍武装时改变目标索引。
+        assert QMetaObject.invokeMethod(window, "simulateRetarget", Q_ARG("QVariant", 2))
+        assert _wait_for(
+            lambda: overlay.property("visible") is False, timeout_ms=4_000
+        ), (
+            helper.property("pendingTargetIndex"),
+            helper.property("isLoadingSwitching"),
+            overlay.property("running"),
+            window.property("stageLog"),
+            warnings,
+        )
+        assert "helper.dropped_phase.rearm;" in window.property("stageLog")
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
