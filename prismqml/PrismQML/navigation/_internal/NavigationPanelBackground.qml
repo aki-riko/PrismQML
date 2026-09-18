@@ -91,9 +91,22 @@ Item {
         color: Enums.transparent
 
         // Blurred background image 模糊背景图片
+        // The capture covers the panel inside the window, while this layer
+        // starts one title bar higher: anchor the image to that offset and keep
+        // the capture's own height. Filling the whole layer instead stretched
+        // the blur by height/height-titleBarHeight and lifted it by one title
+        // bar, so the acrylic ghosted a second, offset copy of the panel behind
+        // the real content. 截图取的是窗口内的面板区域, 而本层比窗口高出一个标题栏:
+        // 图像必须按该偏移下移并使用截图自身高度。铺满整层会把模糊图纵向拉伸
+        // height/(height-titleBarHeight) 倍并整体上移一个标题栏, 于是在真实内容
+        // 后面多出一层错位的亚克力重影。
         Image {
             id: acrylicImage
-            anchors.fill: parent
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            y: control.titleBarHeight
+            height: Math.max(0, parent.height - control.titleBarHeight)
             source: control.acrylicImageSource
             fillMode: Image.PreserveAspectCrop
             cache: false  // Disable cache for dynamic updates 禁用缓存以支持动态更新
