@@ -22,11 +22,13 @@ constexpr quint32 kWin11BackdropBuildThreshold = 22621;
 // DWM 常量 (镜像 Python mica_window.py)
 constexpr int kDwmwaUseImmersiveDarkMode = 20;
 constexpr int kDwmwaWindowCornerPreference = 33;
+constexpr int kDwmwaBorderColor = 34;
 constexpr int kDwmwaSystemBackdropType = 38;   // 需 Build >= 22621
 constexpr int kDwmwcpDoNotRound = 1;
 constexpr int kDwmwcpRound = 2;
 constexpr int kDwmBackdropNone = 1;            // DWMSBT_NONE
 constexpr int kDwmBackdropMica = 2;            // DWMSBT_MAINWINDOW (Mica)
+constexpr COLORREF kDwmColorNone = 0xFFFFFFFEu;
 #endif
 }  // namespace
 
@@ -83,6 +85,8 @@ bool MicaManager::applyMica(qulonglong hwnd, bool enabled) {
     // 圆角 (镜像 Python: DWMWCP_ROUND)
     int corner = kDwmwcpRound;
     DwmSetWindowAttribute(h, kDwmwaWindowCornerPreference, &corner, sizeof(corner));
+    COLORREF border = kDwmColorNone;
+    DwmSetWindowAttribute(h, kDwmwaBorderColor, &border, sizeof(border));
 
     int backdrop = enabled ? kDwmBackdropMica : kDwmBackdropNone;
     HRESULT r = DwmSetWindowAttribute(h, kDwmwaSystemBackdropType, &backdrop, sizeof(backdrop));
@@ -133,7 +137,10 @@ bool MicaManager::setWindowCorner(const QVariant &window, bool rounded) {
     const HRESULT result = DwmSetWindowAttribute(
         nativeWindow, kDwmwaWindowCornerPreference,
         &preference, sizeof(preference));
-    return SUCCEEDED(result);
+    COLORREF border = kDwmColorNone;
+    const HRESULT borderResult = DwmSetWindowAttribute(
+        nativeWindow, kDwmwaBorderColor, &border, sizeof(border));
+    return SUCCEEDED(result) && SUCCEEDED(borderResult);
 #else
     Q_UNUSED(window); Q_UNUSED(rounded);
     return false;

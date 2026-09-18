@@ -361,12 +361,15 @@ def test_windows_split_panel_shadow_source_conventions():
     assert "clip: true" in helper_source
     assert "anchors.leftMargin: root._paneWidth" in helper_source
     assert "x: -root._paneWidth" in helper_source
+    assert "y: -root._shadowBlur" in helper_source
+    assert "height: parent.height + root._shadowBlur * 2" in helper_source
+    assert "readonly property real _shadowBlur: Enums.shadow.level8.blur" in helper_source
     assert "visible: opacity > Enums.opacityLevel.invisible" in helper_source
     # Elevation tokens stay in Enums. 高度阴影 token 统一取自 Enums。
     assert "color: Enums.shadow.level8.color" in helper_source
     assert "blur: Enums.shadow.level8.blur" in helper_source
     assert "offset.x: Enums.shadow.level8.offset" in helper_source
-    assert "radius: Enums.surfaceRadius(Enums.radius.large)" in helper_source
+    assert "radius: Enums.radius.none" in helper_source
     assert "Enums.usesSoftElevation" in helper_source
 
 def test_windows_split_panel_shadow_tracks_the_expanded_pane(monkeypatch, qapp):
@@ -403,7 +406,10 @@ def test_windows_split_panel_shadow_tracks_the_expanded_pane(monkeypatch, qapp):
             assert abs(shadow.y()) < 0.5
             assert abs(silhouette.width() - compact_width) < 0.5
             assert abs(silhouette.x() + compact_width) < 0.5
-            assert abs(silhouette.height() - shadow.height()) < 0.5
+            assert silhouette.y() < 0
+            assert abs(
+                silhouette.height() - shadow.height() + silhouette.y() * 2
+            ) < 0.5
 
             assert _set_pane_expanded(window, True)
             assert _wait_for(lambda: abs(shadow.x() - expand_width) < 0.5)

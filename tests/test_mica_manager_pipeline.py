@@ -66,6 +66,7 @@ def test_positive_hresult_commits_window_state_and_signal(qapp, backdrop_result)
     assert [call[1:3] for call in dwm.calls] == [
         (mica_window.DWMWA_USE_IMMERSIVE_DARK_MODE, 1),
         (mica_window.DWMWA_WINDOW_CORNER_PREFERENCE, mica_window.DWMWCP_ROUND),
+        (mica_window.DWMWA_BORDER_COLOR, ctypes.c_int(mica_window.DWMWA_COLOR_NONE).value),
         (mica_window.DWMWA_SYSTEMBACKDROP_TYPE, mica_window.DWM_BACKDROP_MICA),
     ]
     assert manager._current_window is window
@@ -91,7 +92,7 @@ def test_reapply_keeps_dwm_calls_but_logs_only_state_transitions(qapp, monkeypat
     assert manager.setMicaEffect(window, False, False) is True
     assert manager.setMicaEffect(window, False, False) is True
 
-    assert len(dwm.calls) == 12
+    assert len(dwm.calls) == 16
     assert signals == [True, False]
     assert info_messages == ["Mica effect enabled", "Mica effect disabled"]
     assert debug_messages == [
@@ -160,6 +161,7 @@ def test_set_window_corner_is_stateless(qapp, rounded, preference):
 
     assert [call[1:3] for call in dwm.calls] == [
         (mica_window.DWMWA_WINDOW_CORNER_PREFERENCE, preference),
+        (mica_window.DWMWA_BORDER_COLOR, ctypes.c_int(mica_window.DWMWA_COLOR_NONE).value),
     ]
     assert manager._current_window is previous_window
     assert manager._current_hwnd == 77

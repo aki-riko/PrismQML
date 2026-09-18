@@ -36,6 +36,7 @@ WIN11_BACKDROP_BUILD_THRESHOLD = 22621
 # DWM constants DWM 常量
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
+DWMWA_BORDER_COLOR = 34
 DWMWA_SYSTEMBACKDROP_TYPE = 38  # 需要 Build >= 22621
 
 # Window corner preference 窗口圆角偏好
@@ -45,6 +46,7 @@ DWMWCP_ROUND = 2
 # DWM backdrop type values DWM背景类型值
 DWM_BACKDROP_NONE = 1   # DWMSBT_NONE
 DWM_BACKDROP_MICA = 2   # DWMSBT_MAINWINDOW (Mica)
+DWMWA_COLOR_NONE = 0xFFFFFFFE  # Suppress the DWM frame border 抑制 DWM 窗口边框
 
 def _dwm_hresult_succeeded(result: int) -> bool:
     """Apply Windows SUCCEEDED semantics. 使用 Windows SUCCEEDED 语义。"""
@@ -135,6 +137,18 @@ class MicaManager(QObject):
             ctypes.sizeof(native_value),
         )
 
+    def _set_dwm_color_attribute(self, hwnd: int, attribute: int, value: int) -> int:
+        """Set one COLORREF DWM attribute. 设置一个 COLORREF 类型的 DWM 属性。"""
+        import ctypes
+
+        native_value = ctypes.c_uint32(value)
+        return self._dwm_set_attr(
+            hwnd,
+            attribute,
+            ctypes.byref(native_value),
+            ctypes.sizeof(native_value),
+        )
+
     def _apply_mica_to_hwnd(self, hwnd: int, enabled: bool) -> bool:
         """Apply rounded Mica backdrop to a validated HWND. 向已验证 HWND 应用云母。"""
         if self._windows_build < WIN11_BACKDROP_BUILD_THRESHOLD:
@@ -146,6 +160,11 @@ class MicaManager(QObject):
         self._set_dwm_int_attribute(
             hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND
         )
+        border_result = self._set_dwm_color_attribute(
+            hwnd, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE
+        )
+        if not _dwm_hresult_succeeded(border_result):
+            warning(f"DwmSetWindowAttribute border suppression failed: {border_result}")
         backdrop = DWM_BACKDROP_MICA if enabled else DWM_BACKDROP_NONE
         result = self._set_dwm_int_attribute(
             hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop
@@ -196,7 +215,12 @@ class MicaManager(QObject):
             result = self._set_dwm_int_attribute(
                 hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, preference
             )
-            return _dwm_hresult_succeeded(result)
+            border_result = self._set_dwm_color_attribute(
+                hwnd, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE
+            )
+            return _dwm_hresult_succeeded(result) and _dwm_hresult_succeeded(
+                border_result
+            )
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to set window corner: {e}")
             return False

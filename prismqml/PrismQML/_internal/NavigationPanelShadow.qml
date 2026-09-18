@@ -23,6 +23,7 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _paneWidth: root.panel ? root.panel.width : 0
+    readonly property real _shadowBlur: Enums.shadow.level8.blur
 
     // ==================== Size 尺寸 ====================
     objectName: "navigationPanelShadow"
@@ -47,13 +48,19 @@ Item {
 
         objectName: "navigationPanelShadowSource"
         x: -root._paneWidth
+        y: -root._shadowBlur
         width: root._paneWidth
-        height: parent.height
+        height: parent.height + root._shadowBlur * 2
     }
 
     RectangularShadow {
         anchors.fill: shadowSource
-        radius: Enums.surfaceRadius(Enums.radius.large)
+        // Extend the source beyond the clipped top/bottom so only the outer
+        // vertical seam contributes shadow pixels; no rounded corner lobe can
+        // protrude into the title/content junction.
+        // 阴影源上下越过裁剪层，使这里只产生外侧垂直接缝的阴影像素；
+        // 不再让圆角阴影在标题栏/内容接缝处形成突出的暗块。
+        radius: Enums.radius.none
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset.x: Enums.shadow.level8.offset
