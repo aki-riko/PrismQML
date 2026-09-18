@@ -81,6 +81,12 @@ Item {
         visible: Enums.usesSoftElevation && control.acrylicEnabled && control.acrylicImageSource !== ""
         z: 1  // Below all content 在所有内容下方
         radius: control._cornerRadius
+        // Clipping follows the bounding rect, not the rounded path, so all four
+        // corner quadrants are covered by this layer alone. Re-adding a square
+        // "corner fill" would repaint a corner from the wrong part of the
+        // blurred image and surface as a colour block at the window corner.
+        // 裁剪按外接矩形而非圆角路径, 四个角象限本层已覆盖。再补方形"角填充"
+        // 只会用模糊图里错位的区域重绘角落, 在窗口角落露出色块。
         clip: true
         color: Enums.transparent
 
@@ -97,54 +103,6 @@ Item {
         Rectangle {
             anchors.fill: parent
             color: acrylicLayer.acrylicTintColor
-        }
-
-        // Fill top-left corner (no radius) 填充左上角（无圆角）
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            width: parent.radius
-            height: control.titleBarHeight + parent.radius
-            color: Enums.transparent
-            clip: true
-
-            Image {
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                width: acrylicImage.width
-                height: acrylicImage.height
-                source: control.acrylicImageSource
-                fillMode: Image.PreserveAspectCrop
-                cache: false
-            }
-            Rectangle {
-                anchors.fill: parent
-                color: acrylicLayer.acrylicTintColor
-            }
-        }
-
-        // Fill bottom-left corner (no radius) 填充左下角（无圆角）
-        Rectangle {
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            width: parent.radius
-            height: parent.radius
-            color: Enums.transparent
-            clip: true
-
-            Image {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                width: acrylicImage.width
-                height: acrylicImage.height
-                source: control.acrylicImageSource
-                fillMode: Image.PreserveAspectCrop
-                cache: false
-            }
-            Rectangle {
-                anchors.fill: parent
-                color: acrylicLayer.acrylicTintColor
-            }
         }
     }
 
