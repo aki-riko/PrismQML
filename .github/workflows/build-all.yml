@@ -149,6 +149,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python for C++ test tools
+        id: python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -166,6 +167,11 @@ jobs:
         with:
           version: "6.10.3"
           modules: qtshadertools
+          # 不让 action 安装并前置自带 Python: 否则 PATH 会被 hostedtoolcache 的
+          # 最新 Python(实测 3.14.7) 顶掉, CMake 会挑到没装 opencv 的解释器,
+          # prism_test_qrcode_decode 直接 ModuleNotFoundError: cv2。
+          # 这里保持 setup-python 的 3.12, 并在下方显式锁定 Python3_EXECUTABLE。
+          setup-python: false
       # Windows: 激活 MSVC 环境(Qt 是 msvc2022_64, 必须 MSVC 编译; 否则 qt-cmake
       # 选 PATH 里的 MinGW → 链接 MSVC 的 Qt .lib name-mangling 不兼容全 undefined)
       - name: Setup MSVC (Windows)
@@ -181,7 +187,8 @@ jobs:
             QTCMAKE="qt-cmake"
           fi
           "$QTCMAKE" -S cpp -B .artifacts/cpp/ci-desktop -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DPRISM_BUILD_NATIVE_TESTS=ON
+            -DPRISM_BUILD_NATIVE_TESTS=ON \
+            -DPython3_EXECUTABLE="${{ steps.python.outputs.python-path }}"
           cmake --build .artifacts/cpp/ci-desktop
       - name: Run headless unit tests
         shell: bash
@@ -224,6 +231,10 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.10.3"
+          # Qt 6.8+ 的移动端归档在 all_os host, 不在 linux_x64; 不指定 host 时
+          # action 按 runner OS 推断成 linux_x64, 那里 Qt6 只到 6.7.3, aqt 会以
+          # "No latest version available for this request" 失败。见 cpp/ANDROID.md。
+          host: all_os
           target: android
           arch: android_arm64_v8a
           modules: qtshadertools

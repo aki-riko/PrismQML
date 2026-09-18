@@ -402,7 +402,9 @@ mod python_api {
 fn prismqml_rs(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     python_api::register(m)?;
     shard::register(m)?;
-    m.add("__version__", "0.3.1")?;
+    // Single source of truth: rust/Cargo.toml `version`.
+    // 单一来源: rust/Cargo.toml 的 `version`, 不再硬编码以免与 crate 版本漂移。
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
 }
 
