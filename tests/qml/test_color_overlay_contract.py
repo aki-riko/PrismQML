@@ -24,6 +24,7 @@ Software 场景图后端(实测: 请求 Direct3D11, 实际 ``GraphicsApi.Softwar
 失败。观感请在真实窗口上验证。
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -240,6 +241,19 @@ def test_icon_renderer_still_routes_svg_through_color_overlay():
 
     assert "layer.effect: ColorOverlay {" in source
     assert "color: imageIcon.parent.iconControl.color" in source
-    # Recolor must be gated on a ready image, otherwise it tints nothing.
-    # 着色必须以图片就绪为前提, 否则无内容可着色。
-    assert "layer.enabled: imageIcon.status === Image.Ready" in source
+
+    # Recolor is gated on two conjoined conditions; both terms must stay.
+    # ``themeAware: false`` keeps the original artwork by never attaching the
+    # layer at all, and a not-ready image has nothing to tint. Dropping either
+    # term silently regresses one of those two behaviours.
+    # 着色同时以两个条件为门控, 两项都必须保留。``themeAware: false`` 通过完全
+    # 不挂层来保留原图原色, 未就绪的图片无内容可着色。任一项脱开都会静默回归
+    # 其中一种行为。
+    gate = re.search(
+        r"layer\.enabled:\s*(.+?)\s*\n\s*layer\.effect:", source, re.DOTALL
+    )
+    assert gate is not None, "layer.enabled must gate layer.effect directly"
+    gate_terms = " ".join(gate.group(1).split())
+    assert "imageIcon.parent.iconControl.themeAware" in gate_terms
+    assert "imageIcon.status === Image.Ready" in gate_terms
+    assert "&&" in gate_terms
