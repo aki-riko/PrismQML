@@ -711,7 +711,10 @@ def test_timeline_virtual_card_action_link_click(timeline_scene):
             "title": "Group 0",
             "status": "info",
             "cards": [
-                {"text": "Card 0A", "commit": "a0", "actionText": "跳转"},
+                {
+                    "text": "Card 0A", "commit": "a0", "actionText": "跳转",
+                    "time": "10:42", "timePeriod": "AM"
+                },
                 {"text": "Card 0B", "commit": "b0"},
             ],
         }
@@ -729,6 +732,16 @@ def test_timeline_virtual_card_action_link_click(timeline_scene):
     links = _named_visible_descendants(virtual_timeline, "timelineCardAction")
     assert len(links) == 1
     action = links[0]
+    # 动作链接必须位于时间徽章正下方,且右缘与徽章右缘对齐。
+    badges = _named_visible_descendants(virtual_timeline, "timelineCardTimeBadge")
+    assert len(badges) == 1
+    badge = badges[0]
+    action_top = action.mapToItem(virtual_timeline, 0, 0).y()
+    badge_bottom = badge.mapToItem(virtual_timeline, 0, badge.height()).y()
+    assert action_top >= badge_bottom
+    action_right = action.mapToItem(virtual_timeline, action.width(), 0).x()
+    badge_right = badge.mapToItem(virtual_timeline, badge.width(), 0).x()
+    assert abs(action_right - badge_right) <= 2
     center = action.mapToScene(
         QPointF(action.width() / 2, action.height() / 2)
     ).toPoint()

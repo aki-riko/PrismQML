@@ -238,36 +238,14 @@ Item {
                         Label {
                             id: cardTitle
                             type: Enums.label.type_body
-                            width: Math.max(0, parent.width
-                                - (cardAction.visible
-                                    ? cardAction.width + parent.spacing : 0)
-                                - (cardTimeBadge.visible
-                                    ? cardTimeBadge.width + parent.spacing : 0))
+                            width: cardTimeBadge.visible
+                                ? Math.max(0, parent.width - cardTimeBadge.width - parent.spacing)
+                                : parent.width
                             text: rowDelegate.model.text || ""
                             color: (rowDelegate.model.strikeOut || false)
                                 ? Enums.textColor.secondary : Enums.textColor.primary
                             wrapMode: Text.Wrap
                             font.strikeout: rowDelegate.model.strikeOut || false
-                        }
-
-                        Label {
-                            id: cardAction
-                            objectName: "timelineCardAction"
-                            // Same guard as graph labels: a recycled row can briefly
-                            // carry undefined cardData, so resolve through cardData.
-                            // 与 labels 同样守卫 cardData:行复用的瞬间可能刚变 undefined。
-                            readonly property string _actionText: {
-                                const data = rowDelegate.model.cardData
-                                return data && typeof data === "object"
-                                    ? (data.actionText || "") : ""
-                            }
-                            visible: _actionText !== ""
-                            type: Enums.label.type_hyperlink
-                            text: _actionText
-                            onClicked: control.cardActionClicked(
-                                rowDelegate.model.groupIndex,
-                                rowDelegate.model.cardIndex,
-                                rowDelegate.model.cardData)
                         }
 
                         Rectangle {
@@ -312,13 +290,49 @@ Item {
                         visible: control._graphMode && _rowLabels.length > 0
                         labels: _rowLabels
                     }
-                    Label {
-                        type: Enums.label.type_caption
+                    // Description line carries the optional action link on the right
+                    // edge, under the time badge.
+                    // 描述行右缘承载可选动作链接,位于时间徽章正下方。
+                    Item {
+                        id: cardMetaRow
                         width: parent.width
-                        visible: (rowDelegate.model.description || "") !== ""
-                        text: rowDelegate.model.description || ""
-                        color: Enums.textColor.tertiary
-                        wrapMode: Text.Wrap
+                        height: Math.max(cardDescription.height, cardAction.height)
+                        visible: cardDescription.visible || cardAction.visible
+
+                        Label {
+                            id: cardDescription
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: cardAction.visible
+                                ? Math.max(0, parent.width - cardAction.width - Enums.spacing.s)
+                                : parent.width
+                            visible: (rowDelegate.model.description || "") !== ""
+                            text: rowDelegate.model.description || ""
+                            color: Enums.textColor.tertiary
+                            wrapMode: Text.Wrap
+                        }
+
+                        Label {
+                            id: cardAction
+                            objectName: "timelineCardAction"
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            // Same guard as graph labels: a recycled row can briefly
+                            // carry undefined cardData, so resolve through cardData.
+                            // 与 labels 同样守卫 cardData:行复用的瞬间可能刚变 undefined。
+                            readonly property string _actionText: {
+                                const data = rowDelegate.model.cardData
+                                return data && typeof data === "object"
+                                    ? (data.actionText || "") : ""
+                            }
+                            visible: _actionText !== ""
+                            type: Enums.label.type_hyperlink
+                            text: _actionText
+                            onClicked: control.cardActionClicked(
+                                rowDelegate.model.groupIndex,
+                                rowDelegate.model.cardIndex,
+                                rowDelegate.model.cardData)
+                        }
                     }
                 }
             }

@@ -236,28 +236,17 @@ Column {
                                             Label {
                                                 id: cardTitle
                                                 type: Enums.label.type_body
-                                                width: Math.max(0, parent.width
-                                                    - (cardAction.visible
-                                                        ? cardAction.width + parent.spacing : 0)
-                                                    - (cardTimeBadge.visible
-                                                        ? cardTimeBadge.width + parent.spacing : 0))
+                                                width: cardTimeBadge.visible
+                                                    ? Math.max(0, parent.width
+                                                        - cardTimeBadge.width
+                                                        - parent.spacing)
+                                                    : parent.width
                                                 text: cardItem.cardText
                                                 color: cardItem.hasStrikeOut
                                                     ? Enums.textColor.secondary
                                                     : Enums.textColor.primary
                                                 wrapMode: Text.Wrap
                                                 font.strikeout: cardItem.hasStrikeOut
-                                            }
-                                            Label {
-                                                id: cardAction
-                                                objectName: "timelineCardAction"
-                                                visible: cardItem.cardActionText !== ""
-                                                type: Enums.label.type_hyperlink
-                                                text: cardItem.cardActionText
-                                                onClicked: timeline.cardActionClicked(
-                                                    groupItem.index,
-                                                    cardItem.index,
-                                                    cardItem.modelData)
                                             }
                                             Rectangle {
                                                 id: cardTimeBadge
@@ -282,13 +271,47 @@ Column {
                                                 }
                                             }
                                         }
-                                        Label {
-                                            type: Enums.label.type_caption
+                                        // Description line carries the optional action
+                                        // link on the right edge, under the time badge.
+                                        // 描述行右缘承载可选动作链接,位于时间徽章正下方。
+                                        Item {
+                                            id: cardMetaRow
                                             width: parent.width
-                                            visible: cardItem.cardDescription !== ""
-                                            text: cardItem.cardDescription
-                                            color: Enums.textColor.tertiary
-                                            wrapMode: Text.Wrap
+                                            height: Math.max(
+                                                cardDescription.height,
+                                                cardAction.height)
+                                            visible: cardDescription.visible
+                                                || cardAction.visible
+
+                                            Label {
+                                                id: cardDescription
+                                                anchors.left: parent.left
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: cardAction.visible
+                                                    ? Math.max(0, parent.width
+                                                        - cardAction.width
+                                                        - Enums.spacing.s)
+                                                    : parent.width
+                                                type: Enums.label.type_caption
+                                                visible: cardItem.cardDescription !== ""
+                                                text: cardItem.cardDescription
+                                                color: Enums.textColor.tertiary
+                                                wrapMode: Text.Wrap
+                                            }
+
+                                            Label {
+                                                id: cardAction
+                                                objectName: "timelineCardAction"
+                                                anchors.right: parent.right
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                visible: cardItem.cardActionText !== ""
+                                                type: Enums.label.type_hyperlink
+                                                text: cardItem.cardActionText
+                                                onClicked: timeline.cardActionClicked(
+                                                    groupItem.index,
+                                                    cardItem.index,
+                                                    cardItem.modelData)
+                                            }
                                         }
                                     }
                                 }
