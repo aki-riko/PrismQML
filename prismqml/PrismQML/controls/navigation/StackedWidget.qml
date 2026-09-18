@@ -28,6 +28,14 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property var pageProperties: []
     property bool dynamicStack: false
+    // Dynamic-stack pages popped off the top are destroyed by default. Setting this
+    // above 0 keeps that many recently popped levels resident, so pushing the same
+    // URL again reuses the live page instance (no rebuild, no lazy-loading cover)
+    // instead of recreating it. 0 keeps the historical destroy-on-pop behaviour.
+    // 动态栈默认在 pop 时销毁被弹出的页面。设为大于 0 会保留最近弹出的若干层，
+    // 再次 push 同一 URL 时直接复用存活页面（不重建、也不再走懒加载覆盖层）。
+    // 0 = 保持原有「弹出即销毁」行为，其它使用方不受影响。
+    property int dynamicStackRetainDepth: 0
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()

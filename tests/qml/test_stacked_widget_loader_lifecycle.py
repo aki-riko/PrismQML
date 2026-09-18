@@ -169,6 +169,158 @@ Item {{
         engine.deleteLater()
 
 
+def _dynamic_retain_scene(tmp_path, retain_depth=None):
+    """构造一个可标记实例的动态栈场景，返回 (scene_url, page_urls)。"""
+    page_urls = []
+    for index in range(2):
+        page = tmp_path / f"retain_page_{index}.qml"
+        page.write_text(
+            'import QtQuick\n'
+            'Item {\n'
+            '    property string marker: "unset"\n'
+            '    property bool tagged: false\n'
+            '    objectName: "retain-" + marker\n'
+            '}\n',
+            encoding="utf-8",
+        )
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+    retain_line = (
+        f"        dynamicStackRetainDepth: {retain_depth}\n" if retain_depth is not None else ""
+    )
+    return retain_line, page_urls
+
+
+def test_dynamic_stack_retain_depth_reuses_popped_page(qapp, tmp_path):
+    """dynamicStackRetainDepth > 0：pop 收起而不销毁，再次 push 复用同一实例、不重新加载。"""
+    retain_line, page_urls = _dynamic_retain_scene(tmp_path, 2)
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    width: 400
+    height: 240
+    property int secondPageLoads: 0
+
+    function pushSecond() {{
+        stack.push("{page_urls[1]}", {{ marker: "second" }})
+    }}
+
+    function tagSecond() {{
+        stack.itemAt(1).item.tagged = true
+    }}
+
+    function popCurrent() {{
+        stack.pop()
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "retainStack"
+        anchors.fill: parent
+        lazyLoading: true
+        dynamicStack: true
+{retain_line}        pageSources: ["{page_urls[0]}"]
+        pageProperties: [{{ marker: "first" }}]
+        onPageLoaded: (index) => {{ if (index === 1) secondPageLoads += 1 }}
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        _pump(700)
+        assert QMetaObject.invokeMethod(root, "pushSecond")
+        _pump(1000)
+        assert _evaluate(root, "stack.depth") == 2
+        assert _evaluate(root, "stack.itemAt(1).item.objectName") == "retain-second"
+        assert QMetaObject.invokeMethod(root, "tagSecond")
+        assert _evaluate(root, "stack.itemAt(1).item.tagged") is True
+        assert _evaluate(root, "secondPageLoads") == 1
+
+        assert QMetaObject.invokeMethod(root, "popCurrent")
+        _pump(700)
+        assert _evaluate(root, "stack.depth") == 1
+        # 弹出的层仍留在 pageSources 里，Loader 与页面实例都存活。
+        assert _evaluate(root, "stack._loaders.length") == 2
+        assert _evaluate(root, "stack.itemAt(1).item.tagged") is True
+
+        assert QMetaObject.invokeMethod(root, "pushSecond")
+        _pump(1000)
+        assert _evaluate(root, "stack.depth") == 2
+        # 复用同一实例：标记仍在，且没有发生第二次加载。
+        assert _evaluate(root, "stack.itemAt(1).item.tagged") is True
+        assert _evaluate(root, "secondPageLoads") == 1
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_dynamic_stack_without_retain_depth_still_destroys_popped_page(qapp, tmp_path):
+    """默认 dynamicStackRetainDepth == 0 必须保持历史行为：pop 即销毁弹出的页面。"""
+    retain_line, page_urls = _dynamic_retain_scene(tmp_path, None)
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    width: 400
+    height: 240
+
+    function pushSecond() {{
+        stack.push("{page_urls[1]}", {{ marker: "second" }})
+    }}
+
+    function popCurrent() {{
+        stack.pop()
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "plainStack"
+        anchors.fill: parent
+        lazyLoading: true
+        dynamicStack: true
+{retain_line}        pageSources: ["{page_urls[0]}"]
+        pageProperties: [{{ marker: "first" }}]
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        _pump(700)
+        assert _evaluate(root, "stack.dynamicStackRetainDepth") == 0
+        assert QMetaObject.invokeMethod(root, "pushSecond")
+        _pump(1000)
+        assert _evaluate(root, "stack.depth") == 2
+        assert QMetaObject.invokeMethod(root, "popCurrent")
+        _pump(700)
+        assert _evaluate(root, "stack.depth") == 1
+        assert _evaluate(root, "stack._loaders.length") == 1
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
 def test_source_mode_current_widget_is_null_until_loader_is_registered(qapp, tmp_path):
     page = tmp_path / "initial_page.qml"
     page.write_text("import QtQuick\nItem {}\n", encoding="utf-8")
