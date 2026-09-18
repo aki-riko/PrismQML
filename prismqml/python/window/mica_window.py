@@ -5,25 +5,21 @@
 
 """Mica and Acrylic effect manager. 云母与亚克力效果管理器。"""
 import sys
-from threading import Lock
 from typing import Any, Optional
 from PySide6.QtCore import (
-    QByteArray,
-    QBuffer,
-    QIODevice,
     QObject,
     Property,
-    QRect,
     QSize,
     Signal,
     Slot,
     Qt,
 )
-from PySide6.QtGui import QWindow, QImage, QColor, QPainter, QPixmap, QScreen
+from PySide6.QtGui import QWindow, QImage, QColor, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQuick import QQuickImageProvider
 
 from ..core.logger import info, warning, error, debug
+from ._acrylic_image_state import _AcrylicImageState
 from ._window_frame_capture import grab_window_frame as _grab_window_frame
 
 # Windows 11 build number threshold Windows 11 版本号阈值
@@ -370,32 +366,6 @@ def _publish_acrylic_capture(owner: Any, pixmap: QPixmap, width: int, height: in
     owner.imageReady.emit(image_url)
     debug(f"Acrylic image ready: {width}x{height}")
     return image_url
-
-
-class _AcrylicImageState:
-    """Shared acrylic image data without QML-engine ownership. 亚克力共享图像状态。"""
-
-    def __init__(self):
-        self._lock = Lock()
-        self._current_image: Optional[QImage] = None
-        self._image_id = 0
-
-    def image(self) -> Optional[QImage]:
-        """Return a detached image snapshot. 返回图像快照。"""
-        with self._lock:
-            return QImage(self._current_image) if self._current_image is not None else None
-
-    def set_image(self, image: QImage) -> None:
-        """Store an image and advance its cache id. 保存图像并递增缓存标识。"""
-        with self._lock:
-            self._current_image = QImage(image)
-            self._image_id += 1
-
-    @property
-    def image_id(self) -> int:
-        """Return the current cache id. 返回当前缓存标识。"""
-        with self._lock:
-            return self._image_id
 
 
 class AcrylicImageProvider(QQuickImageProvider):

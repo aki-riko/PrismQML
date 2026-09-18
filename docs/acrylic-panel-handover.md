@@ -89,8 +89,7 @@ Layer B 是 `Image` + 着色矩形**铺满整层**的矩形面，而面板轮廓
 
 
 ```bash
-python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
-  python -m pytest tests/qml/test_navigation_panel_acrylic_corner.py -q
+python scripts/test_process.py --qt-platform offscreen --timeout 120 -- python -m pytest tests/qml/test_navigation_panel_acrylic_corner.py -q
 ```
 
 ### 4.2 真机 A/B（关键：只看离屏会漏判）

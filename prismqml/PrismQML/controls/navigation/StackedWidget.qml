@@ -28,13 +28,9 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property var pageProperties: []
     property bool dynamicStack: false
-    // Dynamic-stack pages popped off the top are destroyed by default. Setting this
-    // above 0 keeps that many recently popped levels resident, so pushing the same
-    // URL again reuses the live page instance (no rebuild, no lazy-loading cover)
-    // instead of recreating it. 0 keeps the historical destroy-on-pop behaviour.
-    // 动态栈默认在 pop 时销毁被弹出的页面。设为大于 0 会保留最近弹出的若干层，
-    // 再次 push 同一 URL 时直接复用存活页面（不重建、也不再走懒加载覆盖层）。
-    // 0 = 保持原有「弹出即销毁」行为，其它使用方不受影响。
+    // Keeps that many recently popped dynamic-stack levels resident so a repeated
+    // push of the same URL reuses the live page (no rebuild, no lazy-loading cover).
+    // 动态栈保留最近弹出的若干层, 重复 push 同一 URL 时复用存活页面(不重建、不再走懒加载覆盖层); 0 = 保持原有「弹出即销毁」行为。
     property int dynamicStackRetainDepth: 0
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
@@ -217,23 +213,18 @@ Item {
     function _cancelPendingLazySwitch(reason) {
         return lazyController.cancelPendingLazySwitch(reason)
     }
-
     function _showLazyLoadingAndSwitch(index) {
         lazyController.showLazyLoadingAndSwitch(index)
     }
-
     function _showInitialLoading(index) {
         lazyController.showInitialLoading(index)
     }
-
     function _flushPendingLazySwitch() {
         lazyController.flushPendingLazySwitch()
     }
-
     function _configureLazyHelper(item) {
         lazyController.configureLazyHelper(item)
     }
-
     function _beginPythonLazySwitch(targetIndex) {
         return lazyController.beginPythonLazySwitch(targetIndex)
     }
@@ -249,7 +240,6 @@ Item {
     function _completePythonLazySwitch(targetIndex) {
         return lazyController.completePythonLazySwitch(targetIndex)
     }
-
     function _handlePythonLazyCollapseFinished() {
         lazyController.handlePythonLazyCollapseFinished()
     }
@@ -261,7 +251,6 @@ Item {
     function _handlePythonLazyExpandFinished() {
         lazyController.handlePythonLazyExpandFinished()
     }
-
     function _handleLazyLoadingComplete(targetIdx, prevIdx) {
         lazyController.handleLazyLoadingComplete(targetIdx, prevIdx)
     }

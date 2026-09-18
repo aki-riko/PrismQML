@@ -62,6 +62,11 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # 通过 GetPixel 读真实屏幕像素, 需要上屏的桌面与在运行的 DWM 合成;
     # offscreen 下只会返回 CLR_INVALID。
     Path("scripts/manual/close_periphery_pixel_probe.py"),
+    # Instruments real window corners and grabs screen pixels, so it needs a
+    # presenting desktop with live DWM composition; offscreen paints nothing to
+    # observe. 观测真实窗口四角并抓取屏幕像素, 需要上屏桌面与在运行的 DWM 合成;
+    # offscreen 下没有可观测的绘制。
+    Path("scripts/manual/window_corner_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
