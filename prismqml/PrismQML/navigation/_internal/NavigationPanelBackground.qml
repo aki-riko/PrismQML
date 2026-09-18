@@ -108,6 +108,13 @@ Item {
             readonly property string _source: control.acrylicImageSource
             readonly property real _paintRadius: control._cornerRadius
             readonly property real _topOffset: control.titleBarHeight
+            // Bounded retry budget for the asynchronous capture load: 16ms per
+            // attempt, about three seconds in total, after which the panel stays
+            // unblurred until the source changes.
+            // 异步截图加载的有界重试预算: 每次 16ms, 共约三秒; 之后面板保持无模糊,
+            // 直到图源变化。
+            readonly property int _maxRetries: 180
+            property int _retries: 0
 
             function _scheduleRepaint() {
                 Qt.callLater(acrylicSurface.requestPaint)
@@ -132,16 +139,25 @@ Item {
                 var topOffset = _topOffset
                 ctx.clearRect(0, 0, w, h)
                 // A canvas loads images by URL asynchronously, so the first
-                // paints can run before the capture is available: ask for the
-                // load and retry until the canvas itself reports it ready.
-                // Canvas 按 URL 异步加载图像, 前几帧可能早于截图就绪: 这里发起加载
-                // 并重试, 直到画布自己报告就绪。
-                if (_source === "" || h <= topOffset) return
-                if (!isImageLoaded(_source)) {
-                    _loadSource()
-                    acrylicRetryTimer.restart()
+                // paints run before the capture is ready. Keep re-asking until
+                // the canvas reports it loaded: a single retry is not enough on
+                // a slower machine and leaves the panel with no acrylic at all.
+                // Canvas 按 URL 异步加载图像, 前几帧必然早于截图就绪。这里持续重试到
+                // 画布报告已加载为止: 只重试一次在较慢的机器上会直接留下没有亚克力的
+                // 面板。
+                if (_source === "" || h <= topOffset) {
+                    acrylicRetryTimer.stop()
                     return
                 }
+                if (!isImageLoaded(_source)) {
+                    _loadSource()
+                    if (!acrylicRetryTimer.running && _retries < _maxRetries) {
+                        acrylicRetryTimer.start()
+                    }
+                    return
+                }
+                acrylicRetryTimer.stop()
+                _retries = 0
                 ctx.save()
                 ctx.beginPath()
                 ctx.moveTo(0, 0)
@@ -164,20 +180,31 @@ Item {
             onWidthChanged: _scheduleRepaint()
             onHeightChanged: _scheduleRepaint()
             on_SourceChanged: {
+                _retries = 0
                 _loadSource()
                 _scheduleRepaint()
             }
             on_PaintRadiusChanged: _scheduleRepaint()
             on_TopOffsetChanged: _scheduleRepaint()
 
-            // One-shot retry for the first paint before the capture is decoded.
-            // 截图解码完成前首帧的一次性重试。
+            // Bounded retry loop for the first paint before the capture is
+            // decoded. It stops as soon as a paint finds the image loaded.
+            // 截图解码完成前首帧的有界重试循环; 一旦某次绘制发现图像已加载就停止。
             Timer {
                 id: acrylicRetryTimer
 
                 interval: 16
-                repeat: false
-                onTriggered: acrylicSurface.requestPaint()
+                repeat: true
+                onTriggered: {
+                    acrylicSurface._retries += 1
+                    if (acrylicSurface._retries >= acrylicSurface._maxRetries) {
+                        stop()
+                        console.warn(
+                            "Acrylic capture never loaded:", acrylicSurface._source)
+                        return
+                    }
+                    acrylicSurface.requestPaint()
+                }
             }
 
             // Loader for the capture: it only exists to warm the engine's image
