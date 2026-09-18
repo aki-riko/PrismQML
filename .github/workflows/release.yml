@@ -22,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,6 +33,11 @@ jobs:
         with:
           version: "6.10.3"
           modules: qtshadertools
+          # 不让 action 安装并前置自带 Python: 否则 PATH 会被 hostedtoolcache 的
+          # 最新 Python(实测 3.14.7) 顶掉, pip 依赖安装的解释器与 CMake 选中的
+          # 解释器可能分离。此前仅靠"依赖安装在 install-qt 之后"侥幸一致, 现固定
+          # 为 setup-python 的 3.12, 并由下方 Python3_EXECUTABLE 显式锁定。
+          setup-python: false
       - name: Install source test dependencies
         run: python -m pip install --disable-pip-version-check -e ".[dev]" -r cpp/tests/requirements.txt
       - name: Run Python tests
@@ -66,7 +72,7 @@ jobs:
             -DPRISM_BUILD_GALLERY=OFF \
             -DPRISM_VERIFY_MOBILE=OFF \
             -DPRISM_BUILD_TESTS=ON \
-            -DPython3_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
+            -DPython3_EXECUTABLE="${{ steps.python.outputs.python-path }}"
           cmake --build .artifacts/cpp/ci-quality
       - name: Run headless C++ tests
         env:
