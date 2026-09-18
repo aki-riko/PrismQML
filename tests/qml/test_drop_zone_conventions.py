@@ -222,8 +222,12 @@ def test_drop_zone_source_follows_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    # Touch feedback must be press-driven; plain hover would remain latched after
+    # a synthesized touch release because no leave event is emitted.
+    # 触摸反馈必须由按压驱动；单独使用 hover 会因触摸松手不派发 leave 而残留。
+    assert "readonly property bool _touchActive: Touch.feedback(hovered," in source
     assert (
-        "hovered ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)"
+        "_touchActive ? Enums.stateColor.dropBorderHover : Enums.stateColor.dropBorder)"
         in source
     )
     assert "Enums.stateColor.borderSubtle" not in source
