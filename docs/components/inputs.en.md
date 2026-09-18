@@ -51,6 +51,31 @@ Fluent.CheckBox {
 }
 ```
 
+## SpinBox numeric stepper
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SpinBox {
+    minimum: 0
+    maximum: 100
+    value: 42
+}
+```
+
+`type` selects the variant: `Enums.input.spinbox_normal`, `spinbox_double`, `spinbox_compact`, `spinbox_compact_double`; `prefix` / `suffix` provide text units.
+
+A unit can also be an icon: `prefixIcon` / `suffixIcon` accept a Fluent icon name, emoji or image path (svg/png/qrc/file), render right beside the value, and `iconSize` sets the size (default `Enums.iconSize.s`). Icons are tinted with the control text color; set `iconThemeAware: false` to keep the original artwork colors.
+
+```qml
+Fluent.SpinBox {
+    value: 42
+    prefixIcon: Fluent.Enums.icon.wallet
+    suffixIcon: "qrc:/app/images/gold_brick.svg"
+    iconThemeAware: false
+}
+```
+
 ## Others
 
 - `SpinBox` — numeric stepper

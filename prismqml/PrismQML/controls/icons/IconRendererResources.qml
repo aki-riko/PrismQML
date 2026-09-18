@@ -39,7 +39,8 @@ QtObject {
                 ? Qt.size(parent.iconControl.iconSize * 2, parent.iconControl.iconSize * 2)
                 : Qt.size(0, 0)
 
-            layer.enabled: imageIcon.status === Image.Ready
+            layer.enabled: imageIcon.parent.iconControl.themeAware
+                && imageIcon.status === Image.Ready
             layer.effect: ColorOverlay {
                 color: imageIcon.parent.iconControl.color
             }

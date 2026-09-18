@@ -379,7 +379,7 @@ def test_spin_box_keeps_feedback_timers_modularized():
     assert source.count("SpinBoxInternal.SpinBoxFeedbackTimer {") == 2
     assert "id: upFeedbackTimer" in source
     assert "id: downFeedbackTimer" in source
-    assert source.count("spinControl: control") == 4
+    assert source.count("spinControl: control") == 5
     assert "increase: true" in source
     assert "increase: false" in source
     assert "required property var spinControl" in helper_source
@@ -393,6 +393,36 @@ def test_spin_box_keeps_feedback_timers_modularized():
     assert "pseudoPressed = false" in helper_source
     assert "\n    Timer {\n        id: upFeedbackTimer" not in source
     assert "\n    Timer {\n        id: downFeedbackTimer" not in source
+
+def test_spin_box_keeps_unit_icons_modularized():
+    entry = _source("prismqml/PrismQML/controls/inputs/SpinBox/SpinBoxCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/SpinBox/_internal/"
+        "SpinBoxUnitIcons.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 120
+    assert "SpinBoxInternal.SpinBoxUnitIcons {" in source
+    assert "id: unitIcons" in source
+    assert "textInputItem: textInput" in source
+    assert "TextMetrics {" not in source
+    assert "TextMetrics {" in helper_source
+    assert "required property var spinControl" in helper_source
+    assert "required property var textInputItem" in helper_source
+    assert 'objectName: "spinBoxPrefixIcon"' in helper_source
+    assert 'objectName: "spinBoxSuffixIcon"' in helper_source
+    for marker in (
+        'property string prefixIcon: ""',
+        'property string suffixIcon: ""',
+        "property int iconSize: Enums.iconSize.s",
+        "property bool iconThemeAware: true",
+    ):
+        assert marker in source
+    assert "themeAware: unitIcons.spinControl.iconThemeAware" in helper_source
+    assert "Enums.spacing.xs" in helper_source
 
 def test_spin_box_keeps_auto_repeat_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/SpinBox/SpinBoxCore.qml")

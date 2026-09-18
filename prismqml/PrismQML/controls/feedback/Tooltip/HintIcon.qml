@@ -44,6 +44,5 @@ Widget {
         icon: control.icon
         iconSize: control.iconSize
         color: control.color
-        themeAware: false   // Outer control.color owns the color; no second theming transform 颜色由外层 control.color 主导,不再跟主题二次变换
     }
 }

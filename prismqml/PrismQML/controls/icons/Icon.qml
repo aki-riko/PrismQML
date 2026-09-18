@@ -13,7 +13,7 @@ Item {
     
     // ==================== Public Props 公开属性 ====================
     property string icon: ""           // Icon name / text / emoji / image path 图标名/文本/emoji/图片路径
-    property bool themeAware: true     // Icon color follows theme 图标颜色跟随主题
+    property bool themeAware: true     // Tint icon with color; false keeps artwork 是否用 color 着色,false 保留原图原色
     
     // Base path for fluent icons 图标基础路径
     readonly property string _fluentBasePath: Qt.resolvedUrl("fluent/")

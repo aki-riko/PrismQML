@@ -18,7 +18,12 @@ from PySide6.QtCore import (
     QUrl,
 )
 from PySide6.QtGui import QGuiApplication, QWheelEvent
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QSignalSpy, QTest
 
@@ -46,6 +51,9 @@ METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
 INPUT_ENUM_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Input.qml"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "spin-box-core-conventions.qml")
+)
+ICON_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "spin-box-unit-icons.qml")
 )
 SCENE_SOURCE = b"""
 import QtQuick
@@ -123,6 +131,72 @@ Window {
         autoRepeatDelay: 30
         autoRepeatInterval: 20
         autoRepeatMinInterval: 20
+    }
+}
+"""
+
+
+ICON_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    readonly property string walletIcon: Enums.icon.wallet
+    readonly property string rewardIcon: Enums.icon.reward
+    readonly property int unitIconSize: Enums.iconSize.s
+    readonly property int unitIconSpacing: Enums.spacing.xs
+    readonly property real valueTextWidth: valueMetrics.width
+
+    width: 420
+    height: 260
+    visible: true
+
+    TextMetrics {
+        id: valueMetrics
+        font.family: Enums.fontFamily
+        font.pixelSize: withIcons.fontSize
+        text: withIcons.displayValue
+    }
+
+    SpinBox {
+        id: withIcons
+        objectName: "withIcons"
+        x: 40
+        y: 30
+        width: 220
+        height: 40
+        minimum: 0
+        maximum: 100
+        value: 42
+        prefixIcon: Enums.icon.wallet
+        suffixIcon: Enums.icon.reward
+    }
+
+    SpinBox {
+        id: withoutIcons
+        objectName: "withoutIcons"
+        x: 40
+        y: 100
+        width: 220
+        height: 40
+        minimum: 0
+        maximum: 100
+        value: 42
+    }
+
+    SpinBox {
+        id: untintedIcon
+        objectName: "untintedIcon"
+        x: 40
+        y: 170
+        width: 220
+        height: 40
+        minimum: 0
+        maximum: 100
+        value: 42
+        suffixIcon: Enums.icon.reward
+        iconThemeAware: false
     }
 }
 """
@@ -603,3 +677,171 @@ def test_spin_box_mode_switch_cancels_held_repeat(qapp):
     finally:
         _dispose_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []
+
+
+def _create_icon_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(ICON_SCENE_SOURCE, ICON_SCENE_URL)
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    window.requestActivate()
+    assert _wait_for(window.isActive)
+    controls = {
+        name: window.findChild(QQuickItem, name)
+        for name in ("withIcons", "withoutIcons", "untintedIcon")
+    }
+    assert all(controls.values())
+    return engine, component, window, controls, warnings
+
+
+def _unit_icons(spin_box):
+    return (
+        spin_box.findChild(QQuickItem, "spinBoxPrefixIcon"),
+        spin_box.findChild(QQuickItem, "spinBoxSuffixIcon"),
+    )
+
+
+def _icon_images(icon):
+    return [
+        child
+        for child in _descendants(icon)
+        if child.metaObject().className() == "QQuickImage"
+    ]
+
+
+def _icon_image(icon):
+    matches = _icon_images(icon)
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _evaluate(instance, source):
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(instance), instance, source
+    )
+    result = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    if isinstance(result, tuple):
+        result, is_undefined = result
+        assert not is_undefined
+    return result
+
+
+def _assert_unit_icons_beside_value(window, spin_box):
+    prefix, suffix = _unit_icons(spin_box)
+    assert prefix is not None and suffix is not None
+    assert prefix.isVisible() and suffix.isVisible()
+    assert prefix.property("icon") == window.property("walletIcon")
+    assert suffix.property("icon") == window.property("rewardIcon")
+    assert prefix.width() == window.property("unitIconSize")
+    assert suffix.width() == window.property("unitIconSize")
+    editor = _text_input(spin_box)
+    value_width = window.property("valueTextWidth")
+    value_left = editor.x() + (editor.width() - value_width) / 2
+    value_right = value_left + value_width
+    spacing = window.property("unitIconSpacing")
+    assert abs(prefix.x() + prefix.width() - (value_left - spacing)) <= 1
+    assert abs(suffix.x() - (value_right + spacing)) <= 1
+    assert prefix.x() >= editor.x()
+    assert suffix.x() + suffix.width() <= editor.x() + editor.width()
+
+
+def _assert_unit_icons_hidden_without_source(spin_box):
+    prefix, suffix = _unit_icons(spin_box)
+    assert prefix is not None and suffix is not None
+    assert not prefix.isVisible() and not suffix.isVisible()
+    assert prefix.property("icon") == "" and suffix.property("icon") == ""
+    assert _icon_images(prefix) == [] and _icon_images(suffix) == []
+
+
+def test_spin_box_unit_icons_render_beside_the_value(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_icon_scene()
+    try:
+        _assert_unit_icons_beside_value(window, controls["withIcons"])
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_without_unit_icons_keeps_the_value_field(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_icon_scene()
+    try:
+        plain = controls["withoutIcons"]
+        _assert_unit_icons_hidden_without_source(plain)
+        plain_editor = _text_input(plain)
+        icon_editor = _text_input(controls["withIcons"])
+        assert plain_editor.x() == icon_editor.x()
+        assert plain_editor.width() == icon_editor.width()
+        assert plain.property("displayValue") == controls["withIcons"].property(
+            "displayValue"
+        )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_unit_icon_theme_awareness_controls_tinting(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_icon_scene()
+    try:
+        tinted = _icon_image(_unit_icons(controls["withIcons"])[1])
+        untinted = _icon_image(_unit_icons(controls["untintedIcon"])[1])
+        assert _wait_for(
+            lambda: _evaluate(tinted, "status === Image.Ready")
+            and _evaluate(untinted, "status === Image.Ready")
+        )
+        assert _evaluate(tinted, "layer.enabled") is True
+        assert _evaluate(untinted, "layer.enabled") is False
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_spin_box_unit_icon_source_conventions_and_tokens():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    unit_path = SOURCE_PATH.parent / "_internal" / "SpinBoxUnitIcons.qml"
+    assert unit_path.exists()
+    unit_source = unit_path.read_text(encoding="utf-8")
+    assert "SpinBoxInternal.SpinBoxUnitIcons {" in source
+    for token in (
+        'property string prefixIcon: ""',
+        'property string suffixIcon: ""',
+        "property int iconSize: Enums.iconSize.s",
+        "property bool iconThemeAware: true",
+    ):
+        assert token in source
+    assert "required property var spinControl" in unit_source
+    assert "required property var textInputItem" in unit_source
+    assert "TextMetrics {" in unit_source
+    assert "readonly property real valueLeft" in unit_source
+    path = PurePosixPath(unit_path.relative_to(ROOT).as_posix())
+    violations = scan_source_text(unit_source, path)
+    assert [
+        violation
+        for violation in violations
+        if violation.rule in {"QML008", "QML009", "QML010", "QML011"}
+    ] == []

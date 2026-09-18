@@ -51,6 +51,31 @@ Fluent.CheckBox {
 }
 ```
 
+## SpinBox 数字步进
+
+```qml
+import PrismQML as Fluent
+
+Fluent.SpinBox {
+    minimum: 0
+    maximum: 100
+    value: 42
+}
+```
+
+`type` 选择变体：`Enums.input.spinbox_normal`、`spinbox_double`、`spinbox_compact`、`spinbox_compact_double`；`prefix` / `suffix` 提供文本单位。
+
+单位也可以直接是图标：`prefixIcon` / `suffixIcon` 接受 Fluent 图标名、emoji 或图片路径（svg/png/qrc/file），紧贴数值两侧显示，`iconSize` 控制尺寸（默认 `Enums.iconSize.s`）。图标默认用控件文字色着色；彩色原图请设 `iconThemeAware: false` 保留原色。
+
+```qml
+Fluent.SpinBox {
+    value: 42
+    prefixIcon: Fluent.Enums.icon.wallet
+    suffixIcon: "qrc:/app/images/gold_brick.svg"
+    iconThemeAware: false
+}
+```
+
 ## 其他
 
 - `SpinBox` — 数字步进

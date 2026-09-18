@@ -21,6 +21,12 @@ InputCore {
     property int decimals: 0
     property string prefix: ""
     property string suffix: ""
+    // Icon units drawn beside the value 数值两侧绘制的图标单位
+    // Accept a Fluent icon name, emoji or image path (svg/png/qrc/file) 支持 Fluent 图标名/emoji/图片路径
+    property string prefixIcon: ""
+    property string suffixIcon: ""
+    property int iconSize: Enums.iconSize.s
+    property bool iconThemeAware: true  // Tint unit icons with the control color 是否用控件颜色给图标单位着色
     property bool editable: true
     // Wrap values beyond the range (max+1 -> min, min-1 -> max) 越界时回绕数值
     // Useful for cyclic domains such as time or angles; disabled by default 适用于时间或角度等循环域，默认关闭
@@ -202,6 +208,13 @@ InputCore {
             // Re-establish binding to avoid breaking it 重新建立绑定避免破坏
             text = Qt.binding(function() { return control.displayValue })
         }
+    }
+
+    // Optional icon units 可选图标单位
+    SpinBoxInternal.SpinBoxUnitIcons {
+        id: unitIcons
+        spinControl: control
+        textInputItem: textInput
     }
 
     // Hover detection 悬浮检测
