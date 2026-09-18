@@ -127,7 +127,7 @@ Item {
         if (_initialLoading) {
             _initialLoading = false
             _targetExpansionFinished = true
-            loadingOverlay.finish()
+            _finishLoadingOverlay()
             return
         }
 
@@ -157,7 +157,7 @@ Item {
             _finalizeLoadingSwitch()
             return
         }
-        loadingOverlay.finish()
+        _finishLoadingOverlay()
     }
 
     function _completeWaitIndicatorExit() {
@@ -209,6 +209,7 @@ Item {
         _targetExpansionFinished = false
         _initialLoading = false
         _deferredRevealTarget = -1
+        loadingOverlayEnterAnimation.stop()
         loadingOverlay.visible = false
         loadingOverlay.opacity = 0
         loadingOverlay.y = 0
@@ -282,6 +283,16 @@ Item {
         currentLoader.scale = 1
     }
 
+    function _finishLoadingOverlay() {
+        // Stop the enter animation before starting the exit animation. Otherwise
+        // both animations write opacity/scale and the spinner can reappear after
+        // the page has already finished expanding.
+        // 启动退场动画前先停止入场动画。否则两个动画同时写 opacity/scale，
+        // 页面已经展开后，转圈覆盖层仍可能被入场动画写回可见。
+        loadingOverlayEnterAnimation.stop()
+        loadingOverlay.finish()
+    }
+
     function _startLoadingOverlay() {
         loadingOverlay.start()
         loadingOverlay.x = 0
@@ -323,6 +334,7 @@ Item {
         }
         _restoreVisiblePage()
 
+        loadingOverlayEnterAnimation.stop()
         loadingOverlay.visible = false
         loadingOverlay.opacity = 0
         loadingOverlay.y = 0

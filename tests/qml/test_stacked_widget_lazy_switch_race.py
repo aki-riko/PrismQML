@@ -161,6 +161,7 @@ Item {{
         assert helper.property("loadingAnimationType") == 0
         assert overlay.property("x") == 0
         assert _wait_for(lambda: stack.property("_displayIndex") == 1)
+        assert _wait_for(lambda: overlay.property("visible") is False)
         page_transition = stack.findChild(QObject, "lazyPageCircleTransition")
         assert page_transition is not None
         assert page_transition.property("animationType") == 0
