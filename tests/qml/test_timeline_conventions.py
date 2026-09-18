@@ -280,8 +280,11 @@ def test_timeline_virtual_wheel_bounces_at_both_boundaries_without_jitter(
             )
         )
 
-        event = _send_wheel(window, list_view, wheel_delta)
-        assert event.isAccepted()
+        # The wheel layer is a blocking WheelHandler, so isAccepted() is not a
+        # usable signal; the overshoot legs asserted below prove it handled the
+        # wheel. 滚轮层是 blocking WheelHandler, isAccepted() 不可作判据;
+        # 下述外移断言证明本层确实处理了滚轮。
+        _send_wheel(window, list_view, wheel_delta)
         crossed = (lambda value: value > 1) if at_start else (
             lambda value: value < -1
         )
@@ -382,8 +385,7 @@ def test_timeline_virtual_continuous_same_direction_wheel_keeps_one_bounce(
     for index in range(6):
         if index == 2:
             large_timeline.setWidth(original_width - 64)
-        event = _send_wheel(window, list_view, 120)
-        assert event.isAccepted()
+        _send_wheel(window, list_view, 120)
         _pump(40)
         burst_offsets.append(float(helper.property("_visualOvershootOffset")))
     large_timeline.setWidth(original_width)
@@ -458,7 +460,7 @@ def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
     boundary = float(helper.property("minScroll"))
 
     for _ in range(4):
-        assert _send_wheel(window, list_view, 120).isAccepted()
+        _send_wheel(window, list_view, 120)
         _pump(40)
     assert _wait_for(
         lambda: list_view.property("contentY") == pytest.approx(boundary, abs=0.5)
@@ -470,7 +472,7 @@ def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
 
     # Reverse into the content region, then come back to the boundary.
     # 反向进入内容区，再回到边界。
-    assert _send_wheel(window, list_view, -120).isAccepted()
+    _send_wheel(window, list_view, -120)
     assert _wait_for(lambda: list_view.property("contentY") > boundary + 5)
     _pump(400)
     assert QMetaObject.invokeMethod(helper, "scrollToStart")
@@ -486,7 +488,7 @@ def test_timeline_virtual_reverse_wheel_rearms_boundary_bounce(timeline_scene):
             float(helper.property("_visualOvershootOffset"))
         )
     )
-    assert _send_wheel(window, list_view, 120).isAccepted()
+    _send_wheel(window, list_view, 120)
     assert _wait_for(
         lambda: any(value > 1 for value in visual_trajectory)
     ), visual_trajectory

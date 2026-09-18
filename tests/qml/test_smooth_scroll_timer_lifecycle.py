@@ -278,9 +278,11 @@ def test_smooth_scroll_bounce_timer_and_pixels(qapp):
         assert len(settled_vertical_timers) == 2
         assert len(settled_horizontal_timers) == 2
         # Two overshoot guards, one bounds reconciler and one native movement
-        # synchronizer are persistent children. 两个超出门闸、一个边界校正器与
-        # 一个原生移动同步器是常驻子对象。
-        assert initial_objects == (11, 11)
+        # synchronizer are persistent children. The wheel layer is a pointer
+        # handler, which owns no private timer of its own (a MouseArea did).
+        # 两个超出门闸、一个边界校正器与一个原生移动同步器是常驻子对象。
+        # 滚轮层是指针处理器, 自身不带私有计时器(此前的 MouseArea 带一个)。
+        assert initial_objects == (10, 10)
         assert settled_objects == initial_objects
         assert peak_vertical > vertical_maximum
         assert peak_horizontal > horizontal_maximum

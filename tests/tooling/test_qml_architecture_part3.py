@@ -107,7 +107,13 @@ def test_smooth_scroll_helper_keeps_wheel_input_modularized():
     assert "scrollHelper: helper" in source
     assert "required property var scrollHelper" in helper_source
     assert "parent: scrollHelper.target" in helper_source
-    assert "anchors.fill: parent" in helper_source
+    # The wheel layer is a pointer handler: its host item is the hit area, so it
+    # needs no anchors, and blocking keeps the target's native wheel scrolling out
+    # of the way without outranking a deeper handler.
+    # 滚轮层是指针处理器: 宿主项即命中区域, 因此无需 anchors; blocking 阻止目标的
+    # 原生滚轮滚动, 同时不压过更深的处理器。
+    assert "WheelHandler {" in helper_source
+    assert "blocking: true" in helper_source
     assert "onWheel:" in helper_source
     assert "MouseArea {" not in source
     assert "onWheel:" not in source
