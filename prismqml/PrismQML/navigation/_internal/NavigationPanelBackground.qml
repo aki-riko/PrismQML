@@ -81,145 +81,41 @@ Item {
         visible: Enums.usesSoftElevation && control.acrylicEnabled && control.acrylicImageSource !== ""
         z: 1  // Below all content 在所有内容下方
         radius: control._cornerRadius
+        // Clipping follows the bounding rect, not the rounded path, so all four
+        // corner quadrants are covered by this layer alone. Re-adding a square
+        // "corner fill" would repaint a corner from the wrong part of the
+        // blurred image and surface as a colour block at the window corner.
+        // 裁剪按外接矩形而非圆角路径, 四个角象限本层已覆盖。再补方形"角填充"
+        // 只会用模糊图里错位的区域重绘角落, 在窗口角落露出色块。
         clip: true
         color: Enums.transparent
 
-        // Acrylic surface: the blurred capture plus the tint that keeps the Mica
-        // tone. The panel silhouette is square along the window edge and rounded
-        // on the right, so the blur is painted through that clip path: a plain
-        // Image keeps its square corners where the panel is rounded, and those
-        // corners read as a second, square-cornered layer sticking out of the
-        // panel.
-        // 亚克力面: 模糊截图 + 保留云母色调的着色。面板轮廓贴窗口一侧为直角、右侧为
-        // 圆角, 因此模糊图必须按该轮廓裁剪绘制: 直接用 Image 会在面板圆角处留下方角,
-        // 那块方角看起来就是面板外侧多出来的一层"没有圆角"的层。
-        //
-        // The capture covers the panel inside the window while this layer starts
-        // one title bar higher, so the image is drawn at that offset with its own
-        // height. Filling the whole layer instead stretched the blur by
-        // height/(height-titleBarHeight) and lifted it by one title bar, which
-        // ghosted a second, offset copy of the panel behind the real content.
-        // 截图取的是窗口内的面板区域, 而本层比窗口高出一个标题栏, 因此图像按该偏移
-        // 下移并使用自身高度绘制。铺满整层会把模糊图纵向拉伸 height/(height-titleBarHeight)
-        // 倍并整体上移一个标题栏, 在真实内容后面多出一层错位的重影。
-        Canvas {
-            id: acrylicSurface
+        // Blurred background image 模糊背景图片
+        // The capture covers the panel inside the window, while this layer
+        // starts one title bar higher: anchor the image to that offset and keep
+        // the capture's own height. Filling the whole layer instead stretched
+        // the blur by height/height-titleBarHeight and lifted it by one title
+        // bar, so the acrylic ghosted a second, offset copy of the panel behind
+        // the real content. 截图取的是窗口内的面板区域, 而本层比窗口高出一个标题栏:
+        // 图像必须按该偏移下移并使用截图自身高度。铺满整层会把模糊图纵向拉伸
+        // height/(height-titleBarHeight) 倍并整体上移一个标题栏, 于是在真实内容
+        // 后面多出一层错位的亚克力重影。
+        Image {
+            id: acrylicImage
 
-            readonly property string _source: control.acrylicImageSource
-            readonly property real _paintRadius: control._cornerRadius
-            readonly property real _topOffset: control.titleBarHeight
-            // Bounded retry budget for the asynchronous capture load: 16ms per
-            // attempt, about three seconds in total, after which the panel stays
-            // unblurred until the source changes.
-            // 异步截图加载的有界重试预算: 每次 16ms, 共约三秒; 之后面板保持无模糊,
-            // 直到图源变化。
-            readonly property int _maxRetries: 180
-            property int _retries: 0
+            anchors.left: parent.left
+            anchors.right: parent.right
+            y: control.titleBarHeight
+            height: Math.max(0, parent.height - control.titleBarHeight)
+            source: control.acrylicImageSource
+            fillMode: Image.PreserveAspectCrop
+            cache: false  // Disable cache for dynamic updates 禁用缓存以支持动态更新
+        }
 
-            function _scheduleRepaint() {
-                Qt.callLater(acrylicSurface.requestPaint)
-            }
-
-            function _loadSource() {
-                if (_source !== "" && !isImageLoaded(_source)) loadImage(_source)
-            }
-
-            function _tintStyle() {
-                var tint = acrylicLayer.acrylicTintColor
-                return "rgba(" + Math.round(tint.r * 255) + "," +
-                    Math.round(tint.g * 255) + "," + Math.round(tint.b * 255) +
-                    "," + tint.a + ")"
-            }
-
+        // Tint overlay (pure white/dark gray to preserve Mica tone) 着色叠加层（纯白/深灰保留云母色调）
+        Rectangle {
             anchors.fill: parent
-
-            onPaint: {
-                var ctx = getContext("2d")
-                var w = width, h = height, r = _paintRadius
-                var topOffset = _topOffset
-                ctx.clearRect(0, 0, w, h)
-                // A canvas loads images by URL asynchronously, so the first
-                // paints run before the capture is ready. Keep re-asking until
-                // the canvas reports it loaded: a single retry is not enough on
-                // a slower machine and leaves the panel with no acrylic at all.
-                // Canvas 按 URL 异步加载图像, 前几帧必然早于截图就绪。这里持续重试到
-                // 画布报告已加载为止: 只重试一次在较慢的机器上会直接留下没有亚克力的
-                // 面板。
-                if (_source === "" || h <= topOffset) {
-                    acrylicRetryTimer.stop()
-                    return
-                }
-                if (!isImageLoaded(_source)) {
-                    _loadSource()
-                    if (!acrylicRetryTimer.running && _retries < _maxRetries) {
-                        acrylicRetryTimer.start()
-                    }
-                    return
-                }
-                acrylicRetryTimer.stop()
-                _retries = 0
-                ctx.save()
-                ctx.beginPath()
-                ctx.moveTo(0, 0)
-                ctx.lineTo(w, 0)
-                ctx.lineTo(w, topOffset)
-                ctx.lineTo(w - r, topOffset)
-                ctx.arcTo(w, topOffset, w, topOffset + r, r)
-                ctx.lineTo(w, h - r)
-                ctx.arcTo(w, h, w - r, h, r)
-                ctx.lineTo(0, h)
-                ctx.closePath()
-                ctx.clip()
-                ctx.drawImage(_source, 0, topOffset, w, h - topOffset)
-                ctx.fillStyle = _tintStyle()
-                ctx.fill()
-                ctx.restore()
-            }
-
-            Component.onCompleted: _loadSource()
-            onWidthChanged: _scheduleRepaint()
-            onHeightChanged: _scheduleRepaint()
-            on_SourceChanged: {
-                _retries = 0
-                _loadSource()
-                _scheduleRepaint()
-            }
-            on_PaintRadiusChanged: _scheduleRepaint()
-            on_TopOffsetChanged: _scheduleRepaint()
-
-            // Bounded retry loop for the first paint before the capture is
-            // decoded. It stops as soon as a paint finds the image loaded.
-            // 截图解码完成前首帧的有界重试循环; 一旦某次绘制发现图像已加载就停止。
-            Timer {
-                id: acrylicRetryTimer
-
-                interval: 16
-                repeat: true
-                onTriggered: {
-                    acrylicSurface._retries += 1
-                    if (acrylicSurface._retries >= acrylicSurface._maxRetries) {
-                        stop()
-                        console.warn(
-                            "Acrylic capture never loaded:", acrylicSurface._source)
-                        return
-                    }
-                    acrylicSurface.requestPaint()
-                }
-            }
-
-            // Loader for the capture: it only exists to warm the engine's image
-            // cache and to request a repaint once the acrylic image is ready.
-            // 截图的加载器: 只负责预热引擎图像缓存, 并在亚克力图就绪后再请求一次重绘。
-            Image {
-                id: acrylicSource
-
-                visible: false
-                source: acrylicSurface._source
-                cache: false  // Disable cache for dynamic updates 禁用缓存以支持动态更新
-                onStatusChanged: {
-                    if (status === Image.Ready) acrylicSurface.requestPaint()
-                }
-            }
+            color: acrylicLayer.acrylicTintColor
         }
     }
 

@@ -176,34 +176,3 @@ def test_acrylic_panel_image_aligns_with_the_visible_panel(qapp, tmp_path):
         assert warnings == [], warnings
     finally:
         _dispose(engine, component, window)
-
-
-def test_acrylic_stays_inside_the_rounded_panel_silhouette(qapp, tmp_path):
-    engine, component, window, warnings = _windowed_probe(qapp, tmp_path)
-    try:
-        grabbed = window.grabWindow()
-        assert not grabbed.isNull()
-        # The panel is rounded on its right side, so the acrylic must not paint
-        # into the two corner quadrants outside that silhouette: a rectangle
-        # clip keeps the blur's square corners there and they read as a second,
-        # square-cornered layer sticking out of the panel.
-        # 面板右侧是圆角, 亚克力不得画进圆角之外的角象限: 矩形裁剪会让模糊图在那里
-        # 留下方角, 看起来就是面板外多出一层"没有圆角"的层。
-        top_right = grabbed.pixelColor(PANEL_WIDTH - 2, 2)
-        bottom_right = grabbed.pixelColor(PANEL_WIDTH - 2, WINDOW_HEIGHT - 2)
-        for label, pixel in (
-            ("top-right", top_right),
-            ("bottom-right", bottom_right),
-        ):
-            detail = f"{label}={pixel.name()}"
-            # The window behind is white; acrylic would be red/green there.
-            # 背后的窗口是白色; 若亚克力画到这里, 会是红/绿。
-            assert pixel.green() <= pixel.red() + 4, detail
-            assert pixel.blue() <= pixel.red() + 4, detail
-        # The silhouette's rounded edge must not cut the panel itself either.
-        # 轮廓的圆角也不得裁掉面板本身。
-        inside = grabbed.pixelColor(PANEL_WIDTH - 2, WINDOW_HEIGHT // 2)
-        assert inside.green() > inside.red(), f"inside={inside.name()}"
-        assert warnings == [], warnings
-    finally:
-        _dispose(engine, component, window)

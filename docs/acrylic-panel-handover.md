@@ -1,9 +1,8 @@
 # 导航面板亚克力显示问题 — 交接文档
 
 > 范围：`WindowsSplit`（设置里"窗口类型 = Window"）左侧导航面板的亚克力背景显示异常。
-> **当前 main 实际状态**：`de913fdc`（角块）+ `8b75ac03`（错位重影）+
-> `39d0ac81`（轮廓裁剪）+ `a70f9921`（首帧有界重试）+ `344cab66`（本次交接更新）。
-> 原先回退的 `c13f52ce` / `ccbfe7d5` 已按本交接方案恢复为上述两个提交。
+> **当前 main 实际状态（本次回滚后）**：`de913fdc`（角块）+ `8b75ac03`（错位重影）。
+> `c13f52ce` / `ccbfe7d5` 对应的 Canvas 路线已按实际验收反馈否决，不再作为当前实现。
 
 ---
 
@@ -11,12 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| main HEAD | `344cab66 文档: 更新亚克力修复交接状态` |
-| 生效修复 | `de913fdc` 角填充、`8b75ac03` 模糊图对齐、`39d0ac81` 轮廓裁剪、`a70f9921` 首帧有界重试 |
-| 未生效（已回退） | 无；`c13f52ce` / `ccbfe7d5` 已分别恢复为 `39d0ac81` / `a70f9921` |
-| 亚克力当前实现 | `NavigationPanelBackground.qml`：`Canvas` 按面板轮廓 `clip()` 绘制 `drawImage` + 着色；异步图源最多重试 180 次（约 3 秒） |
-| 定向测试 | 亚克力回归 `3 passed`；导航/架构定向套件 `33 passed`；QML 规范扫描 `0 violation` |
-| 遗留缺陷 | 方角外露已修复；亚克力静态快照与滚动轨边带仍见第 6 节 |
+| main HEAD | 回滚提交；代码基线恢复至 `8b75ac03` 之后的状态 |
+| 生效修复 | `de913fdc` 角填充（左上角色块）、`8b75ac03` 模糊图对齐（错位重影） |
+| 未生效（已回退） | `c13f52ce` 亚克力按轮廓裁剪、`ccbfe7d5` 首帧加载有界重试（实际视觉验收否决） |
+| 亚克力当前实现 | `NavigationPanelBackground.qml`：`Image`（`y: titleBarHeight`、`height: parent.height - titleBarHeight`）+ 着色 `Rectangle`，**无轮廓遮罩** |
+| 定向测试 | 回滚后亚克力回归 `2 passed`；导航/架构定向套件 `33 passed` |
+| 遗留缺陷 | 亚克力是**矩形面**，在面板右侧两个圆角处会露出方角（"没有圆角的那一层"） |
 
 ---
 
@@ -26,8 +25,8 @@
 |------|----------|------|
 | 方形色块（浅色偏白、暗色偏蓝，约 8×8 逻辑像素） | 窗口左上角 | 已修 `de913fdc` |
 | 面板项后面一层**错位**的模糊重影（"上面一层下面一层"） | 整个面板 | 已修 `8b75ac03` |
-| 面板外侧露出**方角的一层**（"没有圆角的那层"） | 面板右上、右下圆角处 | 已修 `39d0ac81` + `a70f9921` |
-| 面板整片没有模糊，只剩右缘一条 | 整个面板 | 已由 `a70f9921` 的有界加载重试覆盖；当前 Gallery A/B 已确认整片有变化 |
+| 面板外侧露出**方角的一层**（"没有圆角的那层"） | 面板右上、右下圆角处 | **未修（修复被回退）** |
+| 面板整片没有模糊，只剩右缘一条 | 整个面板 | 曾由 `c13f52ce` 引入，`ccbfe7d5` 修好，两者都已回退；当前 main 无此问题 |
 
 ---
 
@@ -65,18 +64,15 @@
 修法：按截图自身尺寸落位（`y: titleBarHeight`，`height: parent.height - titleBarHeight`）。
 真机观测：亚克力 `QQuickImage` 几何 `(0,0,320,848)` → **`(0,48,320,800)`**。
 
-### 3.3 方角外露 — `39d0ac81` + `a70f9921`（当前 main）
+### 3.3 方角外露 — `c13f52ce` + `ccbfe7d5`（候选路线，已否决）
 Layer B 是 `Image` + 着色矩形**铺满整层**的矩形面，而面板轮廓右侧是圆角
 → 两块方角画到圆角面板之外，就是"没有圆角的那一层"。
 
-修法：改为 `Canvas` 按面板轮廓裁剪绘制（`clip()` 走与 `bgCanvas` 同一条路径，
-再 `drawImage` + 填充着色）。首帧加载使用有界重试循环（16ms × 180 ≈ 3 秒，
-成功即停，超时 `console.warn`），避免较慢机器首帧整片失去模糊。
+该候选路线把亚克力改成 `Canvas` 按面板轮廓裁剪，再用有界重试加载图源。
+虽然插桩 A/B 能观察到部分像素变化，但这只证明绘制发生，不能证明真实视觉、层级和交互契约满足要求；
+用户实际验收明确判定这套实现不可接受，因此不得再次直接恢复。
 
-真实 D3D11 Gallery A/B 证据（本次 `a70f9921` 状态）：Canvas 图源 `loaded=True`；
-`y=600` 行 x=40…440 全部 `changed`（整片覆盖）；圆角外 `TR(478,2)`、`BR(478,1197)`
-两帧完全一致（不越界），圆角内 `TR(466,14)` / `BR(466,1186)` 均 `changed`。
-即：**带有界重试的 Canvas 路线在当前真实 Gallery 上可用，方角未越出轮廓**。
+历史 A/B 采样结果仅作为失败路线的诊断材料保留，不构成“已修复”证据。
 
 ---
 
@@ -89,8 +85,8 @@ Layer B 是 `Image` + 着色矩形**铺满整层**的矩形面，而面板轮廓
 1. `test_acrylic_panel_corner_keeps_the_panel_image_region`：角落必须取面板**顶部**图像区域
    —— 改前 `corner=#acf7ac`（取到下半部）失败；
 2. `test_acrylic_panel_image_aligns_with_the_visible_panel`：截图中线必须落在窗口中线上
-   —— 改前 `above=#acf7ac`（被拉伸上移）失败；
-3. `test_acrylic_stays_inside_the_rounded_panel_silhouette`：亚克力不得越出圆角轮廓。
+   —— 改前 `above=#acf7ac`（被拉伸上移）失败。
+
 
 ```bash
 python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
@@ -102,9 +98,9 @@ python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
 判据：**面板内部整片 `changed`；圆角外点两帧一致**。脚本见第 5 节。
 
 ### 4.3 回归面（当前 main）
-本次 `test_navigation_panel_acrylic_corner.py` 为 `3 passed`；导航/架构定向套件为
-`33 passed`；`python scripts/check_qml_conventions.py --changed --base 5423e36b` = 0 violation。
-真实 Gallery 插桩脚本正常退出（exit code 0），并输出上述 A/B 判据。
+`16 passed`：本文件 2 条 + `test_root_navigation_conventions.py` +
+`test_navigation_window_core_conventions.py` + `test_qml_architecture.py::test_navigation_panel_keeps_background_layer_modularized`；
+`python scripts/check_qml_conventions.py --changed --base HEAD` = 0 violation。
 
 ---
 
@@ -143,9 +139,9 @@ python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
   - 换成 `ShaderEffectSource { sourceItem: ... }`（TeachingTour 的写法）在真机 A/B 下**仍未切掉方角**。
 - 结论：若日后要回到 GPU 遮罩，先写"真机 A/B：圆角外点两帧一致"的判据再动手。
 
-### 6.4 方角外露（已解决）
-已恢复并验证 `c13f52ce` / `ccbfe7d5` 对应的 Canvas 轮廓裁剪与有界加载重试，形成
-`39d0ac81` / `a70f9921`；无需改 `AcrylicHelper` provider，也没有把面板轮廓改成直角。
+### 6.4 Canvas 轮廓裁剪候选（已否决）
+不要再次直接恢复 `c13f52ce` / `ccbfe7d5`。下一方案必须先明确真实可接受的视觉基准，
+再用同一真实场景验证；不得只凭离屏像素或 A/B 采样宣称修复。
 
 ---
 
@@ -156,7 +152,7 @@ python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
 - QML 规范扫描：`python scripts/check_qml_conventions.py --changed --base HEAD`。
 - 产物只能落 `.artifacts/`（已 gitignore）；根目录/源码树不得新增散落产物。
 - 提交信息用中文；发布提交与 tag 显式推 `prism`。
-- 修 BUG 不得改变原有行为与视觉；本次只把亚克力绘制限制到既有面板轮廓，
+- 修 BUG 不得改变原有行为与视觉；`de913fdc`/`8b75ac03` 都只是"把错位绘制收回到正确区域"，
   未改布局、交互、层级或对象创建时序。
 
 ---
@@ -165,10 +161,10 @@ python scripts/test_process.py --qt-platform offscreen --timeout 120 -- \
 
 完全重启 Gallery（不要只热重载）→ 展开导航面板：
 
-- [x] 面板整片有模糊（不是只剩一条）
-- [x] 面板项后面没有错位的第二层
-- [x] 左上角没有方形色块
-- [x] 右侧圆角处没有方角的一层
+- [ ] 面板整片有模糊（不是只剩一条）
+- [ ] 面板项后面没有错位的第二层
+- [ ] 左上角没有方形色块
+- [ ] 右侧圆角处没有方角的一层 —— 当前仍未解决，Canvas 候选已否决
 
-若未来"整片有模糊"不成立，日志中应有 `Acrylic capture never loaded:`，
+若"整片有模糊"不成立，日志中应有 `Acrylic capture never loaded:`，
 把它连同 `.artifacts/window-diag/gallery_probe.py` 的 A/B 输出一起附上继续排查。
