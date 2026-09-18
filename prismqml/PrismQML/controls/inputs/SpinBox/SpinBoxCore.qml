@@ -188,6 +188,9 @@ InputCore {
         readOnly: !control.editable
         enabled: control.enabled
         horizontalAlignment: Text.AlignHCenter
+        // With a unit icon the value stays inside its own field, never under the icon
+        // 带图标单位时数值裁在自己的输入框内，绝不会画到图标下面
+        clip: control.prefixIcon !== "" || control.suffixIcon !== ""
         
         validator: DoubleValidator { bottom: control.minimum; top: control.maximum; decimals: control.decimals }
 

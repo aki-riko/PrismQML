@@ -845,6 +845,7 @@ def test_spin_box_unit_icon_source_conventions_and_tokens():
         assert token in source
     assert "required property var spinControl" in unit_source
     assert "required property var textInputItem" in unit_source
+    assert 'clip: control.prefixIcon !== "" || control.suffixIcon !== ""' in source
     assert "TextMetrics {" in unit_source
     assert "readonly property real valueLeft" in unit_source
     assert "readonly property real prefixReserve" in unit_source
