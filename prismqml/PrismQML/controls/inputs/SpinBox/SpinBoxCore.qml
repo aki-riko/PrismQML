@@ -54,14 +54,9 @@ InputCore {
     readonly property Item _buttonGroup: spinButtonsLoader.item
     readonly property Item _increaseButton: _buttonGroup ? _buttonGroup.increaseButton : null
     readonly property Item _decreaseButton: _buttonGroup ? _buttonGroup.decreaseButton : null
-    // Unit icons reserve their own room so long values never run under them 图标单位自留空间,长数值不会压到图标
+    // Unit icons reserve their own room by padding, never by shrinking the field
+    // 图标单位用内边距自留空间,不靠压缩输入框来腾地方
     readonly property real _unitIconInset: iconSize + Enums.spacing.xs
-    readonly property real _textLeftInset: (_buttonGroup
-        ? _buttonGroup.textLeftInset : Enums.spacing.xs)
-        + (prefixIcon !== "" ? _unitIconInset : 0)
-    readonly property real _textRightInset: (_buttonGroup
-        ? _buttonGroup.textRightInset : Enums.spacing.xs)
-        + (suffixIcon !== "" ? _unitIconInset : 0)
 
     // ==================== Signals 信号 ====================
     signal valueUpdated(real value)  // Internal alias 内部别名
@@ -175,8 +170,10 @@ InputCore {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: control._textLeftInset
-        anchors.rightMargin: control._textRightInset
+        anchors.leftMargin: control._buttonGroup
+                            ? control._buttonGroup.textLeftInset : Enums.spacing.xs
+        anchors.rightMargin: control._buttonGroup
+                             ? control._buttonGroup.textRightInset : Enums.spacing.xs
         
         text: control.displayValue
         font.family: Enums.fontFamily
@@ -188,9 +185,11 @@ InputCore {
         readOnly: !control.editable
         enabled: control.enabled
         horizontalAlignment: Text.AlignHCenter
-        // With a unit icon the value stays inside its own field, never under the icon
-        // 带图标单位时数值裁在自己的输入框内，绝不会画到图标下面
-        clip: control.prefixIcon !== "" || control.suffixIcon !== ""
+        // The unit icon takes padding, so the field keeps its full width and typing,
+        // caret scrolling and clipping behave exactly as without icons
+        // 图标单位只占内边距：输入框宽度不变,输入、光标滚动与裁切行为与无图标时一致
+        leftPadding: control.prefixIcon !== "" ? control._unitIconInset : 0
+        rightPadding: control.suffixIcon !== "" ? control._unitIconInset : 0
         
         validator: DoubleValidator { bottom: control.minimum; top: control.maximum; decimals: control.decimals }
 

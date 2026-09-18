@@ -198,6 +198,31 @@ Window {
         suffixIcon: Enums.icon.reward
         iconThemeAware: false
     }
+
+    SpinBox {
+        id: typingBox
+        objectName: "typingBox"
+        x: 270
+        y: 30
+        width: Enums.controlSize.spinBoxWidth
+        height: 40
+        minimum: 0
+        maximum: 999999999
+        value: 0
+        suffixIcon: Enums.icon.reward
+    }
+
+    SpinBox {
+        id: typingPlain
+        objectName: "typingPlain"
+        x: 270
+        y: 100
+        width: Enums.controlSize.spinBoxWidth
+        height: 40
+        minimum: 0
+        maximum: 999999999
+        value: 0
+    }
 }
 """
 
@@ -704,7 +729,13 @@ def _create_icon_scene():
     assert _wait_for(window.isActive)
     controls = {
         name: window.findChild(QQuickItem, name)
-        for name in ("withIcons", "withoutIcons", "untintedIcon")
+        for name in (
+            "withIcons",
+            "withoutIcons",
+            "untintedIcon",
+            "typingBox",
+            "typingPlain",
+        )
     }
     assert all(controls.values())
     return engine, component, window, controls, warnings
@@ -753,17 +784,20 @@ def _assert_unit_icons_beside_value(window, spin_box):
     assert suffix.width() == window.property("unitIconSize")
     editor = _text_input(spin_box)
     value_width = window.property("valueTextWidth")
-    value_left = editor.x() + (editor.width() - value_width) / 2
-    value_right = value_left + value_width
     spacing = window.property("unitIconSpacing")
+    inset = window.property("unitIconSize") + spacing
+    left_padding = editor.property("leftPadding")
+    right_padding = editor.property("rightPadding")
+    text_width = editor.width() - left_padding - right_padding
+    value_left = editor.x() + left_padding + (text_width - value_width) / 2
+    value_right = value_left + value_width
     assert abs(prefix.x() + prefix.width() - (value_left - spacing)) <= 1
     assert abs(suffix.x() - (value_right + spacing)) <= 1
-    # 图标只允许占用为它预留的边距：既不出控件，也不越进数值文本框
-    inset = window.property("unitIconSize") + spacing
-    assert prefix.x() >= editor.x() - inset
-    assert suffix.x() + suffix.width() <= editor.x() + editor.width() + inset
-    assert prefix.x() >= 0
-    assert suffix.x() + suffix.width() <= spin_box.width()
+    # 图标单位只占内边距：输入框保持满宽，图标始终留在输入框内
+    assert left_padding == inset
+    assert right_padding == inset
+    assert prefix.x() >= editor.x()
+    assert suffix.x() + suffix.width() <= editor.x() + editor.width()
 
 
 def _assert_unit_icons_hidden_without_source(spin_box):
@@ -786,7 +820,7 @@ def test_spin_box_unit_icons_render_beside_the_value(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_spin_box_unit_icons_reserve_value_field_room(qapp):
+def test_spin_box_unit_icons_keep_the_text_field_full_width(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_icon_scene()
     try:
@@ -796,14 +830,53 @@ def test_spin_box_unit_icons_reserve_value_field_room(qapp):
         both_editor = _text_input(controls["withIcons"])
         suffix_editor = _text_input(controls["untintedIcon"])
         inset = window.property("unitIconSize") + window.property("unitIconSpacing")
-        # 未设图标时文本框与基线一致；设了图标就按图标脚印收窄，长数值不会压到图标
-        assert suffix_editor.x() == plain_editor.x()
-        assert suffix_editor.width() == plain_editor.width() - inset
-        assert both_editor.x() == plain_editor.x() + inset
-        assert both_editor.width() == plain_editor.width() - inset * 2
+        # 图标单位用内边距占位：输入框宽度/起点与无图标时完全一致，输入与光标滚动行为不受影响
+        for editor in (both_editor, suffix_editor):
+            assert editor.x() == plain_editor.x()
+            assert editor.width() == plain_editor.width()
+        assert plain_editor.property("leftPadding") == 0
+        assert plain_editor.property("rightPadding") == 0
+        assert suffix_editor.property("leftPadding") == 0
+        assert suffix_editor.property("rightPadding") == inset
+        assert both_editor.property("leftPadding") == inset
+        assert both_editor.property("rightPadding") == inset
         assert plain.property("displayValue") == controls["withIcons"].property(
             "displayValue"
         )
+        assert warnings == []
+        assert _new_visible_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
+def _type_digits(window, spin_box, digits):
+    editor = _text_input(spin_box)
+    _click(window, editor)
+    assert _wait_for(lambda: editor.property("activeFocus"))
+    QTest.keyClick(window, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+    # QTest.keyClicks 只吃 QWidget，QQuickWindow 必须逐键发送
+    for digit in digits:
+        QTest.keyClick(window, getattr(Qt.Key, "Key_" + digit))
+    _pump()
+    return editor
+
+
+def _assert_caret_visible(window, name, controls):
+    spin_box = controls[name]
+    editor = _type_digits(window, spin_box, "123456789")
+    cursor = editor.property("cursorRectangle")
+    # 光标（含其 1px 竖线在右侧边界时的位置）必须留在可见输入区内，说明视图跟着光标滚动了
+    assert 0 <= cursor.x() <= editor.width(), (name, cursor.x(), editor.width())
+
+
+def test_spin_box_unit_icon_keeps_caret_visible_while_typing(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, controls, warnings = _create_icon_scene()
+    try:
+        # 长数值输入时光标必须跟着走：带图标单位与无图标的行为必须一致
+        _assert_caret_visible(window, "typingPlain", controls)
+        _assert_caret_visible(window, "typingBox", controls)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -845,11 +918,12 @@ def test_spin_box_unit_icon_source_conventions_and_tokens():
         assert token in source
     assert "required property var spinControl" in unit_source
     assert "required property var textInputItem" in unit_source
-    assert 'clip: control.prefixIcon !== "" || control.suffixIcon !== ""' in source
+    assert 'leftPadding: control.prefixIcon !== "" ? control._unitIconInset : 0' in source
+    assert 'rightPadding: control.suffixIcon !== "" ? control._unitIconInset : 0' in source
+    assert "clip:" not in source
     assert "TextMetrics {" in unit_source
     assert "readonly property real valueLeft" in unit_source
-    assert "readonly property real prefixReserve" in unit_source
-    assert "readonly property real suffixReserve" in unit_source
+    assert "readonly property real textWidth" in unit_source
     assert "readonly property real iconMaxX" in unit_source
     path = PurePosixPath(unit_path.relative_to(ROOT).as_posix())
     violations = scan_source_text(unit_source, path)

@@ -16,19 +16,19 @@ Item {
     required property var textInputItem
 
     // ==================== Readonly State 只读状态 ====================
-    // Displayed value width, never wider than the text field 显示数值宽度,不超过文本框宽度
-    readonly property real valueWidth: Math.min(valueMetrics.width, textInputItem.width)
+    // Text area of the field; the unit icon takes padding, not field width
+    // 输入框文本区; 图标单位占内边距,不占输入框宽度
+    readonly property real textLeft: textInputItem.x + textInputItem.leftPadding
+    readonly property real textWidth: textInputItem.width
+        - textInputItem.leftPadding - textInputItem.rightPadding
+    // Displayed value width, never wider than the text area 显示数值宽度,不超过文本区
+    readonly property real valueWidth: Math.min(valueMetrics.width, textWidth)
     // Left edge of the centered value text 居中数值文本的左边缘
-    readonly property real valueLeft: textInputItem.x + (textInputItem.width - valueWidth) / 2
+    readonly property real valueLeft: textLeft + (textWidth - valueWidth) / 2
     readonly property real valueRight: valueLeft + valueWidth
-    // Unit icons may use the margin reserved for them, so the guard spans the input area
-    // 图标单位可以使用为它预留的边距，因此边界取整个输入区
-    readonly property real prefixReserve: spinControl.prefixIcon !== ""
-        ? spinControl._unitIconInset : 0
-    readonly property real suffixReserve: spinControl.suffixIcon !== ""
-        ? spinControl._unitIconInset : 0
-    readonly property real iconMinX: textInputItem.x - prefixReserve
-    readonly property real iconMaxX: textInputItem.x + textInputItem.width + suffixReserve
+    // Unit icons stay inside the field 图标单位始终留在输入框内
+    readonly property real iconMinX: textInputItem.x
+    readonly property real iconMaxX: textInputItem.x + textInputItem.width
 
     // ==================== Size 尺寸 ====================
     anchors.fill: parent
