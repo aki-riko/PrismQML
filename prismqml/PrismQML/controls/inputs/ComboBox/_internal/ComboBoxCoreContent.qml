@@ -264,6 +264,13 @@ Item {
         implicitContentHeight: Math.max(
             0, Enums.comboBoxMetrics.popupDefaultHeight - 2 * contentPadding)
         closeOnClickOutside: comboControl.popupCloseOnClickOutside
+        // The candidate list is its own native surface. Editable mode types into
+        // this control while the list is open, so activating that surface would
+        // abort the keystroke in flight; keep focus in the input instead.
+        // Non-editable dropdowns keep the existing native focus behaviour.
+        // 候选列表是独立原生窗口。可编辑模式要在候选展开期间持续输入，激活该窗口会
+        // 打断正在进行的按键，因此焦点留在输入框；非可编辑下拉维持原有原生焦点行为。
+        stealFocus: !comboControl.editable
 
         onClosed: {
             if (comboControl.isOpen) comboControl.isOpen = false

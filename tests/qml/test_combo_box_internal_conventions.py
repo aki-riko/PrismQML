@@ -25,6 +25,7 @@ INTERNAL_DIR = (
     / "_internal"
 )
 SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
+CORE_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxCoreContent.qml"
 POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
 STYLE_HELPER_SOURCE_PATH = INTERNAL_DIR / "ComboBoxStyleHelper.qml"
 FONT_SOURCE_PATH = INTERNAL_DIR.parent / "ComboBoxFont.qml"
@@ -306,6 +307,21 @@ def test_combo_box_popup_content_source_conventions():
     source = POPUP_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_combo_box_core_content_does_not_steal_focus_in_editable_mode():
+    """可编辑模式的候选弹层不得抢走输入框焦点。
+
+    Candidate popup is a separate native surface; activating it aborts the
+    keystroke in flight. Non-editable dropdowns keep the native focus behaviour.
+    """
+    source = CORE_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(CORE_CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert "stealFocus: !comboControl.editable" in source
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []

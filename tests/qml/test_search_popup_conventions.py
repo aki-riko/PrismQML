@@ -588,10 +588,43 @@ def test_local_search_surface_is_lazy_reused_and_down_openable(qapp):
         _dispose_scene(engine, component, window, search)
 
 
+def test_search_popup_anchored_mode_keeps_input_focus(qapp):
+    """锚定联想展开时搜索框必须保住焦点；居中覆盖维持原有抢焦点行为。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        text_input = _text_input(search)
+        text_input.forceActiveFocus()
+        assert _wait_for(text_input.hasActiveFocus)
+
+        _type_text(text_input, "build")
+        assert _wait_for(lambda: search.property("isOpen"))
+        popup = _search_popup(search)
+        popup_core = _popup_core(popup)
+        assert popup_core.property("stealFocus") is False
+        assert _wait_for(lambda: len(_visible_popup_windows(windows_before, window)) == 1)
+        _pump(80)
+        assert text_input.hasActiveFocus()
+
+        assert search.setProperty("popupMode", window.property("centeredMode"))
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert QMetaObject.invokeMethod(search, "open")
+        assert _wait_for(lambda: search.property("isOpen"))
+        assert popup_core.property("stealFocus") is True
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
 def test_search_popup_source_conventions():
     source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
+    # 锚定模式在输入期间展开，弹层必须把键盘焦点留在搜索框；居中覆盖维持抢焦点。
+    assert (
+        "stealFocus: popupRoot.popupMode === Enums.input.search_popup_centered_overlay"
+    ) in source
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []

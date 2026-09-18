@@ -380,6 +380,55 @@ def test_combo_box_core_edit_then_select_restores_model_text(qapp):
         _dispose_scene(engine, component, window, combo, editable)
         assert _new_visible_windows(windows_before) == []
 
+def test_combo_box_core_popup_keeps_keyboard_focus_in_editable_input(qapp):
+    """候选弹层展开时，可编辑输入框必须保住键盘焦点。
+
+    The candidate list is a separate native window. Stealing focus there aborts
+    the keystroke in flight, so editable mode must keep the input focused while
+    non-editable dropdowns keep their existing native focus behaviour.
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        readonly_popup = _popup_core(combo)
+        editable_popup = _popup_core(editable)
+        assert readonly_popup.property("stealFocus") is True
+        assert editable_popup.property("stealFocus") is False
+
+        inputs = [
+            item
+            for item in _visual_descendants(editable)
+            if item.metaObject().className().startswith("QQuickTextInput")
+            and item.isVisible()
+        ]
+        assert len(inputs) == 1
+        text_input = inputs[0]
+
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            pos=_local_point(window, editable, 40, editable.height() / 2),
+        )
+        assert _wait_for(text_input.hasActiveFocus)
+
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            pos=_local_point(
+                window, editable, editable.width() - 12, editable.height() / 2
+            ),
+        )
+        assert _wait_for(lambda: editable.property("isOpen"))
+        assert _wait_for(lambda: editable_popup.property("isOpen"))
+        _pump(80)
+        assert text_input.hasActiveFocus()
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before, window) == []
+
+
 def test_combo_box_core_public_editing_commands_preserve_model(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     clipboard = QGuiApplication.clipboard()

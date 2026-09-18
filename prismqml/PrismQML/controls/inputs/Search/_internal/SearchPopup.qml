@@ -119,7 +119,12 @@ Item {
         targetControl: popupRoot.anchorTarget
         modal: false
         closeOnClickOutside: true
-        stealFocus: true
+        // Anchored mode opens while the user is still typing the query, so the
+        // popup must leave keyboard focus in the search bar. The centered overlay
+        // is a command-palette style surface and keeps taking focus.
+        // 锚定模式在用户持续输入时就展开，弹层必须把键盘焦点留在搜索框；
+        // 居中覆盖属于命令面板式界面，维持原有抢焦点行为。
+        stealFocus: popupRoot.popupMode === Enums.input.search_popup_centered_overlay
         popupWidth: popupRoot._resolvedWidth
         implicitContentHeight: popupRoot._resolvedContentHeight
 
