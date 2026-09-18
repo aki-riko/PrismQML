@@ -591,6 +591,17 @@ def test_splash_lifecycle_is_owned_by_navigation_window_core():
     assert "wintypes.HWND(0)" in lifecycle_source
     assert "HWND_TOPMOST" not in lifecycle_source
     assert "win.revealTransition.revealRadiusPixels" in splash_qml_source
+    # The splash-owned ring is a pre-expansion stand-in only: the backing
+    # transition paints the real expanding circle, so the stand-in must be gone
+    # on the first frame that paints the outward expansion.
+    # 启动页自持圆环只是扩散前的替身: 真实扩散圆由背后的过渡对象绘制, 因此向外扩散
+    # 被绘制的第一帧上替身必须已消失。
+    assert "property bool revealExpansionStarted: false" in splash_qml_source
+    assert "? revealTransition.active : false" in splash_qml_source
+    assert "revealTransition && !revealExpansionStarted" in splash_qml_source
+    assert "function onExpandStarted()" in splash_qml_source
+    assert "win.revealExpansionStarted = true" in splash_qml_source
+    assert "target: win.revealTransition" in splash_qml_source
     assert "self._reveal_component = component" in fast_splash_source
     reveal_qml = splash_qml_source.split("_REVEAL_QML = \"\"\"", 1)[1].split(
         "\"\"\"", 1

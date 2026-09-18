@@ -30,8 +30,17 @@ Window {{
         + " effect=" + (revealSurface.layer.effect ? "set" : "null")
         + " smooth=" + revealSurface.layer.smooth
     property var revealTransition: null
+    // The backing transition owns the real expanding circle, so this standalone
+    // ring is a pre-expansion stand-in only. Retire it on expandStarted -- the
+    // last signal before the backend starts its radius animation -- so it is
+    // already gone on the first frame that paints the outward expansion.
+    // 背后的过渡对象自己就会画真实扩散圆, 因此本独立圆环只是扩散前的替身。
+    // 在 expandStarted(后端启动半径动画前的最后一个信号)即撤除, 使向外扩散被绘制
+    // 的第一帧上它已不存在。
+    property bool revealExpansionStarted: false
     readonly property bool revealRingActive:
-        revealTransition ? revealTransition.active : false
+        revealTransition && !revealExpansionStarted
+            ? revealTransition.active : false
 
     Item {{
         id: revealSurface
@@ -145,6 +154,7 @@ Window {{
 
     Rectangle {{
         id: revealRing
+        objectName: "revealRing"
         property real radiusPx: win.revealTransition
             ? win.revealTransition.revealRadiusPixels : 8
         x: parent.width * 0.5 - radiusPx
@@ -158,6 +168,15 @@ Window {{
         opacity: 0.72
         visible: win.revealRingActive
         z: 100
+    }}
+
+    Connections {{
+        function onExpandStarted() {{
+            win.revealExpansionStarted = true
+        }}
+
+        target: win.revealTransition
+        ignoreUnknownSignals: true
     }}
 }}
 """
