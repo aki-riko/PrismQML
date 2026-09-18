@@ -731,8 +731,17 @@ def test_timeline_virtual_card_action_link_click(timeline_scene):
     virtual_timeline.cardActionClicked.connect(
         lambda group, index, data: actions.append((group, index, data))
     )
-    links = _named_visible_descendants(virtual_timeline, "timelineCardAction")
-    assert len(links) == 1
+    # 虚拟行委托是异步实例化的: 固定 _pump 在慢速 runner 上会偶发 0 个链接
+    # (CI 实测过一次 0 == 1 的门禁失败)。与同文件其他断言一致改为轮询,
+    # 断言本身不放松, 仍要求恰好 1 个链接。
+    # The virtual-row delegate is built asynchronously, so a fixed pump flakes
+    # to zero links on a slow runner (observed once as 0 == 1 in CI). Poll like
+    # the rest of this file; the assertion still requires exactly one link.
+    action_name = "timelineCardAction"
+    assert _wait_for(
+        lambda: len(_named_visible_descendants(virtual_timeline, action_name)) == 1
+    )
+    links = _named_visible_descendants(virtual_timeline, action_name)
     action = links[0]
     # 动作链接必须位于时间徽章正下方,且右缘与徽章右缘对齐。
     badges = _named_visible_descendants(virtual_timeline, "timelineCardTimeBadge")
