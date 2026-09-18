@@ -23,38 +23,41 @@ Item {
     property alias customContent: customContentLoader.sourceComponent
     readonly property bool hasCustomContent:
         customContentLoader.sourceComponent !== null && customContentLoader.item !== null
-    // Text-only toasts never exceed this width; long messages fold instead of
-    // stretching the toast. Custom content keeps its own natural size.
-    // 纯文本 Toast 不超过该宽度: 长消息折行而不是横向拉长; 自定义内容仍按自身自然尺寸。
-    readonly property real textMaxWidth: Enums.controlSize.toastWidth
+    // Horizontal chrome reserved around the text: card padding, icon/ring slot and
+    // close button. 文本两侧的固定占用: 卡片内边距、图标/进度环槽位与关闭按钮。
+    readonly property real baseWidth: Enums.spacing.m * 2
+        + (toast._isRingMode || toast._isBarMode
+           ? Enums.infoBarMetrics.iconContainerSize + Enums.infoBarMetrics.textLeftGap
+           : Enums.spacing.xl)
+        + Enums.spacing.m
+        + (toast.closable
+           ? Enums.controlSize.inputHeightCompact + Enums.spacing.l : 0)
+    // A toast only widens past the default width for custom content; text always
+    // folds at the default width, so long messages never stretch the toast.
+    // 只有自定义内容能让 Toast 超过默认宽度; 文本一律在默认宽度处折行,
+    // 因此再长的消息也不会把 Toast 横向拉长。
+    readonly property real textMaxWidth:
+        Math.max(Enums.controlSize.toastWidth - baseWidth, 0)
     readonly property real calculatedContentWidth: {
-        var baseWidth = Enums.spacing.m * 2
-        if (toast._isRingMode || toast._isBarMode) {
-            baseWidth += Enums.infoBarMetrics.iconContainerSize + Enums.infoBarMetrics.textLeftGap
-        } else {
-            baseWidth += Enums.spacing.xl
-        }
-
-        baseWidth += Enums.spacing.m
-        if (toast.closable) {
-            baseWidth += Enums.controlSize.inputHeightCompact + Enums.spacing.l
-        }
-
         var textW = 0
         if (!toast._isVertical) {
             if (toast.title !== "") textW += titleText.implicitWidth
             if (toast.message !== "") {
                 textW += (toast.title !== "" ? Enums.spacing.xs : 0) + messageText.implicitWidth
             }
+            // The text contribution is capped so the card stops at the default width.
+            // 封顶文本贡献, 使卡片停在默认宽度。
+            textW = Math.min(textW, textMaxWidth)
         } else {
             // Keep text-only vertical toasts compact so long text grows downward.
             textW = hasCustomContent ? customContentLoader.implicitWidth : 0
         }
 
-        var targetWidth = baseWidth + textW
-        if (!hasCustomContent) {
-            targetWidth = Math.min(targetWidth, textMaxWidth)
-        }
+        // Only custom content may widen the toast beyond the default width.
+        // 只有自定义内容可以把 Toast 撑到超过默认宽度。
+        var customWidth = hasCustomContent ? customContentLoader.implicitWidth : 0
+        var targetWidth = Math.max(baseWidth + textW,
+            customWidth > Enums.controlSize.toastWidth ? customWidth : 0)
         return Math.min(
             Math.max(targetWidth, Enums.controlSize.toastWidth),
             Enums.controlSize.toastMaxWidth

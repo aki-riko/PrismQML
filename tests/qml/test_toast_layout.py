@@ -74,6 +74,28 @@ Item {{
         title: "操作失败"
         message: {MID_MESSAGE!r}
     }}
+
+    // Progress bar mode + custom action, as used by the in-window updater toast.
+    // 进度条模式 + 自定义操作区, 对应窗口内更新 Toast。
+    Toast {{
+        objectName: "progressToast"
+        y: 200
+        desktopMode: true
+        duration: 0
+        visible: true
+        orient: Qt.Horizontal
+        severity: "info"
+        feature: Enums.notification.feature_progress_bar
+        progress: 0.4
+        title: "下载中"
+        message: {MID_MESSAGE!r}
+        customContent: Component {{
+            Item {{
+                implicitWidth: 80
+                implicitHeight: 24
+            }}
+        }}
+    }}
 }}
 """.encode("utf-8")
 
@@ -156,6 +178,30 @@ def test_horizontal_toast_keeps_default_width_and_wraps_message(qapp):
 
         # The message must stay inside the card instead of overflowing it.
         # 消息必须留在卡片内, 不得溢出卡片。
+        body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
+        card_bottom = toast.height() - root.property("spacingM")
+        assert body_bottom <= card_bottom
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_progress_toast_with_custom_content_still_wraps_message(qapp):
+    """Custom content must not let a long message stretch the toast.
+    自定义内容不得让长消息把 Toast 拉宽。"""
+    engine, component, root = _create_scene(HORIZONTAL_SCENE_SOURCE)
+    try:
+        toast = root.findChild(QQuickItem, "progressToast")
+        assert toast is not None
+        assert toast.property("hasCustomContent") is True
+        body = _visible_text_item(toast, MID_MESSAGE)
+
+        assert toast.width() == pytest.approx(root.property("toastWidth"))
+        assert toast.width() < root.property("toastMaxWidth")
+        assert body.property("lineCount") > 1
+
         body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
         card_bottom = toast.height() - root.property("spacingM")
         assert body_bottom <= card_bottom
