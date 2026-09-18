@@ -4,10 +4,12 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Toast long-message layout regressions. Toast 长消息布局回归。"""
 
+import math
 from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
+from PySide6.QtGui import QFontMetricsF
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -137,6 +139,27 @@ def _visible_text_item(toast: QQuickItem, text: str) -> QQuickItem:
     return matches[0]
 
 
+def _minimum_wrapped_lines(body: QQuickItem, message: str) -> int:
+    """Lines this message needs inside the item's own measured text box.
+
+    The exact line count depends on the platform font: a CJK-capable font makes
+    this message wider than the text box, while a font without CJK glyphs can fit
+    it into one line. Measuring with the item's own font keeps the wrap assertion
+    strict wherever the text really overflows, instead of pinning one platform's
+    glyph advances.
+    该消息在 item 自身文本盒内所需的最少行数。具体行数取决于平台字体: 具备中日韩
+    字形的字体让消息宽于文本盒, 而缺少中日韩字形的字体可以把它放进一行。用 item
+    自身的字体度量, 使折行断言在文本真正溢出时依旧严格, 而不是钉死某一平台的
+    字形宽度。
+    """
+    metrics = QFontMetricsF(body.property("font"))
+    natural_width = metrics.horizontalAdvance(message)
+    box_width = body.width()
+    if box_width <= 0:
+        return 1
+    return max(1, math.ceil((natural_width - 1.0) / box_width))
+
+
 def test_vertical_toast_wraps_downward_with_full_bottom_padding(qapp):
     engine, component, root = _create_scene()
     try:
@@ -173,7 +196,7 @@ def test_horizontal_toast_keeps_default_width_and_wraps_message(qapp):
         assert toast.property("orient") == 1  # Qt.Horizontal
         assert toast.width() == pytest.approx(root.property("toastWidth"))
         assert toast.width() < root.property("toastMaxWidth")
-        assert body.property("lineCount") > 1
+        assert body.property("lineCount") >= _minimum_wrapped_lines(body, MID_MESSAGE)
         assert toast.height() == pytest.approx(toast.property("implicitHeight"))
 
         # The message must stay inside the card instead of overflowing it.
@@ -200,7 +223,7 @@ def test_progress_toast_with_custom_content_still_wraps_message(qapp):
 
         assert toast.width() == pytest.approx(root.property("toastWidth"))
         assert toast.width() < root.property("toastMaxWidth")
-        assert body.property("lineCount") > 1
+        assert body.property("lineCount") >= _minimum_wrapped_lines(body, MID_MESSAGE)
 
         body_bottom = body.mapToItem(toast, QPointF(0, body.height())).y()
         card_bottom = toast.height() - root.property("spacingM")
