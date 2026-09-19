@@ -26,6 +26,7 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     function start() {
         finishAnimation.stop()
+        finishGuard.stop()
         control._finishing = false
         control.visible = true
         contentColumn.opacity = Enums.opacityLevel.visible
@@ -36,10 +37,21 @@ Item {
         if (control._finishing || !control.visible) return
         control._finishing = true
         finishAnimation.restart()
+        // An exit without an owner must still end. When the animation callback
+        // never lands (window hidden during startup, scene graph torn down,
+        // competing animation) the wait indicator would otherwise stay parked
+        // on screen; the guard finishes the same exit shortly after its
+        // duration. A normal exit lands first, so visible behaviour is
+        // unchanged. / 退场必须有终点。动画回调未落地时(启动期窗口隐藏、场景图
+        // 被拆、竞争动画)等待指示会永久停在屏幕上; 看门狗在退场时长稍后完成同一次
+        // 退场。正常退场先落地, 因此可见行为不变。
+        finishGuard.restart()
     }
 
     // ==================== Internal Methods 内部方法 ====================
     function _completeFinish() {
+        finishAnimation.stop()
+        finishGuard.stop()
         control.visible = false
         control.finished()
         control._finishing = false
@@ -150,5 +162,18 @@ Item {
             duration: Enums.duration.fast
             easing.type: Easing.InCubic
         }
+    }
+
+    // Exit watchdog. Duration is the exit animation plus a safety margin, so a
+    // normal exit always finishes first and only a dropped callback reaches it.
+    // 退场看门狗。时长取退场动画加安全余量, 正常退场总是先完成, 只有回调丢失时
+    // 才会触发。
+    Timer {
+        id: finishGuard
+
+        objectName: "qmlPageFinishGuard"
+        interval: Enums.duration.fast + Enums.duration.normal
+        repeat: false
+        onTriggered: control._completeFinish()
     }
 }

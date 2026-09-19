@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QMetaObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
@@ -25,10 +25,14 @@ Item {
     readonly property int lazyRingSize: Enums.controlSize.navBarHeight
     readonly property int lazyRingSpinDuration: Enums.duration.scroll
     readonly property int finishDuration: Enums.duration.fast
+    readonly property int normalDuration: Enums.duration.normal
     width: 640
     height: 480
 
+    function dropExitCallback() { page._completeFinish() }
+
     QMLPage {
+        id: page
         objectName: "qmlPage"
         anchors.fill: parent
         text: "Loading page"
@@ -155,6 +159,65 @@ def test_qml_page_only_manages_the_wait_indicator(qapp):
         assert QMetaObject.invokeMethod(page, "finish")
         assert page.property("finishing") is True
         assert _wait_until(lambda: finished == [True, True])
+        assert page.property("visible") is False
+    finally:
+        root.deleteLater()
+        engine.deleteLater()
+
+
+def test_qml_page_exit_watchdog_finishes_a_dropped_exit_callback(qapp):
+    """退场回调未落地时, 看门狗必须完成同一次退场。
+
+    The exit animation callback can be dropped when the host window is hidden
+    mid-startup or the scene graph is torn down; without a watchdog the wait
+    indicator would stay parked on screen. The watchdog is idempotent, so it
+    must not emit a second finished() or restart a hidden page.
+    宿主机启动期把窗口藏起来或场景图被拆时退场动画回调会丢失; 没有看门狗, 等待
+    指示会永久停在屏幕上。看门狗是幂等的, 不得发出第二个 finished(), 也不得
+    重启已隐藏的页面。
+    """
+    engine = QQmlEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(QML_SOURCE, QUrl("inline:qml-page-watchdog-test.qml"))
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create()
+    assert root is not None, [error.toString() for error in component.errors()]
+    try:
+        page = root.findChild(QQuickItem, "qmlPage")
+        content = root.findChild(QQuickItem, "qmlPageContent")
+        guard = root.findChild(QObject, "qmlPageFinishGuard")
+        assert page is not None and content is not None
+        assert guard is not None, "QMLPage must own its exit watchdog"
+        assert guard.property("interval") == (
+            root.property("finishDuration") + root.property("normalDuration")
+        )
+        assert guard.property("repeat") is False
+
+        finished = []
+        page.finished.connect(lambda: finished.append(True))
+        assert QMetaObject.invokeMethod(page, "finish")
+        assert page.property("finishing") is True
+        # Simulate the dropped animation callback: complete the exit directly.
+        # 模拟退场回调丢失: 直接完成退场。
+        assert QMetaObject.invokeMethod(root, "dropExitCallback")
+        assert page.property("visible") is False
+        assert page.property("finishing") is False
+        assert finished == [True]
+        assert content.property("opacity") == pytest.approx(1)
+
+        # The watchdog must not fire a second, spurious completion.
+        # 看门狗不得再触发第二次虚假收尾。
+        _pump(root.property("finishDuration") + root.property("normalDuration") + 60)
+        assert finished == [True]
         assert page.property("visible") is False
     finally:
         root.deleteLater()
