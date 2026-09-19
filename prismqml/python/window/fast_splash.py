@@ -437,6 +437,21 @@ class FastSplashController(QObject):
         self._main_frame_count += 1
 
     @staticmethod
+    def _python_page_index_ready(main_window, stack) -> bool:
+        """Return whether the active Python-managed page is ready to present."""
+        current_index = stack.property("currentIndex")
+        ready_indexes = main_window.property("_pythonReadyIndexes")
+        # PySide6 exposes QML `property var` values as QJSValue. Convert it
+        # before applying the Python collection guard. PySide6 会把 QML
+        # `property var` 暴露为 QJSValue，先转换再进行 Python 集合校验。
+        to_variant = getattr(ready_indexes, "toVariant", None)
+        if callable(to_variant):
+            ready_indexes = to_variant()
+        return isinstance(current_index, int) and isinstance(
+            ready_indexes, (list, tuple)
+        ) and current_index in ready_indexes
+
+    @staticmethod
     def _page_ready(main_window: QQuickWindow) -> bool:
         stack = main_window.property("stackedWidget")
         if stack is None:
@@ -454,21 +469,9 @@ class FastSplashController(QObject):
         # Python-managed windows create page containers before their real page
         # content.  The container must not count as a loaded first page.
         # Python 页面由宿主先创建容器、后挂载内容，不能把容器误判为首屏就绪。
-        if main_window.property("_pythonPageMode") is True:
-            current_index = stack.property("currentIndex")
-            ready_indexes = main_window.property("_pythonReadyIndexes")
-            # PySide6 exposes QML `property var` values as QJSValue. Convert it
-            # before applying the Python collection guard. PySide6 会把 QML
-            # `property var` 暴露为 QJSValue，先转换再进行 Python 集合校验。
-            to_variant = getattr(ready_indexes, "toVariant", None)
-            if callable(to_variant):
-                ready_indexes = to_variant()
-            if not isinstance(current_index, int) or not isinstance(
-                ready_indexes, (list, tuple)
-            ):
-                return False
-            if current_index not in ready_indexes:
-                return False
+        if (main_window.property("_pythonPageMode") is True
+                and not FastSplashController._python_page_index_ready(main_window, stack)):
+            return False
         if source_mode:
             return current.property("item") is not None
         return True
