@@ -53,10 +53,26 @@ Item {
         finishAnimation.stop()
         finishGuard.stop()
         control.visible = false
+        control._repaintHost()
         control.finished()
         control._finishing = false
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
+    }
+
+    function _repaintHost() {
+        // Hiding the item is not enough on the D3D11 backend: the compositor can
+        // keep presenting the last frame of the hidden wait indicator, so the
+        // spinner and caption stay visible on screen until something else
+        // happens to force a repaint (a mouse move, another window, a resize).
+        // Asking the host window for one frame right after the hide erases those
+        // stale pixels. It changes no layout, no animation and no visible state:
+        // the indicator is already hidden when this runs.
+        // 仅把项隐藏不够: D3D11 后端下合成器可能继续呈现已隐藏等待指示的最后一帧,
+        // 转圈与文案会一直留在屏幕上, 直到有别的事件强制重绘(移动鼠标、其它窗口、
+        // 缩放)。隐藏后立刻向宿主窗口请求一帧即可擦掉这些旧像素。它不改变布局、
+        // 动画或任何可见状态: 运行到这里时指示已经隐藏。
+        if (control.window) control.window.update()
     }
 
     clip: true
@@ -67,6 +83,7 @@ Item {
         control._finishing = false
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
+        control._repaintHost()
     }
 
     // ==================== Content 内容 ====================
