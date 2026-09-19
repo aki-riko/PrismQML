@@ -136,6 +136,13 @@ Item {
         if (!isLoadingSwitching || pending < 0) {
             _trace("helper.dropped_phase.stop", pending)
             _stopStageTimer()
+            // A dropped phase whose switch is already cancelled keeps no owner
+            // for the overlay exit, so release a still-visible overlay here.
+            // The normal exit path is untouched: the overlay is already hidden
+            // by then and this only reads it.
+            // 已取消的切换丢弃阶段后没有任何持有者负责遮罩退场, 因此在此释放仍然
+            // 可见的遮罩。正常退场路径不受影响: 那时遮罩已隐藏, 此处只做读取。
+            _releaseOverlayIfVisible()
             return
         }
         _trace("helper.dropped_phase.rearm", pending)
@@ -181,7 +188,14 @@ Item {
     }
 
     function _beginTargetExpansion() {
-        if (pendingTargetIndex < 0) return
+        if (pendingTargetIndex < 0) {
+            // The switch was cancelled while the overlay was on screen; nothing
+            // else owns its exit, so release it instead of leaving it forever.
+            // 遮罩仍在屏上时切换被取消, 没有其他持有者负责退场, 故在此释放,
+            // 而不是让它永久停留。
+            _releaseOverlayIfVisible()
+            return
+        }
 
         _trace("helper.page_expand.begin", pendingTargetIndex)
         if (!loadingOverlay.visible) {
@@ -192,8 +206,29 @@ Item {
         _finishLoadingOverlay()
     }
 
+    function _releaseOverlayIfVisible() {
+        // Exit the wait indicator when it is still on screen. QMLPage.finish()
+        // runs the shared fade/shrink exit and then emits finished, so this
+        // reuses the existing normal exit rather than hiding the overlay
+        // abruptly. Do not loop: a hidden overlay must never restart the exit.
+        // 等待指示仍在屏上时执行退场。QMLPage.finish() 走既有的淡出/缩小退场并在
+        // 结束后发出 finished, 因此这里复用正常退场而不是生硬隐藏。不循环:
+        // 已隐藏时绝不重启退场。
+        if (!loadingOverlay.visible || loadingOverlay.finishing) return
+        _trace("helper.overlay.release_without_owner", pendingTargetIndex)
+        _finishLoadingOverlay()
+    }
+
     function _completeWaitIndicatorExit() {
-        if (pendingTargetIndex < 0) return
+        if (pendingTargetIndex < 0) {
+            // The exit landed after the switch lost its pending target and the
+            // overlay is somehow still visible: release it once more so no path
+            // can leave the spinner and caption parked on screen.
+            // 退场回调到达时切换已失去待处理目标, 而遮罩仍可见: 再释放一次,
+            // 保证任何路径都不会把转圈与文案永久留在屏幕上。
+            _releaseOverlayIfVisible()
+            return
+        }
 
         _waitIndicatorFinished = true
         _trace("helper.wait_indicator.finish", pendingTargetIndex)

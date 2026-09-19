@@ -493,6 +493,11 @@ Window {
     function beginInitialLoading() { lazyHelper.showInitialLoading(1) }
     function markTargetLoaded() { targetLoaded = true }
     function simulateRetarget(newIndex) { lazyHelper.pendingTargetIndex = newIndex }
+    function cancelPendingSwitch() {
+        lazyHelper.pendingTargetIndex = -1
+        lazyHelper.isLoadingSwitching = false
+    }
+    function startExpand() { sharedTransition.expand(firstPage) }
 
     width: 360
     height: 220
@@ -608,6 +613,97 @@ def test_retarget_during_render_phase_still_hides_the_loading_overlay(qapp):
             warnings,
         )
         assert "helper.dropped_phase.rearm;" in window.property("stageLog")
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
+
+
+def _create_retarget_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        RETARGET_SCENE_SOURCE,
+        QUrl.fromLocalFile(
+            str(ROOT / "tests" / "qml" / "lazy-loading-helper-retarget.qml")
+        ),
+    )
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    helper = window.findChild(QQuickItem, "lazyHelper")
+    overlay = window.findChild(QQuickItem, "lazyLoadingOverlay")
+    assert helper is not None
+    assert overlay is not None
+    assert _wait_for(window.isExposed)
+    return engine, component, window, helper, overlay, warnings
+
+
+def test_cancelled_switch_releases_visible_overlay_on_expansion(qapp):
+    """切页取消后遮罩必须仍有持有者并正常退场。
+
+    A cancelled switch leaves the overlay on screen with no owner for its exit.
+    The expansion callback used to return as soon as the pending target was
+    gone, so the spinner and caption stayed parked on screen forever.
+    切换取消后遮罩留在屏上且没有退场持有者。展开回调原先在待处理目标消失时直接
+    return，转圈与文案便永久停在屏幕上。
+    """
+    engine, component, window, helper, overlay, warnings = _create_retarget_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "beginInitialLoading")
+        assert _wait_for(lambda: overlay.property("visible") is True)
+        # The host cancels the switch under the still-visible overlay.
+        # 宿主在遮罩仍然可见时取消这次切换。
+        assert QMetaObject.invokeMethod(window, "cancelPendingSwitch")
+        assert QMetaObject.invokeMethod(window, "startExpand")
+        assert _wait_for(lambda: overlay.property("visible") is False), (
+            helper.property("pendingTargetIndex"),
+            helper.property("isLoadingSwitching"),
+            overlay.property("visible"),
+            overlay.property("finishing"),
+            window.property("stageLog"),
+            warnings,
+        )
+        assert overlay.property("finishing") is False
+        assert "helper.overlay.release_without_owner;" in window.property("stageLog")
+        assert warnings == []
+    finally:
+        _dispose_scene(qapp, engine, component, window)
+
+
+def test_cancelled_switch_releases_visible_overlay_through_phase_timer(qapp):
+    """阶段计时器丢弃回调时也必须释放仍在屏上的遮罩。
+
+    The stage timer drives the same bookkeeping as the transition callbacks, so
+    a cancelled switch must release the overlay from that path too.
+    阶段计时器与过渡回调驱动同一套收尾逻辑，取消的切换也必须从该路径释放遮罩。
+    """
+    engine, component, window, helper, overlay, warnings = _create_retarget_scene()
+    try:
+        assert QMetaObject.invokeMethod(window, "beginInitialLoading")
+        assert _wait_for(lambda: overlay.property("visible") is True)
+        assert QMetaObject.invokeMethod(window, "cancelPendingSwitch")
+        assert _wait_for(lambda: overlay.property("visible") is False), (
+            helper.property("pendingTargetIndex"),
+            helper.property("isLoadingSwitching"),
+            overlay.property("visible"),
+            overlay.property("finishing"),
+            window.property("stageLog"),
+            warnings,
+        )
+        assert overlay.property("finishing") is False
+        assert "helper.dropped_phase.stop;" in window.property("stageLog")
+        assert "helper.overlay.release_without_owner;" in window.property("stageLog")
         assert warnings == []
     finally:
         _dispose_scene(qapp, engine, component, window)
