@@ -162,6 +162,7 @@ InputCore {
         acceptedButtons: Qt.NoButton
         propagateComposedEvents: true
         enabled: control.smoothScroll
+        cursorShape: control.cursorShape
         onWheel: (event) => control._handleSmoothWheel(event)
     }
     

@@ -4,6 +4,7 @@
 
 import "../../.."
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
+import "_internal/ScrollCursorResolver.js" as ScrollCursorResolver
 
 // ScrollAreaDefault - Default scroll area implementation 默认滚动区域实现
 // For arbitrary content, no virtualization 用于任意内容，无虚拟化
@@ -80,31 +81,20 @@ Item {
             : null
     }
 
+    function _cursorShapeAt(x, y) {
+        if (typeof cursorShapeResolver === "function") return cursorShapeResolver(x, y)
+        var cursorShape = ScrollCursorResolver.resolveFlickable(
+            flickable, x, y, Enums.zIndex.base,
+            Qt.ArrowCursor, Qt.PointingHandCursor
+        )
+        return cursorShape === null ? Qt.ArrowCursor : cursorShape
+    }
+
     function _isAtVerticalBoundary(viewport, delta) {
         var endY = viewport.originY
             + Math.max(0, viewport.contentHeight - viewport.height)
         return (viewport.contentY >= endY - 1 && delta > 0)
             || (viewport.contentY <= viewport.originY + 1 && delta < 0)
-    }
-
-    // Resolve the deepest child cursor hidden by the wheel overlay. 解析被滚轮覆盖层遮住的最深子控件光标。
-    function _descendantCursorShape(rootItem, x, y) {
-        if (!rootItem || typeof rootItem.childAt !== "function") return Qt.ArrowCursor
-        var child = rootItem.childAt(x, y)
-        if (!child || child === rootItem
-                || (child.enabled !== undefined && !child.enabled)) return Qt.ArrowCursor
-        var point = rootItem.mapToItem(child, x, y)
-        if (child._isHyperlink === true) return Qt.PointingHandCursor
-        var nestedShape = _descendantCursorShape(child, point.x, point.y)
-        if (nestedShape !== Qt.ArrowCursor) return nestedShape
-        if (child.cursorShape !== undefined
-                && child.cursorShape !== Qt.ArrowCursor) return child.cursorShape
-        return Qt.ArrowCursor
-    }
-
-    function _cursorShapeAt(x, y) {
-        if (typeof cursorShapeResolver === "function") return cursorShapeResolver(x, y)
-        return _descendantCursorShape(flickable, x, y)
     }
 
     // Nested scroll dispatcher 嵌套滚动调度

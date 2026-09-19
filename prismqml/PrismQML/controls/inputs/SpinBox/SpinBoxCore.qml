@@ -235,6 +235,11 @@ InputCore {
     // Mouse wheel support 鼠标滚轮支持
     MouseArea {
         id: wheelHandler
+
+        // Wheel support must not override text or button pointer lookup.
+        // 滚轮支持不能覆盖文本或按钮的指针命中。
+        property bool _cursorShapeTransparent: true
+
         anchors.fill: parent
         z: Enums.zIndex.controls
         // Pointer-only wheel surface: the wheel needs a pointer and this area never reads

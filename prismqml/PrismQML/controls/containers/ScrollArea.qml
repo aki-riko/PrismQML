@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../.."
 import "ScrollBar"
+import "ScrollBar/_internal/ScrollCursorResolver.js" as ScrollCursorResolver
 
 // ScrollArea - Unified scroll area with virtualization support 统一滚动区域
 // Control via type property: default/list/grid 通过type属性控制模式
@@ -82,6 +83,15 @@ Item {
         cellHeight = h
     }
 
+    // ==================== Internal Methods 内部方法 ====================
+    function _resolveContentCursorShape(x, y) {
+        var cursorShape = ScrollCursorResolver.resolveFlickable(
+            flickableItem, x, y, Enums.zIndex.base,
+            Qt.ArrowCursor, Qt.PointingHandCursor
+        )
+        return cursorShape === null ? Qt.ArrowCursor : cursorShape
+    }
+
     // ==================== Size 尺寸 ====================
     // Use implicit size for layout, actual size from parent binding 使用隐式尺寸用于布局，实际尺寸来自父容器绑定
     implicitWidth: preferredWidth > 0 ? preferredWidth : 200
@@ -117,7 +127,8 @@ Item {
             scrollBarWidth: control.scrollBarWidth
             smoothScroll: control.smoothScroll
             dragScrollEnabled: control.dragScrollEnabled
-            cursorShapeResolver: control.cursorShapeResolver
+            cursorShapeResolver: typeof control.cursorShapeResolver === "function"
+                ? control.cursorShapeResolver : control._resolveContentCursorShape
             scrollDuration: control.scrollDuration
             scrollStep: control.scrollStep
             scrollEasing: control.scrollEasing
