@@ -174,11 +174,22 @@ def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
 
 
 def _direct_timers(helper: QObject) -> list[QObject]:
+    """Stage-phase timers only: they are the switch's sequential budget.
+
+    The overlay lifecycle guard is a separate, always-direct timer and must not
+    be counted as a phase owner. 只取阶段计时器: 它们才是切换的串行预算。遮罩
+    生命周期守卫是独立的直接子计时器, 不能算作阶段持有者。
+    """
     return [
         child
         for child in helper.children()
         if child.metaObject().className().startswith("QQmlTimer")
+        and child.objectName() == "lazyLoaderActivateTimer"
     ]
+
+
+def _overlay_guard(helper: QObject) -> QObject:
+    return helper.findChild(QObject, "lazyOverlayLifecycleGuard")
 
 
 def _running_timers(helper: QObject) -> list[QObject]:
@@ -276,6 +287,10 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         initial_hash = _stable_hash(window)
         initial_object_count = len(helper.findChildren(QObject))
         assert len(_direct_timers(helper)) == 1
+        guard = _overlay_guard(helper)
+        assert guard is not None, "LazyLoadingHelper must own the overlay lifecycle guard"
+        assert guard.property("running") is False
+        assert guard.property("repeat") is True
         assert _running_timers(helper) == []
         assert _is_old_page(_sample_pixel(window, 160, 90))
 
@@ -445,8 +460,14 @@ def test_initial_loading_overlay_finishes_after_fast_page_ready(qapp):
 def test_lazy_loading_helper_source_reuses_one_stage_timer():
     """Sequential phases reuse one timer. 串行阶段复用一个计时器。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert source.count("Timer {") == 1
+    # Exactly two direct timers: the single phase timer plus the overlay
+    # lifecycle guard, which never owns a phase.
+    # 直接子计时器只有两个: 唯一阶段计时器 + 遮罩生命周期守卫, 后者不持有阶段。
+    assert source.count("Timer {") == 2
+    assert source.count('objectName: "lazyLoaderActivateTimer"') == 1
+    assert source.count('objectName: "lazyOverlayLifecycleGuard"') == 1
     assert "id: stageTimer" in source
+    assert "id: overlayLifecycleGuard" in source
     assert "id: loaderActivateTimer" not in source
     assert "id: lazyLoadTimer" not in source
     assert "id: pageRenderTimer" not in source

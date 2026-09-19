@@ -476,7 +476,56 @@ Item {
             easing.type: Easing.OutCubic
         }
     }
-    
+
+    // Overlay lifecycle guard 遮罩生命周期守卫
+    //
+    // The wait indicator must have a bounded life. Every stage of the switch is
+    // supposed to hand the overlay to its exit, but a dropped phase callback or
+    // a loader that never reports ready leaves the overlay on screen with no
+    // owner at all: visible=true, no pending target, and nobody calling finish().
+    // This guard releases exactly that state through the normal exit. A switch
+    // that still owns its target (pendingTargetIndex >= 0) keeps the full
+    // activation budget, so slow loads are never cut short; only an ownerless or
+    // long-stuck overlay is released.
+    // 等待指示必须有界。切换的每个阶段本应把遮罩交给退场, 但阶段回调丢失或 loader
+    // 始终不就绪时, 遮罩会以 visible=true 留在屏上且完全没有持有者, 也没有人调用
+    // finish()。守卫只针对这种状态, 并复用正常退场。仍持有目标的切换
+    // (pendingTargetIndex >= 0) 保留完整激活预算, 慢加载不会被截断; 只释放无持有者
+    // 或长时间卡死的遮罩。
+    Timer {
+        id: overlayLifecycleGuard
+
+        function _overlayHasGoneStale() {
+            if (!loadingOverlay.visible) return false
+            if (pendingTargetIndex < 0) return true
+            return _visibleElapsed >= _ownedBudget
+        }
+
+        objectName: "lazyOverlayLifecycleGuard"
+        interval: Enums.duration.fast
+        repeat: true
+        running: loadingOverlay.visible
+        property real _visibleSince: 0
+        readonly property real _visibleElapsed:
+            _visibleSince > 0 ? Date.now() - _visibleSince : 0
+        // An ownerless overlay is released quickly; an owned one keeps three
+        // seconds, which is well past collapse + activation + first render.
+        // 无持有者的遮罩快速释放; 有持有者的保留三秒, 远超收紧 + 激活 + 首帧渲染。
+        readonly property int _ownedBudget: 3000
+
+        onRunningChanged: _visibleSince = running ? Date.now() : 0
+        onTriggered: {
+            if (!loadingOverlay.visible) return
+            if (!_overlayHasGoneStale()) return
+            helper._trace(
+                "helper.overlay.lifecycle_guard",
+                pendingTargetIndex,
+                "visibleFor=" + Math.round(_visibleElapsed))
+            helper._releaseOverlayIfVisible()
+        }
+    }
+
+
     // Sequential stage timer 串行阶段计时器
     Timer {
         id: stageTimer
