@@ -142,6 +142,13 @@ Item {
                 && rowDelegate.model.cardData[control.selectedRole] === control.selectedKey
             readonly property string cardTime: rowDelegate.model.time || ""
             readonly property string cardTimePeriod: rowDelegate.model.timePeriod || ""
+            readonly property string cardDescription: {
+                const data = rowDelegate.model.cardData
+                const description = data && typeof data === "object"
+                    ? (data.description || "") : ""
+                return description !== "" ? description
+                    : (rowDelegate.model.description || "")
+            }
             readonly property real nodeY: cardBox.y + cardBox.height / 2
 
             width: rowDelegate.width
@@ -306,8 +313,8 @@ Item {
                             width: cardAction.visible
                                 ? Math.max(0, parent.width - cardAction.width - Enums.spacing.s)
                                 : parent.width
-                            visible: (rowDelegate.model.description || "") !== ""
-                            text: rowDelegate.model.description || ""
+                            visible: cardPart.cardDescription !== ""
+                            text: cardPart.cardDescription
                             color: Enums.textColor.tertiary
                             wrapMode: Text.Wrap
                         }
