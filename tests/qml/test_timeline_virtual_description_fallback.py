@@ -121,6 +121,15 @@ def _find_description(root: QQuickWindow) -> QQuickItem | None:
     return None
 
 
+def _card_ancestor(item: QQuickItem) -> QQuickItem | None:
+    current = item.parentItem()
+    while current is not None:
+        if current.property("clickEnabled") is True:
+            return current
+        current = current.parentItem()
+    return None
+
+
 def test_virtual_row_falls_back_to_real_card_description(qapp):
     engine = QQmlApplicationEngine()
     warnings = []
@@ -142,6 +151,12 @@ def test_virtual_row_falls_back_to_real_card_description(qapp):
         assert description is not None
         assert description.isVisible()
         assert description.height() > 0
+        card = _card_ancestor(description)
+        assert card is not None
+        description_bottom = description.mapToItem(
+            card, description.width(), description.height()
+        ).y()
+        assert description_bottom <= card.height() + 0.01
         assert warnings == []
     finally:
         window.close()

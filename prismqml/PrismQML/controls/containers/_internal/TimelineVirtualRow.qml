@@ -303,8 +303,11 @@ Item {
                     Item {
                         id: cardMetaRow
                         width: parent.width
-                        height: Math.max(cardDescription.height, cardAction.height)
-                        visible: cardDescription.visible || cardAction.visible
+                        implicitHeight: Math.max(
+                            cardDescription.implicitHeight,
+                            cardAction.implicitHeight)
+                        height: implicitHeight
+                        visible: cardDescription.text !== "" || cardAction.text !== ""
 
                         Label {
                             id: cardDescription
@@ -313,8 +316,8 @@ Item {
                             width: cardAction.visible
                                 ? Math.max(0, parent.width - cardAction.width - Enums.spacing.s)
                                 : parent.width
-                            visible: cardPart.cardDescription !== ""
                             text: cardPart.cardDescription
+                            visible: text !== ""
                             color: Enums.textColor.tertiary
                             wrapMode: Text.Wrap
                         }
@@ -332,9 +335,9 @@ Item {
                                 return data && typeof data === "object"
                                     ? (data.actionText || "") : ""
                             }
-                            visible: _actionText !== ""
                             type: Enums.label.type_hyperlink
                             text: _actionText
+                            visible: text !== ""
                             onClicked: control.cardActionClicked(
                                 rowDelegate.model.groupIndex,
                                 rowDelegate.model.cardIndex,

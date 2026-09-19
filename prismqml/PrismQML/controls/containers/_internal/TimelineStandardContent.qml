@@ -277,11 +277,12 @@ Column {
                                         Item {
                                             id: cardMetaRow
                                             width: parent.width
-                                            height: Math.max(
-                                                cardDescription.height,
-                                                cardAction.height)
-                                            visible: cardDescription.visible
-                                                || cardAction.visible
+                                            implicitHeight: Math.max(
+                                                cardDescription.implicitHeight,
+                                                cardAction.implicitHeight)
+                                            height: implicitHeight
+                                            visible: cardDescription.text !== ""
+                                                || cardAction.text !== ""
 
                                             Label {
                                                 id: cardDescription
@@ -293,8 +294,8 @@ Column {
                                                         - Enums.spacing.s)
                                                     : parent.width
                                                 type: Enums.label.type_caption
-                                                visible: cardItem.cardDescription !== ""
                                                 text: cardItem.cardDescription
+                                                visible: text !== ""
                                                 color: Enums.textColor.tertiary
                                                 wrapMode: Text.Wrap
                                             }
@@ -304,9 +305,9 @@ Column {
                                                 objectName: "timelineCardAction"
                                                 anchors.right: parent.right
                                                 anchors.verticalCenter: parent.verticalCenter
-                                                visible: cardItem.cardActionText !== ""
                                                 type: Enums.label.type_hyperlink
                                                 text: cardItem.cardActionText
+                                                visible: text !== ""
                                                 onClicked: timeline.cardActionClicked(
                                                     groupItem.index,
                                                     cardItem.index,
