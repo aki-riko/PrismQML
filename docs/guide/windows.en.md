@@ -171,6 +171,14 @@ lifecycle when they are created, so hosts do not need to call an internal
 binding method. Non-standard QML windows can join the same FastSplash lifecycle
 through the public `app.attach_startup_window(window)` API.
 
+The default FastSplash waits for the first page content, its loading indicator's
+exit, and one subsequent main-window frame before starting the existing reveal
+animation. A ready window shell alone no longer triggers handoff. Slow first-page
+loads therefore keep the splash visible longer instead of showing another loading
+indicator after entering the main window. Regular lazy page transitions are unchanged.
+If first-page loading fails or never completes, the existing
+`Enums.duration.splashTimeout` deadline releases the window with a warning.
+
 The main window close path also reuses the same `PageTransition`. By default it
 uses `Enums.lazyAnimation.lazy_circle` to collapse the window content; the real
 close is submitted only after the collapse completes. If the host rejects the

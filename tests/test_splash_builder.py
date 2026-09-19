@@ -242,19 +242,26 @@ def test_fast_splash_waits_for_python_page_readiness():
     assert FastSplashController._page_ready(window) is True
 
 
-def test_fast_splash_allows_lazy_qml_shell_handoff_before_page_ready():
-    """Lazy QML source windows may reveal their loading surface before the page tree finishes."""
-    stack = _PropertyObject(_useSourceMode=True)
+def test_fast_splash_waits_for_lazy_qml_page_and_loading_exit():
+    """Lazy QML startup waits for both page readiness and loading-indicator exit."""
+    page_loader = _PropertyObject(item=None)
+    stack = _PropertyObject(
+        _useSourceMode=True,
+        busy=True,
+        currentWidget=page_loader,
+    )
     window = _PropertyObject(
         stackedWidget=stack,
         _pythonPageMode=False,
-        lazyLoading=True,
     )
 
-    assert FastSplashController._shell_ready_while_page_loading(window) is True
+    assert FastSplashController._page_ready(window) is False
 
-    window._properties["lazyLoading"] = False
-    assert FastSplashController._shell_ready_while_page_loading(window) is False
+    page_loader._properties["item"] = _PropertyObject()
+    assert FastSplashController._page_ready(window) is False
+
+    stack._properties["busy"] = False
+    assert FastSplashController._page_ready(window) is True
 
 
 def test_fast_splash_uses_arrow_cursor_during_startup():
@@ -301,11 +308,15 @@ def test_fast_splash_commits_explicit_subtitle_before_first_show(qapp):
     original_display_name = qapp.applicationDisplayName()
     controller = FastSplashController(qapp)
     try:
+        controller._page_wait_started = 123.0
+        controller._page_wait_timed_out = True
         qapp.setApplicationDisplayName("Kaleidos")
         assert controller.show(
             ":/icons/kaleidos.svg",
             subtitle="程序正在初始化，请稍候...",
         )
+        assert controller._page_wait_started is None
+        assert controller._page_wait_timed_out is False
         assert controller.splash is not None
         assert controller.splash.property("splashSubtitle") == "程序正在初始化，请稍候..."
         assert controller.splash.isVisible() is True

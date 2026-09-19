@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -113,6 +114,8 @@ class FastSplashController(QObject):
         self._splash_frame_count = 0
         self._main_frame_count = 0
         self._page_ready_observed_frame = -1
+        self._page_wait_started = None
+        self._page_wait_timed_out = False
         self._handoff_done = False
         self._embedded_handoff = False
         self._visibility_deferred = False
@@ -154,6 +157,8 @@ class FastSplashController(QObject):
             self._transition = None
             self._ready_timer = None
             self._page_ready_observed_frame = -1
+            self._page_wait_started = None
+            self._page_wait_timed_out = False
             self._splash_frame_count = 0
             self._main_frame_count = 0
             self._title_metadata_ready = False
@@ -436,6 +441,13 @@ class FastSplashController(QObject):
         stack = main_window.property("stackedWidget")
         if stack is None:
             return False
+        # A constructed page can still be covered by its initial wait indicator.
+        # Keep the splash until that indicator has completed its normal exit.
+        # 首屏已构建时，其等待指示仍可能正在退场；完成后才能结束启动画面。
+        source_mode = bool(stack.property("_useSourceMode"))
+        if (main_window.property("_pythonPageMode") is not True
+                and source_mode and bool(stack.property("busy"))):
+            return False
         current = stack.property("currentWidget")
         if current is None:
             return False
@@ -457,19 +469,29 @@ class FastSplashController(QObject):
                 return False
             if current_index not in ready_indexes:
                 return False
-        if bool(stack.property("_useSourceMode")):
+        if source_mode:
             return current.property("item") is not None
         return True
 
-    @staticmethod
-    def _shell_ready_while_page_loading(main_window: QQuickWindow) -> bool:
-        """Allow lazy QML source windows to reveal their loading surface early."""
-        if main_window.property("_pythonPageMode") is True:
+    def _page_wait_expired(self) -> bool:
+        """Reuse the QML startup deadline for failed or stalled first pages."""
+        window = self._main_window
+        if window.property("_pythonPageMode") is True:
             return False
-        stack = main_window.property("stackedWidget")
-        if stack is None or not bool(stack.property("_useSourceMode")):
+        stack = window.property("stackedWidget")
+        timer = window.property("_splashTimerObject")
+        if (stack is None or not bool(stack.property("_useSourceMode"))
+                or timer is None):
             return False
-        return bool(main_window.property("lazyLoading"))
+        if self._page_wait_started is None:
+            self._page_wait_started = time.monotonic()
+        elapsed_ms = (time.monotonic() - self._page_wait_started) * 1000
+        if elapsed_ms < timer.property("_timeoutInterval"):
+            return False
+        if not self._page_wait_timed_out:
+            self._page_wait_timed_out = True
+            warning("FastSplash 首屏等待超时，按已有启动页超时策略交接主窗口")
+        return True
 
     @staticmethod
     def _show_qml_owned_window(main_window: QQuickWindow) -> None:
@@ -499,9 +521,8 @@ class FastSplashController(QObject):
         if self._main_window.property("_startupPresentationReady") is not True:
             self._page_ready_observed_frame = -1
             return
-        page_ready = self._page_ready(self._main_window)
-        shell_ready = self._shell_ready_while_page_loading(self._main_window)
-        if not page_ready and not shell_ready:
+        if (not self._page_ready(self._main_window)
+                and not self._page_wait_expired()):
             self._page_ready_observed_frame = -1
             return
         # A ready signal means the page tree is constructed, not that it has

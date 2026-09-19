@@ -17,9 +17,10 @@ Timer {
     property bool _minimumVisiblePhase: false
     property int _minimumVisibleInterval: Enums.duration.splashMinimumVisible
     property var _onTimeout: null
+    readonly property int _timeoutInterval: Enums.duration.splashTimeout
 
     interval: _minimumVisiblePhase
-              ? _minimumVisibleInterval : Enums.duration.splashTimeout
+              ? _minimumVisibleInterval : _timeoutInterval
     onTriggered: {
         if (_minimumVisiblePhase) host._scheduleSplashDismiss()
         else if (_onTimeout) _onTimeout()

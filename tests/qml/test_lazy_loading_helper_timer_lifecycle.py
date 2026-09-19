@@ -294,6 +294,21 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert _running_timers(helper) == []
         assert _is_old_page(_sample_pixel(window, 160, 90))
 
+        activation_timer = _direct_timers(helper)[0]
+        armed_phases = []
+
+        def record_armed_phase():
+            if activation_timer.property("running"):
+                armed_phases.append((
+                    activation_timer.property("repeat"),
+                    activation_timer.property("interval"),
+                    window.property("activatedCount"),
+                ))
+
+        # Capture at arming: the activation phase may last only one millisecond,
+        # while the pixel reads below can already advance it into polling.
+        # 激活阶段可能仅持续一毫秒，后续像素采样可能已推进到轮询，须在启动时记录。
+        activation_timer.runningChanged.connect(record_armed_phase)
         page_transition = window.findChild(QObject, "lazyPageCircleTransition")
         circle_transition = window.findChild(QObject, "qmlPageCircleTransition")
         overlay_window = window.findChild(QQuickWindow, "lazyPageCircleOverlayWindow")
@@ -340,14 +355,11 @@ def test_lazy_loading_helper_timer_phase_baseline(qapp):
         assert first_page is not None
         assert first_page.property("visible") is False
         assert _is_loading_background(_sample_pixel(window, 160, 90))
-        activation_timer = _direct_timers(helper)[0]
         activation_timer_count = len(_direct_timers(helper))
         assert _running_timers(helper) == [activation_timer]
-        assert activation_timer.property("repeat") is False
-        assert activation_timer.property("interval") == window.property(
-            "expectedActivationInterval"
-        )
-        assert window.property("activatedCount") == 0
+        assert armed_phases[0] == (
+            False, window.property("expectedActivationInterval"), 0
+        ), armed_phases
 
         assert _wait_for(lambda: window.property("activatedCount") == 1)
         assert _wait_for(
