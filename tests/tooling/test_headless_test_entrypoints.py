@@ -72,6 +72,9 @@ BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
 AUTOMATED_BOOTSTRAP_NAME = "prepare_automated_test_process"
 TEST_PROCESS_BINDING = "TEST_PROCESS"
+HIDDEN_NATIVE_ENTRYPOINTS = {
+    Path("tests/qml/navigation_panel_acrylic_native_probe.py"),
+}
 STANDALONE_QML_RUNTIME_CASES = (
     (Path("tests/qml/probe_neo_skin.py"), 15),
     (Path("tests/qml/test_card_autoheight.py"), 15),
@@ -98,6 +101,8 @@ STANDALONE_QML_RUNTIME_CASES = (
 )
 AUTOMATED_QT_RUNTIME_COVERED_ELSEWHERE = {
     Path("tests/qml/probe_all_components.py"),
+    # Covered by the hidden native D3D11 parent test. 由隐藏式原生 D3D11 父测试覆盖。
+    *HIDDEN_NATIVE_ENTRYPOINTS,
     Path("tests/test_input_focus_filter.py"),
     Path("tests/test_provider_lifecycle.py"),
 }
@@ -170,11 +175,19 @@ def _trusted_bootstrap_import_line(tree: ast.Module) -> int | None:
     return None
 
 
-def _top_level_call_line(tree: ast.Module, function_name: str) -> int | None:
+def _top_level_call_line(
+    tree: ast.Module, function_name: str, *, preserve_platform: bool = False
+) -> int | None:
     for node in tree.body:
         if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
             continue
-        if node.value.args or node.value.keywords:
+        arguments = node.value.args
+        preserves_runner_platform = (
+            preserve_platform and len(arguments) == 1
+            and isinstance(arguments[0], ast.Constant)
+            and arguments[0].value is None
+        )
+        if node.value.keywords or (arguments and not preserves_runner_platform):
             continue
         function = node.value.func
         if isinstance(function, ast.Name) and function.id == function_name:
@@ -235,7 +248,7 @@ def _is_test_process_runpy_call(node: ast.AST) -> bool:
 
 
 def _trusted_runpy_bootstrap_lines(
-    tree: ast.Module,
+    tree: ast.Module, *, preserve_platform: bool = False,
 ) -> tuple[int | None, int | None, int | None]:
     load_line = None
     alias_line = None
@@ -259,7 +272,9 @@ def _trusted_runpy_bootstrap_lines(
         ):
             continue
         alias_line = node.lineno
-    call_line = _top_level_call_line(tree, AUTOMATED_BOOTSTRAP_NAME)
+    call_line = _top_level_call_line(
+        tree, AUTOMATED_BOOTSTRAP_NAME, preserve_platform=preserve_platform
+    )
     return load_line, alias_line, call_line
 
 
@@ -308,9 +323,9 @@ def _qml_bootstrap_state(
 
 
 def _runpy_bootstrap_state(
-    tree: ast.Module, pyside_line: int
+    tree: ast.Module, pyside_line: int, *, preserve_platform: bool = False
 ) -> tuple[bool, tuple[tuple[int | None, int | None, int | None], list[int]]]:
-    lines = _trusted_runpy_bootstrap_lines(tree)
+    lines = _trusted_runpy_bootstrap_lines(tree, preserve_platform=preserve_platform)
     rebindings = _name_rebinding_lines(tree, AUTOMATED_BOOTSTRAP_NAME)
     load_line, alias_line, call_line = lines
     valid = (
@@ -365,7 +380,9 @@ def _entrypoint_bootstrap_failure(relative: Path) -> str | None:
     tree = ast.parse(source, filename=str(relative))
     pyside_line = min(_pyside_import_lines(tree))
     qml_valid, qml_state = _qml_bootstrap_state(tree, pyside_line)
-    runpy_valid, runpy_state = _runpy_bootstrap_state(tree, pyside_line)
+    runpy_valid, runpy_state = _runpy_bootstrap_state(
+        tree, pyside_line, preserve_platform=relative in HIDDEN_NATIVE_ENTRYPOINTS
+    )
     if qml_valid or runpy_valid:
         return None
     return (
@@ -502,6 +519,16 @@ def test_gallery_main_supports_package_import():
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("argument", ("None", "'windows'", "'offscreen'"))
+def test_native_bootstrap_only_preserves_the_runner_platform(argument):
+    tree = ast.parse(f"{AUTOMATED_BOOTSTRAP_NAME}({argument})")
+    assert _top_level_call_line(tree, AUTOMATED_BOOTSTRAP_NAME) is None
+    actual = _top_level_call_line(
+        tree, AUTOMATED_BOOTSTRAP_NAME, preserve_platform=True
+    )
+    assert actual == (1 if argument == "None" else None)
 
 
 def test_standalone_qt_entrypoints_bootstrap_before_pyside_import():

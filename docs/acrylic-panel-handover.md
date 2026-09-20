@@ -1,5 +1,36 @@
 # 导航面板亚克力显示问题 — 交接文档
 
+## 2026-09-20：局部 GPU 轮廓遮罩修正
+
+用户再次明确的症状是“正确圆角下面凸出一层无圆角白边”。当前实现保留
+`Image` 与着色层，并在它们共同的 `acrylicLayer` 上增加局部 `MultiEffect`：
+显式 `ShaderEffectSource` 提供轮廓，右侧圆角仍从 `titleBarHeight` 偏移开始。
+没有恢复下文已否决的 Canvas 图像加载实现，也没有修改全局 `OpacityMask`。
+
+旧 GPU 尝试有一个确定的参数问题：全局 `OpacityMask` 的普通模式采用
+`maskThresholdMin=0`、`maskSpreadAtMin=1`。Qt 的阈值换算会使透明 mask 像素
+几乎完整放行原图。局部改用现有 `Enums.mask.thresholdMin`（0.5）与
+`Enums.mask.spreadFull`（1），使透明区域切除，同时保留边缘抗锯齿。
+
+本次证据使用用户提供的真实截图区域，经过原有 `image://acrylic` provider，
+加载真实 Gallery QML，在隔离、隐藏的原生窗口中以 D3D11、DPR 1.5 抓帧。
+同一输入改前右上、右下圆角外随亚克力开关改变；改后两点均与关闭亚克力时
+完全一致，面板顶部内部与中心仍有亚克力。报告位于
+`.artifacts/python/window-seam-diagnosis/`。这证明该层不再越过圆角；
+隐藏窗口不包含桌面 DWM 最终合成，不能替代用户对可见窗口的视觉验收。
+
+软件 scenegraph 不执行着色器，继续保持原有直接图片绘制；离屏软件测试只验证
+图像来源和对齐，不作为圆角验收。圆角裁剪必须由独立 D3D11 回归验证。
+
+当前回归入口是 `tests/qml/test_navigation_panel_acrylic_native.py`，由统一 runner
+启动隔离的隐藏 D3D11 子进程，检查图源更新、窗口缩放和折叠重展后的内外像素。
+可见窗口验收仍需完整重启 Gallery，确认面板内部模糊完整、右侧两个圆角不露
+方形白边，同时布局和展开动画与原来一致。
+
+以下保留此前失败路线与回滚的历史，所称“当前 main”指该次回滚时的状态。
+
+---
+
 > 范围：`WindowsSplit`（设置里"窗口类型 = Window"）左侧导航面板的亚克力背景显示异常。
 > **当前 main 实际状态（本次回滚后）**：`de913fdc`（角块）+ `8b75ac03`（错位重影）。
 > `c13f52ce` / `ccbfe7d5` 对应的 Canvas 路线已按实际验收反馈否决，不再作为当前实现。
@@ -156,14 +187,14 @@ python scripts/test_process.py --qt-platform offscreen --timeout 120 -- python -
 
 ---
 
-## 8. 快速验收清单
+## 8. 历史回滚状态的验收清单
 
 完全重启 Gallery（不要只热重载）→ 展开导航面板：
 
 - [ ] 面板整片有模糊（不是只剩一条）
 - [ ] 面板项后面没有错位的第二层
 - [ ] 左上角没有方形色块
-- [ ] 右侧圆角处没有方角的一层 —— 当前仍未解决，Canvas 候选已否决
+- [ ] 右侧圆角处没有方角的一层 —— 当时仍未解决，Canvas 候选已否决
 
-若"整片有模糊"不成立，日志中应有 `Acrylic capture never loaded:`，
-把它连同 `.artifacts/window-diag/gallery_probe.py` 的 A/B 输出一起附上继续排查。
+旧 Canvas 重试实现曾输出 `Acrylic capture never loaded:`。当前 GPU 方案不包含
+这条日志，不应以等待它出现作为诊断方式；当前回归与验收入口见文档顶部。

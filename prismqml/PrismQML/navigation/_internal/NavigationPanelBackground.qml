@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 import QtQuick
+import QtQuick.Effects
 import "../.."
 
 // Keeps background layers below navigation content 将背景层保持在导航内容下方
@@ -78,17 +79,58 @@ Item {
         readonly property color acrylicTintColor: Enums.stateColor.acrylicTintColor
 
         anchors.fill: parent
-        visible: Enums.usesSoftElevation && control.acrylicEnabled && control.acrylicImageSource !== ""
+        visible: Enums.usesSoftElevation && control.acrylicEnabled
+                 && control.acrylicImageSource !== ""
+                 && GraphicsInfo.api !== GraphicsInfo.Unknown
         z: 1  // Below all content 在所有内容下方
         radius: control._cornerRadius
-        // Clipping follows the bounding rect, not the rounded path, so all four
-        // corner quadrants are covered by this layer alone. Re-adding a square
-        // "corner fill" would repaint a corner from the wrong part of the
-        // blurred image and surface as a colour block at the window corner.
-        // 裁剪按外接矩形而非圆角路径, 四个角象限本层已覆盖。再补方形"角填充"
-        // 只会用模糊图里错位的区域重绘角落, 在窗口角落露出色块。
+        // Item.clip only clips a rectangle. Mask the capture and tint together,
+        // with the visible top-right corner below the off-window title offset.
+        // Item.clip 只按矩形裁剪。截图和着色必须一起遮罩，右上圆角从窗口外的
+        // 标题栏偏移之后开始，才能与面板边框的可见轮廓一致。
         clip: true
         color: Enums.transparent
+        // Software has no shader effects; keep its existing image rendering.
+        // 软件后端不执行着色器效果，保留其原有图片绘制。
+        layer.enabled: acrylicLayer.visible
+                       && GraphicsInfo.api !== GraphicsInfo.Software
+                       && GraphicsInfo.api !== GraphicsInfo.Unknown
+                       && GraphicsInfo.api !== GraphicsInfo.Null
+        layer.smooth: true
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            // A zero threshold with full spread passes transparent mask pixels.
+            // 零阈值配合完整扩散会放行透明像素；中点阈值才保留真实 alpha 裁剪。
+            maskThresholdMin: Enums.mask.thresholdMin
+            maskSpreadAtMin: Enums.mask.spreadFull
+            maskSource: ShaderEffectSource {
+                hideSource: true
+                live: true
+                smooth: true
+                sourceItem: Item {
+                    width: acrylicLayer.width
+                    height: acrylicLayer.height
+
+                    Rectangle {
+                        width: parent.width
+                        height: control.titleBarHeight
+                        color: Enums.textColor.primary
+                    }
+
+                    Rectangle {
+                        y: control.titleBarHeight
+                        width: parent.width
+                        height: Math.max(0, parent.height - y)
+                        topLeftRadius: Enums.radius.none
+                        bottomLeftRadius: Enums.radius.none
+                        topRightRadius: control._cornerRadius
+                        bottomRightRadius: control._cornerRadius
+                        antialiasing: true
+                        color: Enums.textColor.primary
+                    }
+                }
+            }
+        }
 
         // Blurred background image 模糊背景图片
         // The capture covers the panel inside the window, while this layer
