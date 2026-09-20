@@ -41,6 +41,7 @@ Item {
     property int toolTipTextAlignment: Text.AlignLeft
     // ==================== Internal Props 内部属性 ====================
     property bool _toolTipShowPending: false
+    property bool _toolTipSupportTracksHover: true
     readonly property var _nearestSkinContext: skinContext
         ? null : SkinResolver.nearestContext(widget.parent)
     readonly property Loader _centerChildrenDelayed: Loader {
@@ -88,6 +89,9 @@ Item {
     }
     function _stopToolTipShowTimer() {
         if (_toolTipLoader.item) _toolTipLoader.item.stopShowTimer()
+    }
+    function _startToolTipHideTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.startHideTimer()
     }
     function _dismissToolTip() {
         _cancelToolTipTimers()

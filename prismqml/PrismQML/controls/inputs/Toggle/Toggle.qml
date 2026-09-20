@@ -5,12 +5,13 @@
 import QtQuick
 import "../../.."
 import ".."
+import "../../containers"
 import "_internal" as ToggleInternal
 
 // Toggle - Unified toggle control 统一切换控件
 // Control via controlType: checkbox/radio/switch 通过controlType控制控件类型
 // Control via type: default/indicator/subtitle 通过type控制显示形态
-Item {
+Widget {
     id: control
 
     // ==================== Public Props 公开属性 ====================
@@ -148,6 +149,10 @@ Item {
     }
 
     // ==================== Size 尺寸 ====================
+    // Preserve Toggle's compact leaf geometry instead of Widget parent-fill defaults.
+    // 保持 Toggle 紧凑叶控件几何，避免继承 Widget 的父项填充默认值。
+    layoutFillWidth: false
+    layoutFillHeight: false
     implicitWidth: toggleContent.implicitWidth
     implicitHeight: {
         if (_isSubtitle)
@@ -161,6 +166,11 @@ Item {
         if (_isRadio) return Enums.controlSize.radioOuter
         return Enums.controlSize.checkboxOuter
     }
+    width: implicitWidth
+    height: implicitHeight
+    // Toggle owns tooltip hover so the inherited support does not schedule a second lifecycle.
+    // Toggle 接管工具提示悬浮，继承支持层不再重复调度生命周期。
+    _toolTipSupportTracksHover: false
 
     onCheckedChanged: {
         if (_syncingCheckState) return
@@ -190,5 +200,21 @@ Item {
         enabled: control.enabled && !control._isSwitch
         hoverEnabled: true
         onClicked: control._handleClick()
+    }
+
+    // Passive tooltip tracking preserves the control MouseArea's hover and click handling.
+    // 被动工具提示跟踪保留控件 MouseArea 的悬浮和点击处理。
+    HoverHandler {
+        id: toolTipHoverHandler
+
+        enabled: control.toolTipText !== "" && !Touch.isTouch
+        onHoveredChanged: {
+            if (hovered) {
+                control._startToolTipShowTimer()
+            } else {
+                control._stopToolTipShowTimer()
+                control._startToolTipHideTimer()
+            }
+        }
     }
 }

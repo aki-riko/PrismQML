@@ -173,6 +173,7 @@ Popup {
         toolTip.exit = exitTransition
     }
     function startShowTimer(elapsedMilliseconds) {
+        _cancelHideTimer()
         var remainingDelay = Math.max(
             0, widget.toolTipShowDelay - elapsedMilliseconds)
         if (!_showTimer) {

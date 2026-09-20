@@ -82,7 +82,7 @@ MouseArea {
     objectName: "_hoverArea"
     // Touch keeps hover off: no tooltip on touch, so nothing needs hover tracking
     // 触摸端不显示提示, 因此不需要 hover 追踪 (桌面不变)
-    hoverEnabled: !Touch.isTouch
+    hoverEnabled: !!widget && widget._toolTipSupportTracksHover && !Touch.isTouch
     acceptedButtons: Qt.NoButton
     propagateComposedEvents: true
 
