@@ -357,19 +357,21 @@ def test_windows_split_panel_shadow_source_conventions():
     assert "active: navInterface.isExpanded" in source
     assert "required property var panel" in helper_source
     assert "required property bool active" in helper_source
-    # Only the pane's outer edge may be painted. 只允许绘制面板外缘。
+    # Include corner cutouts but exclude the pane interior. 包含圆角外侧但排除面板内部。
     assert "clip: true" in helper_source
-    assert "anchors.leftMargin: root._paneWidth" in helper_source
-    assert "x: -root._paneWidth" in helper_source
-    assert "y: -root._shadowBlur" in helper_source
-    assert "height: parent.height + root._shadowBlur * 2" in helper_source
+    assert "root._paneWidth - root._paneRadius" in helper_source
+    assert "x: -root.x" in helper_source
+    assert "height: parent.height" in helper_source
+    assert "y: -root._shadowBlur" not in helper_source
+    assert "maskInverted: true" in helper_source
+    assert "maskThresholdMin: Enums.mask.thresholdMin" in helper_source
     assert "readonly property real _shadowBlur: Enums.shadow.level8.blur" in helper_source
     assert "visible: opacity > Enums.opacityLevel.invisible" in helper_source
     # Elevation tokens stay in Enums. 高度阴影 token 统一取自 Enums。
     assert "color: Enums.shadow.level8.color" in helper_source
     assert "blur: Enums.shadow.level8.blur" in helper_source
     assert "offset.x: Enums.shadow.level8.offset" in helper_source
-    assert "radius: Enums.radius.none" in helper_source
+    assert "radius: root._paneRadius" in helper_source
     assert "Enums.usesSoftElevation" in helper_source
 
 def test_windows_split_panel_shadow_tracks_the_expanded_pane(monkeypatch, qapp):
@@ -397,30 +399,31 @@ def test_windows_split_panel_shadow_tracks_the_expanded_pane(monkeypatch, qapp):
             assert shadow is not None and silhouette is not None
             compact_width = window.property("navCompactWidth")
             expand_width = window.property("navExpandWidth")
+            corner_radius = shadow.property("_paneRadius")
 
             # A collapsed pane is flush with the content seam and casts nothing.
             # 收起面板与内容接缝齐平，不投射阴影。
             assert shadow.property("clip") is True
             assert shadow.isVisible() is False
-            assert abs(shadow.x() - compact_width) < 0.5
+            assert abs(shadow.x() - compact_width + corner_radius) < 0.5
             assert abs(shadow.y()) < 0.5
             assert abs(silhouette.width() - compact_width) < 0.5
-            assert abs(silhouette.x() + compact_width) < 0.5
-            assert silhouette.y() < 0
-            assert abs(
-                silhouette.height() - shadow.height() + silhouette.y() * 2
-            ) < 0.5
+            assert abs(silhouette.x() + shadow.x()) < 0.5
+            assert abs(silhouette.y()) < 0.5
+            assert abs(silhouette.height() - shadow.height()) < 0.5
 
             assert _set_pane_expanded(window, True)
-            assert _wait_for(lambda: abs(shadow.x() - expand_width) < 0.5)
+            assert _wait_for(
+                lambda: abs(shadow.x() - expand_width + corner_radius) < 0.5
+            )
             assert _wait_for(lambda: shadow.property("opacity") == 1)
             assert shadow.isVisible() is True
-            # Clip boundary and silhouette stay locked to the pane edge, so only
-            # the shadow spilling past that edge can ever be painted.
-            # 裁剪边界与轮廓始终锁在面板边缘，因此只会绘制越过该边缘的阴影。
-            assert abs(shadow.x() - expand_width) < 0.5
+            # Track the curved edge without allocating a full content texture.
+            # 跟随圆弧外缘，无需分配整个内容区的纹理。
+            assert abs(shadow.x() - expand_width + corner_radius) < 0.5
             assert abs(silhouette.width() - expand_width) < 0.5
-            assert abs(silhouette.x() + expand_width) < 0.5
+            assert abs(silhouette.x() + shadow.x()) < 0.5
+            assert shadow.width() < compact_width
             assert warnings == []
 
             assert _set_pane_expanded(window, False)

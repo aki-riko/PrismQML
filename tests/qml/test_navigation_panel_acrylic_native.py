@@ -50,6 +50,15 @@ def _changed(pair: dict[str, object], name: str) -> bool:
     return pair["on"][name] != pair["off"][name]
 
 
+def _pixel_delta(pair: dict[str, object], name: str) -> int:
+    return sum(
+        abs(on_channel - off_channel)
+        for on_channel, off_channel in zip(
+            pair["on"][name][:3], pair["off"][name][:3]
+        )
+    )
+
+
 def _assert_corner_contract(pair: dict[str, object]) -> None:
     for name in ("top_outside", "bottom_outside"):
         assert pair["on"][name] == pair["off"][name], (name, pair)
@@ -71,6 +80,43 @@ def _assert_vertical_colors(pair: dict[str, object], upper: str, lower: str) -> 
     ), lower_color
 
 
+def _assert_lifecycle_contract(report: dict[str, object]) -> None:
+    assert report["backend"] == "Direct3D11"
+    assert report["window_visible"] is False
+    assert report["warnings"] == []
+    for state in STATES:
+        assert report[state]["expanded"] is True
+        _assert_corner_contract(report[state])
+    _assert_vertical_colors(report["initial"], "red", "green")
+    _assert_vertical_colors(report["updated"], "blue", "red")
+    for state in ("resized", "dark", "reexpanded"):
+        _assert_vertical_colors(report[state], "red", "green")
+    assert report["initial"]["size"] != report["resized"]["size"]
+
+
+def _assert_gallery_contract(gallery: dict[str, object]) -> None:
+    assert gallery["backend"] == "Direct3D11"
+    assert gallery["window_visible"] is False
+    assert gallery["window_class"] == "WindowsSplit"
+    assert gallery["settings_page_loaded"] is True
+    assert gallery["expanded"] is True
+    assert gallery["warnings"] == []
+    assert gallery["acrylic_source"] == "collapsed_qml_composite_not_desktop_dwm"
+    shadow = gallery["shadow"]
+    for name in ("corner_top_inset", "corner_bottom_inset"):
+        assert _changed(shadow, name), (name, shadow)
+    assert not _changed(shadow, "edge_center_inside"), shadow
+    assert _changed(shadow, "edge_center_outside"), shadow
+    center_delta = _pixel_delta(shadow, "edge_center_outside")
+    assert 0 < _pixel_delta(shadow, "edge_top_outside") < center_delta, shadow
+    assert 0 < _pixel_delta(shadow, "edge_bottom_outside") < center_delta, shadow
+    acrylic = gallery["acrylic"]
+    for name in ("corner_top_inset", "corner_bottom_inset"):
+        assert not _changed(acrylic, name), (name, acrylic)
+    for name in ("body_upper", "body_lower"):
+        assert _changed(acrylic, name), (name, acrylic)
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="D3D11 requires Windows")
 def test_navigation_panel_acrylic_native_rounding_and_lifecycle(tmp_path):
     """The hidden native scene keeps acrylic inside the panel silhouette.
@@ -83,16 +129,6 @@ def test_navigation_panel_acrylic_native_rounding_and_lifecycle(tmp_path):
     assert result.returncode == 0, output
     assert report_path.exists(), output
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["backend"] == "Direct3D11"
-    assert report["window_visible"] is False
-    assert report["warnings"] == []
-    for state in STATES:
-        assert report[state]["expanded"] is True
-        _assert_corner_contract(report[state])
-    _assert_vertical_colors(report["initial"], "red", "green")
-    _assert_vertical_colors(report["updated"], "blue", "red")
-    _assert_vertical_colors(report["resized"], "red", "green")
-    _assert_vertical_colors(report["dark"], "red", "green")
-    _assert_vertical_colors(report["reexpanded"], "red", "green")
-    assert report["initial"]["size"] != report["resized"]["size"]
+    _assert_lifecycle_contract(report)
+    _assert_gallery_contract(report["gallery_shell"])
     assert "visible_windows=0 / job_active_processes=0" in output

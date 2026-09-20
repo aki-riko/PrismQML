@@ -9,11 +9,9 @@ import QtQuick.Effects
 import ".."
 
 // Casts the pane elevation onto the content area while the pane is expanded.
-// The pane is flush with the window edges, so only its outer edge can carry a
-// shadow: this layer starts at the pane edge and clips away everything inside
-// the pane, keeping the pane surface clean even when Mica makes it translucent.
-// 面板展开时把高度投影到内容区。面板与窗口边缘齐平，因此只有外缘能承载阴影：
-// 本层从面板边缘开始并裁掉面板内部的一切，使面板表面即使因云母而半透明也保持干净。
+// Include the rounded corner cutouts, then mask away the pane interior. A
+// rectangular clip at the right edge leaves bright wedges beside the curves.
+// 阴影包含圆角外侧的凹入区域，再遮掉面板内部；沿最右边直线裁剪会在圆弧旁露出亮角。
 Item {
     id: root
 
@@ -23,44 +21,68 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property real _paneWidth: root.panel ? root.panel.width : 0
+    readonly property real _paneRadius: Enums.surfaceRadius(Enums.radius.large)
     readonly property real _shadowBlur: Enums.shadow.level8.blur
 
     // ==================== Size 尺寸 ====================
     objectName: "navigationPanelShadow"
     anchors.left: parent.left
-    anchors.leftMargin: root._paneWidth
+    anchors.leftMargin: Math.max(0, root._paneWidth - root._paneRadius)
     anchors.top: parent.top
-    anchors.right: parent.right
     anchors.bottom: parent.bottom
-    // Clip boundary follows the animated pane edge. 裁剪边界跟随动画中的面板边缘。
+    // Only allocate the narrow band containing the curved edge and its shadow.
+    // 只为包含圆弧边缘及阴影的窄条分配纹理，避免整窗离屏绘制。
+    width: root._paneRadius + root._shadowBlur + Enums.shadow.level8.offset
     clip: true
     // Fade in step with the pane width so neither end of the transition pops.
     // 与面板宽度同步淡入淡出，避免过渡两端出现跳变。
     opacity: root.active ? Enums.opacityLevel.visible : Enums.opacityLevel.invisible
     visible: opacity > Enums.opacityLevel.invisible
              && Enums.usesSoftElevation && !Enums.isNeumorphism
+    layer.enabled: visible
+    layer.effect: MultiEffect {
+        maskEnabled: true
+        maskInverted: true
+        maskThresholdMin: Enums.mask.thresholdMin
+        maskSpreadAtMin: Enums.mask.spreadFull
+        maskSource: ShaderEffectSource {
+            hideSource: true
+            live: true
+            smooth: true
+            sourceItem: Item {
+                width: root.width
+                height: root.height
+
+                Rectangle {
+                    x: shadowSource.x
+                    width: root._paneWidth
+                    height: parent.height
+                    topLeftRadius: Enums.radius.none
+                    bottomLeftRadius: Enums.radius.none
+                    topRightRadius: root._paneRadius
+                    bottomRightRadius: root._paneRadius
+                    antialiasing: true
+                    color: Enums.textColor.primary
+                }
+            }
+        }
+    }
 
     // ==================== Content 内容 ====================
-    // Panel silhouette; the clip above discards everything inside the pane.
-    // 面板轮廓；上方的裁剪会丢弃面板内部的一切。
+    // Match the visible pane; extending above/below it creates a square slab.
+    // 轮廓与可见面板一致；上下外扩会让阴影变成无圆角的底板。
     Item {
         id: shadowSource
 
         objectName: "navigationPanelShadowSource"
-        x: -root._paneWidth
-        y: -root._shadowBlur
+        x: -root.x
         width: root._paneWidth
-        height: parent.height + root._shadowBlur * 2
+        height: parent.height
     }
 
     RectangularShadow {
         anchors.fill: shadowSource
-        // Extend the source beyond the clipped top/bottom so only the outer
-        // vertical seam contributes shadow pixels; no rounded corner lobe can
-        // protrude into the title/content junction.
-        // 阴影源上下越过裁剪层，使这里只产生外侧垂直接缝的阴影像素；
-        // 不再让圆角阴影在标题栏/内容接缝处形成突出的暗块。
-        radius: Enums.radius.none
+        radius: root._paneRadius
         color: Enums.shadow.level8.color
         blur: Enums.shadow.level8.blur
         offset.x: Enums.shadow.level8.offset

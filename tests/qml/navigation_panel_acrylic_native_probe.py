@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 import runpy
 import sys
@@ -24,8 +25,8 @@ prepare_automated_test_process = TEST_PROCESS["prepare_automated_test_process"]
 prepare_automated_test_process(None)
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl  # noqa: E402
-from PySide6.QtGui import QColor, QImage  # noqa: E402
-from PySide6.QtQml import QQmlComponent, QQmlEngine  # noqa: E402
+from PySide6.QtGui import QColor, QImage, QPainter  # noqa: E402
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine  # noqa: E402
 from PySide6.QtQuick import (  # noqa: E402
     QQuickItem,
     QQuickWindow,
@@ -33,8 +34,19 @@ from PySide6.QtQuick import (  # noqa: E402
 )
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from prismqml import Skin, Theme, register_types, setSkin, setTheme  # noqa: E402
+from prismqml import (  # noqa: E402
+    Skin,
+    Theme,
+    configure_qml_environment,
+    register_types,
+    setSkin,
+    setTheme,
+)
+from prismqml.python.runtime import get_svg_provider  # noqa: E402
 from prismqml.python.runtime.window_services import get_acrylic_helper  # noqa: E402
+from prismqml.python.window.mica_window import _gaussian_blur_image  # noqa: E402
+
+from examples.resources import register_gallery_resources  # noqa: E402
 
 
 LOGGER = logging.getLogger(__name__)
@@ -42,6 +54,7 @@ PANEL_WIDTH = 320
 TITLE_HEIGHT = 48
 INITIAL_HEIGHT = 800
 RESIZED_HEIGHT = 640
+SETTINGS_PAGE_INDEX = 13
 SCENE_SOURCE = f"""
 import QtQuick
 import PrismQML
@@ -126,6 +139,21 @@ def _rgba(color: QColor) -> list[int]:
     return [color.red(), color.green(), color.blue(), color.alpha()]
 
 
+def _composite_hidden_window(image: QImage) -> QImage:
+    """Composite the transparent hidden window over its light system backdrop.
+
+    将隐藏窗口的透明像素合成到浅色系统背景上。该画面来自真实 QML 壳，
+    并非桌面 DWM 截图。
+    """
+    result = QImage(image.size(), QImage.Format.Format_ARGB32_Premultiplied)
+    result.fill(QColor("#f3f3f3"))
+    result.setDevicePixelRatio(image.devicePixelRatio())
+    painter = QPainter(result)
+    painter.drawImage(0, 0, image)
+    painter.end()
+    return result
+
+
 def _samples(image: QImage, window: QQuickWindow) -> dict[str, list[int]]:
     height = float(window.height())
     points = {
@@ -208,6 +236,205 @@ def _create_runtime():
     return app, engine, component, window, view, warnings
 
 
+def _write_gallery_config() -> Path:
+    config_path = Path(os.environ["PRISMQML_CONFIG_FILE"])
+    config_path.write_text(
+        json.dumps(
+            {
+                "Window": {
+                    "WindowType": 0,
+                    "MicaEnabled": True,
+                    "LazyLoading": False,
+                    "DwmShadow": False,
+                },
+                "Appearance": {
+                    "Theme": "light",
+                    "Skin": "fluent",
+                    "Language": "zh_CN",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def _wait_for_gallery_shell(window: QQuickWindow) -> QQuickItem:
+    for _ in range(120):
+        _grab_settled(window, 1)
+        navigation = window.property("navigationView")
+        if isinstance(navigation, QQuickItem):
+            return navigation
+    raise AssertionError("Gallery WindowsSplit navigation did not load")
+
+
+def _find_visual_item(window: QQuickWindow, object_name: str) -> QQuickItem | None:
+    pending = [window.contentItem()]
+    while pending:
+        item = pending.pop()
+        if item.objectName() == object_name:
+            return item
+        pending.extend(item.childItems())
+    return None
+
+
+def _wait_for_settings_page(window: QQuickWindow) -> None:
+    assert window.setProperty("currentIndex", SETTINGS_PAGE_INDEX)
+    for _ in range(120):
+        _grab_settled(window, 1)
+        if _find_visual_item(window, "windowTypeSettingsCard") is not None:
+            return
+    raise AssertionError("Gallery SettingsPage did not load")
+
+
+def _gallery_samples(
+    image: QImage, window: QQuickWindow, pane_width: float
+) -> dict[str, list[int]]:
+    height = float(window.height())
+    points = {
+        "corner_top_inset": (pane_width - 1, 1),
+        "corner_bottom_inset": (pane_width - 1, height - 2),
+        "edge_top_outside": (pane_width + 1, 1),
+        "edge_center_inside": (pane_width - 1, height / 2),
+        "edge_center_outside": (pane_width + 1, height / 2),
+        "edge_bottom_outside": (pane_width + 1, height - 2),
+        "body_upper": (pane_width / 2, height / 3),
+        "body_lower": (pane_width / 2, height * 2 / 3),
+    }
+    return {name: _rgba(_pixel(image, window, *point)) for name, point in points.items()}
+
+
+def _gallery_capture(
+    window: QQuickWindow, pane_width: float
+) -> tuple[QImage, dict[str, list[int]]]:
+    image = _composite_hidden_window(_grab_settled(window, 4))
+    return image, _gallery_samples(image, window, pane_width)
+
+
+def _create_gallery_runtime():
+    configure_qml_environment()
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.FLUENT)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    assert register_gallery_resources()
+    engine.addImageProvider("svg", get_svg_provider())
+    warnings: list[str] = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.load(QUrl.fromLocalFile(str(REPO_ROOT / "examples" / "main.qml")))
+    roots = engine.rootObjects()
+    assert roots
+    root = roots[0]
+    window = root.property("windowInstance")
+    assert isinstance(window, QQuickWindow)
+    window.create()
+    navigation = _wait_for_gallery_shell(window)
+    return engine, root, window, navigation, warnings
+
+
+def _prepare_gallery_acrylic(
+    window: QQuickWindow, navigation: QQuickItem
+) -> float:
+    _wait_for_settings_page(window)
+    assert window.setProperty("_micaBackdropReady", True)
+    assert window.setProperty("_animOpacity", 1.0)
+    assert window.setProperty("_animScale", 1.0)
+    assert navigation.setProperty("isExpanded", False)
+    collapsed = _composite_hidden_window(_grab_settled(window, 8))
+    ratio = collapsed.width() / window.width()
+    pane_width = float(navigation.width())
+    capture = collapsed.copy(
+        0,
+        0,
+        round(pane_width * ratio),
+        collapsed.height(),
+    )
+    helper = get_acrylic_helper()
+    helper.imageProvider.setImage(_gaussian_blur_image(capture, helper.blurRadius))
+    assert navigation.setProperty("_acrylicSource", helper.getImageUrl())
+    assert navigation.setProperty("_acrylicImageReady", True)
+    assert navigation.setProperty("isExpanded", True)
+    _grab_settled(window, 20)
+    return pane_width
+
+
+def _find_acrylic_layer(navigation: QQuickItem) -> QQuickItem:
+    background = next(
+        item
+        for item in navigation.childItems()
+        if item.metaObject().className().startswith("NavigationPanelBackground")
+    )
+    return next(
+        item
+        for item in background.childItems()
+        if item.metaObject().indexOfProperty("acrylicTintColor") >= 0
+    )
+
+
+def _capture_gallery_layers(
+    window: QQuickWindow, navigation: QQuickItem, pane_width: float
+) -> tuple[QImage, dict[str, object], dict[str, object]]:
+    shadow = _find_visual_item(window, "navigationPanelShadow")
+    assert shadow is not None
+    shadow_on_image, shadow_on = _gallery_capture(window, pane_width)
+    shadow.setVisible(False)
+    shadow_off_image, shadow_off = _gallery_capture(window, pane_width)
+    acrylic = _find_acrylic_layer(navigation)
+    acrylic_on = _gallery_samples(shadow_off_image, window, pane_width)
+    acrylic.setVisible(False)
+    _acrylic_off_image, acrylic_off = _gallery_capture(window, pane_width)
+    return (
+        shadow_on_image,
+        {"on": shadow_on, "off": shadow_off},
+        {"on": acrylic_on, "off": acrylic_off},
+    )
+
+
+def _gallery_report(
+    window: QQuickWindow,
+    navigation: QQuickItem,
+    warnings: list[str],
+    pane_width: float,
+    image: QImage,
+    shadow: dict[str, object],
+    acrylic: dict[str, object],
+) -> dict[str, object]:
+    backend = window.rendererInterface().graphicsApi()
+    return {
+        "backend": backend.name,
+        "warnings": warnings,
+        "window_visible": window.isVisible(),
+        "window_class": window.metaObject().className().split("_QMLTYPE_", 1)[0],
+        "settings_page_loaded": (
+            _find_visual_item(window, "windowTypeSettingsCard") is not None
+        ),
+        "expanded": bool(navigation.property("isExpanded")),
+        "pane_width": pane_width,
+        "size": [image.width(), image.height()],
+        "acrylic_source": "collapsed_qml_composite_not_desktop_dwm",
+        "shadow": shadow,
+        "acrylic": acrylic,
+    }
+
+
+def _exercise_gallery_shell(app: QApplication) -> dict[str, object]:
+    engine, root, window, navigation, warnings = _create_gallery_runtime()
+    pane_width = _prepare_gallery_acrylic(window, navigation)
+    image, shadow, acrylic = _capture_gallery_layers(
+        window, navigation, pane_width
+    )
+    result = _gallery_report(
+        window, navigation, warnings, pane_width, image, shadow, acrylic
+    )
+    window.destroy()
+    root.deleteLater()
+    engine.deleteLater()
+    app.processEvents()
+    return result
+
+
 def _dispose(app, engine, component, window) -> None:
     window.destroy()
     component.deleteLater()
@@ -217,6 +444,7 @@ def _dispose(app, engine, component, window) -> None:
 
 def main() -> int:
     args = _arguments()
+    _write_gallery_config()
     app, engine, component, window, view, warnings = _create_runtime()
     report = _exercise_lifecycle(window, view)
     backend = window.rendererInterface().graphicsApi()
@@ -226,9 +454,10 @@ def main() -> int:
         warnings=warnings,
         window_visible=window.isVisible(),
     )
+    _dispose(app, engine, component, window)
+    report["gallery_shell"] = _exercise_gallery_shell(app)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     LOGGER.info("Native acrylic probe completed: %s", args.output)
-    _dispose(app, engine, component, window)
     return 0
 
 
