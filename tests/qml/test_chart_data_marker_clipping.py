@@ -190,8 +190,7 @@ def test_bar_markers_follow_the_rendered_bar_geometry_outside_plot_clip(qapp):
         )
         assert min_marker.x() + min_marker.width() / 2 == pytest.approx(expected_min.x())
         assert min_marker.y() == pytest.approx(
-            min(marker_layer.height() - min_marker.height(),
-                expected_min.y() + min_marker.height() + 6)
+            max(0, expected_min.y() - min_marker.height() - 6)
         )
         assert max_marker.isVisible() and min_marker.isVisible()
         assert warnings == []

@@ -108,7 +108,7 @@ Item {
                     var point = root._pointFor(
                         root.chartContent.barPositions[markerItem.seriesIdx][markerItem.minMax.minIdx]
                     )
-                    return Math.min(root.height - height, point.y + height + 6)
+                    return Math.max(0, point.y - height - 6)
                 }
                 width: minLabel.width + Enums.spacing.l
                 height: Enums.spacing.xxl
