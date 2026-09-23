@@ -142,7 +142,12 @@ def _viewport(control):
     return None
 
 
-def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
+def _send_wheel(
+    window: QQuickWindow,
+    item: QQuickItem,
+    delta: int,
+    inverted: bool = False,
+) -> QWheelEvent:
     position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
     global_position = QPointF(window.x() + position.x(), window.y() + position.y())
     event = QWheelEvent(
@@ -153,7 +158,7 @@ def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEve
         Qt.MouseButton.NoButton,
         Qt.KeyboardModifier.NoModifier,
         Qt.ScrollPhase.NoScrollPhase,
-        False,
+        inverted,
     )
     assert QGuiApplication.sendEvent(window, event)
     return event
@@ -227,6 +232,30 @@ def test_handle_wheel_surfaces_drive_smooth_scroll_helper(qapp, surface):
         assert _wait_for(
             lambda: viewport.property("contentY") == pytest.approx(target)
         )
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+@pytest.mark.parametrize("surface", ["areaList", "listWidget"])
+def test_handle_wheel_inverted_event_keeps_scroll_direction(qapp, surface):
+    """An inverted Qt wheel event keeps the physical scroll direction. 反向标记事件仍保持物理滚动方向。"""
+    engine, component, window, controls, warnings = _create_scene()
+    try:
+        control = controls[surface]
+        viewport = _viewport(control)
+        helper = _first_by_class(control, "SmoothScrollHelper")
+        assert viewport is not None
+        assert helper is not None
+        viewport.setProperty("contentY", 0)
+        assert QCoreApplication.processEvents() is None
+
+        _send_wheel(window, viewport, 120, inverted=True)
+
+        target = helper.property("_targetY")
+        assert target == pytest.approx(helper.property("step"))
+        assert helper.property("_smoothY") < target
+        assert _wait_for(lambda: viewport.property("contentY") == pytest.approx(target))
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

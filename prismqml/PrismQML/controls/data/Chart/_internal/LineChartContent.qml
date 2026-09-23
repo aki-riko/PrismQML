@@ -347,7 +347,7 @@ Item {
                 ? Math.max(0, Math.min(1, wheel.x / root.width))
                 : Enums.chart.default_anchor_ratio
             // angleDelta.y is normally one wheel step angleDelta.y 通常表示一个滚轮刻度
-            root.wheelZoomed(wheel.angleDelta.y, ratio)
+            root.wheelZoomed(WheelEventUtils.verticalDelta(wheel), ratio)
             wheel.accepted = true
         }
         

@@ -41,7 +41,9 @@ Flickable {
         propagateComposedEvents: true
         onWheel: (wheel) => {
             if (editorControl._needsScroll) {
-                editorControl._smoothScrollTo(editorControl._targetX - wheel.angleDelta.y * 0.5)
+                editorControl._smoothScrollTo(
+                    editorControl._targetX - WheelEventUtils.verticalDelta(wheel) * 0.5
+                )
                 wheel.accepted = true
             } else {
                 wheel.accepted = false

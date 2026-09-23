@@ -247,10 +247,13 @@ Item {
         cursorShape: control._activeCursorShape
         z: Enums.zIndex.controlsAbove
         onWheel: (event) => {
+            var wheelY = WheelEventUtils.verticalDelta(event)
+            var wheelX = WheelEventUtils.horizontalDelta(event)
             var horizontal = (event.modifiers & Qt.ShiftModifier) && control._canScrollH
             var useV = !horizontal && control._canScrollV
             var useH = horizontal || (!control._canScrollV && control._canScrollH)
-            var delta = -event.angleDelta.y / 120 * (useV ? vScrollHelper.step : hScrollHelper.step)
+            var delta = -(useV ? wheelY : wheelX) / 120
+                * (useV ? vScrollHelper.step : hScrollHelper.step)
 
             // Step 1: 命中点向下递归找可滚子组件，未到边界则调它的 smoothScrollBy
             var hit = control._findScrollableChild(flickable, event.x, event.y, delta)
@@ -260,7 +263,7 @@ Item {
                 } else if (typeof hit.item.smoothScrollBy === "function") {
                     hit.item.smoothScrollBy(delta)
                 } else if (hit.item.listView && hit.item.listView.flick) {
-                    hit.item.listView.flick(0, -event.angleDelta.y * 4)
+                    hit.item.listView.flick(0, -wheelY * 4)
                 }
                 event.accepted = true
                 return

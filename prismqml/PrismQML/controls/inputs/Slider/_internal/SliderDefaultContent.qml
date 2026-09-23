@@ -38,7 +38,7 @@ Item {
 
         onWheel: (event) => {
             if (!sliderControl.enabled) return
-            var delta = event.angleDelta.y / 120 * sliderControl.stepSize
+            var delta = WheelEventUtils.verticalDelta(event) / 120 * sliderControl.stepSize
             sliderControl.smoothSetValue(sliderControl.value + delta)
             event.accepted = true
         }

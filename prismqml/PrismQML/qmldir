@@ -5,6 +5,7 @@ singleton Enums Enums.qml
 singleton Translator Translator.qml
 singleton DpiManager DpiManager.qml
 singleton Touch Touch.qml
+singleton WheelEventUtils WheelEventUtils.qml
 WindowsCore WindowsCore.qml
 NavigationWindowCore NavigationWindowCore.qml
 Windows Windows.qml

@@ -207,7 +207,8 @@ Item {
             }
 
             onWheel: (wheel) => {
-                var scaleFactor = wheel.angleDelta.y > 0 ? Enums.imageCropperDialogMetrics.wheelZoomIn : Enums.imageCropperDialogMetrics.wheelZoomOut
+                var delta = WheelEventUtils.verticalDelta(wheel)
+                var scaleFactor = delta > 0 ? Enums.imageCropperDialogMetrics.wheelZoomIn : Enums.imageCropperDialogMetrics.wheelZoomOut
                 var minSize = Enums.imageCropperDialogMetrics.minCropSize
                 var imgX = content._imgX, imgY = content._imgY
                 var imgW = content._imgW, imgH = content._imgH

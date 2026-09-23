@@ -227,7 +227,9 @@ Item {
             }
         }
         onWheel: (wheel) => {
-            var delta = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
+            var wheelY = WheelEventUtils.verticalDelta(wheel)
+            var wheelX = WheelEventUtils.horizontalDelta(wheel)
+            var delta = wheelY !== 0 ? wheelY : wheelX
             comboControl.wheelScrolled(delta)
             wheel.accepted = comboControl.acceptWheel
         }

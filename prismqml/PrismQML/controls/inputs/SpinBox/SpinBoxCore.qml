@@ -257,10 +257,11 @@ InputCore {
             }
             
             if (canWheel) {
-                if (wheel.angleDelta.y > 0) {
+                var delta = WheelEventUtils.verticalDelta(wheel)
+                if (delta > 0) {
                     control.increase()
                     control._triggerFeedback(true)
-                } else if (wheel.angleDelta.y < 0) {
+                } else if (delta < 0) {
                     control.decrease()
                     control._triggerFeedback(false)
                 }

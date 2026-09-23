@@ -231,9 +231,10 @@ Rectangle {
             onWheel: function(wheel) {
                 var view = control._calendarView
                 if (!view) return
-                if (wheel.angleDelta.y > 0) {
+                var delta = WheelEventUtils.verticalDelta(wheel)
+                if (delta > 0) {
                     view.prevMonth()
-                } else if (wheel.angleDelta.y < 0) {
+                } else if (delta < 0) {
                     view.nextMonth()
                 }
             }
