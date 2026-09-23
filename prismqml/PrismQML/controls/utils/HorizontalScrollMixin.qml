@@ -95,13 +95,15 @@ Item {
                 event.accepted = false
                 return
             }
+            var wheelX = WheelEventUtils.horizontalDelta(event)
+            var wheelY = WheelEventUtils.verticalDelta(event)
             if (event.modifiers & Qt.ShiftModifier) {
-                var dx = event.angleDelta.x !== 0 ? event.angleDelta.x : event.angleDelta.y
+                var dx = wheelX !== 0 ? wheelX : wheelY
                 hHelper.scrollBy(-dx / 120 * hHelper.step)
                 event.accepted = true
-            } else if (event.angleDelta.x !== 0) {
+            } else if (wheelX !== 0) {
                 // Horizontal hardware wheel (trackpad swipe) scrolls sideways directly 横向硬件滚轮 (触摸板水平滑动) 直接横向滚
-                hHelper.scrollBy(-event.angleDelta.x / 120 * hHelper.step)
+                hHelper.scrollBy(-wheelX / 120 * hHelper.step)
                 event.accepted = true
             } else {
                 event.accepted = false

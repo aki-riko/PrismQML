@@ -143,7 +143,7 @@ Item {
                 return
             }
             
-            var delta = -event.angleDelta.y / 120 * control.step
+            var delta = -WheelEventUtils.verticalDelta(event) / 120 * control.step
             control.scrollBy(delta)
             event.accepted = true
         }

@@ -118,7 +118,12 @@ def _text_flickable(control):
     return matches[0]
 
 
-def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEvent:
+def _send_wheel(
+    window: QQuickWindow,
+    item: QQuickItem,
+    delta: int,
+    inverted: bool = False,
+) -> QWheelEvent:
     position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
     global_position = QPointF(window.x() + position.x(), window.y() + position.y())
     event = QWheelEvent(
@@ -129,7 +134,7 @@ def _send_wheel(window: QQuickWindow, item: QQuickItem, delta: int) -> QWheelEve
         Qt.MouseButton.NoButton,
         Qt.KeyboardModifier.NoModifier,
         Qt.ScrollPhase.NoScrollPhase,
-        False,
+        inverted,
     )
     assert QGuiApplication.sendEvent(window, event)
     return event
@@ -182,13 +187,13 @@ def _dispose_scene(engine, component, window) -> None:
     _pump()
 
 
-def _assert_real_wheel_animation(window, control, viewport) -> None:
+def _assert_real_wheel_animation(window, control, viewport, delta, inverted) -> None:
     helper = _smooth_scroll_helper(control)
     assert helper.property("enabled")
     assert viewport.property("contentHeight") > viewport.height()
     viewport.setProperty("contentY", 0)
     assert QCoreApplication.processEvents() is None
-    event = _send_wheel(window, viewport, -120)
+    event = _send_wheel(window, viewport, delta, inverted)
     assert event.isAccepted()
     target = helper.property("targetPos")
     assert target > 0
@@ -197,13 +202,22 @@ def _assert_real_wheel_animation(window, control, viewport) -> None:
 
 
 @pytest.mark.parametrize("surface", ["basicFlickable", "textEdit"])
-def test_public_scroll_surfaces_animate_real_wheel_input(qapp, surface):
+@pytest.mark.parametrize(
+    ("delta", "inverted"),
+    [(-120, False), (120, True)],
+    ids=("normal-wheel", "inverted-wheel-same-physical-direction"),
+)
+def test_public_scroll_surfaces_animate_real_wheel_input(
+    qapp, surface, delta, inverted
+):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, controls, warnings = _create_scene()
     try:
         control = controls[surface]
         viewport = control if surface == "basicFlickable" else _text_flickable(control)
-        _assert_real_wheel_animation(window, control, viewport)
+        _assert_real_wheel_animation(
+            window, control, viewport, delta, inverted
+        )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

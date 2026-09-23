@@ -216,10 +216,11 @@ Item {
 
         onWheel: (wheel) => {
             // Use angleDelta.y for both horizontal and vertical carousel 统一使用angleDelta.y处理滚轮
+            var delta = WheelEventUtils.verticalDelta(wheel)
 
-            if (wheel.angleDelta.y > 0) {
+            if (delta > 0) {
                 control.previous()
-            } else if (wheel.angleDelta.y < 0) {
+            } else if (delta < 0) {
                 control.next()
             }
         }

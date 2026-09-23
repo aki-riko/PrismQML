@@ -32,7 +32,7 @@ Flickable {
             event.accepted = false
             return
         }
-        scrollHelper.scrollBy(-event.angleDelta.y / 120 * scrollStep)
+        scrollHelper.scrollBy(-WheelEventUtils.verticalDelta(event) / 120 * scrollStep)
         event.accepted = true
     }
     

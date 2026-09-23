@@ -74,6 +74,7 @@ Item {
 
     Item {
         id: chartViewportClip
+        objectName: "chartViewportClip"
         x: chartControl._xyChartBase ? chartControl._xyChartBase.chartAreaX : 0
         y: chartControl._xyChartBase ? chartControl._xyChartBase.chartAreaY : 0
         width: chartControl._xyChartBase ? chartControl._xyChartBase.chartAreaWidth : 0
@@ -197,6 +198,61 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Keep data markers outside the clipped plot while retaining viewport transforms.
+    // 数据标记置于裁剪绘图区之外，同时保持与数据相同的视窗变换。
+    Item {
+        id: chartMarkerLayer
+        objectName: "chartMarkerLayer"
+        x: chartViewportClip.x
+        y: chartViewportClip.y
+        width: chartViewportClip.width
+        height: chartViewportClip.height
+        z: 1
+
+        Item {
+            x: chartControl._isHorizontalBar
+               ? 0 : chartControl._viewportOffsetRatio * parent.width
+            y: chartControl._isHorizontalBar
+               ? chartControl._viewportOffsetRatio * parent.height : 0
+            width: parent.width
+            height: parent.height
+            transform: Scale {
+                origin.x: 0
+                origin.y: 0
+                xScale: chartControl._isHorizontalBar ? 1 : chartControl._viewportScale
+                yScale: chartControl._isHorizontalBar ? chartControl._viewportScale : 1
+            }
+
+            BarChartMarkers {
+                objectName: "chartBarMarkers"
+                anchors.fill: parent
+                chartContent: barContentLoader.item
+                series: barContentLoader.item ? barContentLoader.item.series : []
+                showMinMax: chartControl.showMinMax
+                getSeriesColor: barContentLoader.item
+                                ? barContentLoader.item.getSeriesColor
+                                : function(index) { return Enums.accentColor }
+            }
+
+            LineChartMarkers {
+                objectName: "chartLineMarkers"
+                anchors.fill: parent
+                series: lineContentLoader.item ? lineContentLoader.item.series : []
+                seriesPointPositions: lineContentLoader.item
+                                      ? lineContentLoader.item.seriesPointPositions : []
+                showMinMax: chartControl.showMinMax
+                showAverage: chartControl.showAverage
+                chartWidth: width
+                getSeriesColor: lineContentLoader.item
+                                ? lineContentLoader.item.getSeriesColor
+                                : function(index) { return Enums.accentColor }
+                valueToY: lineContentLoader.item
+                          ? lineContentLoader.item.valueToY
+                          : function(value) { return 0 }
             }
         }
     }

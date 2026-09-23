@@ -317,20 +317,6 @@ Item {
         lineControl: root
     }
 
-    // Markers 标记组件
-    LineChartMarkers {
-        anchors.fill: parent
-        series: root.series
-        seriesPointPositions: root.seriesPointPositions
-        showMinMax: root.showMinMax
-        showAverage: root.showAverage
-        chartWidth: root.width
-        getSeriesColor: root.getSeriesColor
-        valueToY: root.valueToY
-        findMinMaxIndices: Painter.findMinMaxIndices
-        calculateAverage: Painter.calculateAverage
-    }
-
     // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
@@ -347,7 +333,7 @@ Item {
                 ? Math.max(0, Math.min(1, wheel.x / root.width))
                 : Enums.chart.default_anchor_ratio
             // angleDelta.y is normally one wheel step angleDelta.y 通常表示一个滚轮刻度
-            root.wheelZoomed(wheel.angleDelta.y, ratio)
+            root.wheelZoomed(WheelEventUtils.verticalDelta(wheel), ratio)
             wheel.accepted = true
         }
         

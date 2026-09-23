@@ -58,6 +58,8 @@ Window {
     readonly property bool coreExpandable: core.expandable
     readonly property bool coreExpanded: core.expanded
     readonly property real coreHeight: core.implicitHeight
+    readonly property color expectedSettingsCardBorder:
+        Enums.surfaceBorderColor(Enums.stateColor.border, Enums.stateColor.controlBg)
 
     property var addedGroupCard: null
 
@@ -405,6 +407,8 @@ def test_settings_card_normal_and_expandable_surfaces_share_border_contract(
                 == QQmlProperty(normal_surface, "border.color").read()
             )
             border_color = QColor(expandable_surface.property("borderColor"))
+            expected_border = QColor(window.property("expectedSettingsCardBorder"))
+            assert border_color == expected_border
             assert border_color.alphaF() == pytest.approx(1)
             assert float(expandable_surface.property("borderWidth")) == pytest.approx(
                 float(QQmlProperty(normal_surface, "border.width").read())

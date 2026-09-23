@@ -150,7 +150,7 @@ Item {
                 return
             }
 
-            var delta = event.angleDelta.y
+            var delta = WheelEventUtils.verticalDelta(event)
             if (delta === 0) {
                 event.accepted = false
                 return

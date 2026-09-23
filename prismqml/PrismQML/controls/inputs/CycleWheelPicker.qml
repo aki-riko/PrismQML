@@ -213,7 +213,8 @@ Item {
         onExited: control._hovered = false
         
         onWheel: (wheel) => {
-            if (wheel.angleDelta.y > 0) {
+            var delta = WheelEventUtils.verticalDelta(wheel)
+            if (delta > 0) {
                 control.scrollUp()
             } else {
                 control.scrollDown()

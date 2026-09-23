@@ -80,7 +80,7 @@ Item {
     readonly property color currentColor: useCustomColor ? customColor : defaultColor
     readonly property real _surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property color _surfaceBorderColor: Enums.surfaceBorderColor(
-        Enums.stateColor.borderLight,
+        Enums.stateColor.border,
         Enums.stateColor.controlBg
     )
     readonly property var _safeModel:

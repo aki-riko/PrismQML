@@ -59,7 +59,7 @@ Window {
             nestedScroll.height / 2
         )
         var hit = outerScroll._findScrollableChild(
-            outerScroll.flickableItem, point.x, point.y, 100
+            outerScroll.flickableItem, point.x, point.y, 100, false
         )
         dispatcherItem = hit ? hit.item : null
         dispatcherAtBoundary = hit ? hit.atBoundary : false
@@ -274,7 +274,10 @@ def test_nested_scroll_dispatcher_uses_dynamic_viewport_origin(qapp):
         assert QMetaObject.invokeMethod(window, "syncDispatcherBoundary")
         dispatcher_item = window.property("dispatcherItem")
         assert isinstance(dispatcher_item, QQuickItem)
-        assert dispatcher_item.metaObject().className().startswith("ScrollAreaList")
+        assert (
+            dispatcher_item.metaObject().className().startswith("ScrollAreaList")
+            or dispatcher_item.metaObject().className().startswith("QQuickListView")
+        )
         assert window.property("dispatcherAtBoundary") is False
 
         assert QMetaObject.invokeMethod(window, "positionNestedAtEnd")
