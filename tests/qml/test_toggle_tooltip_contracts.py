@@ -308,7 +308,9 @@ def test_toggle_keeps_compact_geometry_inside_row_layout(qapp):
         layout_toggle = window.findChild(QQuickItem, "layoutToggle")
         assert layout is not None
         assert layout_toggle is not None
-        assert layout_toggle.width() == layout_toggle.implicitWidth()
+        # RowLayout may snap fractional implicit widths to whole device pixels.
+        # RowLayout 可将小数隐式宽度吸附到设备像素，不代表控件被拉伸。
+        assert abs(layout_toggle.width() - layout_toggle.implicitWidth()) <= 0.5
         assert layout_toggle.height() == layout_toggle.implicitHeight()
         assert layout_toggle.width() < layout.width()
         assert warnings == []
