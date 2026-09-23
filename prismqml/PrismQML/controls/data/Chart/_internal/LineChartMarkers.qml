@@ -39,6 +39,7 @@ Item {
         
         Item {
             id: markerItem
+            objectName: "lineMarkerSeries_" + index
 
             property int seriesIdx: index
             property var values: modelData.values || []
@@ -50,6 +51,7 @@ Item {
             // Max marker (above point) 最大值标记（点上方）
             Rectangle {
                 id: maxMarker
+                objectName: "lineMaxMarker"
                 visible: markerItem.minMax.maxIdx >= 0 && root.seriesPointPositions.length > markerItem.seriesIdx
                 x: {
                     if (!visible || !root.seriesPointPositions[markerItem.seriesIdx]) return 0
@@ -95,6 +97,7 @@ Item {
             // Min marker (below point) 最小值标记（点下方）
             Rectangle {
                 id: minMarker
+                objectName: "lineMinMarker"
                 visible: markerItem.minMax.minIdx >= 0 && root.seriesPointPositions.length > markerItem.seriesIdx
                 x: {
                     if (!visible || !root.seriesPointPositions[markerItem.seriesIdx]) return 0
