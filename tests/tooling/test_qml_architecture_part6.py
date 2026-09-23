@@ -561,8 +561,22 @@ def test_toggle_keeps_visual_assembly_modularized():
     )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
+    interaction = _source(
+        "prismqml/PrismQML/controls/inputs/Toggle/_internal/"
+        "ToggleInteraction.qml"
+    )
+    interaction_source = interaction.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 210
+    assert interaction.exists()
+    assert len(interaction_source.splitlines()) < 80
+    assert "ToggleInternal.ToggleInteraction {" in source
+    assert "required property var toggleControl" in interaction_source
+    assert "readonly property bool containsMouse" in interaction_source
+    assert "readonly property bool pressed" in interaction_source
+    assert "anchors.fill: parent" in interaction_source
+    assert "onClicked: interaction.toggleControl._handleClick()" in interaction_source
+    assert "!Touch.isTouch" in interaction_source
     assert helper.exists()
     assert len(helper_source.splitlines()) < 180
     assert 'import "_internal" as ToggleInternal' in source

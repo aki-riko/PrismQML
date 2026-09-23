@@ -49,8 +49,10 @@ Widget {
     readonly property int _tv: Translator._v
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
-    readonly property bool hovered: Touch.feedback(mouseArea.containsMouse, mouseArea.pressed)
-    readonly property bool pressed: mouseArea.pressed
+    readonly property bool hovered: Touch.feedback(
+        toggleInteraction.containsMouse, toggleInteraction.pressed
+    )
+    readonly property bool pressed: toggleInteraction.pressed
     readonly property bool _isCheckBox: controlType === Enums.toggle.control_checkbox
     readonly property bool _isRadio: controlType === Enums.toggle.control_radio
     readonly property bool _isSwitch: controlType === Enums.toggle.control_switch
@@ -192,29 +194,8 @@ Widget {
         toggleControl: control
     }
 
-
-    // Interaction 交互
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        enabled: control.enabled && !control._isSwitch
-        hoverEnabled: true
-        onClicked: control._handleClick()
-    }
-
-    // Passive tooltip tracking preserves the control MouseArea's hover and click handling.
-    // 被动工具提示跟踪保留控件 MouseArea 的悬浮和点击处理。
-    HoverHandler {
-        id: toolTipHoverHandler
-
-        enabled: control.toolTipText !== "" && !Touch.isTouch
-        onHoveredChanged: {
-            if (hovered) {
-                control._startToolTipShowTimer()
-            } else {
-                control._stopToolTipShowTimer()
-                control._startToolTipHideTimer()
-            }
-        }
+    ToggleInternal.ToggleInteraction {
+        id: toggleInteraction
+        toggleControl: control
     }
 }
