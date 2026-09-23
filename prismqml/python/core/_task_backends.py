@@ -28,7 +28,6 @@ class _PoolRunnable(QRunnable):
         self._events = events
         self._control = control
         self._pool = pool
-        self._lifecycle_lock = threading.Lock()
         # Non-auto-delete is required for safe QThreadPool.tryTake() use.
         # 安全使用 QThreadPool.tryTake() 必须关闭自动删除以规避 ABA 问题。
         self.setAutoDelete(False)
@@ -42,11 +41,10 @@ class _PoolRunnable(QRunnable):
         return self._pool._try_start_task(self)
 
     def run(self) -> None:
-        with self._lifecycle_lock:
-            execution = self._execution
-            events = self._events
-            control = self._control
-            pool = self._pool
+        execution = self._execution
+        events = self._events
+        control = self._control
+        pool = self._pool
         if execution is None or events is None or control is None or pool is None:
             return
         pool._mark_task_started(self)
@@ -70,13 +68,12 @@ class _PoolRunnable(QRunnable):
         self._cancel_queued(request_control=True)
 
     def _cancel_queued(self, request_control: bool) -> None:
-        with self._lifecycle_lock:
-            pool = self._pool
-            execution = self._execution
-            control = self._control
-            events = self._events
-            if pool is None or execution is None or control is None or events is None:
-                return
+        pool = self._pool
+        execution = self._execution
+        control = self._control
+        events = self._events
+        if pool is None or execution is None or control is None or events is None:
+            return
         if not pool._try_take_task(self):
             return
         if request_control:
@@ -96,11 +93,10 @@ class _PoolRunnable(QRunnable):
 
     def release(self) -> None:
         """Drop retained Python objects after execution stops. 后端停止后释放 Python 对象。"""
-        with self._lifecycle_lock:
-            self._execution = None
-            self._events = None
-            self._control = None
-            self._pool = None
+        self._execution = None
+        self._events = None
+        self._control = None
+        self._pool = None
 
 
 class _TaskWorker(QObject):

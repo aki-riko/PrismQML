@@ -5,6 +5,7 @@
 """Generic background-task regressions. 通用后台任务回归测试。"""
 
 import os
+import gc
 from pathlib import Path
 import subprocess
 import sys
@@ -85,6 +86,28 @@ def _wait_for_finished(handle, finished=None) -> None:
         loop.exec()
         assert finished.count() == 1
     assert handle.state in TaskState.terminal_states()
+
+
+def _process_handle_count() -> int:
+    """Return the current Windows handle count for leak regression checks."""
+    if sys.platform != "win32":
+        pytest.skip("Windows handle accounting is only available on Windows")
+    import ctypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.argtypes = []
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+    kernel32.GetProcessHandleCount.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_uint32),
+    ]
+    kernel32.GetProcessHandleCount.restype = ctypes.c_int
+    count = ctypes.c_uint32()
+    if not kernel32.GetProcessHandleCount(
+        kernel32.GetCurrentProcess(), ctypes.byref(count)
+    ):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return count.value
 
 
 def _run_app_shutdown_probe():
@@ -208,6 +231,30 @@ QtObject {
 
     assert root.property("branch") == "master"
     assert warnings == []
+
+
+def test_pool_runnable_does_not_retain_per_task_semaphores(qapp) -> None:
+    """Completed pool tasks must not retain one Windows semaphore each."""
+    pool = TaskThreadPool()
+    pool.setMaxThreadCount(4)
+    before = _process_handle_count()
+    handles = [
+        run_in_pool(lambda: None, task_options=PoolTaskOptions(pool=pool))
+        for _index in range(1000)
+    ]
+    for handle in handles:
+        assert handle.wait(TASK_TIMEOUT_MS)
+    pool.waitForDone(TASK_TIMEOUT_MS)
+    handles.clear()
+    del handle
+    gc.collect()
+    qapp.processEvents()
+    after = _process_handle_count()
+
+    # A small fixed allowance covers Qt's worker-pool bookkeeping. Before the
+    # fix this grew approximately one semaphore per submitted task because the
+    # non-auto-deleted runnable retained its per-task threading.Lock.
+    assert after - before < 256
 
 
 @pytest.mark.parametrize("launcher", (run_in_pool, run_in_thread))
