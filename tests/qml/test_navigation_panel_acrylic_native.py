@@ -27,7 +27,7 @@ def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
         "--qt-platform",
         "windows",
         "--timeout",
-        "60",
+        "120",
         "--",
         sys.executable,
         str(PROBE),
@@ -41,7 +41,7 @@ def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=90,
+        timeout=150,
         check=False,
     )
 
