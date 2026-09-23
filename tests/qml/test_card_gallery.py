@@ -179,6 +179,7 @@ def test_example_card_culling_keeps_button_page_geometry_stable(button_gallery):
     ]
     assert {float(column.opacity()) for column in card_columns} == {0.0, 1.0}
     initial_content_height = float(area.property("contentHeight"))
+    initial_content_y = float(area.property("contentY"))
     initial_card_heights = [float(card.implicitHeight()) for card in cards]
     content_heights = []
     area.contentHeightChanged.connect(
@@ -186,11 +187,11 @@ def test_example_card_culling_keeps_button_page_geometry_stable(button_gallery):
     )
 
     for _ in range(51):
-        event = _send_wheel(view, area)
-        assert event.isAccepted()
+        _send_wheel(view, area)
         _pump(40)
     _pump(1200)
 
+    assert float(area.property("contentY")) > initial_content_y + 1
     assert content_heights == []
     assert float(area.property("contentHeight")) == pytest.approx(
         initial_content_height
