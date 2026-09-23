@@ -24,7 +24,7 @@ STRONG_TEXT_SOURCES = {
     CHART_INTERNAL / "ChartTooltip.qml": 1,
 }
 MARKER_TEXT_SOURCES = {
-    CHART_INTERNAL / "BarChartContent.qml": 2,
+    CHART_INTERNAL / "BarChartMarkers.qml": 2,
     CHART_INTERNAL / "LineChartMarkers.qml": 2,
 }
 SCENE_URL = QUrl.fromLocalFile(
@@ -52,6 +52,7 @@ Item {
     }
 
     BarChartContent {
+        id: barContent
         objectName: "barContent"
         width: 300
         height: 200
@@ -62,6 +63,17 @@ Item {
         getColor: function(index) { return Enums.accentColor }
         series: [{ name: "bar-series", values: [113, 421] }]
         showMinMax: true
+    }
+
+
+    BarChartMarkers {
+        objectName: "barMarkers"
+        width: 300
+        height: 200
+        chartContent: barContent
+        series: [{ name: "bar-series", values: [113, 421] }]
+        showMinMax: true
+        getSeriesColor: function(index) { return Enums.accentColor }
     }
 
     LineChartMarkers {
@@ -147,12 +159,14 @@ def _assert_color(actual: QColor, expected: QColor) -> None:
 
 def _strong_text_items(root: QQuickItem) -> tuple[QQuickItem, ...]:
     bar = root.findChild(QQuickItem, "barContent")
+    bar_markers = root.findChild(QQuickItem, "barMarkers")
     line = root.findChild(QQuickItem, "lineMarkers")
     tooltip = root.findChild(QQuickItem, "chartTooltip")
-    assert bar is not None and line is not None and tooltip is not None
+    assert bar is not None and bar_markers is not None
+    assert line is not None and tooltip is not None
     return (
-        _find_text(bar, "421"),
-        _find_text(bar, "113"),
+        _find_text(bar_markers, "421"),
+        _find_text(bar_markers, "113"),
         _find_text(line, "907"),
         _find_text(line, "509"),
         _find_text(tooltip, "tooltip-strong-value"),

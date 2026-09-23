@@ -111,6 +111,18 @@ Window {
         showAverage: true
         showMinMax: true
     }
+
+    BarChartMarkers {
+        objectName: "multiChartMarkers"
+        x: multiChart.x
+        y: multiChart.y
+        width: multiChart.width
+        height: multiChart.height
+        chartContent: multiChart
+        series: multiChart.series
+        showMinMax: true
+        getSeriesColor: multiChart.getSeriesColor
+    }
 }
 """
 
@@ -329,9 +341,11 @@ def test_multi_series_real_hover_click_and_markers(bar_chart_scene):
     assert _wait_for(lambda: len(clicked) == 1)
     assert clicked[0][0] == 0
     assert clicked[0][1] == {"seriesIndex": 0, "barIndex": 0, "value": 10}
+    markers = window.findChild(QQuickItem, "multiChartMarkers")
+    assert markers is not None
     texts = [
         item.property("text")
-        for item in _descendants(multi)
+        for item in _descendants(markers)
         if item.metaObject().indexOfProperty("text") >= 0 and item.isVisible()
     ]
     assert "30" in texts and "10" in texts

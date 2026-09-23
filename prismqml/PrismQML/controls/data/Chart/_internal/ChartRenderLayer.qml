@@ -227,6 +227,17 @@ Item {
                 yScale: chartControl._isHorizontalBar ? chartControl._viewportScale : 1
             }
 
+            BarChartMarkers {
+                objectName: "chartBarMarkers"
+                anchors.fill: parent
+                chartContent: barContentLoader.item
+                series: barContentLoader.item ? barContentLoader.item.series : []
+                showMinMax: chartControl.showMinMax
+                getSeriesColor: barContentLoader.item
+                                ? barContentLoader.item.getSeriesColor
+                                : function(index) { return Enums.accentColor }
+            }
+
             LineChartMarkers {
                 objectName: "chartLineMarkers"
                 anchors.fill: parent

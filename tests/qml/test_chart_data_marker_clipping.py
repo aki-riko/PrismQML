@@ -6,6 +6,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -59,7 +61,10 @@ Window {
         showLegend: false
         showMinMax: true
         boundaryGap: false
-        series: [{ name: "Rainfall", values: [200, 5, 2], color: "#0078d4" }]
+        series: [
+            { name: "Rainfall", values: [2, 162.2, 18, 15, 25, 7], color: "#0078d4" },
+            { name: "Evaporation", values: [3, 182.2, 50, 12, 18, 2.3], color: "#107c10" }
+        ]
     }
 }
 """
@@ -155,4 +160,48 @@ def test_line_markers_render_outside_clip_and_follow_chart_viewport(qapp):
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
 
+def test_bar_markers_follow_the_rendered_bar_geometry_outside_plot_clip(qapp):
+    engine, component, window, warnings = _create_scene()
+    try:
+        chart = window.findChild(QQuickItem, "barChart")
+        assert chart is not None
+        clip = chart.findChild(QQuickItem, "chartViewportClip")
+        marker_layer = chart.findChild(QQuickItem, "chartMarkerLayer")
+        content = chart.property("_barContent")
+        marker_component = chart.findChild(QQuickItem, "chartBarMarkers")
+        assert clip is not None and marker_layer is not None and content is not None
+        assert marker_component is not None
+        assert marker_layer.parentItem() is clip.parentItem()
+        max_marker = _visual_item(chart, "barMaxMarker_1")
+        min_marker = _visual_item(chart, "barMinMarker_0")
+        assert max_marker is not None and min_marker is not None
+        positions = content.property("barPositions").toVariant()
+        max_position = positions[1][1]
+        min_position = positions[0][0]
+        expected_max = content.mapToItem(
+            marker_component, max_position["x"], max_position["barTop"]
+        )
+        expected_min = content.mapToItem(
+            marker_component, min_position["x"], min_position["barTop"]
+        )
+        assert max_marker.x() + max_marker.width() / 2 == pytest.approx(expected_max.x())
+        assert max_marker.y() == pytest.approx(
+            max(0, expected_max.y() - max_marker.height() - 6)
+        )
+        assert min_marker.x() + min_marker.width() / 2 == pytest.approx(expected_min.x())
+        assert min_marker.y() == pytest.approx(
+            min(marker_layer.height() - min_marker.height(),
+                expected_min.y() + min_marker.height() + 6)
+        )
+        assert max_marker.isVisible() and min_marker.isVisible()
+        assert warnings == []
+    finally:
+        window.close()
+        window.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
