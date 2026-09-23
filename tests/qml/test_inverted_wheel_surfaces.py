@@ -35,10 +35,11 @@ import QtQuick
 import QtQuick.Window
 import PrismQML as Fluent
 import "../../prismqml/PrismQML/controls/containers" as Containers
+import "../../prismqml/PrismQML/controls/containers" as ScrollContainers
 
 Window {
     width: 720
-    height: 440
+    height: 700
     visible: true
 
     Containers.Flickable {
@@ -100,6 +101,56 @@ Window {
             return items
         }
     }
+
+    ScrollContainers.ScrollArea {
+        id: nestedScrollArea
+        objectName: "nestedScrollArea"
+        x: 16
+        y: 430
+        width: 672
+        height: 240
+
+        Column {
+            width: nestedScrollArea.width
+            spacing: 12
+
+            Fluent.TimelineCore {
+                id: nestedTimeline
+                objectName: "nestedTimeline"
+                width: 320
+                height: 180
+                virtualized: true
+                items: {
+                    var groups = []
+                    for (var groupIndex = 0; groupIndex < 8; groupIndex++) {
+                        var cards = []
+                        for (var cardIndex = 0; cardIndex < 12; cardIndex++) {
+                            cards.push({
+                                "text": "timeline " + groupIndex + " / " + cardIndex
+                            })
+                        }
+                        groups.push({ "title": "group " + groupIndex, "cards": cards })
+                    }
+                    return groups
+                }
+            }
+
+            Fluent.ListWidget {
+                id: nestedListWidget
+                objectName: "nestedListWidget"
+                width: 320
+                height: 180
+                dragScrollEnabled: false
+                model: {
+                    var items = []
+                    for (var i = 0; i < 40; i++) items.push("nested row " + i)
+                    return items
+                }
+            }
+
+            Rectangle { width: 1; height: 180 }
+        }
+    }
 }
 """
 SURFACE_NAMES = ("basicFlickable", "dataListView", "listWidget", "treeWidget")
@@ -158,6 +209,20 @@ def _scroll_helper(control: QQuickItem) -> QObject:
         for item in _descendants(control)
         if item.metaObject().indexOfProperty("targetPos") >= 0
         and item.metaObject().indexOfProperty("step") >= 0
+    ]
+    assert len(candidates) == 1, control.objectName()
+    return candidates[0]
+
+
+def _vertical_scroll_helper(control: QQuickItem) -> QObject:
+    candidates = [
+        item
+        for item in _descendants(control)
+        if item.metaObject().indexOfProperty("targetPos") >= 0
+        and item.metaObject().indexOfProperty("orientation") >= 0
+        and item.property("orientation") == Qt.Orientation.Vertical.value
+        and item.parentItem() is not None
+        and "ScrollAreaDefault" in item.parentItem().metaObject().className()
     ]
     assert len(candidates) == 1, control.objectName()
     return candidates[0]
@@ -271,3 +336,93 @@ def test_wheel_utility_normalizes_horizontal_delta_axis(scroll_surfaces):
 
     assert float(viewport.property("contentY")) == pytest.approx(origin)
     assert warnings == []
+
+
+def test_gallery_style_outer_scrollarea_routes_wheel_to_inner_list(scroll_surfaces):
+    window, controls, warnings = scroll_surfaces
+    outer = window.findChild(QQuickItem, "nestedScrollArea")
+    inner = window.findChild(QQuickItem, "nestedListWidget")
+    assert outer is not None
+    assert inner is not None
+    outer_viewport = _viewport(outer)
+    inner_viewport = _viewport(inner)
+    assert outer_viewport.property("contentHeight") > outer_viewport.height()
+    assert inner_viewport.property("contentHeight") > inner_viewport.height()
+    outer_origin = float(outer_viewport.property("originY"))
+    inner_origin = float(inner_viewport.property("originY"))
+    outer_helper = _vertical_scroll_helper(outer)
+    inner_top = inner_viewport.mapToItem(outer_viewport, 0, 0).y()
+    outer_viewport.setProperty("contentY", outer_origin + max(0, inner_top - 10))
+    assert QMetaObject.invokeMethod(outer_helper, "syncPosition")
+    assert _wait_for(lambda: inner_viewport.isVisible())
+    visible_outer_y = float(outer_viewport.property("contentY"))
+
+    _send_wheel(window, inner_viewport, QPoint(0, -120), inverted=False)
+    inner_helper = _scroll_helper(inner)
+
+    assert _wait_for(
+        lambda: float(inner_viewport.property("contentY")) > inner_origin + 1
+    ), {
+        "outerY": outer_viewport.property("contentY"),
+        "innerY": inner_viewport.property("contentY"),
+    }
+    assert float(inner_helper.property("targetPos")) > inner_origin
+    assert inner_helper.property("isOvershot") is False
+    assert float(outer_viewport.property("contentY")) == pytest.approx(visible_outer_y, abs=0.5)
+    _send_wheel(window, inner_viewport, QPoint(0, 120), inverted=False)
+    assert _wait_for(
+        lambda: float(inner_viewport.property("contentY"))
+        == pytest.approx(inner_origin, abs=0.5)
+    )
+    assert float(outer_viewport.property("contentY")) == pytest.approx(visible_outer_y, abs=0.5)
+    assert warnings == []
+
+
+def test_gallery_style_outer_scrollarea_routes_wheel_to_timeline(scroll_surfaces):
+    window, controls, warnings = scroll_surfaces
+    outer = window.findChild(QQuickItem, "nestedScrollArea")
+    timeline = window.findChild(QQuickItem, "nestedTimeline")
+    assert outer is not None
+    assert timeline is not None
+    outer_viewport = _viewport(outer)
+    timeline_viewport, helper = _viewport_and_helper(timeline)
+    assert outer_viewport.property("contentHeight") > outer_viewport.height()
+    assert timeline_viewport.property("contentHeight") > timeline_viewport.height()
+    outer_origin = float(outer_viewport.property("originY"))
+    timeline_origin = float(timeline_viewport.property("originY"))
+    outer_helper = _vertical_scroll_helper(outer)
+    timeline_top = timeline_viewport.mapToItem(outer_viewport, 0, 0).y()
+    outer_viewport.setProperty("contentY", outer_origin + max(0, timeline_top - 10))
+    assert QMetaObject.invokeMethod(outer_helper, "syncPosition")
+    assert _wait_for(
+        lambda: timeline_viewport.mapToItem(outer_viewport, 0, 0).y()
+        < outer_viewport.height()
+    )
+    visible_outer_y = float(outer_viewport.property("contentY"))
+
+    _send_wheel(window, timeline_viewport, QPoint(0, -120), inverted=False)
+
+    assert _wait_for(
+        lambda: float(timeline_viewport.property("contentY"))
+        > timeline_origin + 1
+    ), {
+        "outerY": outer_viewport.property("contentY"),
+        "timelineY": timeline_viewport.property("contentY"),
+        "target": helper.property("targetPos"),
+    }
+    assert float(helper.property("targetPos")) > timeline_origin
+    assert helper.property("isOvershot") is False
+    assert float(outer_viewport.property("contentY")) == pytest.approx(visible_outer_y, abs=0.5)
+    _send_wheel(window, timeline_viewport, QPoint(0, 120), inverted=False)
+    assert _wait_for(
+        lambda: float(timeline_viewport.property("contentY"))
+        == pytest.approx(timeline_origin, abs=0.5)
+    )
+    assert float(outer_viewport.property("contentY")) == pytest.approx(visible_outer_y, abs=0.5)
+    assert warnings == []
+
+
+def _viewport_and_helper(control):
+    viewport = _viewport(control)
+    helper = _scroll_helper(control)
+    return viewport, helper

@@ -76,9 +76,36 @@ Item {
     }
 
     function _scrollViewport(item) {
-        return item
-            ? item.flickableItem || item.listView || item.gridView || null
-            : null
+        if (!item) return null
+        var direct = item.flickableItem || item.listView || item.gridView || null
+        if (direct) return direct
+        if (item.contentY !== undefined && item.contentHeight !== undefined) {
+            return item
+        }
+        if (!item.children) return null
+        for (var i = item.children.length - 1; i >= 0; i--) {
+            var child = item.children[i]
+            if (!child || !child.visible) continue
+            var viewport = _scrollViewport(child)
+            if (viewport && viewport.contentHeight > viewport.height) {
+                return viewport
+            }
+        }
+        return null
+    }
+
+    function _findScrollHelper(rootItem, viewport) {
+        if (!rootItem || !rootItem.children) return null
+        for (var i = rootItem.children.length - 1; i >= 0; i--) {
+            var child = rootItem.children[i]
+            if (!child) continue
+            if (typeof child.scrollBy === "function" && child.target === viewport) {
+                return child
+            }
+            var nested = _findScrollHelper(child, viewport)
+            if (nested) return nested
+        }
+        return null
     }
 
     function _cursorShapeAt(x, y) {
@@ -113,16 +140,32 @@ Item {
             if (pt.x < 0 || pt.y < 0 || pt.x > child.width || pt.y > child.height) continue
             // Prefer recursing into a deeper hit 优先递归命中更深层
             var deeper = _findScrollableChild(child, pt.x, pt.y, delta)
-            if (deeper) return deeper
+            if (deeper) {
+                if (typeof child.smoothScrollBy === "function") {
+                    deeper.item = child
+                }
+                if (!deeper.scrollHelper) {
+                    deeper.scrollHelper = _findScrollHelper(child, deeper.viewport)
+                }
+                return deeper
+            }
             // Nested ScrollArea: compute bounds from the real Flickable/ListView/GridView viewport 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
             var viewport = _scrollViewport(child)
-            if (viewport && viewport.contentHeight !== undefined
-                && viewport.contentHeight > viewport.height
-                && (typeof child.smoothScrollBy === "function" || child.listView)) {
-                return {
-                    item: child,
-                    atBoundary: _isAtVerticalBoundary(viewport, delta)
-                }
+            if (!viewport || viewport.contentHeight === undefined
+                    || viewport.contentHeight <= viewport.height) continue
+            var scrollHelper = _findScrollHelper(child, viewport)
+            if (!scrollHelper) scrollHelper = _findScrollHelper(rootItem, viewport)
+            var scrollOwner = child
+            if (typeof rootItem.smoothScrollBy === "function") {
+                scrollOwner = rootItem
+            }
+            if (typeof scrollOwner.smoothScrollBy !== "function"
+                    && !scrollOwner.listView && !scrollHelper) continue
+            return {
+                item: scrollOwner,
+                viewport: viewport,
+                scrollHelper: scrollHelper,
+                atBoundary: _isAtVerticalBoundary(viewport, delta)
             }
         }
         return null
@@ -262,8 +305,10 @@ Item {
                     hit.item.smoothScrollByX(delta)
                 } else if (typeof hit.item.smoothScrollBy === "function") {
                     hit.item.smoothScrollBy(delta)
-                } else if (hit.item.listView && hit.item.listView.flick) {
-                    hit.item.listView.flick(0, -wheelY * 4)
+                } else if (hit.scrollHelper) {
+                    hit.scrollHelper.scrollBy(delta)
+                } else if (hit.viewport && hit.viewport.flick) {
+                    hit.viewport.flick(0, -wheelY * 4)
                 }
                 event.accepted = true
                 return
