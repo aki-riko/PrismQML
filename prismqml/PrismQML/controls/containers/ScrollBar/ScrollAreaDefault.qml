@@ -26,6 +26,7 @@ Item {
     property int scrollEasing: Easing.OutQuart
     property int orientation: Qt.Horizontal | Qt.Vertical  // Scroll direction 滚动方向
     property int padding: Enums.spacing.xl  // Content padding 内容内边距
+    property Item wheelHost: control
     
     default property alias content: contentHolder.data
 
@@ -75,34 +76,64 @@ Item {
         if (scrollViewportState) scrollViewportState.invalidate()
     }
 
-    function _scrollViewport(item) {
-        if (!item) return null
+    function _supportsScrollAxis(item, horizontal) {
+        if (!item) return false
+        var axis = horizontal ? Qt.Horizontal : Qt.Vertical
+        if (typeof item.orientation === "number"
+                && (item.flickableItem !== undefined
+                    || item._canScrollH !== undefined
+                    || item._canScrollV !== undefined)) {
+            return (item.orientation & axis) !== 0
+        }
+        return true
+    }
+
+    function _scrollViewport(item, horizontal, mouseX, mouseY) {
+        if (!item || !_supportsScrollAxis(item, horizontal)) return null
         var direct = item.flickableItem || item.listView || item.gridView || null
-        if (direct) return direct
-        if (item.contentY !== undefined && item.contentHeight !== undefined) {
+        if (direct && _hasScrollOverflow(direct, horizontal)) return direct
+        var positionName = horizontal ? "contentX" : "contentY"
+        var extentName = horizontal ? "contentWidth" : "contentHeight"
+        if (item[positionName] !== undefined && item[extentName] !== undefined
+                && _hasScrollOverflow(item, horizontal)) {
             return item
         }
         if (!item.children) return null
         for (var i = item.children.length - 1; i >= 0; i--) {
             var child = item.children[i]
             if (!child || !child.visible) continue
-            var viewport = _scrollViewport(child)
-            if (viewport && viewport.contentHeight > viewport.height) {
+            var point = item.mapToItem(child, mouseX, mouseY)
+            if (point.x < 0 || point.y < 0
+                    || point.x > child.width || point.y > child.height) continue
+            var viewport = _scrollViewport(
+                child, horizontal, point.x, point.y
+            )
+            if (viewport) {
                 return viewport
             }
         }
         return null
     }
 
-    function _findScrollHelper(rootItem, viewport) {
-        if (!rootItem || !rootItem.children) return null
+    function _hasScrollOverflow(viewport, horizontal) {
+        if (!viewport) return false
+        return horizontal
+            ? viewport.contentWidth > viewport.width
+            : viewport.contentHeight > viewport.height
+    }
+
+    function _findScrollHelper(rootItem, viewport, horizontal) {
+        if (!rootItem) return null
+        var axis = horizontal ? Qt.Horizontal : Qt.Vertical
+        if (typeof rootItem.scrollBy === "function"
+                && rootItem.orientation === axis && rootItem.target === viewport) {
+            return rootItem
+        }
+        if (typeof rootItem.children !== "object") return null
         for (var i = rootItem.children.length - 1; i >= 0; i--) {
-            var child = rootItem.children[i]
-            if (!child) continue
-            if (typeof child.scrollBy === "function" && child.target === viewport) {
-                return child
-            }
-            var nested = _findScrollHelper(child, viewport)
+            var nested = _findScrollHelper(
+                rootItem.children[i], viewport, horizontal
+            )
             if (nested) return nested
         }
         return null
@@ -117,11 +148,101 @@ Item {
         return cursorShape === null ? Qt.ArrowCursor : cursorShape
     }
 
-    function _isAtVerticalBoundary(viewport, delta) {
-        var endY = viewport.originY
-            + Math.max(0, viewport.contentHeight - viewport.height)
-        return (viewport.contentY >= endY - 1 && delta > 0)
-            || (viewport.contentY <= viewport.originY + 1 && delta < 0)
+    function _isAtScrollBoundary(viewport, delta, horizontal) {
+        var origin = horizontal ? viewport.originX : viewport.originY
+        var position = horizontal ? viewport.contentX : viewport.contentY
+        var contentSize = horizontal ? viewport.contentWidth : viewport.contentHeight
+        var viewportSize = horizontal ? viewport.width : viewport.height
+        var end = origin + Math.max(0, contentSize - viewportSize)
+        return (position >= end - 1 && delta > 0)
+            || (position <= origin + 1 && delta < 0)
+    }
+
+    function _wheelDeltaForAxis(wheelY, wheelX, horizontal) {
+        return horizontal ? (wheelX !== 0 ? wheelX : wheelY) : wheelY
+    }
+
+    function _wheelAxis(wheelY, wheelX, modifiers) {
+        var horizontal = (modifiers & Qt.ShiftModifier) && _canScrollH
+        var useV = !horizontal && _canScrollV
+        var useH = horizontal || (!_canScrollV && _canScrollH && wheelX !== 0)
+        var rawDelta = useH && wheelX !== 0 ? wheelX : wheelY
+        return {
+            horizontal: useH,
+            enabled: useV || useH,
+            delta: -rawDelta / 120
+                * (useH ? hScrollHelper.step : vScrollHelper.step)
+        }
+    }
+
+    function _scrollNestedHit(hit, wheelY, wheelX) {
+        var horizontal = hit.horizontal === true
+        var rawDelta = horizontal && wheelX !== 0 ? wheelX : wheelY
+        var step = horizontal ? hScrollHelper.step : vScrollHelper.step
+        var delta = -rawDelta / 120 * step
+        if (hit.scrollHelper) {
+            hit.scrollHelper.scrollBy(delta)
+            return true
+        }
+        if (horizontal && typeof hit.item.smoothScrollByX === "function") {
+            hit.item.smoothScrollByX(delta)
+            return true
+        }
+        if (!horizontal && typeof hit.item.smoothScrollBy === "function") {
+            hit.item.smoothScrollBy(delta)
+            return true
+        }
+        if (!hit.viewport || typeof hit.viewport.flick !== "function") return false
+        if (horizontal) hit.viewport.flick(-rawDelta * 4, 0)
+        else hit.viewport.flick(0, -rawDelta * 4)
+        return true
+    }
+
+    function _scrollOwnAxis(axis) {
+        var helper = axis.horizontal ? hScrollHelper : vScrollHelper
+        if (!_hasScrollOverflow(flickable, axis.horizontal)) return false
+        var position = helper.targetPos
+        var atOutwardBoundary = (position >= helper.maxScroll - 1 && axis.delta > 0)
+            || (position <= helper.minScroll + 1 && axis.delta < 0)
+        if (atOutwardBoundary && !helper.bounceEnabled) return false
+        helper.scrollBy(axis.delta)
+        return true
+    }
+
+    function _dispatchWheelToAncestor(wheelY, wheelX, modifiers, mouseX, mouseY) {
+        var ancestor = wheelHost.parent
+        while (ancestor) {
+            if (typeof ancestor._handleWheel === "function"
+                    && ancestor.flickableItem
+                    && ancestor.flickableItem !== flickable) {
+                var point = flickable.mapToItem(
+                    ancestor.flickableItem, mouseX, mouseY
+                )
+                if (ancestor._handleWheel(
+                        wheelY, wheelX, modifiers, point.x, point.y)) return true
+            }
+            ancestor = ancestor.parent
+        }
+        return false
+    }
+
+    function _handleWheel(wheelY, wheelX, modifiers, mouseX, mouseY) {
+        var axis = _wheelAxis(wheelY, wheelX, modifiers)
+        if (!axis.enabled) {
+            return _dispatchWheelToAncestor(
+                wheelY, wheelX, modifiers, mouseX, mouseY
+            )
+        }
+        var hit = _findScrollableChild(
+            flickable, mouseX, mouseY, axis.delta, axis.horizontal
+        )
+        if (hit && !hit.atBoundary && _scrollNestedHit(hit, wheelY, wheelX)) {
+            return true
+        }
+        if (_scrollOwnAxis(axis)) return true
+        return _dispatchWheelToAncestor(
+            wheelY, wheelX, modifiers, mouseX, mouseY
+        )
     }
 
     // Nested scroll dispatcher 嵌套滚动调度
@@ -131,7 +252,7 @@ Item {
     //   3. 子组件到边界 → 由当前层处理（自己滚 / 再往父级透传）
     // 不依赖 event.accepted=false 冒泡（QML wheel 不是 composed event，冒泡不可靠），
     // 改为外层主动调度子组件方法，更稳定。
-    function _findScrollableChild(rootItem, mouseX, mouseY, delta) {
+    function _findScrollableChildOnAxis(rootItem, mouseX, mouseY, delta, horizontal) {
         if (!rootItem || !rootItem.children) return null
         for (var i = rootItem.children.length - 1; i >= 0; i--) {
             var child = rootItem.children[i]
@@ -139,36 +260,49 @@ Item {
             var pt = rootItem.mapToItem(child, mouseX, mouseY)
             if (pt.x < 0 || pt.y < 0 || pt.x > child.width || pt.y > child.height) continue
             // Prefer recursing into a deeper hit 优先递归命中更深层
-            var deeper = _findScrollableChild(child, pt.x, pt.y, delta)
+            var deeper = _findScrollableChildOnAxis(
+                child, pt.x, pt.y, delta, horizontal
+            )
             if (deeper) {
-                if (typeof child.smoothScrollBy === "function") {
-                    deeper.item = child
-                }
                 if (!deeper.scrollHelper) {
-                    deeper.scrollHelper = _findScrollHelper(child, deeper.viewport)
+                    deeper.scrollHelper = _findScrollHelper(
+                        child, deeper.viewport, horizontal
+                    )
                 }
                 return deeper
             }
             // Nested ScrollArea: compute bounds from the real Flickable/ListView/GridView viewport 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
-            var viewport = _scrollViewport(child)
-            if (!viewport || viewport.contentHeight === undefined
-                    || viewport.contentHeight <= viewport.height) continue
-            var scrollHelper = _findScrollHelper(child, viewport)
-            if (!scrollHelper) scrollHelper = _findScrollHelper(rootItem, viewport)
-            var scrollOwner = child
-            if (typeof rootItem.smoothScrollBy === "function") {
-                scrollOwner = rootItem
+            var viewport = _scrollViewport(
+                child, horizontal, pt.x, pt.y
+            )
+            if (!viewport || !_hasScrollOverflow(viewport, horizontal)) continue
+            var scrollHelper = _findScrollHelper(child, viewport, horizontal)
+            if (!scrollHelper) {
+                scrollHelper = _findScrollHelper(rootItem, viewport, horizontal)
             }
-            if (typeof scrollOwner.smoothScrollBy !== "function"
-                    && !scrollOwner.listView && !scrollHelper) continue
+            var scrollOwner = child
+            var hasAxisScrollMethod = horizontal
+                ? typeof scrollOwner.smoothScrollByX === "function"
+                : typeof scrollOwner.smoothScrollBy === "function"
+            if (!hasAxisScrollMethod && !scrollHelper
+                    && !_hasScrollOverflow(viewport, horizontal)) continue
             return {
                 item: scrollOwner,
                 viewport: viewport,
                 scrollHelper: scrollHelper,
-                atBoundary: _isAtVerticalBoundary(viewport, delta)
+                horizontal: horizontal,
+                atBoundary: _isAtScrollBoundary(viewport, delta, horizontal)
             }
         }
         return null
+    }
+
+    // Only dispatch descendants that support the requested axis.
+    // 只把事件派发给支持当前滚轮轴的后代，不把纵向滚轮改成横向滚动。
+    function _findScrollableChild(rootItem, mouseX, mouseY, delta, horizontal) {
+        return _findScrollableChildOnAxis(
+            rootItem, mouseX, mouseY, delta, horizontal
+        )
     }
 
     onHeightChanged: _updateScrollBar()
@@ -282,71 +416,20 @@ Item {
     }
 
     // Mouse wheel 鼠标滚轮
-    MouseArea {
-        anchors.fill: flickable
-        acceptedButtons: Qt.NoButton
-        propagateComposedEvents: true
-        hoverEnabled: false
-        cursorShape: control._activeCursorShape
-        z: Enums.zIndex.controlsAbove
+    // Keep wheel ownership in Qt's pointer-handler chain so deeper controls can
+    // consume their own wheel input before this scroll surface. 使用 Qt 指针处理器
+    // 链维护滚轮所有权，让更深层控件先消费自己的滚轮事件。
+    WheelHandler {
+        parent: flickable
+        blocking: true
+        enabled: control.smoothScroll
         onWheel: (event) => {
             var wheelY = WheelEventUtils.verticalDelta(event)
             var wheelX = WheelEventUtils.horizontalDelta(event)
-            var horizontal = (event.modifiers & Qt.ShiftModifier) && control._canScrollH
-            var useV = !horizontal && control._canScrollV
-            var useH = horizontal || (!control._canScrollV && control._canScrollH)
-            var delta = -(useV ? wheelY : wheelX) / 120
-                * (useV ? vScrollHelper.step : hScrollHelper.step)
-
-            // Step 1: 命中点向下递归找可滚子组件，未到边界则调它的 smoothScrollBy
-            var hit = control._findScrollableChild(flickable, event.x, event.y, delta)
-            if (hit && !hit.atBoundary) {
-                if (useH && typeof hit.item.smoothScrollByX === "function") {
-                    hit.item.smoothScrollByX(delta)
-                } else if (typeof hit.item.smoothScrollBy === "function") {
-                    hit.item.smoothScrollBy(delta)
-                } else if (hit.scrollHelper) {
-                    hit.scrollHelper.scrollBy(delta)
-                } else if (hit.viewport && hit.viewport.flick) {
-                    hit.viewport.flick(0, -wheelY * 4)
-                }
-                event.accepted = true
-                return
-            }
-
-            // Step 2: 自己处理。已到边界且仍向边界外滚 → accepted=false 透传给父级
-            if (useH) {
-                var hPos = hScrollHelper.targetPos
-                if ((hPos >= hScrollHelper.maxScroll - 1 && delta > 0)
-                    || (hPos <= hScrollHelper.minScroll + 1 && delta < 0)) {
-                    if (!control.smoothScroll || !hScrollHelper.bounceEnabled) {
-                        event.accepted = false
-                        return
-                    }
-                }
-                hScrollHelper.scrollBy(delta)
-                event.accepted = true
-                return
-            }
-            if (useV) {
-                var vPos = vScrollHelper.targetPos
-                if ((vPos >= vScrollHelper.maxScroll - 1 && delta > 0)
-                    || (vPos <= vScrollHelper.minScroll + 1 && delta < 0)) {
-                    if (!control.smoothScroll || !vScrollHelper.bounceEnabled) {
-                        event.accepted = false
-                        return
-                    }
-                }
-                vScrollHelper.scrollBy(delta)
-                event.accepted = true
-                return
-            }
-            // Nothing to scroll: pass the event through 无可滚动方向：透传
-            event.accepted = false
+            event.accepted = control._handleWheel(
+                wheelY, wheelX, event.modifiers, event.x, event.y
+            )
         }
-        onPressed: (event) => event.accepted = false
-        onReleased: (event) => event.accepted = false
-        onClicked: (event) => event.accepted = false
     }
 
     HoverHandler {

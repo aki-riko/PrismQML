@@ -76,6 +76,15 @@ Item {
     function scrollToIndex(index) { if (loader.item && loader.item.scrollToIndex) loader.item.scrollToIndex(index) }
     function scrollToTop() { if (loader.item && loader.item.scrollToTop) loader.item.scrollToTop(); else smoothScrollTo(0) }
     function scrollToBottom() { if (loader.item && loader.item.scrollToBottom) loader.item.scrollToBottom() }
+
+    function _handleWheel(wheelY, wheelX, modifiers, mouseX, mouseY) {
+        if (!loader.item || typeof loader.item._handleWheel !== "function") {
+            return false
+        }
+        return loader.item._handleWheel(
+            wheelY, wheelX, modifiers, mouseX, mouseY
+        )
+    }
     
     // Set cell size (for grid mode) 设置单元格尺寸（网格模式）
     function setCellSize(w, h) {
@@ -123,6 +132,7 @@ Item {
     Component {
         id: defaultComponent
         ScrollAreaDefault {
+            wheelHost: control
             showScrollBar: control.showScrollBar
             scrollBarWidth: control.scrollBarWidth
             smoothScroll: control.smoothScroll

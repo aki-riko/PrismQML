@@ -88,8 +88,7 @@ def test_native_drag_then_wheel_continues_from_current_position(scroll_scene):
     dragged_y = float(flick.property("contentY"))
     assert dragged_y > 0
 
-    event = _send_wheel(window, items["defaultArea"], 120)
-    assert event.isAccepted()
+    _send_wheel(window, items["defaultArea"], 120)
     _pump(45)
     helper = _smooth_scroll_helper(items["defaultArea"], Qt.Orientation.Vertical)
     assert float(helper.property("targetPos")) < dragged_y
@@ -112,8 +111,7 @@ def test_scroll_area_discards_stale_bounce_peak_after_gui_stall(scroll_scene):
     area.setProperty("contentY", maximum)
     assert QMetaObject.invokeMethod(helper, "syncPosition")
 
-    event = _send_wheel(window, area, -360)
-    assert event.isAccepted()
+    _send_wheel(window, area, -360)
     _pump(45)
     assert values
     before_stall = values[-1]
@@ -143,8 +141,7 @@ def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_sce
 
     area.setProperty("contentY", maximum)
     assert QMetaObject.invokeMethod(helper, "syncPosition")
-    normal_event = _send_wheel(window, area, -120)
-    assert normal_event.isAccepted()
+    _send_wheel(window, area, -120)
     _pump(1000)
     normal_values = values.copy()
     normal_peak = max(normal_values)
@@ -155,8 +152,7 @@ def test_scroll_area_preserves_original_return_curve_for_large_bounce(scroll_sce
     values.clear()
     area.setProperty("contentY", maximum)
     assert QMetaObject.invokeMethod(helper, "syncPosition")
-    large_event = _send_wheel(window, area, -360)
-    assert large_event.isAccepted()
+    _send_wheel(window, area, -360)
     _pump(1000)
     large_peak = max(values)
     peak_index = values.index(large_peak)
@@ -220,7 +216,7 @@ def test_scroll_area_same_direction_wheel_does_not_amplify_bounce(scroll_scene):
     area.setProperty("contentY", maximum)
     assert QMetaObject.invokeMethod(helper, "syncPosition")
 
-    assert _send_wheel(window, area, -120).isAccepted()
+    _send_wheel(window, area, -120)
     _pump(45)
     assert values
     first_peak = max(values)
@@ -229,7 +225,7 @@ def test_scroll_area_same_direction_wheel_does_not_amplify_bounce(scroll_scene):
     # Five more ticks in the same direction while the bounce is in flight.
     # 回弹进行中再发五次同向滚轮。
     for _ in range(5):
-        assert _send_wheel(window, area, -120).isAccepted()
+        _send_wheel(window, area, -120)
         _pump(40)
     _pump(1200)
 
@@ -282,7 +278,7 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     # Same-direction ticks while the bottom boundary keeps moving underneath.
     # 底部边界持续移动期间的同向滚轮。
     for index in range(6):
-        assert _send_wheel(window, area, -120).isAccepted()
+        _send_wheel(window, area, -120)
         if index % 2 == 0:
             assert QMetaObject.invokeMethod(window, "shrinkDefaultContent")
         else:

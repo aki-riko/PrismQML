@@ -148,6 +148,24 @@ Window {
                 }
             }
 
+            ScrollContainers.ScrollArea {
+                id: nestedBothAxes
+                objectName: "nestedBothAxes"
+                width: 420
+                height: 200
+                Rectangle { width: 900; height: 600 }
+            }
+
+            ScrollContainers.ScrollArea {
+                id: nestedHorizontalOnly
+                objectName: "nestedHorizontalOnly"
+                width: 420
+                height: 150
+                orientation: Qt.Horizontal
+                dragScrollEnabled: false
+                Rectangle { width: 900; height: 70 }
+            }
+
             Rectangle { width: 1; height: 180 }
         }
     }
@@ -215,14 +233,19 @@ def _scroll_helper(control: QQuickItem) -> QObject:
 
 
 def _vertical_scroll_helper(control: QQuickItem) -> QObject:
+    return _scroll_area_helper(control, Qt.Orientation.Vertical)
+
+
+def _scroll_area_helper(control: QQuickItem, orientation) -> QObject:
     candidates = [
         item
         for item in _descendants(control)
         if item.metaObject().indexOfProperty("targetPos") >= 0
         and item.metaObject().indexOfProperty("orientation") >= 0
-        and item.property("orientation") == Qt.Orientation.Vertical.value
+        and item.property("orientation") == orientation.value
         and item.parentItem() is not None
         and "ScrollAreaDefault" in item.parentItem().metaObject().className()
+        and abs(item.parentItem().height() - control.height()) < 1
     ]
     assert len(candidates) == 1, control.objectName()
     return candidates[0]
@@ -233,6 +256,7 @@ def _send_wheel(
     item: QQuickItem,
     angle_delta: QPoint,
     inverted: bool,
+    modifiers=Qt.KeyboardModifier.NoModifier,
 ) -> QWheelEvent:
     position = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
     event = QWheelEvent(
@@ -241,7 +265,7 @@ def _send_wheel(
         QPoint(0, 0),
         angle_delta,
         Qt.MouseButton.NoButton,
-        Qt.KeyboardModifier.NoModifier,
+        modifiers,
         Qt.ScrollPhase.NoScrollPhase,
         inverted,
     )
@@ -420,6 +444,95 @@ def test_gallery_style_outer_scrollarea_routes_wheel_to_timeline(scroll_surfaces
     )
     assert float(outer_viewport.property("contentY")) == pytest.approx(visible_outer_y, abs=0.5)
     assert warnings == []
+
+
+def test_nested_dual_axis_scrollarea_routes_each_wheel_axis_independently(
+    scroll_surfaces,
+):
+    window, _controls, warnings = scroll_surfaces
+    outer = window.findChild(QQuickItem, "nestedScrollArea")
+    inner = window.findChild(QQuickItem, "nestedBothAxes")
+    assert outer is not None and inner is not None
+    outer_viewport = _viewport(outer)
+    inner_viewport = _viewport(inner)
+    outer_helper = _vertical_scroll_helper(outer)
+    inner_vertical = _scroll_area_helper(inner, Qt.Orientation.Vertical)
+    inner_horizontal = _scroll_area_helper(inner, Qt.Orientation.Horizontal)
+    _reveal_nested_viewport(outer_viewport, outer_helper, inner_viewport)
+
+    start_x = float(inner_viewport.property("originX"))
+    start_y = float(inner_viewport.property("originY"))
+    outer_y = float(outer_viewport.property("contentY"))
+    _sync_viewport_axis(inner_viewport, inner_vertical, "contentY", start_y)
+    _sync_viewport_axis(inner_viewport, inner_horizontal, "contentX", start_x)
+
+    _send_wheel(window, inner_viewport, QPoint(0, -120), inverted=False)
+    assert _wait_for(
+        lambda: float(inner_viewport.property("contentY")) > start_y + 1
+    )
+    assert float(inner_viewport.property("contentX")) == pytest.approx(start_x, abs=0.5)
+    assert float(outer_viewport.property("contentY")) == pytest.approx(outer_y, abs=0.5)
+
+    _sync_viewport_axis(inner_viewport, inner_vertical, "contentY", start_y)
+    _sync_viewport_axis(inner_viewport, inner_horizontal, "contentX", start_x)
+    _send_wheel(
+        window,
+        inner_viewport,
+        QPoint(0, -120),
+        inverted=False,
+        modifiers=Qt.KeyboardModifier.ShiftModifier,
+    )
+    assert _wait_for(
+        lambda: float(inner_viewport.property("contentX")) > start_x + 1
+    )
+    assert float(inner_viewport.property("contentY")) == pytest.approx(start_y, abs=0.5)
+    assert float(outer_viewport.property("contentY")) == pytest.approx(outer_y, abs=0.5)
+    assert warnings == []
+
+
+def test_vertical_wheel_skips_horizontal_only_nested_area(scroll_surfaces):
+    window, _controls, warnings = scroll_surfaces
+    outer = window.findChild(QQuickItem, "nestedScrollArea")
+    inner = window.findChild(QQuickItem, "nestedHorizontalOnly")
+    assert outer is not None and inner is not None
+    outer_viewport = _viewport(outer)
+    inner_viewport = _viewport(inner)
+    outer_helper = _vertical_scroll_helper(outer)
+    inner_x = float(inner_viewport.property("originX"))
+    assert inner_viewport.property("contentWidth") > inner_viewport.width()
+    assert inner_viewport.property("contentHeight") <= inner_viewport.height()
+    _reveal_nested_viewport(outer_viewport, outer_helper, inner_viewport)
+    outer_y = float(outer_viewport.property("contentY"))
+
+    _send_wheel(window, inner_viewport, QPoint(0, 120), inverted=False)
+
+    moved_outer = _wait_for(
+        lambda: float(outer_viewport.property("contentY")) < outer_y - 1
+    )
+    assert moved_outer, (
+        outer_viewport.property("contentY"),
+        inner_viewport.property("contentY"),
+        inner_viewport.property("contentX"),
+    )
+    assert float(inner_viewport.property("contentX")) == pytest.approx(inner_x, abs=0.5)
+    assert warnings == []
+
+
+def _sync_viewport_axis(viewport, helper, property_name, position):
+    viewport.setProperty(property_name, position)
+    assert QMetaObject.invokeMethod(helper, "syncPosition")
+    assert QCoreApplication.processEvents() is None
+
+
+def _reveal_nested_viewport(outer_viewport, outer_helper, viewport):
+    origin = float(outer_viewport.property("originY"))
+    top = viewport.mapToItem(outer_viewport, 0, 0).y()
+    outer_viewport.setProperty("contentY", origin + max(0, top - 8))
+    assert QMetaObject.invokeMethod(outer_helper, "syncPosition")
+    assert _wait_for(
+        lambda: viewport.mapToItem(outer_viewport, 0, 0).y()
+        < outer_viewport.height()
+    )
 
 
 def _viewport_and_helper(control):
