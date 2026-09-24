@@ -52,6 +52,16 @@ Fluent.NavigationView {
 
 设置任一模式后 `isExpanded` 由模式接管（"展开与否"正是模式要决定的事）；只有 `pane_unspecified` 例外，仍归调用方。
 
+面板自带的菜单按钮在同一个实例上就能开合，不需要按模式克隆控件：
+
+| 模式 | 菜单按钮的行为 |
+|---|---|
+| `pane_left` | `toggle()`：展开侧边栏 ↔ 折叠成图标栏 |
+| `pane_left_compact` | `toggle()`：折叠态下点击即展开 |
+| `pane_left_minimal` | `togglePane()`：开关浮层面板（`isPaneOpen`） |
+
+`pane_auto` 只看面板**自身宽度**，所以做响应式时把宽度交给布局即可；图库里用一根滑杆演示了切换点。
+
 顶栏（Top）形态不在 `paneDisplayMode` 范围内：那是窗口外壳的职责，`WindowsBar` 当前用 `NavigationBar` 承载。
 
 ## SegmentedControl / Pivot 分段控件与透视导航

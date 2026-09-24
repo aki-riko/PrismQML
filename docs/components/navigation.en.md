@@ -52,6 +52,16 @@ Fluent.NavigationView {
 
 Once a mode is set, the mode owns `isExpanded` — "expanded or not" is exactly what it decides. Only `pane_unspecified` opts out and leaves the value to the caller.
 
+The pane's own menu button expands and collapses the same instance, so no control has to be cloned per mode:
+
+| Mode | Menu button behaviour |
+|---|---|
+| `pane_left` | `toggle()`: expanded sidebar ↔ compact icon rail |
+| `pane_left_compact` | `toggle()`: clicking expands the collapsed rail |
+| `pane_left_minimal` | `togglePane()`: opens and closes the overlay pane (`isPaneOpen`) |
+
+`pane_auto` looks only at the pane's **own width**, so responsive hosts just give it a width; the Gallery demonstrates the switch point with a slider.
+
 A top strip is deliberately out of `paneDisplayMode`'s scope: that belongs to the window shell, and `WindowsBar` currently hosts it with `NavigationBar`.
 
 ## SegmentedControl / Pivot

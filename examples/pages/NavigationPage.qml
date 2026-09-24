@@ -42,6 +42,32 @@ Item {
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
+
+    // Display modes the merged NavigationView demo can switch between
+    // 合并后的 NavigationView 示例可切换的显示模式
+    function navPaneModes() {
+        return [
+            Fluent.Enums.navigation.pane_left,
+            Fluent.Enums.navigation.pane_left_compact,
+            Fluent.Enums.navigation.pane_left_minimal,
+            Fluent.Enums.navigation.pane_auto
+        ]
+    }
+
+    function setNavPaneMode(index) {
+        var modes = navPaneModes()
+        if (index >= 0 && index < modes.length) {
+            galleryNavPane.paneDisplayMode = modes[index]
+        }
+    }
+
+    function navPaneModeName(mode) {
+        if (mode === Fluent.Enums.navigation.pane_left) return "left"
+        if (mode === Fluent.Enums.navigation.pane_left_compact) return "left_compact"
+        if (mode === Fluent.Enums.navigation.pane_left_minimal) return "left_minimal"
+        if (mode === Fluent.Enums.navigation.pane_auto) return "auto"
+        return "unspecified"
+    }
     
     ScrollArea {
         anchors.fill: parent
@@ -157,90 +183,119 @@ Item {
             ExampleCard {
                 title: "Vertical navigation"
                 description: "NavigationView / NavigationBar / ToggleNavigationBar"
+                // One NavigationView instead of one instance per display mode: the pane
+                // really expands and collapses in place, which is what the control is
+                // for. 一个 NavigationView 取代"每种显示模式一个实例": 面板在原地真实展开
+                // 与折叠, 这才是该控件存在的意义。
                 ComponentCard {
-                    label: "NavigationView (compact)"
-                    Rectangle {
-                        width: 48
-                        height: 300
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
-                        NavigationView {
-                            width: parent.width
-                            height: parent.height
-                            showReturnButton: false
-                            titleBarHeight: 0
-                            paneDisplayMode: Fluent.Enums.navigation.pane_left_compact
-                            model: root.navPanelModel
-                            // The panels never move their own selection: they emit
-                            // itemClicked and expect the host shell to push a new
-                            // currentIndex back (single-direction binding). Inside a
-                            // page this handler IS that shell.
-                            // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
-                            // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
-                            onItemClicked: (index) => {
-                                if (index >= 0 && index < root.navPanelModel.length)
-                                    currentIndex = index
-                            }
-                        }
-                    }
-                }
-                ComponentCard {
-                    label: "NavigationView (expanded)"
-                    Rectangle {
-                        // Tall enough that 5 rows plus the pinned bottom item fit
-                        // without overflow: otherwise the scroll fade dims the top row.
-                        // 高度足以让 5 行加底部固定项不溢出, 否则滚动渐隐会把首行压暗。
-                        width: 240
-                        height: 340
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
-                        NavigationView {
-                            width: parent.width
-                            height: parent.height
-                            isExpanded: true
-                            showReturnButton: false
-                            titleBarHeight: 0
-                            paneDisplayMode: Fluent.Enums.navigation.pane_left
-                            model: root.navPanelModel
-                            bottomItems: [
-                                { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
+                    label: "NavigationView (expand / collapse)"
+                    Column {
+                        spacing: Fluent.Enums.spacing.m
+
+                        SelectorBar {
+                            id: navPaneModeBar
+                            objectName: "galleryNavPaneModeBar"
+                            items: [
+                                { "key": "left", "text": "Left" },
+                                { "key": "compact", "text": "Compact" },
+                                { "key": "minimal", "text": "Minimal" },
+                                { "key": "auto", "text": "Auto" }
                             ]
-                            onItemClicked: (index) => {
-                                if (index >= 0 && index < root.navPanelModel.length)
-                                    currentIndex = index
-                            }
+                            onItemClicked: (index) => root.setNavPaneMode(index)
                         }
-                    }
-                }
-                ComponentCard {
-                    label: "NavigationView (pane_left_minimal)"
-                    Rectangle {
-                        // Collapsed to the menu button; tapping it reveals the rail
-                        // 折叠到只剩菜单按钮; 点击按钮即展开图标栏
-                        width: 48
-                        height: 300
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
-                        NavigationView {
-                            width: parent.width
-                            height: parent.height
-                            showReturnButton: false
-                            titleBarHeight: 0
-                            paneDisplayMode: Fluent.Enums.navigation.pane_left_minimal
-                            model: root.navPanelModel
-                            onItemClicked: (index) => {
-                                if (index >= 0 && index < root.navPanelModel.length) {
-                                    currentIndex = index
-                                    closePane()
+
+                        Row {
+                            spacing: Fluent.Enums.spacing.m
+
+                            Column {
+                                spacing: Fluent.Enums.spacing.s
+
+                                Rectangle {
+                                    id: navPaneFrame
+                                    // Wide enough for the expanded pane (320px); the
+                                    // slider below drives pane_auto's switch point.
+                                    // 宽到能容纳展开面板(320px); 下方滑杆驱动 pane_auto 的切换点。
+                                    width: navPaneWidth.value
+                                    height: 340
+                                    radius: Fluent.Enums.radius.large
+                                    color: Fluent.Enums.surfaceColor
+                                    border.width: Fluent.Enums.border.thin
+                                    border.color: Fluent.Enums.borderColor
+                                    clip: true
+
+                                    NavigationView {
+                                        id: galleryNavPane
+                                        objectName: "galleryNavPane"
+                                        width: parent.width
+                                        height: parent.height
+                                        showReturnButton: false
+                                        // The panels normally reserve the window title-bar
+                                        // strip, which does not exist inside a page.
+                                        // 面板默认为窗口标题栏预留高度, 页面里没有标题栏。
+                                        titleBarHeight: 0
+                                        // Expanded is the useful default; the pane's own
+                                        // button collapses it to the icon rail from here.
+                                        // 默认展开更实用; 从这里起用面板自己的按钮即可折叠成图标栏。
+                                        paneDisplayMode: Fluent.Enums.navigation.pane_left
+                                        model: root.navPanelModel
+                                        bottomItems: [
+                                            { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
+                                        ]
+                                        // The panels never move their own selection: they emit
+                                        // itemClicked and expect the host shell to push a new
+                                        // currentIndex back (single-direction binding). Inside a
+                                        // page this handler IS that shell.
+                                        // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
+                                        // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
+                                        onItemClicked: (index) => {
+                                            if (index >= 0 && index < root.navPanelModel.length)
+                                                currentIndex = index
+                                        }
+                                        onPaneDisplayModeChanged:
+                                            navPaneModeBar.currentIndex =
+                                                root.navPaneModes().indexOf(paneDisplayMode)
+                                        Component.onCompleted:
+                                            navPaneModeBar.currentIndex =
+                                                root.navPaneModes().indexOf(paneDisplayMode)
+                                    }
+                                }
+
+                                Slider {
+                                    id: navPaneWidth
+                                    objectName: "galleryNavPaneWidth"
+                                    width: navPaneFrame.width
+                                    from: 120
+                                    to: 420
+                                    value: 380
+                                }
+                            }
+
+                            Column {
+                                spacing: Fluent.Enums.spacing.s
+
+                                Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "mode: " + root.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
+                                }
+                                Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "expanded: " + galleryNavPane.isExpanded
+                                }
+                                Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "pane open: " + galleryNavPane.isPaneOpen
+                                }
+                                Label {
+                                    type: Fluent.Enums.label.type_caption
+                                    text: "frame width: " + navPaneFrame.width
+                                }
+                                Button {
+                                    text: "toggle()"
+                                    onClicked: galleryNavPane.toggle()
+                                }
+                                Button {
+                                    text: "togglePane()"
+                                    onClicked: galleryNavPane.togglePane()
                                 }
                             }
                         }

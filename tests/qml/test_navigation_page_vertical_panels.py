@@ -8,11 +8,13 @@ import re
 import time
 from pathlib import Path
 
+import pytest
 import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     QPoint,
     QPointF,
@@ -43,10 +45,17 @@ Window {{
     id: host
     objectName: "galleryHost"
 
-    // Identifying a pane by its display mode keeps the click test unambiguous now
-    // that the page also demonstrates pane_left_minimal (also 48px wide).
-    // 页面同时展示了同为 48px 宽的 pane_left_minimal, 用显示模式定位才唯一。
+    // The demo keeps a single NavigationView and switches its display mode at
+    // runtime, so the pane is found by objectName instead of by mode.
+    // 示例只保留一个 NavigationView 并在运行时切换显示模式, 因此用 objectName 定位。
     readonly property int compactPaneMode: Enums.navigation.pane_left_compact
+    readonly property int expandedPaneMode: Enums.navigation.pane_left
+    readonly property int autoPaneMode: Enums.navigation.pane_auto
+    // Menu-button geometry, so the test can click the real affordance
+    // 菜单按钮几何, 供测试点击真实控件
+    readonly property int panePaddingH: Enums.controlSize.navPanelPaddingH
+    readonly property int panePaddingV: Enums.controlSize.navPanelPaddingV
+    readonly property int paneItemHeight: Enums.controlSize.navItemHeight
 
     width: 900
     height: 900
@@ -62,8 +71,11 @@ Window {{
 
 # Window-level vertical navigation panels the Gallery page must demonstrate.
 # 画廊页面必须展示的窗口级垂直导航面板。
+# One NavigationView owns every pane display mode now: the pane expands and collapses
+# in place instead of being cloned per mode.
+# 现在由一个 NavigationView 覆盖所有面板显示模式: 面板在原地展开/折叠, 不再按模式克隆。
 _EXPECTED_PANELS = {
-    "NavigationView": 3,
+    "NavigationView": 1,
     "NavigationBar": 1,
     "ToggleNavigationBar": 1,
 }
@@ -150,6 +162,23 @@ def test_gallery_navigation_page_documents_vertical_panels():
     ):
         assert marker in source
     assert source.count("orientation: Qt.Vertical") >= 2
+
+    # Exactly one pane instance, driven by the mode selector 面板只保留一个实例, 由模式选择器驱动
+    assert source.count("NavigationView {") == 1
+    assert 'objectName: "galleryNavPane"' in source
+    assert 'objectName: "galleryNavPaneModeBar"' in source
+    assert "function setNavPaneMode(index)" in source
+    assert "Fluent.Enums.navigation.pane_auto" in source
+    # The pane must stay expandable in place 面板必须能在原地展开
+    assert "galleryNavPane.toggle()" in source
+    assert "galleryNavPane.togglePane()" in source
+    # Each mode clone is gone for good 每种模式一个克隆的写法彻底移除
+    for gone in (
+        "NavigationView (compact)",
+        "NavigationView (expanded)",
+        "NavigationView (pane_left_minimal)",
+    ):
+        assert gone not in source
 
 
 def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp):
@@ -260,6 +289,29 @@ def _nav_items(panel):
     ]
 
 
+def _pane(page):
+    """The single merged NavigationView demo."""
+    panes = [
+        panel for panel in _panels_of(page, "NavigationView")
+        if panel.objectName() == "galleryNavPane"
+    ]
+    assert len(panes) == 1, f"galleryNavPane instances: {len(panes)}"
+    return panes[0]
+
+
+def _click_item(window, panel, item):
+    centre = item.mapToItem(
+        window.contentItem(),
+        QPointF(item.width() / 2, item.height() / 2),
+    )
+    point = QPoint(round(centre.x()), round(centre.y()))
+    QTest.mouseMove(window, point)
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier, point,
+    )
+
+
 def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     """Clicking a Gallery panel item must really move its selection.
 
@@ -271,54 +323,152 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     engine = component = window = page = None
     try:
         engine, component, window, page = _create_host_scene(qapp)
-        compact_mode = window.property("compactPaneMode")
-        views = [
-            panel for panel in _panels_of(page, "NavigationView")
-            if panel.property("paneDisplayMode") == compact_mode
-        ]
-        assert len(views) == 1
-        compact = views[0]
-        assert compact.property("isExpanded") is False
-        assert compact.property("currentIndex") == 0
+        pane = _pane(page)
+        assert pane.property("paneDisplayMode") == window.property("expandedPaneMode")
+        assert pane.property("isExpanded") is True
+        assert pane.property("currentIndex") == 0
 
-        assert _wait_until(lambda: len(_nav_items(compact)) == 5), (
-            f"compact rail items: {len(_nav_items(compact))} "
-            f"size={compact.width()}x{compact.height()} "
-            f"qobjects={len(compact.findChildren(QObject))} "
-            f"classes={_class_histogram(compact)}"
+        assert _wait_until(lambda: len(_nav_items(pane)) == 5), (
+            f"pane items: {len(_nav_items(pane))} "
+            f"size={pane.width()}x{pane.height()} "
+            f"qobjects={len(pane.findChildren(QObject))} "
+            f"classes={_class_histogram(pane)}"
         )
-        items = _nav_items(compact)
+        items = _nav_items(pane)
 
-        target = items[2]
-        centre = target.mapToItem(
-            window.contentItem(),
-            QPointF(target.width() / 2, target.height() / 2),
-        )
-        point = QPoint(round(centre.x()), round(centre.y()))
-        QTest.mouseMove(window, point)
-        QTest.mouseClick(
-            window, Qt.MouseButton.LeftButton,
-            Qt.KeyboardModifier.NoModifier, point,
-        )
-        assert _wait_until(lambda: compact.property("currentIndex") == 2), (
-            f"click did not move the selection: {compact.property('currentIndex')}"
+        _click_item(window, pane, items[2])
+        assert _wait_until(lambda: pane.property("currentIndex") == 2), (
+            f"click did not move the selection: {pane.property('currentIndex')}"
         )
 
         # A second click on another row must move it again
         # 再点另一行必须继续移动
-        other = items[4]
-        centre = other.mapToItem(
-            window.contentItem(),
-            QPointF(other.width() / 2, other.height() / 2),
+        _click_item(window, pane, items[4])
+        assert _wait_until(lambda: pane.property("currentIndex") == 4), (
+            f"second click did not move: {pane.property('currentIndex')}"
         )
-        point = QPoint(round(centre.x()), round(centre.y()))
-        QTest.mouseClick(
-            window, Qt.MouseButton.LeftButton,
-            Qt.KeyboardModifier.NoModifier, point,
+    finally:
+        if window is not None:
+            window.close()
+        _release(qapp, page, component, engine)
+
+
+def _click_pane_toggle(window, pane):
+    """Click the pane's own menu button (the expand/collapse affordance)."""
+    # The button keeps the compact width and sits at the pane's leading edge, so its
+    # centre stays at padding + half the compact width no matter how wide the pane is.
+    # 按钮始终为紧凑宽度并贴在面板前缘, 因此无论面板多宽, 中心都是内边距 + 半个紧凑宽。
+    button_width = float(pane.property("compactButtonWidth"))
+    padding_h = float(window.property("panePaddingH"))
+    padding_v = float(window.property("panePaddingV"))
+    item_height = float(window.property("paneItemHeight"))
+    centre = pane.mapToItem(
+        window.contentItem(),
+        QPointF(padding_h + button_width / 2, padding_v + item_height / 2),
+    )
+    point = QPoint(round(centre.x()), round(centre.y()))
+    QTest.mouseMove(window, point)
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier, point,
+    )
+
+
+def _selector_cells(bar):
+    """Cell delegate items of a SelectorBar, in visual order."""
+    cells = []
+    pending = [bar]
+    while pending:
+        node = pending.pop(0)
+        for child in node.childItems():
+            if _type_name(child).startswith("SelectorBarItem"):
+                cells.append(child)
+            else:
+                pending.append(child)
+    return sorted(cells, key=lambda cell: cell.x())
+
+
+def _click_selector_cell(window, bar, index):
+    """Click cell ``index`` of a SelectorBar through the real control.
+
+    通过真实控件点击 SelectorBar 的第 index 个单元。
+    """
+    cells = _selector_cells(bar)
+    assert len(cells) >= index + 1, f"mode bar cells: {len(cells)}"
+    cell = cells[index]
+    centre = cell.mapToItem(
+        window.contentItem(),
+        QPointF(cell.width() / 2, cell.height() / 2),
+    )
+    point = QPoint(round(centre.x()), round(centre.y()))
+    QTest.mouseMove(window, point)
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier, point,
+    )
+
+
+def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
+    """The single pane must really expand and collapse, not be cloned per mode.
+
+    单个面板必须真的展开与折叠, 而不是按模式克隆实例。
+    """
+    engine = component = window = page = None
+    try:
+        engine, component, window, page = _create_host_scene(qapp)
+        pane = _pane(page)
+        expanded_width = pane.property("implicitWidth")
+        assert pane.width() == pytest.approx(380), "unexpected demo frame width"
+
+        # 1. The pane's own button collapses the expanded pane to the icon rail
+        # 1. 面板自己的按钮把展开态折叠成图标栏
+        _click_pane_toggle(window, pane)
+        assert _wait_until(lambda: pane.property("isExpanded") is False), (
+            "the pane did not collapse when its menu button was clicked"
         )
-        assert _wait_until(lambda: compact.property("currentIndex") == 4), (
-            f"second click did not move: {compact.property('currentIndex')}"
+
+        # 2. The same button expands it again 再次点击重新展开
+        _click_pane_toggle(window, pane)
+        assert _wait_until(lambda: pane.property("isExpanded") is True), (
+            "the pane did not expand again"
         )
+
+        # 3. The mode selector really drives the pane: compact then back to left
+        # 3. 模式选择器真实驱动面板: 先紧凑再回到展开
+        mode_bar = page.findChild(QObject, "galleryNavPaneModeBar")
+        assert mode_bar is not None
+        _click_selector_cell(window, mode_bar, 1)
+        assert _wait_until(
+            lambda: pane.property("paneDisplayMode")
+            == window.property("compactPaneMode")
+        ), "clicking Compact did not switch the pane mode"
+        assert _wait_until(lambda: pane.property("isExpanded") is False)
+
+        _click_selector_cell(window, mode_bar, 0)
+        assert _wait_until(
+            lambda: pane.property("paneDisplayMode")
+            == window.property("expandedPaneMode")
+        ), "clicking Left did not switch the pane mode"
+        assert _wait_until(lambda: pane.property("isExpanded") is True)
+
+        # 4. pane_auto follows its own width against the expand threshold
+        # 4. pane_auto 按自身宽度对展开阈值做出选择
+        _click_selector_cell(window, mode_bar, 3)
+        assert _wait_until(
+            lambda: pane.property("paneDisplayMode") == window.property("autoPaneMode")
+        ), "clicking Auto did not switch the pane mode"
+        slider = page.findChild(QObject, "galleryNavPaneWidth")
+        assert slider is not None
+        slider.setProperty("value", expanded_width)
+        assert _wait_until(
+            lambda: pane.property("effectivePaneDisplayMode")
+            == window.property("expandedPaneMode")
+        ), "pane_auto did not expand at the design width"
+        slider.setProperty("value", 160)
+        assert _wait_until(
+            lambda: pane.property("effectivePaneDisplayMode")
+            == window.property("compactPaneMode")
+        ), "pane_auto did not collapse below the design width"
     finally:
         if window is not None:
             window.close()
