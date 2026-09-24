@@ -67,10 +67,10 @@ def test_outside_window_owns_its_outward_shadow():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    # The HWND reserves level8 outward padding and paints that shadow itself.
+    # The HWND reserves the window-outward shadow padding and paints that shadow itself.
     assert (
-        "readonly property real _outsideShadowSpread: Enums.window.qmlShadowSize"
-        in source
+        "readonly property real _outsideShadowSpread: "
+        "Enums.shadow.windowOutside.blur" in source
     )
     assert (
         "readonly property real _outsideWindowExtent: "
@@ -82,10 +82,10 @@ def test_outside_window_owns_its_outward_shadow():
     )
     assert "RectangularShadow {" in helper_source
     assert "anchors.fill: outsideDrawerViewport" in helper_source
-    assert "blur: outsideDrawerWindow.spread" in helper_source
-    assert "color: Enums.shadow.level8.color" in helper_source
+    assert "blur: Enums.shadow.windowOutside.blur" in helper_source
+    assert "color: Enums.shadow.windowOutside.color" in helper_source
     assert "offset.x: 0" in helper_source
-    assert "offset.y: 0" in helper_source
+    assert "offset.y: Enums.shadow.windowOutside.offset" in helper_source
     assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
     for name in (
         "topLeftRadius:",

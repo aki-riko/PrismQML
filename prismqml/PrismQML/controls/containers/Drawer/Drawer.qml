@@ -52,9 +52,9 @@ OverlayDialogCore {
     readonly property var _hostWindow: control.Window.window
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
-    // Outward padding reserved inside the follower HWND for the drawer's own QML shadow.
-    // 附属 HWND 内侧为抽屉自绘阴影预留的外扩留白。
-    readonly property real _outsideShadowSpread: Enums.window.qmlShadowSize
+    // Outward padding reserved inside the follower HWND for the drawer's own window shadow.
+    // 附属 HWND 内侧为抽屉自绘窗口阴影预留的外扩留白。
+    readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur
     readonly property real _outsideWindowExtent: _outsideFullExtent + _outsideShadowSpread
     // The outward shadow only exists once the full panel is revealed.
     // 只有在面板完全显露后才有外侧阴影。

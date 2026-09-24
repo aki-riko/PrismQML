@@ -86,4 +86,17 @@ QtObject {
         readonly property real blurNormalized: 0.8
         readonly property real offset: 6
     }
+
+    // Window outward shadow: replaces the native DWM shadow on an outside drawer HWND,
+    // so it is deeper than level8 while staying tighter than level16. Offset stays 0
+    // because a window shadow is centred, unlike the popup elevation levels.
+    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影, 比 level8 更深, 比 level16 更收敛。
+    // 偏移保持 0: 窗口阴影是居中的, 与弹层高度等级不同。
+    readonly property QtObject windowOutside: QtObject {
+        readonly property real offset: 0
+        readonly property real blur: shadow.isTicket ? 0 : 20
+        readonly property int samples: shadow.isTicket ? 1 : 23
+        readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.28 * shadow._alphaMultiplier)
+        readonly property real blurNormalized: shadow.isTicket ? 0 : 0.3
+    }
 }

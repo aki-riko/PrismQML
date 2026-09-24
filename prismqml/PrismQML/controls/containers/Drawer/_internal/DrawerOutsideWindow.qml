@@ -92,10 +92,10 @@ Window {
         bottomRightRadius: outsideDrawerPanel.bottomRightRadius
         // Blur must stay inside the reserved padding or the shadow gets clipped
         // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
-        blur: outsideDrawerWindow.spread
-        color: Enums.shadow.level8.color
+        blur: Enums.shadow.windowOutside.blur
+        color: Enums.shadow.windowOutside.color
         offset.x: 0
-        offset.y: 0
+        offset.y: Enums.shadow.windowOutside.offset
         visible: control._outsideShadowActive && !Enums.isVintageTicket
     }
 
