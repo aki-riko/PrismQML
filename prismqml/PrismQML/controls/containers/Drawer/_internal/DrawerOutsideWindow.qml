@@ -78,25 +78,14 @@ Window {
     RectangularShadow {
         id: outsideDrawerShadow
 
-        // Seam-side corners take a large radius (instead of retracting the silhouette), so
-        // the bands keep the panel's full width yet decay to zero at the host border.
-        // 接缝侧两角用大半径(而不是整块内收): 像带保持面板满宽, 在宿主边界处衰减到 0。
-        readonly property real seamFade: 2 * Enums.shadow.windowOutside.blur
-
+        // The shadow keeps the panel silhouette at full strength, so its top/bottom bands
+        // run unchanged into the seam and continue the host window's own shadow band on the
+        // other side. Only the seam-facing side band falls outside this HWND and is clipped,
+        // which is what keeps the host content free of drawer shadow.
+        // 阴影保持面板轮廓与满强度: 上下像带一路顶到接缝, 与宿主窗口另一侧的阴影像带连成
+        // 一条完整外轮廓。只有朝接缝那一侧的像带落在本 HWND 之外被裁掉, 宿主内容因此不受影响。
         anchors.fill: outsideDrawerViewport
-        radius: Enums.radius.none
-        topLeftRadius: control.position === Enums.position.right
-            || control.position === Enums.position.bottom
-            ? seamFade : outsideDrawerPanel.radius
-        topRightRadius: control.position === Enums.position.left
-            || control.position === Enums.position.bottom
-            ? seamFade : outsideDrawerPanel.radius
-        bottomLeftRadius: control.position === Enums.position.right
-            || control.position === Enums.position.top
-            ? seamFade : outsideDrawerPanel.radius
-        bottomRightRadius: control.position === Enums.position.left
-            || control.position === Enums.position.top
-            ? seamFade : outsideDrawerPanel.radius
+        radius: outsideDrawerPanel.radius
         // Blur must stay inside the reserved padding or the shadow gets clipped
         // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
         blur: Enums.shadow.windowOutside.blur

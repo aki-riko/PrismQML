@@ -87,24 +87,19 @@ def test_outside_window_owns_its_outward_shadow():
     assert "offset.x: 0" in helper_source
     assert "offset.y: Enums.shadow.windowOutside.offset" in helper_source
     assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
-    # Panel and shadow share one silhouette: the shadow keeps the panel's full width and
-    # only its seam-side corners take a large radius, so the bands fade to zero at the host
-    # border instead of being cut off there.
+    # Panel and shadow share one silhouette at full strength, so the bands run into the
+    # seam and continue the host window's own shadow band on the other side. No fade,
+    # retract or per-corner override is allowed back in.
     assert "radius: control._effectiveRadius" in helper_source
-    assert "radius: Enums.radius.none" in helper_source
-    assert (
-        "readonly property real seamFade: 2 * Enums.shadow.windowOutside.blur"
-        in helper_source
-    )
-    assert helper_source.count("? seamFade : outsideDrawerPanel.radius") == 4
+    assert "radius: outsideDrawerPanel.radius" in helper_source
     for name in (
         "topLeftRadius:",
         "topRightRadius:",
         "bottomLeftRadius:",
         "bottomRightRadius:",
     ):
-        # Only the shadow declares per-corner radii; the panel stays uniform.
-        assert helper_source.count(name) == 1
+        assert name not in helper_source
+    assert "seamFade" not in helper_source
     assert "readonly property real retract:" not in helper_source
     assert "anchors.leftMargin" not in helper_source
 
