@@ -95,6 +95,13 @@ def _panels_of(root: QObject, name: str) -> list:
     ]
 
 
+def _vertical_panels_of(root: QObject, name: str) -> list:
+    return [
+        panel for panel in _panels_of(root, name)
+        if panel.property("vertical") is True
+    ]
+
+
 def test_gallery_navigation_page_documents_vertical_panels():
     """The navigation page must keep showing the window-level vertical panels.
 
@@ -106,8 +113,11 @@ def test_gallery_navigation_page_documents_vertical_panels():
         "NavigationBar {",
         "ToggleNavigationBar {",
         "Vertical navigation",
+        "SegmentedControl (orientation: Qt.Vertical)",
+        "Pivot (orientation: Qt.Vertical)",
     ):
         assert marker in source
+    assert source.count("orientation: Qt.Vertical") >= 2
 
 
 def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp):
@@ -148,6 +158,14 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp)
                 assert panel.width() > 0, f"{name} width collapsed"
                 assert panel.height() > 0, f"{name} height collapsed"
                 assert panel.property("model") is not None, f"{name} lost its model"
+
+        # Page-level vertical strips must be demonstrated too
+        # 页内竖版条带同样必须被展示
+        for name in ("SegmentedControl", "Pivot"):
+            vertical = _vertical_panels_of(page, name)
+            assert len(vertical) == 1, f"{name} vertical instances: {len(vertical)}"
+            assert vertical[0].width() > 0, f"{name} vertical width collapsed"
+            assert vertical[0].height() > 0, f"{name} vertical height collapsed"
     finally:
         qInstallMessageHandler(previous)
         _release(qapp, page, component, engine)

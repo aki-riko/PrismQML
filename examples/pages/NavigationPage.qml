@@ -207,6 +207,24 @@ Item {
                         }
                     }
                 }
+                ComponentCard {
+                    label: "SegmentedControl (orientation: Qt.Vertical)"
+                    SegmentedControl {
+                        orientation: Qt.Vertical
+                        items: ["General", "Appearance", "Advanced"]
+                    }
+                }
+                ComponentCard {
+                    label: "Pivot (orientation: Qt.Vertical)"
+                    Pivot {
+                        orientation: Qt.Vertical
+                        items: [
+                            { "key": "general", "text": "General" },
+                            { "key": "appearance", "text": "Appearance" },
+                            { "key": "advanced", "text": "Advanced" }
+                        ]
+                    }
+                }
             }
 
             // Segmented controls 分段控件
