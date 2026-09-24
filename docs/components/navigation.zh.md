@@ -74,6 +74,40 @@ Fluent.SegmentedControl {
 
 纵向时单元按内容定宽（不会拉伸铺满），控件宽度取最宽单元。需要"整行铺满"的纵向导航请用 `NavigationView` 或 `ToggleNavigationBar`。
 
+## SelectorBar 选择条
+
+无边框的选择条：条带直接铺在页面上，只有选中项带滑动胶囊。适合在一小组视图
+（2~5 个）之间切换，视觉重量比 `SegmentedControl` 更轻，比 `TabBar` 更扁平。
+
+```qml
+Fluent.SelectorBar {
+    items: [
+        { key: "overview", text: "总览" },
+        { key: "activity", text: "活动", icon: "History" },
+        { key: "about", text: "关于" }
+    ]
+    onItemClicked: (index, byUser) => view.push(pages[index])
+}
+```
+
+| 成员 | 说明 |
+|------|------|
+| `items: var` | `{ key, text, icon }` 或纯字符串 |
+| `currentIndex: int` | 选中索引；越界时胶囊隐藏而不抛错 |
+| `orientation` | `Qt.Horizontal`（默认）/ `Qt.Vertical`，纵向按内容定宽堆叠 |
+| `itemFontSize / iconSize` | 单元文字与图标尺寸 |
+| `pillAnimationEnabled` | 是否动画滑动胶囊；首次吸附始终不带动画 |
+| `scrollable / maxScrollOffset / scrollOffset` | 只读：横向溢出与当前滚动位置 |
+| `itemClicked(index, byUser)` | 用户点击（`byUser` 为 `true`）；编程式选中不发出 |
+| `currentItemChanged(key)` | 选中键变化 |
+| `setCurrentIndex(idx) / setCurrentItem(key)` | 编程式选中；越界或未知键被忽略 |
+| `addItem(key, text, icon) / getCurrentKey()` | 追加项 / 取当前键 |
+| `revealCurrent()` | 把选中项滚入可视区（选中变化时自动调用） |
+
+横向条带在宽度不足时可横向滚动：选中项会自动滚入可视区，滚轮与拖拽平移条带。
+滚轮归属与 `TabBar` 一致 —— 溢出时条带自己消费滚轮；未溢出的条带不参与竞争，
+滚轮原样交给页面滚动区。纵向条带不滚动，按内容定高。
+
 ## TabBar / TabWidget 标签页
 
 ```qml

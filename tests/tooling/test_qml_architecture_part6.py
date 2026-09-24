@@ -343,6 +343,129 @@ def test_command_palette_reuses_the_search_stack():
         "prismqml/PrismQML/qmldir"
     ).read_text(encoding="utf-8")
 
+def test_selector_bar_keeps_delegates_and_pill_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/SelectorBar.qml")
+    item_helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SelectorBarItem.qml"
+    )
+    pill_helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SelectorBarPill.qml"
+    )
+    timer_helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SelectorBarPillSyncTimer.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    item_source = item_helper.read_text(encoding="utf-8")
+    pill_source = pill_helper.read_text(encoding="utf-8")
+    timer_source = timer_helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 260
+    assert len(item_source.splitlines()) < 130
+    assert len(pill_source.splitlines()) < 90
+    assert len(timer_source.splitlines()) < 80
+    assert 'import "_internal" as NavigationInternal' in source
+    assert "NavigationInternal.SelectorBarItem {" in source
+    assert "NavigationInternal.SelectorBarPill {" in source
+    assert "NavigationInternal.SelectorBarPillSyncTimer {" in source
+    for name, text in (
+        ("SelectorBarItem", item_source),
+        ("SelectorBarPill", pill_source),
+        ("SelectorBarPillSyncTimer", timer_source),
+    ):
+        assert name in text
+    assert "required property var selectorBar" in item_source
+    assert "required property int index" in item_source
+    assert "required property var modelData" in item_source
+    assert "required property var selectorBar" in pill_source
+    assert "required property Item strip" in pill_source
+    assert "required property var host" in timer_source
+    assert "required property var itemRepeater" in timer_source
+
+    # The pill owns the sliding geometry and must sit beside the positioner: a
+    # Row/Column would lay it out as one more cell. 胶囊自持滑动几何, 且必须与定位器
+    # 平级: 否则会被 Row/Column 当成一个单元排版。
+    assert source.count("NavigationInternal.SelectorBarPill {") == 2
+    for marker in ("property Item target", "Behavior on x", "Behavior on width"):
+        assert marker in pill_source
+    assert "itemRepeater" not in pill_source
+
+    # Wheel ownership is explicit: the strip pans itself, because a horizontal
+    # Flickable never hands a vertical wheel to its ancestor.
+    # 滚轮归属显式声明: 条带自己平移, 因为横向 Flickable 不会把纵向滚轮交给祖先。
+    assert "WheelHandler {" in source
+    assert "WheelEventUtils.verticalDelta(event)" in source
+    assert "revealCurrent()" in source
+    assert "interactive: control.scrollable" in source
+
+    # Registered in both the sub-module and the root module
+    # 子模块与根模块都要注册
+    assert "SelectorBar SelectorBar.qml" in _source(
+        "prismqml/PrismQML/controls/navigation/qmldir"
+    ).read_text(encoding="utf-8")
+    assert "SelectorBar controls/navigation/SelectorBar.qml" in _source(
+        "prismqml/PrismQML/qmldir"
+    ).read_text(encoding="utf-8")
+
+    violations = []
+    for path, candidate in (
+        (entry, source),
+        (item_helper, item_source),
+        (pill_helper, pill_source),
+        (timer_helper, timer_source),
+    ):
+        violations.extend(
+            violation
+            for violation in scan_source_text(
+                candidate, PurePosixPath(path.relative_to(ROOT).as_posix())
+            )
+            if violation.rule in {"QML008", "QML009"}
+        )
+    assert violations == []
+
+
+def test_selector_bar_colors_are_registered_tokens():
+    state_color = _source("prismqml/PrismQML/PrismEnums/StateColor.qml")
+    metrics = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    state_source = state_color.read_text(encoding="utf-8")
+    metrics_source = metrics.read_text(encoding="utf-8")
+    item_source = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SelectorBarItem.qml"
+    ).read_text(encoding="utf-8")
+    pill_source = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/SelectorBarPill.qml"
+    ).read_text(encoding="utf-8")
+
+    assert "==================== SelectorBar Colors 选择条颜色 ====================" in (
+        state_source
+    )
+    for token in (
+        "selectorBarItemSelected",
+        "selectorBarItemSelectedBorder",
+        "selectorBarItemHover",
+        "selectorBarItemPressed",
+    ):
+        assert token in state_source
+    # Single-sourced values: the names are owned here, the chrome is shared
+    # 取值单一来源: 这里拥有名称, 外观复用分段控件的选中样式
+    assert "selectorBarItemSelected: segmentedSelected" in state_source
+    assert "selectorBarItemHover: segmentedHover" in state_source
+
+    assert "readonly property int selectorBarHeight" in metrics_source
+    assert "readonly property int selectorBarMinItemWidth" in metrics_source
+    assert "Enums.stateColor.selectorBarItemHover" in item_source
+    assert "Enums.stateColor.selectorBarItemPressed" in item_source
+    assert "Enums.controlSize.selectorBarHeight" in item_source
+    assert "Enums.controlSize.selectorBarMinItemWidth" in item_source
+    assert "Enums.stateColor.selectorBarItemSelected" in pill_source
+    assert "Enums.stateColor.selectorBarItemSelectedBorder" in pill_source
+
+    # No color literal may sneak into the new component files
+    # 新组件文件里不得出现颜色字面量
+    for text in (item_source, pill_source):
+        assert "Qt.rgba(" not in text
+        assert "#" not in text.replace("# ", "")
+
+
 def test_confetti_keeps_lifecycle_timers_modularized():
     entry = _source("prismqml/PrismQML/controls/feedback/Confetti.qml")
     spawn_helper = _source(
