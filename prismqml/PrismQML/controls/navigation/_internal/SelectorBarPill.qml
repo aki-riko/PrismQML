@@ -20,6 +20,10 @@ Rectangle {
     // ==================== Internal Props 内部属性 ====================
     // Selected cell; null while the strip is rebuilding 选中单元; 条带重建期间为空
     property Item target: null
+    // Transitions run only after the first snap, and only when animation is allowed
+    // 过渡仅在首次吸附之后、且允许动画时生效
+    readonly property bool _animate:
+        pill.selectorBar._pillReady && pill.selectorBar.pillAnimationEnabled
 
     // ==================== Size 尺寸 ====================
     x: pill.target ? pill.strip.x + pill.target.x : 0
@@ -36,23 +40,25 @@ Rectangle {
     border.width: Enums.surfaceBorderWidth(Enums.border.thin)
     border.color: Enums.stateColor.selectorBarItemSelectedBorder
 
-    // Geometry transition; the control latches its ready flag only after the first
-    // snap, so the pill never slides in from the origin.
-    // 几何过渡; 控件在首次吸附之后才置位就绪标记, 因此胶囊不会从原点滑入。
+    // Geometry transition; timing and curve match the tab-switch slide
+    // (Enums.duration.slow + OutCubic). The control latches its ready flag only after
+    // the first snap, so the pill never slides in from the origin.
+    // 几何过渡; 时长与曲线与标签页切换滑动一致(Enums.duration.slow + OutCubic)。控件在首次
+    // 吸附之后才置位就绪标记, 因此胶囊不会从原点滑入。
     Behavior on x {
-        enabled: pill.selectorBar._pillReady && pill.selectorBar.pillAnimationEnabled
-        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
+        enabled: pill._animate
+        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutCubic }
     }
     Behavior on y {
-        enabled: pill.selectorBar._pillReady && pill.selectorBar.pillAnimationEnabled
-        NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic }
+        enabled: pill._animate
+        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutCubic }
     }
     Behavior on width {
-        enabled: pill.selectorBar._pillReady && pill.selectorBar.pillAnimationEnabled
-        NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
+        enabled: pill._animate
+        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutCubic }
     }
     Behavior on height {
-        enabled: pill.selectorBar._pillReady && pill.selectorBar.pillAnimationEnabled
-        NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
+        enabled: pill._animate
+        NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutCubic }
     }
 }

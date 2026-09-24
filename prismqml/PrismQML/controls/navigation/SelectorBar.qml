@@ -130,9 +130,13 @@ Item {
         }
 
         pillSyncTimer.stop()
+        // A settled target means this is a move rather than the initial placement, so the
+        // transition is enabled *before* the geometry write. Otherwise the very first
+        // selection would be applied instantly and only later ones would animate.
+        // 已有目标说明这是一次移动而非首次就位, 因此在写几何之前先启用过渡; 否则第一次
+        // 选中会被瞬间应用, 只有后续选中才有动画。
+        if (animate && pill.target !== null) _pillReady = true
         pill.target = item
-        // Latch only after the geometry above has snapped into place 上面几何吸附后才置位
-        if (animate) _pillReady = true
     }
 
     // Drop every target before a rebuild touches the delegates 重建委托前清空所有目标
