@@ -99,6 +99,36 @@ Window {
 }
 """
 
+PIVOT_ROW_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+    objectName: "window"
+
+    readonly property int expectedHeight: Enums.controlSize.inputHeight
+
+    width: 460
+    height: 200
+    visible: true
+
+    Pivot {
+        id: pivot
+        objectName: "unSizedHorizontalPivot"
+        x: 20
+        y: 20
+        items: [
+            { key: "alpha", text: "Alpha" },
+            { key: "bravo", text: "Bravo" },
+            { key: "charlie", text: "Charlie" },
+            { key: "delta", text: "Delta" }
+        ]
+    }
+}
+"""
+
 TAB_BAR_SCENE = b"""
 import QtQuick
 import QtQuick.Window
@@ -430,6 +460,47 @@ def test_vertical_tab_widget_puts_the_column_left_of_the_pages(qapp):
             widget.width() - bar.width(), abs=0.5
         )
         assert content.height() == pytest.approx(widget.height(), abs=0.5)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_horizontal_pivot_without_explicit_width_stays_on_one_row(qapp):
+    """An un-sized horizontal Pivot must not wrap into stacked rows.
+
+    未指定宽度的横向 Pivot 不得折行堆叠。
+
+    回归点：曾把条带换成受控 Flow，positioner 的隐式尺寸因此依赖它排出的布局，
+    控件隐式宽度回灌给它后横向行塌缩成 44px 并把 4 个标签折成多行。
+    """
+    engine, component, window, warnings = _create_scene(
+        qapp, PIVOT_ROW_SCENE, "horizontal-pivot-row.qml"
+    )
+    try:
+        pivot = window.findChild(QQuickItem, "unSizedHorizontalPivot")
+        assert pivot is not None
+        delegates = sorted(
+            (
+                item
+                for item in _visual_descendants(pivot)
+                if item.metaObject().indexOfProperty("selected") >= 0
+                and item.metaObject().indexOfProperty("key") >= 0
+            ),
+            key=lambda item: item.mapToItem(pivot, QPointF(0, 0)).x(),
+        )
+        assert len(delegates) == 4
+        origins = [item.mapToItem(pivot, QPointF(0, 0)) for item in delegates]
+
+        origin_ys = [round(origin.y(), 1) for origin in origins]
+        assert origin_ys == [origin_ys[0]] * 4, "labels wrapped onto extra rows"
+        assert origins[1].x() > origins[0].x() > -0.5
+        assert pivot.height() == pytest.approx(
+            window.property("expectedHeight"), abs=0.5
+        )
+        assert pivot.width() == pytest.approx(
+            sum(item.width() for item in delegates), abs=0.5
+        )
+        assert pivot.width() > 150, "implicit width collapsed"
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

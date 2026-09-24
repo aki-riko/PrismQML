@@ -29,6 +29,10 @@ Item {
     readonly property var _safeItems:
         items === null || items === undefined ? []
         : (typeof items.length === "number" ? items : [])
+    // Only the matching strip owns delegates; the idle one is fed an empty model.
+    // 只有匹配方向的条带持有委托, 闲置条带模型为空。
+    readonly property Item activeStrip: control.vertical ? pivotColumn : pivotRow
+    readonly property var repeater: control.vertical ? verticalPivotRepeater : horizontalPivotRepeater
     
     // ==================== Signals 信号 ====================
     signal itemClicked(int index, bool byUser)
@@ -50,9 +54,8 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Indicator rect; vertical pins the bar to the item's left edge while the
-    // horizontal treatment keeps the historical bottom underline.
-    // 指示器矩形; 纵向时竖条贴项的左边缘, 横向保持历史的下划线几何。
+    // Indicator rect; vertical pins the bar left, horizontal keeps the underline.
+    // 指示器矩形; 纵向竖条贴左, 横向保持下划线几何。
     function _rectAt(item) {
         if (!item) return Qt.rect(0, 0, 0, 0)
         if (vertical) {
@@ -139,9 +142,9 @@ Item {
     }
 
     // ==================== Size 尺寸 ====================
-    implicitWidth: pivotRow.implicitWidth
+    implicitWidth: activeStrip.implicitWidth
     implicitHeight: vertical
-        ? pivotRow.implicitHeight
+        ? activeStrip.implicitHeight
         : Enums.controlSize.inputHeight
 
     Component.onCompleted: indicatorSyncTimer.restart()
@@ -156,23 +159,35 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Items strip; Flow switches the main axis without a second delegate tree
-    // 项目条带; Flow 切换主轴, 无需第二棵委托树
-    Flow {
+    // One positioner per orientation, idle one fed an empty model. A single Flow is
+    // impossible: its implicit size comes from the layout it produces.
+    // 每个方向各一个 positioner, 闲置者模型为空。此处不能用单个 Flow: 它的隐式尺寸
+    // 来自自己排出的布局, 把控件隐式宽度回灌进去会让横向行塌缩并换行。
+    Row {
         id: pivotRow
-        flow: control.vertical ? Flow.TopToBottom : Flow.LeftToRight
-        // Horizontal keeps filling the control (historical geometry). Vertical must
-        // stay unanchored: constraining a positioner's own size on the main axis makes
-        // its implicit size depend on that size, and the stack then wraps into columns.
-        // 横向保持填满控件（历史几何）。纵向必须不锚定: 在主轴上约束 positioner 自身
-        // 尺寸会让其隐式尺寸依赖该尺寸, 堆叠随即退化成多列。
-        anchors.fill: control.vertical ? undefined : parent
+        visible: !control.vertical
+        anchors.fill: parent
         spacing: Enums.spacing.none
-        
+
         Repeater {
-            id: repeater
-            model: control._safeItems
-            
+            id: horizontalPivotRepeater
+            model: control.vertical ? [] : control._safeItems
+
+            PivotItem {
+                host: control
+            }
+        }
+    }
+
+    Column {
+        id: pivotColumn
+        visible: control.vertical
+        spacing: Enums.spacing.none
+
+        Repeater {
+            id: verticalPivotRepeater
+            model: control.vertical ? control._safeItems : []
+
             PivotItem {
                 host: control
             }
