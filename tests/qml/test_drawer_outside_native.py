@@ -87,19 +87,22 @@ def test_outside_window_owns_its_outward_shadow():
     assert "offset.x: 0" in helper_source
     assert "offset.y: Enums.shadow.windowOutside.offset" in helper_source
     assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
-    # The panel keeps a uniform radius; the shadow squares off the seam side so that no
-    # shadow arc is painted inside the window along the host edge.
+    # Panel and shadow share one rounded silhouette, and the silhouette retracts from the
+    # seam so the bands fade out inside the window instead of being cut at the host border.
     assert "radius: control._effectiveRadius" in helper_source
+    assert "radius: outsideDrawerPanel.radius" in helper_source
+    assert (
+        "readonly property real retract: 2 * Enums.shadow.windowOutside.blur"
+        in helper_source
+    )
+    assert helper_source.count("? retract : 0") == 4
     for name in (
         "topLeftRadius:",
         "topRightRadius:",
         "bottomLeftRadius:",
         "bottomRightRadius:",
     ):
-        assert helper_source.count(name) == 1
-    assert (
-        helper_source.count("? outsideDrawerPanel.radius : Enums.radius.none") == 4
-    )
+        assert name not in helper_source
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

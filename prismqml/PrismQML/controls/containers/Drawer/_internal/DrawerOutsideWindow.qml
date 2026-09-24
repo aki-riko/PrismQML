@@ -82,23 +82,19 @@ Window {
     RectangularShadow {
         id: outsideDrawerShadow
 
+        // The shadow silhouette retracts from the seam: its bands then fade out inside the
+        // window instead of being cut off at the host border. Fade length = retract - blur,
+        // so two blur radii guarantee a band that reaches zero before the seam.
+        // 阴影轮廓从接缝侧内收: 阴影像带因此在窗口内自然淡出, 而不是被宿主边界切断。
+        // 淡出长度 = 内收量 - 模糊半径, 取 2 倍模糊可保证像带在接缝前已衰减到 0。
+        readonly property real retract: 2 * Enums.shadow.windowOutside.blur
+
         anchors.fill: outsideDrawerViewport
-        // Outward corners follow the panel; the seam side stays square, otherwise the
-        // shadow arc would be painted inside the window and cut off by the host edge.
-        // 外侧角跟随面板; 接缝侧保持直角, 否则阴影弧会画进窗口内并被宿主边硬切。
-        radius: Enums.radius.none
-        topLeftRadius: control.position === Enums.position.left
-            || control.position === Enums.position.top
-            ? outsideDrawerPanel.radius : Enums.radius.none
-        topRightRadius: control.position === Enums.position.right
-            || control.position === Enums.position.top
-            ? outsideDrawerPanel.radius : Enums.radius.none
-        bottomLeftRadius: control.position === Enums.position.left
-            || control.position === Enums.position.bottom
-            ? outsideDrawerPanel.radius : Enums.radius.none
-        bottomRightRadius: control.position === Enums.position.right
-            || control.position === Enums.position.bottom
-            ? outsideDrawerPanel.radius : Enums.radius.none
+        anchors.leftMargin: control.position === Enums.position.right ? retract : 0
+        anchors.rightMargin: control.position === Enums.position.left ? retract : 0
+        anchors.topMargin: control.position === Enums.position.bottom ? retract : 0
+        anchors.bottomMargin: control.position === Enums.position.top ? retract : 0
+        radius: outsideDrawerPanel.radius
         // Blur must stay inside the reserved padding or the shadow gets clipped
         // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
         blur: Enums.shadow.windowOutside.blur
