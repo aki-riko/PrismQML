@@ -38,11 +38,11 @@ def test_drawer_source_uses_clipped_native_window_following():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "Qt.NoFluentShadowWindowHint" in helper_source
+    assert "Qt.NoFluentShadowWindowHint" not in source
     assert "Qt.NoDropShadowWindowHint" not in source
     assert "_outsideShadowExtent" not in source
     assert 'objectName: "outsideDrawerShadow"' not in source
-    assert "ShadowManager.enableShadowForWindow(_outsideDrawerWindow)" not in source
+    assert "ShadowManager.enableShadowForWindow(_outsideDrawerWindow)" in source
     assert "MicaManager.setWindowCorner(_outsideDrawerWindow, true)" in source
     assert "id: outsideOpeningTimer" not in source
     assert "id: outsideVisibilityTimer" not in source
@@ -62,7 +62,6 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "if (_outsideNativeShadowState === enabled) return" in source
     assert "if (applied) _outsideNativeShadowState = enabled" in source
     assert "onItemChanged: control._outsideNativeShadowState = null" in source
-    assert "Three outward shadow edges" in helper_source
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

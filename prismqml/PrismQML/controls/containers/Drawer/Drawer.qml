@@ -236,7 +236,7 @@ OverlayDialogCore {
             if (!control._outsideFollowRegistered) {
                 control._registerOutsideWindow()
             }
-            control._setOutsideNativeShadow(false)
+            control._setOutsideNativeShadow(true)
             return
         }
         control._setOutsideNativeShadow(false)
@@ -260,8 +260,12 @@ OverlayDialogCore {
         if (!_outsideDrawerWindow
                 || typeof ShadowManager === "undefined" || !ShadowManager) return
         if (_outsideNativeShadowState === enabled) return
-        if (enabled) return
-        var applied = ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
+        var applied
+        if (enabled) {
+            applied = ShadowManager.enableShadowForWindow(_outsideDrawerWindow)
+        } else {
+            applied = ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
+        }
         if (applied) _outsideNativeShadowState = enabled
     }
 

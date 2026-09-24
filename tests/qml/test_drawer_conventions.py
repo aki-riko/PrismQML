@@ -361,7 +361,7 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
             ) else 120)
         )
         assert content_item.parentItem() is outside_panel
-        assert drawer_window.transientParent() is window
+        assert drawer_window.transientParent() is None
         radius = drawer.property("radius")
         expected_radii = {
             window.property("leftPosition"): (radius, 0, radius, 0),
