@@ -23,6 +23,7 @@ Item {
         { "key": "home", "text": "Home", "icon": iconPath("Home") },
         { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
         { "key": "search", "text": "Search", "icon": iconPath("Search") },
+        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
         { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
     ]
     readonly property var navPanelScrollModel: [
@@ -148,34 +149,49 @@ Item {
             // Window-level panels: a sidebar, its compact icon rail, and a
             // mutually-exclusive toggle rail. They are plain Items, so they can
             // be inspected inside a page instead of only inside a window shell.
-            // 窗口级面板：侧边栏、其紧凑图标栏，以及互斥切换栏。它们都是普通
-            // Item，因此可以放在页面里查看，而不必依赖窗口外壳。
+            // titleBarHeight is zeroed because the panels normally reserve the
+            // window title-bar strip, which does not exist inside a page.
+            // 窗口级面板：侧边栏、其紧凑图标栏，以及互斥切换栏。它们都是普通 Item，
+            // 因此可以放在页面里查看。titleBarHeight 置零，因为面板默认会为窗口
+            // 标题栏预留高度，而页面里没有标题栏。
             ExampleCard {
                 title: "Vertical navigation"
                 description: "NavigationView / NavigationBar / ToggleNavigationBar"
                 ComponentCard {
                     label: "NavigationView (compact)"
-                    Item {
+                    Rectangle {
                         width: 48
-                        height: 232
+                        height: 300
+                        radius: Fluent.Enums.radius.large
+                        color: Fluent.Enums.surfaceColor
+                        border.width: Fluent.Enums.border.thin
+                        border.color: Fluent.Enums.borderColor
+                        clip: true
                         NavigationView {
                             width: parent.width
                             height: parent.height
                             showReturnButton: false
+                            titleBarHeight: 0
                             model: root.navPanelModel
                         }
                     }
                 }
                 ComponentCard {
                     label: "NavigationView (expanded)"
-                    Item {
-                        width: 224
-                        height: 232
+                    Rectangle {
+                        width: 240
+                        height: 300
+                        radius: Fluent.Enums.radius.large
+                        color: Fluent.Enums.surfaceColor
+                        border.width: Fluent.Enums.border.thin
+                        border.color: Fluent.Enums.borderColor
+                        clip: true
                         NavigationView {
                             width: parent.width
                             height: parent.height
                             isExpanded: true
                             showReturnButton: false
+                            titleBarHeight: 0
                             model: root.navPanelModel
                             bottomItems: [
                                 { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
@@ -185,9 +201,14 @@ Item {
                 }
                 ComponentCard {
                     label: "NavigationBar"
-                    Item {
+                    Rectangle {
                         width: 68
-                        height: 232
+                        height: 300
+                        radius: Fluent.Enums.radius.large
+                        color: Fluent.Enums.surfaceColor
+                        border.width: Fluent.Enums.border.thin
+                        border.color: Fluent.Enums.borderColor
+                        clip: true
                         NavigationBar {
                             width: parent.width
                             height: parent.height
@@ -197,9 +218,14 @@ Item {
                 }
                 ComponentCard {
                     label: "ToggleNavigationBar"
-                    Item {
-                        width: 200
-                        height: 232
+                    Rectangle {
+                        width: 220
+                        height: 300
+                        radius: Fluent.Enums.radius.large
+                        color: Fluent.Enums.surfaceColor
+                        border.width: Fluent.Enums.border.thin
+                        border.color: Fluent.Enums.borderColor
+                        clip: true
                         ToggleNavigationBar {
                             width: parent.width
                             height: parent.height
