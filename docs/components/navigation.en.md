@@ -98,6 +98,7 @@ Fluent.SelectorBar {
 | `orientation` | `Qt.Horizontal` (default) / `Qt.Vertical`; vertical stacks content-sized cells |
 | `itemFontSize / iconSize` | Cell text and icon size |
 | `pillAnimationEnabled` | Whether the pill slides; the first snap is never animated |
+| `scrollDuration` | Programmatic pan duration, defaults to `Enums.duration.scroll` (same as TabBar / scroll areas) |
 | `scrollable / maxScrollOffset / scrollOffset` | Read-only: horizontal overflow and the current scroll position |
 | `itemClicked(index, byUser)` | User click (`byUser` is `true`); programmatic selection never emits it |
 | `currentItemChanged(key)` | Selected key changed |
@@ -107,10 +108,11 @@ Fluent.SelectorBar {
 
 A horizontal strip scrolls when it does not fit: the selected cell is scrolled into view by the
 smallest amount that fits it, preferring a cell boundary as the leading edge so the strip never
-leaves a half-cut label behind. The wheel or a drag pans the strip. Wheel ownership matches
-`TabBar` — an overflowing strip consumes the wheel itself, while a strip that fits never competes
-and lets the wheel reach the page scroll area. A vertical strip does not scroll and is sized to
-its content.
+leaves a half-cut label behind. The wheel or a drag pans the strip. Programmatic movement (wheel,
+auto-reveal) runs through the repository's shared smooth-scroll engine, so it glides rather than
+teleports; `scrollDuration` tunes it. Wheel ownership matches `TabBar` — an overflowing strip
+consumes the wheel itself, while a strip that fits never competes and lets the wheel reach the
+page scroll area. A vertical strip does not scroll and is sized to its content.
 
 ## TabBar / TabWidget
 
