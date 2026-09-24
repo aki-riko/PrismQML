@@ -357,10 +357,13 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert "maskSpreadAtMin: 1.0" in opacity_mask_source
 
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
-    assert "mask: ShaderEffectSource" in tour_source
-    assert "hideSource: true" in tour_source
-    assert "smooth: true" in tour_source
-    assert "antialiasing: true" in tour_source
+    # The spotlight hole used layer.effect masking, which is a silent no-op in Qt 6.11
+    # (see tests/tooling/test_opacity_mask_contract.py); it must not come back until a
+    # mask-free construction replaces it.
+    # 聚光孔原先用 layer.effect 遮罩, 在 Qt 6.11 下静默失效 (见
+    # tests/tooling/test_opacity_mask_contract.py); 在改成无遮罩构造之前不得回流。
+    assert "layer.effect: OpacityMask" not in tour_source
+    assert "mask: ShaderEffectSource" not in tour_source
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
     assert "property color highlightBorderColor: Enums.transparent" in tour_source
     assert "border.width: Enums.border.thin" in tour_source

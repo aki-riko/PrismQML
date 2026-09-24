@@ -297,10 +297,8 @@ Rectangle {
     implicitHeight: Enums.controlSize.inputHeight
     radius: Enums.surfaceRadius(Enums.radius.small)
 
-    layer.enabled: true
-    layer.effect: OpacityMask {
-        mask: Rectangle { width: control.width; height: control.height; radius: control.radius }
-    }
+    // No layer.effect mask here: it is a silent no-op in Qt 6.11 (see OpacityMask docs).
+    // 这里不再使用 layer.effect 遮罩: 它在 Qt 6.11 下静默失效 (见 OpacityMask 文档)。
 
     color: {
         if (pickerMouseArea && pickerMouseArea.pressed) return Enums.stateColor.controlBgPressed

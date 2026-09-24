@@ -271,30 +271,12 @@ Item {
                 objectName: "teachingTourMaskSurface"
                 anchors.fill: parent
                 color: control.maskColor
-                layer.enabled: true
-                layer.effect: OpacityMask {
-                    invert: true
-                    mask: ShaderEffectSource {
-                        hideSource: true
-                        live: true
-                        smooth: true
-                        sourceItem: Item {
-                            width: overlayRoot.width
-                            height: overlayRoot.height
-
-                            Rectangle {
-                                x: control._holeLeft
-                                y: control._holeTop
-                                width: control._holeRight - control._holeLeft
-                                height: control._holeBottom - control._holeTop
-                                radius: control._currentHighlightRadius
-                                antialiasing: true
-                                color: Enums.textColor.primary
-                                visible: control._targetAvailable
-                            }
-                        }
-                    }
-                }
+                // The layer.effect spotlight hole was a silent no-op in Qt 6.11 (see
+                // OpacityMask docs and tests/tooling/test_opacity_mask_contract.py), so it was
+                // removed. A working hole needs a mask-free construction (overlay bands).
+                // layer.effect 聚光孔在 Qt 6.11 下静默失效 (见 OpacityMask 文档与
+                // tests/tooling/test_opacity_mask_contract.py), 故移除;
+                // 真正可用的孔需要用无遮罩的构造方式 (遮罩带) 重做。
             }
 
             MouseArea {
