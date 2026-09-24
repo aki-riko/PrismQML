@@ -33,6 +33,10 @@ from prismqml import configure_qml_environment, register_types
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PAGE = _ROOT / "examples" / "pages" / "NavigationPage.qml"
+# The vertical-navigation card was extracted to keep the page inside its line budget,
+# so implementation gates follow the real owner while the page keeps the reference.
+# 垂直导航卡片已抽出以保持页面行数预算, 实现类门禁跟着真实所有者, 页面只保留引用。
+_SHOWCASE = _ROOT / "examples" / "pages" / "_internal" / "NavigationPanelShowcase.qml"
 
 # A host window is needed to deliver real mouse events to the Gallery page.
 # 需要宿主窗口才能向画廊页面投递真实鼠标事件。
@@ -56,6 +60,8 @@ Window {{
     readonly property int panePaddingH: Enums.controlSize.navPanelPaddingH
     readonly property int panePaddingV: Enums.controlSize.navPanelPaddingV
     readonly property int paneItemHeight: Enums.controlSize.navItemHeight
+    readonly property int paneCompactWidth: Enums.controlSize.navPanelCompactWidth
+    readonly property int paneExpandWidth: Enums.controlSize.navPanelExpandWidth
 
     width: 900
     height: 900
@@ -151,7 +157,8 @@ def test_gallery_navigation_page_documents_vertical_panels():
 
     导航页必须持续展示窗口级垂直导航面板（防止覆盖缺口回流）。
     """
-    source = _PAGE.read_text(encoding="utf-8")
+    page_source = _PAGE.read_text(encoding="utf-8")
+    source = _SHOWCASE.read_text(encoding="utf-8")
     for marker in (
         "NavigationView {",
         "NavigationBar {",
@@ -160,8 +167,12 @@ def test_gallery_navigation_page_documents_vertical_panels():
         "SegmentedControl (orientation: Qt.Vertical)",
         "Pivot (orientation: Qt.Vertical)",
     ):
-        assert marker in source
+        assert marker in source, marker
     assert source.count("orientation: Qt.Vertical") >= 2
+
+    # The page itself only keeps the reference plus its own extra coverage
+    assert "NavigationPanelShowcase { }" in page_source
+    assert "NavigationPanelShowcase {" in page_source
 
     # Exactly one pane instance, driven by the mode selector 面板只保留一个实例, 由模式选择器驱动
     assert source.count("NavigationView {") == 1
@@ -179,6 +190,18 @@ def test_gallery_navigation_page_documents_vertical_panels():
         "NavigationView (pane_left_minimal)",
     ):
         assert gone not in source
+
+    # Expanding must animate and must feed the acrylic layer the way the window shell
+    # does. 展开必须有动画, 并按窗口外壳的方式喂亚克力层。
+    assert "Behavior on width {" in source
+    assert "duration: Fluent.Enums.duration.medium" in source
+    assert "navPaneFrame.isAnimating = running" in source
+    assert "acrylicEnabled:" in source
+    assert "acrylicImageSource:" in source
+    assert "AcrylicHelper.grabAndBlur(" in source
+    assert "function capturePaneAcrylic()" in source
+    assert "onAboutToExpand: showcase.capturePaneAcrylic()" in source
+    assert "onIsExpandedChanged: if (isExpanded) showcase.capturePaneAcrylic()" in source
 
 
 def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp):
@@ -408,6 +431,69 @@ def _click_selector_cell(window, bar, index):
     )
 
 
+def test_gallery_navigation_pane_collapse_is_animated(qapp):
+    """Collapsing must glide the frame, not teleport it.
+
+    折叠必须是滑行而不是瞬跳, 且亚克力层与窗口外壳用同一组输入驱动。
+    """
+    engine = component = window = page = None
+    try:
+        engine, component, window, page = _create_host_scene(qapp)
+        pane = _pane(page)
+        frame = page.findChild(QQuickItem, "galleryNavPaneFrame")
+        assert frame is not None, "the demo has no animated frame"
+        compact = float(window.property("paneCompactWidth"))
+        expanded = float(window.property("paneExpandWidth"))
+        assert frame.width() == pytest.approx(expanded)
+
+        # Sample while the 200ms transition is still running 在 200ms 过渡尚未结束时采样
+        _click_pane_toggle(window, pane)
+        _pump(40)
+        mid = frame.width()
+        assert _wait_until(lambda: abs(frame.width() - compact) < 0.5), (
+            f"the frame never reached the compact width: {frame.width()}"
+        )
+        assert compact < mid < expanded, (
+            f"the frame jumped to {mid} instead of animating between {compact} and {expanded}"
+        )
+
+        # Expand again: the animation runs the other way too
+        # 再次展开: 动画反向同样成立
+        _click_pane_toggle(window, pane)
+        _pump(40)
+        mid_back = frame.width()
+        assert _wait_until(lambda: abs(frame.width() - expanded) < 0.5), (
+            f"the frame never returned to the design width: {frame.width()}"
+        )
+        assert compact < mid_back < expanded, (
+            f"expanding jumped to {mid_back} instead of animating"
+        )
+
+        # Acrylic follows the same inputs as the window shell: when a capture was
+        # produced, the pane must be using it while expanded.
+        # 亚克力与窗口外壳用同一组输入: 抓到图后展开期间必须真的用上。
+        showcase = [
+            child for child in page.findChildren(QObject)
+            if _type_name(child) == "NavigationPanelShowcase"
+        ]
+        assert len(showcase) == 1
+        ready = bool(showcase[0].property("_paneAcrylicReady"))
+        source = str(showcase[0].property("_paneAcrylicSource") or "")
+        state_label = page.findChild(QObject, "galleryNavPaneAcrylicState")
+        assert state_label is not None
+        assert str(state_label.property("text")) == (
+            "acrylic: on" if ready else "acrylic: off"
+        )
+        if ready:
+            assert source != "", "acrylic reported ready without a source"
+            assert pane.property("acrylicImageSource") == source
+            assert pane.property("acrylicEnabled") is True
+    finally:
+        if window is not None:
+            window.close()
+        _release(qapp, page, component, engine)
+
+
 def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
     """The single pane must really expand and collapse, not be cloned per mode.
 
@@ -418,7 +504,9 @@ def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
         engine, component, window, page = _create_host_scene(qapp)
         pane = _pane(page)
         expanded_width = pane.property("implicitWidth")
-        assert pane.width() == pytest.approx(380), "unexpected demo frame width"
+        # Left mode shows the design width; the slider only drives pane_auto
+        # Left 模式按设计宽度展示; 滑杆只驱动 pane_auto
+        assert pane.width() == pytest.approx(expanded_width), "unexpected pane width"
 
         # 1. The pane's own button collapses the expanded pane to the icon rail
         # 1. 面板自己的按钮把展开态折叠成图标栏

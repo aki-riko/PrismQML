@@ -8,67 +8,17 @@ import QtQuick.Effects
 // Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
+import "_internal"
 
 // Navigation components page 导航组件页面
 Item {
     id: root
 
-    // ==================== Demo Models 演示模型 ====================
-    // Shared model for the vertical navigation panels. Text and labels stay
-    // ASCII on purpose: the Gallery i18n contract only localizes
-    // user-visible literals, and these are component names.
-    // 垂直导航面板共用模型。文本与标签刻意保持 ASCII：画廊 i18n 合同只本地化
-    // 用户可见文案，而这些是组件名。
-    readonly property var navPanelModel: [
-        { "key": "home", "text": "Home", "icon": iconPath("Home") },
-        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
-        { "key": "search", "text": "Search", "icon": iconPath("Search") },
-        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
-        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
-    ]
-    readonly property var navPanelScrollModel: [
-        { "key": "home", "text": "Home", "icon": iconPath("Home") },
-        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
-        { "key": "search", "text": "Search", "icon": iconPath("Search") },
-        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
-        { "key": "people", "text": "People", "icon": iconPath("Person") },
-        { "key": "calendar", "text": "Calendar", "icon": iconPath("Calendar") },
-        { "key": "favorites", "text": "Favorites", "icon": iconPath("Star") },
-        { "key": "reports", "text": "Reports", "icon": iconPath("ChartMultiple") },
-        { "key": "folders", "text": "Folders", "icon": iconPath("Folder") },
-        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
-    ]
-
+    // ==================== Public Methods 公开方法 ====================
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
 
-    // Display modes the merged NavigationView demo can switch between
-    // 合并后的 NavigationView 示例可切换的显示模式
-    function navPaneModes() {
-        return [
-            Fluent.Enums.navigation.pane_left,
-            Fluent.Enums.navigation.pane_left_compact,
-            Fluent.Enums.navigation.pane_left_minimal,
-            Fluent.Enums.navigation.pane_auto
-        ]
-    }
-
-    function setNavPaneMode(index) {
-        var modes = navPaneModes()
-        if (index >= 0 && index < modes.length) {
-            galleryNavPane.paneDisplayMode = modes[index]
-        }
-    }
-
-    function navPaneModeName(mode) {
-        if (mode === Fluent.Enums.navigation.pane_left) return "left"
-        if (mode === Fluent.Enums.navigation.pane_left_compact) return "left_compact"
-        if (mode === Fluent.Enums.navigation.pane_left_minimal) return "left_minimal"
-        if (mode === Fluent.Enums.navigation.pane_auto) return "auto"
-        return "unspecified"
-    }
-    
     ScrollArea {
         anchors.fill: parent
         
@@ -172,192 +122,9 @@ Item {
             }
             
             // Vertical navigation panels 垂直导航面板
-            // Window-level panels: a sidebar, its compact icon rail, and a
-            // mutually-exclusive toggle rail. They are plain Items, so they can
-            // be inspected inside a page instead of only inside a window shell.
-            // titleBarHeight is zeroed because the panels normally reserve the
-            // window title-bar strip, which does not exist inside a page.
-            // 窗口级面板：侧边栏、其紧凑图标栏，以及互斥切换栏。它们都是普通 Item，
-            // 因此可以放在页面里查看。titleBarHeight 置零，因为面板默认会为窗口
-            // 标题栏预留高度，而页面里没有标题栏。
-            ExampleCard {
-                title: "Vertical navigation"
-                description: "NavigationView / NavigationBar / ToggleNavigationBar"
-                // One NavigationView instead of one instance per display mode: the pane
-                // really expands and collapses in place, which is what the control is
-                // for. 一个 NavigationView 取代"每种显示模式一个实例": 面板在原地真实展开
-                // 与折叠, 这才是该控件存在的意义。
-                ComponentCard {
-                    label: "NavigationView (expand / collapse)"
-                    Column {
-                        spacing: Fluent.Enums.spacing.m
-
-                        SelectorBar {
-                            id: navPaneModeBar
-                            objectName: "galleryNavPaneModeBar"
-                            items: [
-                                { "key": "left", "text": "Left" },
-                                { "key": "compact", "text": "Compact" },
-                                { "key": "minimal", "text": "Minimal" },
-                                { "key": "auto", "text": "Auto" }
-                            ]
-                            onItemClicked: (index) => root.setNavPaneMode(index)
-                        }
-
-                        Row {
-                            spacing: Fluent.Enums.spacing.m
-
-                            Column {
-                                spacing: Fluent.Enums.spacing.s
-
-                                Rectangle {
-                                    id: navPaneFrame
-                                    // Wide enough for the expanded pane (320px); the
-                                    // slider below drives pane_auto's switch point.
-                                    // 宽到能容纳展开面板(320px); 下方滑杆驱动 pane_auto 的切换点。
-                                    width: navPaneWidth.value
-                                    height: 340
-                                    radius: Fluent.Enums.radius.large
-                                    color: Fluent.Enums.surfaceColor
-                                    border.width: Fluent.Enums.border.thin
-                                    border.color: Fluent.Enums.borderColor
-                                    clip: true
-
-                                    NavigationView {
-                                        id: galleryNavPane
-                                        objectName: "galleryNavPane"
-                                        width: parent.width
-                                        height: parent.height
-                                        showReturnButton: false
-                                        // The panels normally reserve the window title-bar
-                                        // strip, which does not exist inside a page.
-                                        // 面板默认为窗口标题栏预留高度, 页面里没有标题栏。
-                                        titleBarHeight: 0
-                                        // Expanded is the useful default; the pane's own
-                                        // button collapses it to the icon rail from here.
-                                        // 默认展开更实用; 从这里起用面板自己的按钮即可折叠成图标栏。
-                                        paneDisplayMode: Fluent.Enums.navigation.pane_left
-                                        model: root.navPanelModel
-                                        bottomItems: [
-                                            { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
-                                        ]
-                                        // The panels never move their own selection: they emit
-                                        // itemClicked and expect the host shell to push a new
-                                        // currentIndex back (single-direction binding). Inside a
-                                        // page this handler IS that shell.
-                                        // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
-                                        // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
-                                        onItemClicked: (index) => {
-                                            if (index >= 0 && index < root.navPanelModel.length)
-                                                currentIndex = index
-                                        }
-                                        onPaneDisplayModeChanged:
-                                            navPaneModeBar.currentIndex =
-                                                root.navPaneModes().indexOf(paneDisplayMode)
-                                        Component.onCompleted:
-                                            navPaneModeBar.currentIndex =
-                                                root.navPaneModes().indexOf(paneDisplayMode)
-                                    }
-                                }
-
-                                Slider {
-                                    id: navPaneWidth
-                                    objectName: "galleryNavPaneWidth"
-                                    width: navPaneFrame.width
-                                    from: 120
-                                    to: 420
-                                    value: 380
-                                }
-                            }
-
-                            Column {
-                                spacing: Fluent.Enums.spacing.s
-
-                                Label {
-                                    type: Fluent.Enums.label.type_caption
-                                    text: "mode: " + root.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
-                                }
-                                Label {
-                                    type: Fluent.Enums.label.type_caption
-                                    text: "expanded: " + galleryNavPane.isExpanded
-                                }
-                                Label {
-                                    type: Fluent.Enums.label.type_caption
-                                    text: "pane open: " + galleryNavPane.isPaneOpen
-                                }
-                                Label {
-                                    type: Fluent.Enums.label.type_caption
-                                    text: "frame width: " + navPaneFrame.width
-                                }
-                                Button {
-                                    text: "toggle()"
-                                    onClicked: galleryNavPane.toggle()
-                                }
-                                Button {
-                                    text: "togglePane()"
-                                    onClicked: galleryNavPane.togglePane()
-                                }
-                            }
-                        }
-                    }
-                }
-                ComponentCard {
-                    label: "NavigationBar"
-                    Rectangle {
-                        width: 68
-                        height: 300
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
-                        NavigationBar {
-                            width: parent.width
-                            height: parent.height
-                            model: root.navPanelScrollModel
-                            onItemClicked: (index) => {
-                                if (index >= 0 && index < root.navPanelScrollModel.length)
-                                    currentIndex = index
-                            }
-                        }
-                    }
-                }
-                ComponentCard {
-                    label: "ToggleNavigationBar"
-                    Rectangle {
-                        width: 220
-                        height: 300
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
-                        ToggleNavigationBar {
-                            width: parent.width
-                            height: parent.height
-                            model: root.navPanelModel
-                        }
-                    }
-                }
-                ComponentCard {
-                    label: "SegmentedControl (orientation: Qt.Vertical)"
-                    SegmentedControl {
-                        orientation: Qt.Vertical
-                        items: ["General", "Appearance", "Advanced"]
-                    }
-                }
-                ComponentCard {
-                    label: "Pivot (orientation: Qt.Vertical)"
-                    Pivot {
-                        orientation: Qt.Vertical
-                        items: [
-                            { "key": "general", "text": "General" },
-                            { "key": "appearance", "text": "Appearance" },
-                            { "key": "advanced", "text": "Advanced" }
-                        ]
-                    }
-                }
-            }
+            // Window-level panels, extracted into _internal so this page stays
+            // inside its line budget. 窗口级面板, 抽到 _internal 使本页保持在行数预算内。
+            NavigationPanelShowcase { }
 
             // Segmented controls 分段控件
             ExampleCard {
