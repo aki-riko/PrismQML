@@ -145,6 +145,27 @@ def test_pivot_keeps_indicator_sync_timer_modularized():
     assert "repeat: true" in helper_source
     assert "onTriggered: host._updateIndicatorWithAnimation()" in helper_source
 
+def test_pivot_keeps_item_delegate_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/Pivot.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/PivotItem.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 215
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 80
+    assert "PivotItem {" in source
+    assert "host: control" in source
+    # Delegate visuals and the per-item sizing must not come back to the entry
+    # 委托视觉与逐项尺寸不得回流到入口
+    assert "Button {" not in source
+    assert "required property var host" in helper_source
+    assert "required property int index" in helper_source
+    assert "required property var modelData" in helper_source
+    assert "host.vertical" in helper_source
+
 def test_teaching_tour_keeps_state_reset_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/feedback/Overlay/TeachingTour.qml"
