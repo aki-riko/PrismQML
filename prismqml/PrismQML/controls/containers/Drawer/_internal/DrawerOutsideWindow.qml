@@ -26,7 +26,7 @@ Window {
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint
     color: Enums.transparent
-    transientParent: null
+    transientParent: control._hostWindow
 
     onVisibleChanged: {
         if (visible) {

@@ -135,12 +135,14 @@ class WindowHelper(QObject):
         return int(window.winId())
 
     @Slot("QVariant", "QVariant", int, float, result=bool)
+    @Slot("QVariant", "QVariant", int, float, bool, result=bool)
     def registerWindowFollower(
         self,
         host_window,
         follower_window,
         edge: int,
         logical_extent: float,
+        above_host: bool = False,
     ) -> bool:
         """Follow a host edge during native move/size loops. 在原生移动/缩放循环跟随宿主边缘。"""
         try:
@@ -159,15 +161,18 @@ class WindowHelper(QObject):
                 _MINIMUM_NATIVE_EXTENT,
                 round(logical_extent * scale),
             )
-            registered = bool(
-                event_filter
-                and event_filter.register(
+            if event_filter:
+                register_args = (
                     host_hwnd,
                     follower_hwnd,
                     edge,
                     physical_extent,
                 )
-            )
+                if above_host:
+                    register_args += (True,)
+                registered = bool(event_filter.register(*register_args))
+            else:
+                registered = False
             if not registered:
                 registered = _set_qt_follower_geometry(
                     host_window, follower_window, edge, logical_extent

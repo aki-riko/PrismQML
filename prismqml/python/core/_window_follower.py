@@ -46,6 +46,7 @@ class _WindowFollowerBinding:
     follower_hwnd: int
     edge: int
     outward_extent: int
+    above_host: bool = False
 
 
 @dataclass(frozen=True)
@@ -422,16 +423,18 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         follower_hwnd: int,
         edge: int,
         extent: int,
+        above_host: bool = False,
     ) -> bool:
         """Register or update one follower. 注册或更新一个附属窗口。"""
         registration = self._registration_geometry(host_hwnd, edge, extent)
         if registration is None:
             return False
-        if not self._set_geometry(follower_hwnd, registration, host_hwnd):
+        insert_after = 0 if above_host else host_hwnd
+        if not self._set_geometry(follower_hwnd, registration, insert_after):
             debug(f"附属窗口初次原生同步失败: hwnd={follower_hwnd}")
             return False
         self._bindings[follower_hwnd] = _WindowFollowerBinding(
-            host_hwnd, follower_hwnd, edge, extent
+            host_hwnd, follower_hwnd, edge, extent, bool(above_host)
         )
         return True
 
@@ -513,7 +516,9 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         if host_rect is None:
             return False
         geometry = _follower_rect_for_extent(host_rect, extent, edge)
-        return self._set_geometry(follower_hwnd, geometry, host_hwnd)
+        binding = self._bindings.get(follower_hwnd)
+        insert_after = 0 if binding is not None and binding.above_host else host_hwnd
+        return self._set_geometry(follower_hwnd, geometry, insert_after)
 
     def unregister(self, follower_hwnd: int) -> bool:
         """Remove one follower binding. 移除一个附属窗口绑定。"""
@@ -535,9 +540,8 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 binding.outward_extent,
                 binding.edge,
             )
-            if not self._set_geometry(
-                binding.follower_hwnd, geometry, binding.host_hwnd
-            ):
+            insert_after = 0 if binding.above_host else binding.host_hwnd
+            if not self._set_geometry(binding.follower_hwnd, geometry, insert_after):
                 debug(f"附属窗口原生同步失败: hwnd={binding.follower_hwnd}")
         for binding in tuple(self._attachments.values()):
             if binding.host_hwnd != host_hwnd:
@@ -549,11 +553,13 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 debug(f"附着窗口原生同步失败: hwnd={binding.follower_hwnd}")
 
     def enforce_follower_z_order(self, follower_hwnd: int, window_pos) -> None:
-        """Promote the host, then keep its follower behind. 提升宿主后保持附属窗口在下层。"""
+        """Keep a follower in its registered z-order relation. 保持附属窗口注册的层级关系。"""
         binding = self._bindings.get(follower_hwnd) or self._attachments.get(
             follower_hwnd
         )
         if binding is None:
+            return
+        if binding.above_host:
             return
         if (
             not window_pos.flags & _SWP_NOZORDER

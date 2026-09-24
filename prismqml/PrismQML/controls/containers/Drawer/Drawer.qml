@@ -182,7 +182,8 @@ OverlayDialogCore {
             control._hostWindow,
             _outsideDrawerWindow,
             control.position,
-            control._outsideFullExtent)
+            control._outsideFullExtent,
+            true)
     }
 
     // Remove the native follower before hiding or destruction
@@ -338,9 +339,13 @@ OverlayDialogCore {
         function onActiveChanged() { control._scheduleOutsideHostSync() }
         function onVisibilityChanged() {
             if (control._isOutside && control._hostWindow
-                    && (control._hostWindow.visibility === Window.Hidden
-                        || control._hostWindow.visibility === Window.Minimized)) {
+                    && control._hostWindow.visibility === Window.Hidden) {
                 control._resetDrawerState()
+            } else if (control._isOutside && control._hostWindow
+                       && control._hostWindow.visibility !== Window.Minimized
+                       && control._outsideVisible && control._outsidePrepared) {
+                control._updateOutsideWindowGeometry()
+                control._registerOutsideWindow()
             }
         }
         function onVisibleChanged() {

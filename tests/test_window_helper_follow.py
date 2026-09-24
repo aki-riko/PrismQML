@@ -267,6 +267,40 @@ def test_internal_follower_placement_does_not_promote_host():
     assert promotions == []
 
 
+def test_above_host_follower_does_not_apply_behind_host_ordering():
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+    )
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+    window_pos = SimpleNamespace(hwndInsertAfter=0, flags=0)
+
+    event_filter.enforce_follower_z_order(21, window_pos)
+
+    assert promotions == []
+    assert window_pos.hwndInsertAfter == 0
+
+
+def test_above_host_follower_geometry_uses_top_insert_position():
+    placements = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, geometry, after: placements.append(after) or True,
+    )
+
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+    event_filter.update_geometry(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    event_filter.sync_host_rect(11, _rect(100, 120, 700, 520))
+
+    assert placements == [0, 0, 0]
+
+
 def test_mouse_activation_activates_host_and_handles_follower_message():
     activations = []
     promotions = []

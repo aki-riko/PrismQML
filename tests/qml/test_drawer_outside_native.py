@@ -64,13 +64,14 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert "onItemChanged: control._outsideNativeShadowState = null" in source
 
 
-def test_drawer_source_keeps_native_window_behind_host_without_overlap():
+def test_drawer_source_keeps_native_window_above_host_without_overlap():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "transientParent: null" in helper_source
+    assert "transientParent: control._hostWindow" in helper_source
     assert "outsideDrawerWindow.requestActivate()" not in helper_source
     assert "_outsideSeamOverlap" not in helper_source
+    assert "control._outsideFullExtent,\n            true)" in source
     assert "? Enums.radius.large" in source
     assert "topLeftRadius:" in helper_source
     assert "topRightRadius:" in helper_source
@@ -92,6 +93,14 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "height: outsideDrawerWindow.height" in helper_source
     assert "x: -outsideDrawerViewport.x" in helper_source
     assert "y: -outsideDrawerViewport.y" in helper_source
+
+
+def test_drawer_source_preserves_open_state_while_host_is_minimized():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "control._hostWindow.visibility === Window.Hidden" in source
+    assert "|| control._hostWindow.visibility === Window.Minimized" not in source
+    assert "control._hostWindow.visibility !== Window.Minimized" in source
 
 
 def test_drawer_stages_host_signal_connections_until_component_completion():
