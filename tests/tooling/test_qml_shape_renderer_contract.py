@@ -53,7 +53,8 @@ def test_tour_spotlight_corners_stay_antialiased():
     聚光孔圆角是曲线几何, 必须保持平滑。
     """
     source = (
-        QML_ROOT / "controls" / "feedback" / "Overlay" / "TeachingTour.qml"
+        QML_ROOT / "controls" / "feedback" / "Overlay" / "_internal"
+        / "TeachingTourMaskSurface.qml"
     ).read_text(encoding="utf-8")
 
     assert "preferredRendererType: Shape.CurveRenderer" in source

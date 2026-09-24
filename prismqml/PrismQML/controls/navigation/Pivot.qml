@@ -4,12 +4,12 @@
 
 import QtQuick
 import "../.."
-import "../icons"
-import "../buttons"
 import "_internal"
 
 // Pivot - Pivot navigation component 透视导航组件
 // Uses Button to provide stable hover behavior 使用Button提供稳定的悬停行为
+// orientation picks the main axis; Qt.Horizontal behaves exactly as before
+// orientation 选择主轴; Qt.Horizontal 与之前完全一致
 Item {
     id: control
     
@@ -20,10 +20,12 @@ Item {
     property int itemFontSize: Enums.typography.subtitle
     property int iconSize: Enums.iconSize.m
     property bool indicatorAnimationEnabled: true
+    property int orientation: Qt.Horizontal
 
     // ==================== Internal Props 内部属性 ====================
     property int _prevIndex: -1
     property bool _initialized: false
+    readonly property bool vertical: orientation === Qt.Vertical
     readonly property var _safeItems:
         items === null || items === undefined ? []
         : (typeof items.length === "number" ? items : [])
@@ -48,14 +50,18 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    function _getIndicatorX(item) {
-        if (!item) return 0
-        return item.x + (item.width - indicatorSize) / 2
-    }
-
-    // Build the bottom indicator rectangle 构造底部细条指示器矩形
+    // Indicator rect; vertical pins the bar to the item's left edge while the
+    // horizontal treatment keeps the historical bottom underline.
+    // 指示器矩形; 纵向时竖条贴项的左边缘, 横向保持历史的下划线几何。
     function _rectAt(item) {
-        return Qt.rect(_getIndicatorX(item),
+        if (!item) return Qt.rect(0, 0, 0, 0)
+        if (vertical) {
+            return Qt.rect(item.x,
+                           item.y + (item.height - indicatorSize) / 2,
+                           Enums.border.thick,
+                           indicatorSize)
+        }
+        return Qt.rect(item.x + (item.width - indicatorSize) / 2,
                        control.height - Enums.border.thick,
                        indicatorSize,
                        Enums.border.thick)
@@ -134,11 +140,14 @@ Item {
 
     // ==================== Size 尺寸 ====================
     implicitWidth: pivotRow.implicitWidth
-    implicitHeight: Enums.controlSize.inputHeight
+    implicitHeight: vertical
+        ? pivotRow.implicitHeight
+        : Enums.controlSize.inputHeight
 
     Component.onCompleted: indicatorSyncTimer.restart()
     onItemsChanged: indicatorSyncTimer.restart()
     onCurrentIndexChanged: _updateIndicatorWithAnimation()
+    onOrientationChanged: indicatorSyncTimer.restart()
     onWidthChanged: {
         if (_initialized && !navIndicator.running) {
             var item = repeater.itemAt(currentIndex)
@@ -147,55 +156,35 @@ Item {
     }
 
     // ==================== Content 内容 ====================
-    // Items row 项目行
-    Row {
+    // Items strip; Flow switches the main axis without a second delegate tree
+    // 项目条带; Flow 切换主轴, 无需第二棵委托树
+    Flow {
         id: pivotRow
-        anchors.fill: parent
+        flow: control.vertical ? Flow.TopToBottom : Flow.LeftToRight
+        // Horizontal keeps filling the control (historical geometry). Vertical must
+        // stay unanchored: constraining a positioner's own size on the main axis makes
+        // its implicit size depend on that size, and the stack then wraps into columns.
+        // 横向保持填满控件（历史几何）。纵向必须不锚定: 在主轴上约束 positioner 自身
+        // 尺寸会让其隐式尺寸依赖该尺寸, 堆叠随即退化成多列。
+        anchors.fill: control.vertical ? undefined : parent
         spacing: Enums.spacing.none
         
         Repeater {
             id: repeater
             model: control._safeItems
             
-            Item {
-                id: pivotItem
-
-                property bool selected: index === control.currentIndex
-                property string itemText: typeof modelData === "string" ? modelData : (modelData && modelData.text !== undefined ? modelData.text : "")
-                property string itemIcon: modelData && modelData.icon !== undefined ? modelData.icon : ""
-                property string key: modelData && modelData.key !== undefined ? modelData.key : (itemText !== "" ? itemText : itemIcon)
-                property bool hasIcon: itemIcon !== ""
-                property bool hasText: itemText !== ""
-
-                width: pivotBtn.implicitWidth
-                height: control.height
-
-                Button {
-                    id: pivotBtn
-                    anchors.fill: parent
-                    style: Enums.button.style_transparent
-                    flat: true
-                    text: pivotItem.itemText
-                    icon: pivotItem.itemIcon
-                    iconSize: control.iconSize
-                    
-                    onClicked: {
-                        if (index !== control.currentIndex) {
-                            control.setCurrentIndex(index)
-                            control.itemClicked(index, true)
-                        }
-                    }
-                }
+            PivotItem {
+                host: control
             }
         }
     }
     
-    // Shared horizontal sticky-stretch indicator 统一基类的水平橡皮筋粘滞指示器
+    // Shared sticky-stretch indicator; it already owns both axes 统一粘滞指示器; 本身已支持双轴
     SlidingIndicator {
         id: navIndicator
-        orientation: Qt.Horizontal
-        indicatorWidth: control.indicatorSize
-        indicatorHeight: Enums.border.thick
+        orientation: control.orientation
+        indicatorWidth: control.vertical ? Enums.border.thick : control.indicatorSize
+        indicatorHeight: control.vertical ? control.indicatorSize : Enums.border.thick
         radius: Enums.radius.micro
         animationEnabled: control.indicatorAnimationEnabled
         visible: control._safeItems.length > 0 && control._initialized
