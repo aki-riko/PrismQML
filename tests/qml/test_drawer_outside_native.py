@@ -87,14 +87,19 @@ def test_outside_window_owns_its_outward_shadow():
     assert "offset.x: 0" in helper_source
     assert "offset.y: Enums.shadow.windowOutside.offset" in helper_source
     assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
+    # The panel keeps a uniform radius; the shadow squares off the seam side so that no
+    # shadow arc is painted inside the window along the host edge.
+    assert "radius: control._effectiveRadius" in helper_source
     for name in (
         "topLeftRadius:",
         "topRightRadius:",
         "bottomLeftRadius:",
         "bottomRightRadius:",
     ):
-        # Shadow and panel must carry identical corner radii.
-        assert helper_source.count(name) == 2
+        assert helper_source.count(name) == 1
+    assert (
+        helper_source.count("? outsideDrawerPanel.radius : Enums.radius.none") == 4
+    )
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

@@ -8,11 +8,9 @@ import QtQuick.Window
 import "../../../.."
 
 // DrawerOutsideWindow - Native outside drawer host 外侧抽屉原生承载窗口
-// This HWND never carries a DWM shadow: at the seam the shadow band would land on the
-// host window content and double up with the host shadow. The drawer paints its own
-// level8 shadow inside the outward padding instead.
-// 该 HWND 始终不携带 DWM 阴影: 否则接缝处的阴影带会压到宿主窗口内容上并与宿主阴影叠加。
-// 抽屉改为在自身外侧留白内自绘 level8 阴影。
+// This HWND never carries a DWM shadow, so the seam side stays free of any shadow band.
+// The drawer paints its own window shadow inside the outward padding instead.
+// 该 HWND 始终不携带 DWM 阴影, 接缝侧因此不会出现阴影带; 抽屉改为在外侧留白内自绘窗口阴影。
 Window {
     id: outsideDrawerWindow
 
@@ -85,11 +83,22 @@ Window {
         id: outsideDrawerShadow
 
         anchors.fill: outsideDrawerViewport
+        // Outward corners follow the panel; the seam side stays square, otherwise the
+        // shadow arc would be painted inside the window and cut off by the host edge.
+        // 外侧角跟随面板; 接缝侧保持直角, 否则阴影弧会画进窗口内并被宿主边硬切。
         radius: Enums.radius.none
-        topLeftRadius: outsideDrawerPanel.topLeftRadius
-        topRightRadius: outsideDrawerPanel.topRightRadius
-        bottomLeftRadius: outsideDrawerPanel.bottomLeftRadius
-        bottomRightRadius: outsideDrawerPanel.bottomRightRadius
+        topLeftRadius: control.position === Enums.position.left
+            || control.position === Enums.position.top
+            ? outsideDrawerPanel.radius : Enums.radius.none
+        topRightRadius: control.position === Enums.position.right
+            || control.position === Enums.position.top
+            ? outsideDrawerPanel.radius : Enums.radius.none
+        bottomLeftRadius: control.position === Enums.position.left
+            || control.position === Enums.position.bottom
+            ? outsideDrawerPanel.radius : Enums.radius.none
+        bottomRightRadius: control.position === Enums.position.right
+            || control.position === Enums.position.bottom
+            ? outsideDrawerPanel.radius : Enums.radius.none
         // Blur must stay inside the reserved padding or the shadow gets clipped
         // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
         blur: Enums.shadow.windowOutside.blur
@@ -121,19 +130,9 @@ Window {
             x: outsideDrawerWindow.panelOffsetX - outsideDrawerViewport.x
             y: outsideDrawerWindow.panelOffsetY - outsideDrawerViewport.y
             color: control._drawerBackground
-            radius: Enums.radius.none
-            topLeftRadius: control.position === Enums.position.left
-                || control.position === Enums.position.top
-                ? control._effectiveRadius : Enums.radius.none
-            topRightRadius: control.position === Enums.position.right
-                || control.position === Enums.position.top
-                ? control._effectiveRadius : Enums.radius.none
-            bottomLeftRadius: control.position === Enums.position.left
-                || control.position === Enums.position.bottom
-                ? control._effectiveRadius : Enums.radius.none
-            bottomRightRadius: control.position === Enums.position.right
-                || control.position === Enums.position.bottom
-                ? control._effectiveRadius : Enums.radius.none
+            // All four panel corners stay rounded, matching the native window look
+            // this padded HWND replaces. 面板四角保持圆角, 与它所替代的原生窗口外观一致。
+            radius: control._effectiveRadius
             border.width: control._drawerBorderWidth
             border.color: control._drawerBorderColor
 

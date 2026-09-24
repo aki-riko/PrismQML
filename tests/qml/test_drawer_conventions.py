@@ -400,13 +400,9 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
         )
         assert content_item.parentItem() is outside_panel
         assert drawer_window.transientParent() is None
-        radius = drawer.property("radius")
-        expected_radii = {
-            window.property("leftPosition"): (radius, 0, radius, 0),
-            window.property("rightPosition"): (0, radius, 0, radius),
-            window.property("topPosition"): (radius, radius, 0, 0),
-            window.property("bottomPosition"): (0, 0, radius, radius),
-        }
+        # The panel keeps all four corners rounded; only the shadow squares off the seam.
+        effective_radius = drawer.property("_effectiveRadius")
+        assert outside_panel.property("radius") == pytest.approx(effective_radius)
         assert tuple(
             outside_panel.property(name)
             for name in (
@@ -415,7 +411,7 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 "bottomLeftRadius",
                 "bottomRightRadius",
             )
-        ) == expected_radii[position]
+        ) == (effective_radius,) * 4
         if position == window.property("rightPosition"):
             click_pos = outside_panel.mapToItem(
                 drawer_window.contentItem(),
