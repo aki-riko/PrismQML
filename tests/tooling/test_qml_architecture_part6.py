@@ -359,8 +359,11 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
     pill_source = pill_helper.read_text(encoding="utf-8")
     timer_source = timer_helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 260
-    assert len(item_source.splitlines()) < 130
+    # 268 lines after adding the minimal-scroll reveal and the delegate sync hook;
+    # the entry stays far below the repository's 500/700 limits.
+    # 加入最小滚动定位与委托同步钩子后为 268 行, 仍远低于仓库 500/700 的上限。
+    assert len(source.splitlines()) < 290
+    assert len(item_source.splitlines()) < 140
     assert len(pill_source.splitlines()) < 90
     assert len(timer_source.splitlines()) < 80
     assert 'import "_internal" as NavigationInternal' in source
@@ -380,6 +383,21 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
     assert "required property Item strip" in pill_source
     assert "required property var host" in timer_source
     assert "required property var itemRepeater" in timer_source
+
+    # The delegate re-syncs the pill when its own box settles, which is what makes the
+    # pill appear when delegates arrive late; the entry exposes the hook.
+    # 委托在自身几何落定时重新同步胶囊, 这是委托晚到时胶囊仍能出现的原因; 入口暴露钩子。
+    assert "selectorBar._schedulePillSync(false)" in item_source
+    assert "function _schedulePillSync(shouldAnimate)" in source
+    assert "Component.onCompleted: if (selected) selectorBar._schedulePillSync(false)" in (
+        item_source
+    )
+
+    # Auto-scroll prefers a cell boundary as the leading edge so the strip never leaves
+    # a half-cut label behind. 自动滚动优先让前缘落在单元格边界, 避免留下半截标签。
+    assert "var minOffset = Math.max(0, item.x + item.width - scrollArea.width)" in source
+    assert "var maxOffset = Math.min(item.x, maxScrollOffset)" in source
+    assert "cell.x >= minOffset && cell.x <= maxOffset" in source
 
     # The pill owns the sliding geometry and must sit beside the positioner: a
     # Row/Column would lay it out as one more cell. 胶囊自持滑动几何, 且必须与定位器

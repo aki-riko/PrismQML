@@ -33,6 +33,7 @@ from prismqml import configure_qml_environment, register_types
 TEST_DIR = Path(__file__).resolve().parent
 SCENE_URL = QUrl.fromLocalFile(str(TEST_DIR / "selector-bar.qml"))
 SCROLL_URL = QUrl.fromLocalFile(str(TEST_DIR / "selector-bar-scroll.qml"))
+BOUNDARY_URL = QUrl.fromLocalFile(str(TEST_DIR / "selector-bar-boundary.qml"))
 
 ITEMS = """
     readonly property var sampleItems: [
@@ -40,6 +41,17 @@ ITEMS = """
         { key: "activity", text: "Activity" },
         { key: "settings", text: "Settings", icon: "Settings" },
         { key: "about", text: "About" }
+    ]
+"""
+
+# Five plain cells, matching the gallery's overflow demo 五个无图标单元, 与图库溢出示例一致
+FIVE_ITEMS = """
+    readonly property var sampleItems: [
+        { key: "overview", text: "Overview" },
+        { key: "activity", text: "Activity" },
+        { key: "settings", text: "Settings" },
+        { key: "about", text: "About" },
+        { key: "extra", text: "Extra" }
     ]
 """
 
@@ -147,6 +159,34 @@ Item {
                 color: Enums.cardColor
             }
         }
+    }
+}
+"""
+)
+
+
+# Two whole 136px cells wide: every selection but the last can start on a cell
+# boundary. 宽度正好两个 136px 整格: 除最后一项外都能以单元格边界为前缘。
+BOUNDARY_SCENE = (
+    """
+import QtQuick
+import PrismQML
+
+Item {
+    id: boundaryRoot
+
+    width: 700
+    height: 200
+"""
+    + FIVE_ITEMS
+    + """
+    SelectorBar {
+        id: boundaryBar
+        objectName: "boundaryBar"
+        x: 20
+        y: 20
+        width: 272
+        items: boundaryRoot.sampleItems
     }
 }
 """
@@ -403,9 +443,9 @@ def test_vertical_selector_bar_covers_the_selected_row(qapp):
 
 
 def test_narrow_selector_bar_scrolls_the_selected_cell_into_view(qapp):
-    """An overflowing strip scrolls so the selected cell stays visible.
+    """An overflowing strip scrolls the least amount that fits the selected cell.
 
-    条带溢出时滚动, 保证选中单元可见。
+    条带溢出时按最小滚动量把选中单元移入可视区。
     """
     engine, component, window, root, warnings = _create_scene(qapp, SCENE, SCENE_URL)
     try:
@@ -414,18 +454,71 @@ def test_narrow_selector_bar_scrolls_the_selected_cell_into_view(qapp):
         assert bar.property("maxScrollOffset") == pytest.approx(
             bar.property("implicitWidth") - bar.width()
         )
-
-        bar.setProperty("currentIndex", 3)
-        assert _wait_for(
-            lambda: abs(bar.property("scrollOffset") - bar.property("maxScrollOffset"))
-            < 0.5
-        ), "selecting the last cell did not scroll it into view"
-
         cells = _cells(bar)
-        pill = _pill(bar)
-        assert _wait_for(lambda: abs(pill.x() - cells[3].x()) < 0.5)
-        left = pill.x() - bar.property("scrollOffset")
-        assert 0 <= left <= bar.width() - pill.width() + 0.5
+
+        for index in (1, 2, 3):
+            bar.setProperty("currentIndex", index)
+            _pump(240)
+            offset = float(bar.property("scrollOffset"))
+            cell = cells[index]
+            # The selected cell is fully inside the viewport 选中单元完整落在可视区内
+            assert cell.x() - offset >= -0.5
+            assert cell.x() + cell.width() - offset <= bar.width() + 0.5
+            # The scroll is the smallest one that achieves it, or a cell boundary
+            # 滚动量是为达成该条件的最小值, 或落在某个单元格边界上
+            minimal = min(
+                max(0.0, cell.x() + cell.width() - bar.width()),
+                float(bar.property("maxScrollOffset")),
+            )
+            assert offset == pytest.approx(minimal, abs=0.5) or any(
+                abs(offset - other.x()) < 0.5 for other in cells
+            ), f"index {index} scrolled to {offset}"
+
+        # A cell that is visible from the very start leaves the strip unscrolled
+        # 从头就完整可见的单元不产生滚动
+        bar.setProperty("currentIndex", 0)
+        _pump(240)
+        assert float(bar.property("scrollOffset")) == pytest.approx(cells[0].x())
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_selector_bar_keeps_the_leading_edge_on_a_cell_boundary(qapp):
+    """With whole cells fitting, the leading edge is a cell boundary.
+
+    可视区能容纳整格时前缘落在单元格边界上, 不会出现半截标签。
+    """
+    engine, component, window, root, warnings = _create_scene(
+        qapp, BOUNDARY_SCENE, BOUNDARY_URL
+    )
+    try:
+        bar = _item(root, "boundaryBar")
+        cells = _cells(bar)
+        assert round(bar.width()) == 272
+        assert bar.property("scrollable") is True
+        assert bar.property("maxScrollOffset") == pytest.approx(
+            bar.property("implicitWidth") - bar.width()
+        )
+
+        for index in (0, 1, 2, 3):
+            bar.setProperty("currentIndex", index)
+            _pump(240)
+            offset = float(bar.property("scrollOffset"))
+            cell = cells[index]
+            assert any(abs(offset - other.x()) < 0.5 for other in cells), (
+                f"offset {offset} is not a cell boundary"
+            )
+            assert cell.x() - offset >= -0.5
+            assert cell.x() + cell.width() - offset <= bar.width() + 0.5
+
+        # No boundary can show the last cell: only there does the strip fall back to
+        # the clamped minimal scroll. 最后一项无法对齐边界, 只有此时退化为最小滚动量。
+        bar.setProperty("currentIndex", 4)
+        _pump(240)
+        assert float(bar.property("scrollOffset")) == pytest.approx(
+            bar.property("maxScrollOffset")
+        )
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

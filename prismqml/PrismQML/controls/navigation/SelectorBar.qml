@@ -81,12 +81,32 @@ Item {
         return item ? item.key : ""
     }
 
-    // Bring the selected cell into view 把选中项滚入可视区
+    // Bring the selected cell into view with the smallest scroll that fits it, and
+    // prefer a cell boundary as the leading edge so the strip never leaves a half-cut
+    // label behind. 以最小滚动量把选中单元移入可视区, 并优先让前缘落在单元格边界上,
+    // 使条带不会留下被切开的半个标签。
     function revealCurrent() {
         if (!scrollable) return
         var item = horizontalRepeater.itemAt(currentIndex)
         if (!item) return
-        scrollArea.contentX = Math.max(0, Math.min(item.x, maxScrollOffset))
+
+        var minOffset = Math.max(0, item.x + item.width - scrollArea.width)
+        var maxOffset = Math.min(item.x, maxScrollOffset)
+        var chosen = -1
+        // Delegate order is ascending, so the first boundary in range is the smallest
+        // 委托顺序即坐标升序, 因此第一个命中的边界就是最小位移
+        for (var i = 0; i < _safeItems.length; i++) {
+            var cell = horizontalRepeater.itemAt(i)
+            if (!cell) continue
+            if (cell.x >= minOffset && cell.x <= maxOffset) {
+                chosen = cell.x
+                break
+            }
+        }
+        // No boundary can show the cell (e.g. the last one): clamp the minimal scroll
+        // 没有边界能容纳该单元(例如最后一项): 退化为最小滚动量并夹紧
+        if (chosen < 0) chosen = Math.min(minOffset, maxScrollOffset)
+        scrollArea.contentX = Math.max(0, chosen)
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -116,6 +136,12 @@ Item {
     function _clearPills() {
         horizontalPill.target = null
         verticalPill.target = null
+    }
+
+    // Delegate-facing hook: the selected cell calls this when its own box settles
+    // 委托侧钩子: 选中单元在自身几何落定时调用
+    function _schedulePillSync(shouldAnimate) {
+        pillSyncTimer.schedule(shouldAnimate)
     }
 
     // ==================== Size 尺寸 ====================
