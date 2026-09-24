@@ -97,7 +97,7 @@ Fluent.SelectorBar {
 | `currentIndex: int` | Selected index; an out-of-range value hides the pill instead of throwing |
 | `orientation` | `Qt.Horizontal` (default) / `Qt.Vertical`; vertical stacks content-sized cells |
 | `itemFontSize / iconSize` | Cell text and icon size |
-| `pillAnimationEnabled` | Whether the pill slides; the first snap is never animated |
+| `pillAnimationEnabled` | Whether the pill slides; timing and curve match the tab switch (`Enums.duration.slow` + `OutCubic`). The initial placement never animates, every later selection does |
 | `scrollDuration` | Programmatic pan duration, defaults to `Enums.duration.scroll` (same as TabBar / scroll areas) |
 | `scrollable / maxScrollOffset / scrollOffset` | Read-only: horizontal overflow and the current scroll position |
 | `itemClicked(index, byUser)` | User click (`byUser` is `true`); programmatic selection never emits it |

@@ -96,7 +96,7 @@ Fluent.SelectorBar {
 | `currentIndex: int` | 选中索引；越界时胶囊隐藏而不抛错 |
 | `orientation` | `Qt.Horizontal`（默认）/ `Qt.Vertical`，纵向按内容定宽堆叠 |
 | `itemFontSize / iconSize` | 单元文字与图标尺寸 |
-| `pillAnimationEnabled` | 是否动画滑动胶囊；首次吸附始终不带动画 |
+| `pillAnimationEnabled` | 是否动画滑动胶囊；时长与曲线同标签页切换（`Enums.duration.slow` + `OutCubic`）。首次就位不带动画，之后每次选中都滑动 |
 | `scrollDuration` | 程序化平移时长，默认 `Enums.duration.scroll`（与 TabBar / 滚动区一致） |
 | `scrollable / maxScrollOffset / scrollOffset` | 只读：横向溢出与当前滚动位置 |
 | `itemClicked(index, byUser)` | 用户点击（`byUser` 为 `true`）；编程式选中不发出 |

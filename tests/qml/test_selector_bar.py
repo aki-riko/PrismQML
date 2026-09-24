@@ -23,7 +23,7 @@ from PySide6.QtCore import (
     Qt,
 )
 from PySide6.QtGui import QGuiApplication, QWheelEvent
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlExpression
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
@@ -72,6 +72,8 @@ Item {
     property int lastIndex: -1
     property bool lastByUser: false
     property string lastKey: ""
+    // The pill slide must match the tab-switch timing 胶囊滑动必须与标签页切换时长一致
+    readonly property int expectedSlideDuration: Enums.duration.slow
     // Key-based selection is driven through a property so the test exercises the
     // real QML call path instead of a meta-object invocation.
     // 按键选中通过属性驱动, 让测试走真实 QML 调用路径。
@@ -374,6 +376,57 @@ def test_real_click_selects_the_cell_and_moves_the_pill(qapp):
         _dispose_scene(engine, component, window)
 
 
+def test_pill_transitions_latch_then_slide(qapp):
+    """The pill owns four latched geometry transitions and still slides.
+
+    胶囊持有四个被锁存的几何过渡, 且选中时确实是滑行。
+
+    时长与曲线由源码门禁精确锁定(Enums.duration.slow + OutCubic); PySide 无法读取
+    QQuickAbstractAnimation*, 因此这里验证运行时可达的部分: 过渡个数、锁存状态与滑动本身。
+    """
+    engine, component, window, root, warnings = _create_scene(qapp, SCENE, SCENE_URL)
+    try:
+        bar = _item(root, "bar")
+        expected = int(root.property("expectedSlideDuration"))
+        assert expected > 0
+        pill = _pill(bar)
+
+        # Before any selection the transitions are latched off, so the pill can never
+        # slide in from the origin. 首次选中之前过渡被关闭, 胶囊不会从原点滑入。
+        assert bar.property("_pillReady") is False
+        assert _behavior_states(pill) == [False] * 4
+
+        # A real selection turns all four on and glides the pill into place
+        # 真实选中会启用全部四个过渡, 并让胶囊滑到位。采样点必须紧跟松手, 否则 250ms
+        # 的滑动已经结束(点击辅助函数自身会泵送约 120ms)。
+        cells = _cells(bar)
+        scene_pos = cells[2].mapToScene(QPointF(cells[2].width() / 2, 20))
+        point = QPoint(round(scene_pos.x()), round(scene_pos.y()))
+        QTest.mouseMove(window, point)
+        _pump(30)
+        QTest.mousePress(
+            window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
+        )
+        _pump(20)
+        QTest.mouseRelease(
+            window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
+        )
+        assert bar.property("currentIndex") == 2
+        assert bar.property("_pillReady") is True
+        assert _behavior_states(pill) == [True] * 4
+        _pump(40)
+        mid = pill.x()
+        assert 0 < mid < cells[2].x(), (
+            f"the pill jumped straight to {cells[2].x()} (sampled {mid})"
+        )
+        assert _wait_for(lambda: abs(pill.x() - cells[2].x()) < 0.5), (
+            "the pill never reached the clicked cell"
+        )
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
 def test_programmatic_selection_never_reports_a_click(qapp):
     """Programmatic selection moves the pill without a phantom itemClicked.
 
@@ -443,6 +496,15 @@ def test_vertical_selector_bar_covers_the_selected_row(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def _behavior_states(item: QQuickItem) -> list[bool]:
+    """Enabled state of every Behavior the item owns."""
+    return [
+        bool(child.property("enabled"))
+        for child in item.children()
+        if "Behavior" in child.metaObject().className()
+    ]
 
 
 def _label_bold(cell: QQuickItem) -> bool:

@@ -407,6 +407,16 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
         assert marker in pill_source
     assert "itemRepeater" not in pill_source
 
+    # The pill's slide uses one timing on all four geometry axes, matching the tab
+    # switch slide (duration.slow + OutCubic). 胶囊四个几何轴共用一套时长, 与标签页切换
+    # 滑动一致(duration.slow + OutCubic)。
+    assert pill_source.count("duration: Enums.duration.slow") == 4
+    assert pill_source.count("easing.type: Easing.OutCubic") == 4
+    assert "duration: Enums.duration.normal" not in pill_source
+    assert "duration: Enums.duration.fast" not in pill_source
+    assert pill_source.count("enabled: pill._animate") == 4
+    assert "readonly property bool _animate" in pill_source
+
     # Wheel ownership is explicit: the strip pans itself, because a horizontal
     # Flickable never hands a vertical wheel to its ancestor.
     # 滚轮归属显式声明: 条带自己平移, 因为横向 Flickable 不会把纵向滚轮交给祖先。
