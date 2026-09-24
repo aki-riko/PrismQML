@@ -324,7 +324,11 @@ def test_combo_box_core_keeps_visual_content_modularized():
     ):
         assert f"property alias {alias}:" in helper_source
     assert "property alias _popup: comboContent.popup" in source
-    assert "layer.enabled: true" in helper_source
+    # The background mask layer was removed: layer.effect masking is a silent no-op in
+    # Qt 6.11 (see tests/tooling/test_opacity_mask_contract.py).
+    # 背景遮罩层已移除: Qt 6.11 下 layer.effect 遮罩静默失效
+    # (见 tests/tooling/test_opacity_mask_contract.py)。
+    assert "layer.effect: OpacityMask" not in helper_source
     assert "PopupWindowCore {" in helper_source
     assert "RectangularShadow {" in helper_source
     assert "PopupWindowCore {" not in source

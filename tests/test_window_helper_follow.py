@@ -55,6 +55,26 @@ def test_follower_rect_for_extent_updates_one_complete_rect(edge, expected):
     assert actual == expected
 
 
+@pytest.mark.parametrize(
+    ("edge", "expected"),
+    [
+        (window_helper.WINDOW_EDGE_LEFT, (40, 96, 100, 544)),
+        (window_helper.WINDOW_EDGE_RIGHT, (700, 96, 760, 544)),
+        (window_helper.WINDOW_EDGE_TOP, (76, 60, 724, 120)),
+        (window_helper.WINDOW_EDGE_BOTTOM, (76, 520, 724, 580)),
+    ],
+)
+def test_follower_rect_for_extent_reserves_outward_padding(edge, expected):
+    actual = window_helper._follower_rect_for_extent(
+        _rect(100, 120, 700, 520),
+        extent=60,
+        edge=edge,
+        outward_padding=24,
+    )
+
+    assert actual == expected
+
+
 def test_animation_frame_reads_host_once_and_submits_one_complete_rect():
     reads = []
     moves = []
@@ -381,12 +401,34 @@ def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
     calls = []
 
     class _FakeFilter:
-        def update_geometry(self, host_hwnd, follower_hwnd, edge, extent):
-            calls.append(("update", host_hwnd, follower_hwnd, edge, extent))
+        def update_geometry(
+            self, host_hwnd, follower_hwnd, edge, extent, outward_padding=0
+        ):
+            calls.append(
+                ("update", host_hwnd, follower_hwnd, edge, extent, outward_padding)
+            )
             return True
 
-        def register(self, host_hwnd, follower_hwnd, edge, extent):
-            calls.append(("register", host_hwnd, follower_hwnd, edge, extent))
+        def register(
+            self,
+            host_hwnd,
+            follower_hwnd,
+            edge,
+            extent,
+            above_host=False,
+            outward_padding=0,
+        ):
+            calls.append(
+                (
+                    "register",
+                    host_hwnd,
+                    follower_hwnd,
+                    edge,
+                    extent,
+                    above_host,
+                    outward_padding,
+                )
+            )
             return True
 
         def unregister(self, follower_hwnd):
@@ -418,20 +460,21 @@ def test_window_helper_installs_one_filter_and_delegates_lifecycle(monkeypatch):
     )
     assert helper.registerWindowFollower(
         _FakeWindow(11), _FakeWindow(22),
-        window_helper.WINDOW_EDGE_LEFT, 180,
+        window_helper.WINDOW_EDGE_LEFT, 180, True, 16,
     )
     assert helper.updateWindowFollowerGeometry(
         _FakeWindow(11),
         _FakeWindow(22),
         window_helper.WINDOW_EDGE_TOP,
         60,
+        16,
     )
     assert helper.unregisterWindowFollower(_FakeWindow(21))
 
     assert calls == [
         ("install", fake_filter),
-        ("register", 11, 21, window_helper.WINDOW_EDGE_RIGHT, 270),
-        ("register", 11, 22, window_helper.WINDOW_EDGE_LEFT, 270),
-        ("update", 11, 22, window_helper.WINDOW_EDGE_TOP, 90),
+        ("register", 11, 21, window_helper.WINDOW_EDGE_RIGHT, 270, False, 0),
+        ("register", 11, 22, window_helper.WINDOW_EDGE_LEFT, 270, True, 24),
+        ("update", 11, 22, window_helper.WINDOW_EDGE_TOP, 90, 24),
         ("unregister", 21),
     ]

@@ -151,15 +151,11 @@ Widget {
         color: control.color
         
         // Rounded clip 圆角裁剪
+        // NOTE: layer.effect masking is a silent no-op in Qt 6.11 (see OpacityMask docs and
+        // tests/tooling/test_opacity_mask_contract.py), so the broken mask was removed.
+        // 注意: Qt 6.11 下 layer.effect 遮罩是静默失效的 (见 OpacityMask 文档与
+        // tests/tooling/test_opacity_mask_contract.py), 因此移除了那层假遮罩。
         clip: true
-        layer.enabled: radius > 0 && !control.transparentBackground
-        layer.effect: OpacityMask {
-            mask: Rectangle {
-                width: _bg.width
-                height: _bg.height
-                radius: _bg.radius
-            }
-        }
         
         // Border 边框
         // Use unified border colors 使用统一边框颜色

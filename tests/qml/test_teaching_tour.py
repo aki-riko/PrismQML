@@ -357,10 +357,20 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert "maskSpreadAtMin: 1.0" in opacity_mask_source
 
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
-    assert "mask: ShaderEffectSource" in tour_source
-    assert "hideSource: true" in tour_source
-    assert "smooth: true" in tour_source
-    assert "antialiasing: true" in tour_source
+    # The spotlight hole is built without any mask: layer.effect masking is a silent no-op in
+    # Qt 6.11 and one ShapePath only fills its last subpath, so the scrim uses four bands plus
+    # four rounded corner patches.
+    # 聚光孔不使用任何遮罩: Qt 6.11 下 layer.effect 遮罩静默失效, 且一个 ShapePath 只填充最后
+    # 一个子路径, 因此蒙层由四条带 + 四个圆角补块构成。
+    assert "layer.effect: OpacityMask" not in tour_source
+    assert "mask: ShaderEffectSource" not in tour_source
+    assert "import QtQuick.Shapes" in tour_source
+    assert 'objectName: "teachingTourMaskCorners"' in tour_source
+    assert 'objectName: "teachingTourMaskScrim"' in tour_source
+    assert tour_source.count("PathArc {") == 4
+    # Curved geometry only antialiases with the curve renderer here.
+    # 曲线几何只有用曲线渲染器才有抗锯齿。
+    assert "preferredRendererType: Shape.CurveRenderer" in tour_source
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
     assert "property color highlightBorderColor: Enums.transparent" in tour_source
     assert "border.width: Enums.border.thin" in tour_source

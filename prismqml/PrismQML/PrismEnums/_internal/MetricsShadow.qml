@@ -86,4 +86,20 @@ QtObject {
         readonly property real blurNormalized: 0.8
         readonly property real offset: 6
     }
+
+    // Window outward shadow: replaces the native DWM shadow on an outside drawer HWND.
+    // Measured against the real DWM window shadow: blur 40 with 0.50 black reaches ~20% at
+    // the edge and fades out by 40px, and its corner taper lands at 0.46 of full strength,
+    // the same ratio DWM tapers to at the seam. Offset stays 0 because a window shadow is
+    // centred, unlike the popup elevation levels.
+    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影。按真实 DWM 窗口阴影实测标定:
+    // blur 40 + 0.50 黑在边缘约 20%, 40px 内衰减完毕; 圆角收口为满强度的 0.46,
+    // 与 DWM 在接缝处的收口比例一致。偏移保持 0: 窗口阴影居中, 与弹层高度等级不同。
+    readonly property QtObject windowOutside: QtObject {
+        readonly property real offset: 0
+        readonly property real blur: shadow.isTicket ? 0 : 40
+        readonly property int samples: shadow.isTicket ? 1 : 29
+        readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.50 * shadow._alphaMultiplier)
+        readonly property real blurNormalized: shadow.isTicket ? 0 : 0.45
+    }
 }

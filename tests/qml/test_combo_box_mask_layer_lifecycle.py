@@ -208,11 +208,14 @@ def test_combo_box_preserves_square_and_restored_frames(qapp):
             f"enabled={_layer_names(combo)}",
         )
 
-        assert (default_layers, square_layers, restored_layers) == (1, 1, 1)
+        assert (default_layers, square_layers, restored_layers) == (0, 0, 0)
         assert default_objects == square_objects == restored_objects
         assert first_square_image == square_image
         assert first_restored_image == restored_image == default_image
-        assert square_image == default_image
+        # Without the dead mask layer the background radius is finally visible, so a square
+        # background must differ from a rounded one.
+        # 去掉那层假遮罩后背景圆角才真正生效: 直角背景必须与圆角背景不同。
+        assert square_image != default_image
         assert default_geometry == (
             combo.x(),
             combo.y(),
@@ -226,7 +229,12 @@ def test_combo_box_preserves_square_and_restored_frames(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
-def test_combo_box_source_keeps_mask_layer_enabled():
-    """The content owner keeps the background mask layer enabled. 内容所有者保持背景遮罩图层启用。"""
+def test_combo_box_source_drops_the_broken_mask_layer():
+    """The content owner must not install the layer.effect mask any more.
+
+    内容所有者不得再安装 layer.effect 遮罩: Qt 6.11 下它是静默 no-op,
+    见 tests/tooling/test_opacity_mask_contract.py。
+    """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    assert "layer.enabled: true" in source
+    assert "layer.effect: OpacityMask" not in source
+    assert "layer.enabled: true" not in source

@@ -47,6 +47,8 @@ class _WindowFollowerBinding:
     edge: int
     outward_extent: int
     above_host: bool = False
+    # Outward shadow padding reserved inside the follower HWND. 附属 HWND 内侧预留的阴影留白。
+    outward_padding: int = 0
 
 
 @dataclass(frozen=True)
@@ -159,20 +161,26 @@ def _follower_rect(
     follower_width: int,
     follower_height: int,
     edge: int,
+    outward_padding: int = 0,
 ) -> tuple[int, int, int, int]:
-    """Calculate a physical-pixel follower RECT. 计算物理像素附属窗口 RECT。"""
+    """Calculate a physical-pixel follower RECT. 计算物理像素附属窗口 RECT。
+
+    The follower always keeps the host edge it hides behind; outward padding only
+    grows the window away from that edge (and symmetrically across it).
+    附属窗口始终贴住宿主边; 留白只让窗口朝外侧与该侧横向各长出一段。
+    """
     if edge == WINDOW_EDGE_LEFT:
-        return (host_rect.left - follower_width, host_rect.top,
-                host_rect.left, host_rect.bottom)
+        return (host_rect.left - follower_width, host_rect.top - outward_padding,
+                host_rect.left, host_rect.bottom + outward_padding)
     if edge == WINDOW_EDGE_RIGHT:
-        return (host_rect.right, host_rect.top,
-                host_rect.right + follower_width, host_rect.bottom)
+        return (host_rect.right, host_rect.top - outward_padding,
+                host_rect.right + follower_width, host_rect.bottom + outward_padding)
     if edge == WINDOW_EDGE_TOP:
-        return (host_rect.left, host_rect.top - follower_height,
-                host_rect.right, host_rect.top)
+        return (host_rect.left - outward_padding, host_rect.top - follower_height,
+                host_rect.right + outward_padding, host_rect.top)
     if edge == WINDOW_EDGE_BOTTOM:
-        return (host_rect.left, host_rect.bottom,
-                host_rect.right, host_rect.bottom + follower_height)
+        return (host_rect.left - outward_padding, host_rect.bottom,
+                host_rect.right + outward_padding, host_rect.bottom + follower_height)
     raise ValueError(f"Unsupported window follower edge: {edge}")
 
 
@@ -180,17 +188,21 @@ def _follower_rect_for_extent(
     host_rect: Any,
     extent: int,
     edge: int,
+    outward_padding: int = 0,
 ) -> tuple[int, int, int, int]:
     """Calculate one complete follower RECT. 计算一个完整附属窗口 RECT。"""
     host_width = host_rect.right - host_rect.left
     host_height = host_rect.bottom - host_rect.top
+    horizontal = edge in (WINDOW_EDGE_LEFT, WINDOW_EDGE_RIGHT)
     follower_width = (
-        extent if edge in (WINDOW_EDGE_LEFT, WINDOW_EDGE_RIGHT) else host_width
+        extent if horizontal else host_width + 2 * outward_padding
     )
     follower_height = (
-        extent if edge in (WINDOW_EDGE_TOP, WINDOW_EDGE_BOTTOM) else host_height
+        host_height + 2 * outward_padding if horizontal else extent
     )
-    return _follower_rect(host_rect, follower_width, follower_height, edge)
+    return _follower_rect(
+        host_rect, follower_width, follower_height, edge, outward_padding
+    )
 
 
 def _window_rect_from_pos(
@@ -234,6 +246,7 @@ def _set_qt_follower_geometry(
     follower_window: Any,
     edge: int,
     logical_extent: float,
+    logical_padding: float = 0.0,
 ) -> bool:
     """Fallback to one Qt geometry commit. 回退为一次 Qt 几何提交。"""
     try:
@@ -245,8 +258,9 @@ def _set_qt_follower_geometry(
             host_geometry.bottom() + 1,
         )
         extent = max(_MINIMUM_NATIVE_EXTENT, round(logical_extent))
+        padding = max(0, round(logical_padding))
         left, top, right, bottom = _follower_rect_for_extent(
-            host_rect, extent, edge
+            host_rect, extent, edge, padding
         )
         follower_window.setGeometry(
             QRect(left, top, right - left, bottom - top)
@@ -424,9 +438,12 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         edge: int,
         extent: int,
         above_host: bool = False,
+        outward_padding: int = 0,
     ) -> bool:
         """Register or update one follower. 注册或更新一个附属窗口。"""
-        registration = self._registration_geometry(host_hwnd, edge, extent)
+        registration = self._registration_geometry(
+            host_hwnd, edge, extent, outward_padding
+        )
         if registration is None:
             return False
         insert_after = 0 if above_host else host_hwnd
@@ -434,7 +451,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
             debug(f"附属窗口初次原生同步失败: hwnd={follower_hwnd}")
             return False
         self._bindings[follower_hwnd] = _WindowFollowerBinding(
-            host_hwnd, follower_hwnd, edge, extent, bool(above_host)
+            host_hwnd, follower_hwnd, edge, extent, bool(above_host), outward_padding
         )
         return True
 
@@ -483,11 +500,13 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         host_hwnd: int,
         edge: int,
         extent: int,
+        outward_padding: int = 0,
     ):
         """Resolve the initial native follower geometry. 解析初始原生跟随几何。"""
         if (
             edge not in _WINDOW_EDGES
             or extent < _MINIMUM_NATIVE_EXTENT
+            or outward_padding < 0
             or self._read_rect is None
             or self._set_geometry is None
         ):
@@ -495,7 +514,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         host_rect = self._read_rect(host_hwnd)
         if host_rect is None:
             return None
-        return _follower_rect_for_extent(host_rect, extent, edge)
+        return _follower_rect_for_extent(host_rect, extent, edge, outward_padding)
 
     def update_geometry(
         self,
@@ -503,11 +522,13 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         follower_hwnd: int,
         edge: int,
         extent: int,
+        outward_padding: int = 0,
     ) -> bool:
         """Submit one complete animation-frame RECT. 提交一帧完整动画 RECT。"""
         if (
             edge not in _WINDOW_EDGES
             or extent < _MINIMUM_NATIVE_EXTENT
+            or outward_padding < 0
             or self._read_rect is None
             or self._set_geometry is None
         ):
@@ -515,10 +536,23 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         host_rect = self._read_rect(host_hwnd)
         if host_rect is None:
             return False
-        geometry = _follower_rect_for_extent(host_rect, extent, edge)
+        geometry = _follower_rect_for_extent(
+            host_rect, extent, edge, outward_padding
+        )
         binding = self._bindings.get(follower_hwnd)
         insert_after = 0 if binding is not None and binding.above_host else host_hwnd
-        return self._set_geometry(follower_hwnd, geometry, insert_after)
+        applied = self._set_geometry(follower_hwnd, geometry, insert_after)
+        if binding is not None and binding.outward_padding != outward_padding:
+            # Later host moves must replay the same padding. 后续宿主移动必须复现同一留白。
+            self._bindings[follower_hwnd] = _WindowFollowerBinding(
+                binding.host_hwnd,
+                binding.follower_hwnd,
+                binding.edge,
+                binding.outward_extent,
+                binding.above_host,
+                outward_padding,
+            )
+        return applied
 
     def unregister(self, follower_hwnd: int) -> bool:
         """Remove one follower binding. 移除一个附属窗口绑定。"""
@@ -539,6 +573,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 host_rect,
                 binding.outward_extent,
                 binding.edge,
+                binding.outward_padding,
             )
             insert_after = 0 if binding.above_host else binding.host_hwnd
             if not self._set_geometry(binding.follower_hwnd, geometry, insert_after):

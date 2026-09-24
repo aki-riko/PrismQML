@@ -136,6 +136,7 @@ class WindowHelper(QObject):
 
     @Slot("QVariant", "QVariant", int, float, result=bool)
     @Slot("QVariant", "QVariant", int, float, bool, result=bool)
+    @Slot("QVariant", "QVariant", int, float, bool, float, result=bool)
     def registerWindowFollower(
         self,
         host_window,
@@ -143,8 +144,14 @@ class WindowHelper(QObject):
         edge: int,
         logical_extent: float,
         above_host: bool = False,
+        logical_padding: float = 0.0,
     ) -> bool:
-        """Follow a host edge during native move/size loops. 在原生移动/缩放循环跟随宿主边缘。"""
+        """Follow a host edge during native move/size loops. 在原生移动/缩放循环跟随宿主边缘。
+
+        ``logical_padding`` reserves outward shadow space inside the follower HWND:
+        the follower still hides behind the host edge, but grows away from it.
+        ``logical_padding`` 在附属 HWND 内侧预留外侧阴影空间: 窗口仍贴住宿主边, 只朝外侧长出。
+        """
         try:
             host_hwnd = self._window_id(host_window)
             follower_hwnd = self._window_id(follower_window)
@@ -153,6 +160,7 @@ class WindowHelper(QObject):
                 or not follower_hwnd
                 or edge not in _WINDOW_EDGES
                 or logical_extent <= 0
+                or logical_padding < 0
             ):
                 return False
             event_filter = self._ensure_follower_filter()
@@ -161,21 +169,27 @@ class WindowHelper(QObject):
                 _MINIMUM_NATIVE_EXTENT,
                 round(logical_extent * scale),
             )
+            physical_padding = max(0, round(logical_padding * scale))
             if event_filter:
-                register_args = (
-                    host_hwnd,
-                    follower_hwnd,
-                    edge,
-                    physical_extent,
+                registered = bool(
+                    event_filter.register(
+                        host_hwnd,
+                        follower_hwnd,
+                        edge,
+                        physical_extent,
+                        bool(above_host),
+                        physical_padding,
+                    )
                 )
-                if above_host:
-                    register_args += (True,)
-                registered = bool(event_filter.register(*register_args))
             else:
                 registered = False
             if not registered:
                 registered = _set_qt_follower_geometry(
-                    host_window, follower_window, edge, logical_extent
+                    host_window,
+                    follower_window,
+                    edge,
+                    logical_extent,
+                    logical_padding,
                 )
             if registered:
                 reservation = (host_hwnd, edge, float(logical_extent))
@@ -236,15 +250,17 @@ class WindowHelper(QObject):
             return False
 
     @Slot("QVariant", "QVariant", int, float, result=bool)
+    @Slot("QVariant", "QVariant", int, float, float, result=bool)
     def updateWindowFollowerGeometry(
         self,
         host_window,
         follower_window,
         edge: int,
         logical_extent: float,
+        logical_padding: float = 0.0,
     ) -> bool:
         """Submit one atomic outside-drawer frame. 原子提交一帧外侧抽屉几何。"""
-        if edge not in _WINDOW_EDGES or logical_extent <= 0:
+        if edge not in _WINDOW_EDGES or logical_extent <= 0 or logical_padding < 0:
             return False
         try:
             if self._update_native_follower_geometry(
@@ -252,6 +268,7 @@ class WindowHelper(QObject):
                 follower_window,
                 edge,
                 logical_extent,
+                logical_padding,
             ):
                 return True
             return _set_qt_follower_geometry(
@@ -259,6 +276,7 @@ class WindowHelper(QObject):
                 follower_window,
                 edge,
                 logical_extent,
+                logical_padding,
             )
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             error(f"窗口跟随几何更新失败: {exc}")
@@ -270,15 +288,18 @@ class WindowHelper(QObject):
         follower_window,
         edge: int,
         logical_extent: float,
+        logical_padding: float = 0.0,
     ) -> bool:
         """Try one native complete-RECT update. 尝试一次原生完整 RECT 更新。"""
         host_hwnd = self._window_id(host_window)
         follower_hwnd = self._window_id(follower_window)
         event_filter = self._ensure_follower_filter()
+        scale = _window_device_pixel_ratio(host_window)
         physical_extent = max(
             _MINIMUM_NATIVE_EXTENT,
-            round(logical_extent * _window_device_pixel_ratio(host_window)),
+            round(logical_extent * scale),
         )
+        physical_padding = max(0, round(logical_padding * scale))
         return bool(
             host_hwnd
             and follower_hwnd
@@ -288,6 +309,7 @@ class WindowHelper(QObject):
                 follower_hwnd,
                 edge,
                 physical_extent,
+                physical_padding,
             )
         )
 
