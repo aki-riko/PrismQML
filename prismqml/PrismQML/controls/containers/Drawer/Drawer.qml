@@ -40,7 +40,7 @@ OverlayDialogCore {
     property bool _outsidePrepared: false
     property bool _outsideResetting: false
     property bool _outsideVisible: false
-    property var _outsideNativeShadowState: null
+    property bool _outsideNativeShadowCleared: false
     property real _outsideExtent: _outsideCollapsedExtent
     property bool _insideAnimationReady: false
     property bool _insideOpenPending: false
@@ -52,6 +52,14 @@ OverlayDialogCore {
     readonly property var _hostWindow: control.Window.window
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
+    // Outward padding reserved inside the follower HWND for the drawer's own QML shadow.
+    // 附属 HWND 内侧为抽屉自绘阴影预留的外扩留白。
+    readonly property real _outsideShadowSpread: Enums.window.qmlShadowSize
+    readonly property real _outsideWindowExtent: _outsideFullExtent + _outsideShadowSpread
+    // The outward shadow only exists once the full panel is revealed.
+    // 只有在面板完全显露后才有外侧阴影。
+    readonly property bool _outsideShadowActive: _outsidePrepared && _isOpen
+        && !outsideGeometryAnimation.running
     readonly property color _drawerBackground: Enums.cardColor
     readonly property int _effectiveRadius: Enums.surfaceRadius(radius)
     readonly property real _drawerBorderWidth: Enums.hasOutlinedSurfaces
@@ -127,7 +135,7 @@ OverlayDialogCore {
     // 切换模式或宿主窗口关闭时重置两条渲染路径
     function _resetDrawerState() {
         outsideGeometryAnimation.stop()
-        _setOutsideNativeShadow(false)
+        _clearOutsideNativeShadow()
         _unregisterOutsideWindow()
         _outsideResetting = true
         _outsideVisible = false
@@ -182,8 +190,9 @@ OverlayDialogCore {
             control._hostWindow,
             _outsideDrawerWindow,
             control.position,
-            control._outsideFullExtent,
-            true)
+            control._outsideWindowExtent,
+            true,
+            control._outsideShadowSpread)
     }
 
     // Remove the native follower before hiding or destruction
@@ -206,7 +215,8 @@ OverlayDialogCore {
             control._hostWindow,
             _outsideDrawerWindow,
             control.position,
-            control._outsideFullExtent)
+            control._outsideWindowExtent,
+            control._outsideShadowSpread)
     }
 
     // Coalesce host geometry notifications outside the drawer animation
@@ -236,37 +246,30 @@ OverlayDialogCore {
             if (!control._outsideFollowRegistered) {
                 control._registerOutsideWindow()
             }
-            control._setOutsideNativeShadow(true)
             return
         }
-        control._setOutsideNativeShadow(false)
         control._unregisterOutsideWindow()
         control._outsideVisible = false
         control._outsidePrepared = false
     }
 
-    // Keep native antialiasing; QML still limits panel rounding to the outer corners
-    // 保留原生抗锯齿,面板仍仅由 QML 设置远离宿主的两个外角
+    // Keep native antialiasing; DWM corners stay square so the QML shadow keeps its shape
+    // 保留原生抗锯齿; DWM 圆角保持直角, 避免裁掉 QML 阴影与接缝侧的方角
     function _applyOutsideNativeFrame() {
         if (_outsideDrawerWindow
                 && typeof MicaManager !== "undefined" && MicaManager) {
-            MicaManager.setWindowCorner(_outsideDrawerWindow, true)
+            MicaManager.setWindowCorner(_outsideDrawerWindow, false)
         }
     }
 
-    // Hide the full-size HWND shadow while only part of its content is revealed
-    // 内容仅部分显露时隐藏完整尺寸 HWND 的阴影
-    function _setOutsideNativeShadow(enabled) {
-        if (!_outsideDrawerWindow
+    // The HWND keeps no DWM shadow: the seam-side band would land on the host window
+    // 该 HWND 始终不带 DWM 阴影: 否则接缝侧的阴影带会压到宿主窗口上
+    function _clearOutsideNativeShadow() {
+        if (control._outsideNativeShadowCleared || !_outsideDrawerWindow
                 || typeof ShadowManager === "undefined" || !ShadowManager) return
-        if (_outsideNativeShadowState === enabled) return
-        var applied
-        if (enabled) {
-            applied = ShadowManager.enableShadowForWindow(_outsideDrawerWindow)
-        } else {
-            applied = ShadowManager.disableShadowForWindow(_outsideDrawerWindow)
+        if (ShadowManager.disableShadowForWindow(_outsideDrawerWindow)) {
+            control._outsideNativeShadowCleared = true
         }
-        if (applied) _outsideNativeShadowState = enabled
     }
 
     // Overlay overrides 覆盖层配置
@@ -282,7 +285,7 @@ OverlayDialogCore {
     onOpenedChanged: {
         if (!control._isOutside || control._outsideResetting) return
         if (!control._isOpen && control._outsideVisible) {
-            control._setOutsideNativeShadow(false)
+            control._clearOutsideNativeShadow()
             control._startOutsideAnimation(control._outsideCollapsedExtent)
         }
     }
@@ -304,7 +307,7 @@ OverlayDialogCore {
 
         active: control._isOutside
         asynchronous: false
-        onItemChanged: control._outsideNativeShadowState = null
+        onItemChanged: control._outsideNativeShadowCleared = false
         sourceComponent: Component {
             DrawerInternal.DrawerOutsideWindow {
                 drawerControl: outsideDrawerWindowLoader.drawerControl

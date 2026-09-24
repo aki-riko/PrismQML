@@ -190,27 +190,59 @@ def _drawer_window():
     )
 
 
-def _outside_window_geometry(host_window, position, extent):
+def _outside_window_geometry(host_window, position, extent, spread):
     frame = host_window.frameGeometry()
     left = frame.left()
     top = frame.top()
     right = frame.right() + 1
     bottom = frame.bottom() + 1
     if position == host_window.property("leftPosition"):
-        return (left - extent, top, extent, frame.height())
+        return (
+            left - extent - spread,
+            top - spread,
+            extent + spread,
+            frame.height() + 2 * spread,
+        )
     if position == host_window.property("rightPosition"):
-        return (right, top, extent, frame.height())
+        return (
+            right,
+            top - spread,
+            extent + spread,
+            frame.height() + 2 * spread,
+        )
     if position == host_window.property("topPosition"):
-        return (left, top - extent, frame.width(), extent)
-    return (left, bottom, frame.width(), extent)
+        return (
+            left - spread,
+            top - extent - spread,
+            frame.width() + 2 * spread,
+            extent + spread,
+        )
+    return (
+        left - spread,
+        bottom,
+        frame.width() + 2 * spread,
+        extent + spread,
+    )
 
 
-def _outside_viewport_origin(host_window, position, full_extent, extent):
+def _outside_viewport_origin(host_window, position, full_extent, extent, spread):
     if position == host_window.property("leftPosition"):
-        return (full_extent - extent, 0)
+        return (full_extent + spread - extent, spread)
     if position == host_window.property("topPosition"):
-        return (0, full_extent - extent)
-    return (0, 0)
+        return (spread, full_extent + spread - extent)
+    if position == host_window.property("rightPosition"):
+        return (0, spread)
+    return (spread, 0)
+
+
+def _outside_panel_origin(host_window, position, spread):
+    if position == host_window.property("leftPosition"):
+        return (spread, spread)
+    if position == host_window.property("rightPosition"):
+        return (0, spread)
+    if position == host_window.property("topPosition"):
+        return (spread, spread)
+    return (spread, 0)
 
 
 def test_drawer_four_direction_geometry(drawer_scene):
@@ -323,6 +355,7 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 window.property("leftPosition"),
                 window.property("rightPosition"),
             ) else 120,
+            drawer.property("_outsideShadowSpread"),
         )
         assert QMetaObject.invokeMethod(drawer, "open")
         assert _wait_for(lambda: drawer.property("opened"))
@@ -350,7 +383,12 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 outside_panel.height(),
             )
             == pytest.approx(
-                (0, 0, drawer_window.width(), drawer_window.height())
+                (
+                    0,
+                    0,
+                    drawer_window.property("panelWidth"),
+                    drawer_window.property("panelHeight"),
+                )
             )
         )
         assert _wait_for(
@@ -379,13 +417,14 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
             )
         ) == expected_radii[position]
         if position == window.property("rightPosition"):
+            click_pos = outside_panel.mapToItem(
+                drawer_window.contentItem(),
+                QPointF(content_item.x() + 10, content_item.y() + 10),
+            )
             QTest.mouseClick(
                 drawer_window,
                 Qt.MouseButton.LeftButton,
-                pos=QPoint(
-                    round(outside_panel.x() + content_item.x() + 10),
-                    round(outside_panel.y() + content_item.y() + 10),
-                ),
+                pos=click_pos.toPoint(),
             )
             assert _wait_for(lambda: window.property("drawerClicks") == 1)
         _close(drawer)
@@ -409,6 +448,7 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
                 window,
                 window.property("rightPosition"),
                 180,
+                drawer.property("_outsideShadowSpread"),
             )
         )
     )
@@ -443,6 +483,7 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
             window,
             position,
             full_extent,
+            drawer.property("_outsideShadowSpread"),
         )
 
         assert QMetaObject.invokeMethod(drawer, "open")
@@ -476,9 +517,16 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
                 position,
                 full_extent,
                 drawer.property("_outsideExtent"),
+                drawer.property("_outsideShadowSpread"),
             )
         )
-        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx(
+            _outside_panel_origin(
+                window,
+                position,
+                drawer.property("_outsideShadowSpread"),
+            )
+        )
         expected_content_size = (
             (full_extent - 32, outside_panel.height() - 32)
             if position in (
@@ -531,9 +579,16 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
                 position,
                 full_extent,
                 drawer.property("_outsideExtent"),
+                drawer.property("_outsideShadowSpread"),
             )
         )
-        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx(
+            _outside_panel_origin(
+                window,
+                position,
+                drawer.property("_outsideShadowSpread"),
+            )
+        )
         assert _wait_for(lambda: not drawer_window.isVisible())
 
     assert warnings == []

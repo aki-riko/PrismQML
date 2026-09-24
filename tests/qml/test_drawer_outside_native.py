@@ -40,10 +40,11 @@ def test_drawer_source_uses_clipped_native_window_following():
 
     assert "Qt.NoFluentShadowWindowHint" not in source
     assert "Qt.NoDropShadowWindowHint" not in source
+    assert "ShadowManager.enableShadowForWindow" not in source
     assert "_outsideShadowExtent" not in source
     assert 'objectName: "outsideDrawerShadow"' not in source
-    assert "ShadowManager.enableShadowForWindow(_outsideDrawerWindow)" in source
-    assert "MicaManager.setWindowCorner(_outsideDrawerWindow, true)" in source
+    assert "ShadowManager.disableShadowForWindow(_outsideDrawerWindow)" in source
+    assert "MicaManager.setWindowCorner(_outsideDrawerWindow, false)" in source
     assert "id: outsideOpeningTimer" not in source
     assert "id: outsideVisibilityTimer" not in source
     assert "Behavior on width" not in source
@@ -57,11 +58,43 @@ def test_drawer_source_uses_clipped_native_window_following():
     assert source.count("WindowHelper.updateWindowFollowerGeometry(") == 1
     assert "WindowHelper.registerWindowFollower(" in source
     assert "WindowHelper.unregisterWindowFollower(_outsideDrawerWindow)" in source
-    assert "ShadowManager.disableShadowForWindow(_outsideDrawerWindow)" in source
-    assert "property var _outsideNativeShadowState: null" in source
-    assert "if (_outsideNativeShadowState === enabled) return" in source
-    assert "if (applied) _outsideNativeShadowState = enabled" in source
-    assert "onItemChanged: control._outsideNativeShadowState = null" in source
+    assert "property bool _outsideNativeShadowCleared: false" in source
+    assert "if (control._outsideNativeShadowCleared || !_outsideDrawerWindow" in source
+    assert "onItemChanged: control._outsideNativeShadowCleared = false" in source
+
+
+def test_outside_window_owns_its_outward_shadow():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    # The HWND reserves level8 outward padding and paints that shadow itself.
+    assert (
+        "readonly property real _outsideShadowSpread: Enums.window.qmlShadowSize"
+        in source
+    )
+    assert (
+        "readonly property real _outsideWindowExtent: "
+        "_outsideFullExtent + _outsideShadowSpread" in source
+    )
+    assert (
+        "readonly property bool _outsideShadowActive: _outsidePrepared && _isOpen"
+        in source
+    )
+    assert "RectangularShadow {" in helper_source
+    assert "anchors.fill: outsideDrawerViewport" in helper_source
+    assert "blur: outsideDrawerWindow.spread" in helper_source
+    assert "color: Enums.shadow.level8.color" in helper_source
+    assert "offset.x: 0" in helper_source
+    assert "offset.y: 0" in helper_source
+    assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
+    for name in (
+        "topLeftRadius:",
+        "topRightRadius:",
+        "bottomLeftRadius:",
+        "bottomRightRadius:",
+    ):
+        # Shadow and panel must carry identical corner radii.
+        assert helper_source.count(name) == 2
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():
@@ -71,12 +104,21 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
     assert "transientParent: control._hostWindow" in helper_source
     assert "outsideDrawerWindow.requestActivate()" not in helper_source
     assert "_outsideSeamOverlap" not in helper_source
-    assert "control._outsideFullExtent,\n            true)" in source
-    assert "? Enums.radius.large" in source
-    assert "topLeftRadius:" in helper_source
-    assert "topRightRadius:" in helper_source
-    assert "bottomLeftRadius:" in helper_source
-    assert "bottomRightRadius:" in helper_source
+    assert (
+        "control._outsideWindowExtent,\n"
+        "            true,\n"
+        "            control._outsideShadowSpread)" in source
+    )
+    # The panel keeps its requested extent; only the HWND grows outwards.
+    assert "readonly property real panelWidth: control.isHorizontal" in helper_source
+    assert (
+        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
+        in helper_source
+    )
+    assert (
+        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
+        in helper_source
+    )
 
 
 def test_drawer_source_guards_native_window_during_destruction():
@@ -89,10 +131,10 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "asynchronous: false" in source
     assert "if (_outsideDrawerWindow" in source
     assert "|| !_outsideDrawerWindow" in source
-    assert "width: outsideDrawerWindow.width" in helper_source
-    assert "height: outsideDrawerWindow.height" in helper_source
-    assert "x: -outsideDrawerViewport.x" in helper_source
-    assert "y: -outsideDrawerViewport.y" in helper_source
+    assert "width: outsideDrawerWindow.panelWidth" in helper_source
+    assert "height: outsideDrawerWindow.panelHeight" in helper_source
+    assert "x: outsideDrawerWindow.panelOffsetX - outsideDrawerViewport.x" in helper_source
+    assert "y: outsideDrawerWindow.panelOffsetY - outsideDrawerViewport.y" in helper_source
 
 
 def test_drawer_source_preserves_open_state_while_host_is_minimized():
@@ -116,7 +158,9 @@ def test_drawer_stages_host_signal_connections_until_component_completion():
 def test_drawer_source_reveals_from_the_corresponding_edge():
     source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "x: control.position === Enums.position.left" in source
-    assert "? outsideDrawerWindow.width - width : 0" in source
-    assert "y: control.position === Enums.position.top" in source
-    assert "? outsideDrawerWindow.height - height : 0" in source
+    assert "? panelOffsetX : (control.isHorizontal ? width - clipExtent : panelOffsetX)" in source
+    assert "? panelOffsetY : height - clipExtent" in source
+    assert "x: outsideDrawerWindow.viewportX" in source
+    assert "y: outsideDrawerWindow.viewportY" in source
+    assert "width: control.isHorizontal ? outsideDrawerWindow.clipExtent" in source
+    assert "height: control.isHorizontal ? outsideDrawerWindow.panelHeight" in source
