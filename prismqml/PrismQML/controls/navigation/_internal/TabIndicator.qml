@@ -20,6 +20,12 @@ Item {
     required property Item tabRow
 
     // ==================== Internal Props 内部属性 ====================
+    // Main axis is X for a horizontal strip and Y for a vertical one; every
+    // geometry binding is expressed as "main axis + cross thickness", so both
+    // orientations share a single code path.
+    // 主轴: 横向条带为 X, 纵向条带为 Y; 所有几何都表达为"主轴 + 副轴厚度",
+    // 两个方向共用一条代码路径。
+    readonly property bool vertical: host.vertical
     // itemAt() is not reactive, so delegate changes explicitly bump this key.
     // itemAt() 不具响应性，因此委托变化时显式递增此键。
     property int _currentTabKey: 0
@@ -33,10 +39,14 @@ Item {
     // 选择切换或模型同步待处理时保留引擎几何。
     property real tabLocalX: (
         _eng.running || !currentTab || _syncedIndex !== host.currentIndex ||
-        _syncedTab !== currentTab) ? _eng.indicatorX : currentTab.x
+        _syncedTab !== currentTab)
+        ? (vertical ? _eng.indicatorY : _eng.indicatorX)
+        : (vertical ? currentTab.y : currentTab.x)
     property real targetWidth: (
         _eng.running || !currentTab || _syncedIndex !== host.currentIndex ||
-        _syncedTab !== currentTab) ? _eng.indicatorWidth : currentTab.width
+        _syncedTab !== currentTab)
+        ? (vertical ? _eng.indicatorHeight : _eng.indicatorWidth)
+        : (vertical ? currentTab.height : currentTab.width)
     // Derive drag displacement from host state so the binding stays reactive.
     // 从宿主状态推导拖拽位移，确保绑定保持响应。
     property real tabVisualOffsetX: {
@@ -45,36 +55,50 @@ Item {
         var vis = host._dragVisualIndex
         var cur = host.currentIndex
         if (cur === src) return host._dragSourceOffsetX
-        var w = currentTab ? currentTab.width : 0
+        var step = currentTab
+            ? (vertical ? currentTab.height : currentTab.width) : 0
         if (src < vis) {
-            if (cur > src && cur <= vis) return -w
+            if (cur > src && cur <= vis) return -step
         } else if (src > vis) {
-            if (cur >= vis && cur < src) return w
+            if (cur >= vis && cur < src) return step
         }
         return 0
     }
-    property real scrollOffset: tabFlickable.contentX
-    property real targetX: tabFlickable.x + tabLocalX + tabVisualOffsetX -
-                           scrollOffset + Enums.border.thin
-    property real targetY: tabFlickable.y - tabBar.y + Enums.border.thin
+    property real scrollOffset: vertical
+        ? tabFlickable.contentY : tabFlickable.contentX
+    property real targetX: vertical
+        ? tabFlickable.x - tabBar.x + Enums.border.thin
+        : tabFlickable.x + tabLocalX + tabVisualOffsetX -
+          scrollOffset + Enums.border.thin
+    property real targetY: vertical
+        ? tabFlickable.y + tabLocalX + tabVisualOffsetX -
+          scrollOffset + Enums.border.thin
+        : tabFlickable.y - tabBar.y + Enums.border.thin
     property real targetHeight: currentTab
-        ? currentTab.height - Enums.spacing.xxs
+        ? (vertical ? currentTab.width : currentTab.height) - Enums.spacing.xxs
         : Enums.controlSize.inputHeightLarge - Enums.spacing.s
     property bool _engInit: false
     property int _syncedIndex: -1
     property Item _syncedTab: null
-    property real _layoutX: currentTab ? currentTab.x : 0
+    property real _layoutX: currentTab
+        ? (vertical ? currentTab.y : currentTab.x) : 0
     property real _layoutW: currentTab
-        ? currentTab.width : Enums.controlSize.segmentedMinWidth
+        ? (vertical ? currentTab.height : currentTab.width)
+        : Enums.controlSize.segmentedMinWidth
 
     // ==================== Internal Methods 内部方法 ====================
     function _curRect() {
         var tab = currentTab
-        return tab ? Qt.rect(tab.x, 0, tab.width, 1) : null
+        if (!tab) return null
+        return vertical
+            ? Qt.rect(0, tab.y, 1, tab.height)
+            : Qt.rect(tab.x, 0, tab.width, 1)
     }
 
     function _engineRect() {
-        return Qt.rect(_eng.indicatorX, 0, _eng.indicatorWidth, 1)
+        return vertical
+            ? Qt.rect(0, _eng.indicatorY, 1, _eng.indicatorHeight)
+            : Qt.rect(_eng.indicatorX, 0, _eng.indicatorWidth, 1)
     }
 
     function _scheduleSync(animate) {
@@ -139,19 +163,21 @@ Item {
     visible: tabRepeater.count > 0 && currentTab && _engInit && !host._dragging
     x: targetX
     y: targetY
-    width: targetWidth
-    height: targetHeight
+    // targetWidth carries the main-axis length, so the vertical case swaps the two
+    // visual dimensions. targetWidth 承载主轴长度, 纵向因此交换两个视觉尺寸。
+    width: vertical ? targetHeight : targetWidth
+    height: vertical ? targetWidth : targetHeight
     onCurrentTabChanged: _scheduleSync(false)
     Component.onCompleted: _scheduleSync(false)
     on_LayoutXChanged: _scheduleSync(false)
     on_LayoutWChanged: _scheduleSync(false)
 
     // ==================== Content 内容 ====================
-    // Horizontal stretch engine driving tabLocalX and targetWidth.
-    // 水平橡皮筋引擎驱动 tabLocalX 与 targetWidth。
+    // Sticky-stretch engine driving the main axis (tabLocalX / targetWidth).
+    // 橡皮筋引擎驱动主轴 (tabLocalX / targetWidth)。
     SlidingIndicatorAnimation {
         id: _eng
-        orientation: Qt.Horizontal
+        orientation: vertical ? Qt.Vertical : Qt.Horizontal
     }
 
     Timer {

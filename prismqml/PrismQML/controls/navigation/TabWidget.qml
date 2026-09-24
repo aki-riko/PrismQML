@@ -29,6 +29,11 @@ Widget {
     property alias maximumTabWidth: tabBar.maximumTabWidth
     property alias interactionEnabled: tabBar.interactionEnabled
     property alias canCloseTab: tabBar.canCloseTab
+    // Strip main axis; Qt.Vertical puts the tab column on the leading edge
+    // 条带主轴; Qt.Vertical 把标签列放到起始边
+    property alias orientation: tabBar.orientation
+
+    readonly property bool vertical: control.orientation === Qt.Vertical
 
     readonly property alias _safeTabs: tabBar._safeTabs
     readonly property alias _tabHeight: tabBar._tabHeight
@@ -77,14 +82,16 @@ Widget {
         id: tabBar
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.right: parent.right
-        height: _tabBarHeight
+        anchors.right: control.vertical ? undefined : parent.right
+        anchors.bottom: control.vertical ? parent.bottom : undefined
+        width: control.vertical ? tabBar._stripWidth : undefined
+        height: control.vertical ? undefined : _tabBarHeight
     }
 
     TabContentPages {
         id: tabContentPages
-        anchors.top: tabBar.bottom
-        anchors.left: parent.left
+        anchors.top: control.vertical ? parent.top : tabBar.bottom
+        anchors.left: control.vertical ? tabBar.right : parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         host: control
