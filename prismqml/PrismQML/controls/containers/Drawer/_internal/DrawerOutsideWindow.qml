@@ -24,7 +24,7 @@ Window {
     height: control.drawerHeight
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
-    flags: Qt.Tool | Qt.FramelessWindowHint
+    flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
     color: Enums.transparent
     transientParent: control._hostWindow
 
@@ -93,6 +93,56 @@ Window {
 
             MouseArea {
                 anchors.fill: parent
+            }
+        }
+
+        // Three outward shadow edges; the host-facing edge stays clean.
+        Rectangle {
+            visible: control._outsidePrepared && control.position !== Enums.position.left
+            x: outsideDrawerPanel.width - Enums.shadow.level8.blur
+            y: 0
+            width: Enums.shadow.level8.blur
+            height: outsideDrawerPanel.height
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Enums.transparent }
+                GradientStop { position: 1; color: Enums.shadow.level8.color }
+            }
+        }
+        Rectangle {
+            visible: control._outsidePrepared && control.position !== Enums.position.right
+            x: 0
+            y: 0
+            width: Enums.shadow.level8.blur
+            height: outsideDrawerPanel.height
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Enums.shadow.level8.color }
+                GradientStop { position: 1; color: Enums.transparent }
+            }
+        }
+        Rectangle {
+            visible: control._outsidePrepared && control.position !== Enums.position.top
+            x: 0
+            y: outsideDrawerPanel.height - Enums.shadow.level8.blur
+            width: outsideDrawerPanel.width
+            height: Enums.shadow.level8.blur
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: Enums.transparent }
+                GradientStop { position: 1; color: Enums.shadow.level8.color }
+            }
+        }
+        Rectangle {
+            visible: control._outsidePrepared && control.position !== Enums.position.bottom
+            x: 0
+            y: 0
+            width: outsideDrawerPanel.width
+            height: Enums.shadow.level8.blur
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: Enums.shadow.level8.color }
+                GradientStop { position: 1; color: Enums.transparent }
             }
         }
     }
