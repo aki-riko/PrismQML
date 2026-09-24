@@ -40,7 +40,7 @@ def test_drawer_source_uses_clipped_native_window_following():
 
     assert "Qt.NoFluentShadowWindowHint" in helper_source
     assert "Qt.NoDropShadowWindowHint" not in source
-    assert "_outsideShadowExtent" in source
+    assert "_outsideShadowExtent" not in source
     assert 'objectName: "outsideDrawerShadow"' not in source
     assert "ShadowManager.enableShadowForWindow(_outsideDrawerWindow)" not in source
     assert "MicaManager.setWindowCorner(_outsideDrawerWindow, true)" in source
@@ -72,7 +72,7 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
     assert "transientParent: control._hostWindow" in helper_source
     assert "outsideDrawerWindow.requestActivate()" not in helper_source
     assert "_outsideSeamOverlap" not in helper_source
-    assert "control._outsideWindowExtent,\n            true)" in source
+    assert "control._outsideFullExtent,\n            true)" in source
     assert "? Enums.radius.large" in source
     assert "topLeftRadius:" in helper_source
     assert "topRightRadius:" in helper_source
@@ -90,10 +90,10 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "asynchronous: false" in source
     assert "if (_outsideDrawerWindow" in source
     assert "|| !_outsideDrawerWindow" in source
-    assert "width: control.drawerWidth" in helper_source
-    assert "height: control.drawerHeight" in helper_source
-    assert "x: 0" in helper_source
-    assert "y: 0" in helper_source
+    assert "width: outsideDrawerWindow.width" in helper_source
+    assert "height: outsideDrawerWindow.height" in helper_source
+    assert "x: -outsideDrawerViewport.x" in helper_source
+    assert "y: -outsideDrawerViewport.y" in helper_source
 
 
 def test_drawer_source_preserves_open_state_while_host_is_minimized():
@@ -118,6 +118,6 @@ def test_drawer_source_reveals_from_the_corresponding_edge():
     source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "x: control.position === Enums.position.left" in source
-    assert "? control._outsideShadowExtent : 0" in source
+    assert "? outsideDrawerWindow.width - width : 0" in source
     assert "y: control.position === Enums.position.top" in source
-    assert "? control._outsideShadowExtent : 0" in source
+    assert "? outsideDrawerWindow.height - height : 0" in source

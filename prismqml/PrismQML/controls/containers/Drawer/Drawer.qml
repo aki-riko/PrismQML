@@ -51,9 +51,7 @@ OverlayDialogCore {
     readonly property bool _isOutside: mode === Enums.drawer.mode_outside
     readonly property var _hostWindow: control.Window.window
     readonly property int _outsideCollapsedExtent: Enums.border.thin
-    readonly property real _outsideShadowExtent: Enums.shadow.level8.blur
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
-    readonly property real _outsideWindowExtent: _outsideFullExtent + _outsideShadowExtent
     readonly property color _drawerBackground: Enums.cardColor
     readonly property int _effectiveRadius: Enums.surfaceRadius(radius)
     readonly property real _drawerBorderWidth: Enums.hasOutlinedSurfaces
@@ -184,7 +182,7 @@ OverlayDialogCore {
             control._hostWindow,
             _outsideDrawerWindow,
             control.position,
-            control._outsideWindowExtent,
+            control._outsideFullExtent,
             true)
     }
 
@@ -208,7 +206,7 @@ OverlayDialogCore {
             control._hostWindow,
             _outsideDrawerWindow,
             control.position,
-            control._outsideWindowExtent)
+            control._outsideFullExtent)
     }
 
     // Coalesce host geometry notifications outside the drawer animation
