@@ -172,6 +172,7 @@ Item {
                             height: parent.height
                             showReturnButton: false
                             titleBarHeight: 0
+                            paneDisplayMode: Fluent.Enums.navigation.pane_left_compact
                             model: root.navPanelModel
                             // The panels never move their own selection: they emit
                             // itemClicked and expect the host shell to push a new
@@ -205,6 +206,7 @@ Item {
                             isExpanded: true
                             showReturnButton: false
                             titleBarHeight: 0
+                            paneDisplayMode: Fluent.Enums.navigation.pane_left
                             model: root.navPanelModel
                             bottomItems: [
                                 { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
@@ -212,6 +214,34 @@ Item {
                             onItemClicked: (index) => {
                                 if (index >= 0 && index < root.navPanelModel.length)
                                     currentIndex = index
+                            }
+                        }
+                    }
+                }
+                ComponentCard {
+                    label: "NavigationView (pane_left_minimal)"
+                    Rectangle {
+                        // Collapsed to the menu button; tapping it reveals the rail
+                        // 折叠到只剩菜单按钮; 点击按钮即展开图标栏
+                        width: 48
+                        height: 300
+                        radius: Fluent.Enums.radius.large
+                        color: Fluent.Enums.surfaceColor
+                        border.width: Fluent.Enums.border.thin
+                        border.color: Fluent.Enums.borderColor
+                        clip: true
+                        NavigationView {
+                            width: parent.width
+                            height: parent.height
+                            showReturnButton: false
+                            titleBarHeight: 0
+                            paneDisplayMode: Fluent.Enums.navigation.pane_left_minimal
+                            model: root.navPanelModel
+                            onItemClicked: (index) => {
+                                if (index >= 0 && index < root.navPanelModel.length) {
+                                    currentIndex = index
+                                    closePane()
+                                }
                             }
                         }
                     }

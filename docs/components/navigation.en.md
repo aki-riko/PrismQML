@@ -31,6 +31,29 @@ NavigationView {
 }
 ```
 
+### Pane display mode
+
+`paneDisplayMode` lets the pane decide its own form instead of hand-managing `isExpanded`:
+
+| Mode | Behaviour |
+|---|---|
+| `Enums.navigation.pane_unspecified` (default) | Never touches `isExpanded`; behaviour is exactly as before |
+| `pane_auto` | Expanded while the pane is at least `Enums.controlSize.navPanelExpandWidth` wide, compact otherwise |
+| `pane_left` | Always the expanded sidebar |
+| `pane_left_compact` | Always the compact icon rail |
+| `pane_left_minimal` | Collapsed to the menu button; `openPane()` / `togglePane()` reveal the rail in place, and the menu button toggles it |
+
+```qml
+Fluent.NavigationView {
+    paneDisplayMode: Enums.navigation.pane_auto
+    // with pane_left_minimal use isPaneOpen / openPane() / closePane() / togglePane()
+}
+```
+
+Once a mode is set, the mode owns `isExpanded` — "expanded or not" is exactly what it decides. Only `pane_unspecified` opts out and leaves the value to the caller.
+
+A top strip is deliberately out of `paneDisplayMode`'s scope: that belongs to the window shell, and `WindowsBar` currently hosts it with `NavigationBar`.
+
 ## SegmentedControl / Pivot
 
 Both share the `items` model (`{ key, text, icon }` or plain strings) and `currentIndex`, and lay out horizontally by default:

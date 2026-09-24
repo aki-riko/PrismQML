@@ -42,6 +42,7 @@ singleton Icons Icons.qml
 Label Label.qml
 Carousel Carousel.qml
 CommandBar CommandBar.qml
+Navigation Navigation.qml
 SettingsCard SettingsCard.qml
 GradientSlider GradientSlider.qml
 Auth Auth.qml

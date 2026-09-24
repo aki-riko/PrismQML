@@ -37,10 +37,17 @@ _PAGE = _ROOT / "examples" / "pages" / "NavigationPage.qml"
 _GALLERY_HOST_SCENE = """
 import QtQuick
 import QtQuick.Window
+import PrismQML
 
 Window {{
     id: host
     objectName: "galleryHost"
+
+    // Identifying a pane by its display mode keeps the click test unambiguous now
+    // that the page also demonstrates pane_left_minimal (also 48px wide).
+    // 页面同时展示了同为 48px 宽的 pane_left_minimal, 用显示模式定位才唯一。
+    readonly property int compactPaneMode: Enums.navigation.pane_left_compact
+
     width: 900
     height: 900
     visible: true
@@ -56,7 +63,7 @@ Window {{
 # Window-level vertical navigation panels the Gallery page must demonstrate.
 # 画廊页面必须展示的窗口级垂直导航面板。
 _EXPECTED_PANELS = {
-    "NavigationView": 2,
+    "NavigationView": 3,
     "NavigationBar": 1,
     "ToggleNavigationBar": 1,
 }
@@ -284,12 +291,14 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     engine = component = window = page = None
     try:
         engine, component, window, page = _create_host_scene(qapp)
+        compact_mode = window.property("compactPaneMode")
         views = [
             panel for panel in _panels_of(page, "NavigationView")
-            if panel.property("isExpanded") is False
+            if panel.property("paneDisplayMode") == compact_mode
         ]
         assert len(views) == 1
         compact = views[0]
+        assert compact.property("isExpanded") is False
         assert compact.property("currentIndex") == 0
 
         assert _wait_until(lambda: len(_nav_items(compact)) == 5), (
