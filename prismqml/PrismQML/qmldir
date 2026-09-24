@@ -117,6 +117,7 @@ MenuBar controls/navigation/MenuBar.qml
 Paginator controls/navigation/Paginator.qml
 Pivot controls/navigation/Pivot.qml
 SegmentedControl controls/navigation/SegmentedControl.qml
+SelectorBar controls/navigation/SelectorBar.qml
 TabBar controls/navigation/TabBar.qml
 TabWidget controls/navigation/TabWidget.qml
 Breadcrumb controls/navigation/Breadcrumb.qml

@@ -315,6 +315,72 @@ Item {
                 }
             }
             
+            // Selector bar 选择条
+            // Chrome-less strip: only the selected cell carries the sliding pill.
+            // 无边框条带: 只有选中项带滑动胶囊。
+            ExampleCard {
+                title: "SelectorBar"
+                description: "Flat selector with a sliding pill"
+                Column {
+                    spacing: Fluent.Enums.spacing.l
+
+                    ComponentCard {
+                        label: "horizontal"
+                        SelectorBar {
+                            objectName: "gallerySelectorBar"
+                            items: [
+                                { key: "overview", text: "Overview" },
+                                { key: "activity", text: "Activity" },
+                                { key: "settings", text: "Settings", icon: "Settings" },
+                                { key: "about", text: "About" }
+                            ]
+                            onItemClicked: (index, byUser) => selectorStatus.text = "invoked " + index
+                            onCurrentItemChanged: (key) => selectorStatus.text = "selected " + key
+                        }
+                    }
+
+                    Text {
+                        id: selectorStatus
+                        text: "selected overview"
+                        font.family: Fluent.Enums.fontFamily
+                        font.pixelSize: Fluent.Enums.typography.caption
+                        color: Fluent.Enums.textColor.secondary
+                    }
+
+                    Row {
+                        spacing: Fluent.Enums.spacing.l
+
+                        ComponentCard {
+                            label: "orientation: Qt.Vertical"
+                            SelectorBar {
+                                objectName: "gallerySelectorBarVertical"
+                                orientation: Qt.Vertical
+                                items: [
+                                    { key: "overview", text: "Overview" },
+                                    { key: "activity", text: "Activity" },
+                                    { key: "about", text: "About" }
+                                ]
+                            }
+                        }
+
+                        ComponentCard {
+                            label: "width: 200 (overflow)"
+                            SelectorBar {
+                                objectName: "gallerySelectorBarNarrow"
+                                width: 200
+                                items: [
+                                    { key: "overview", text: "Overview" },
+                                    { key: "activity", text: "Activity" },
+                                    { key: "settings", text: "Settings" },
+                                    { key: "about", text: "About" },
+                                    { key: "extra", text: "Extra" }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+
             // Stepper progress bar 步骤进度条
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ae9e675a583eeb35", Fluent.Translator._v)

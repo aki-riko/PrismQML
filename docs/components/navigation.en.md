@@ -74,6 +74,42 @@ Fluent.SegmentedControl {
 
 Vertical cells are sized to their content (they do not stretch), and the control is as wide as its widest cell. For a full-width vertical list use `NavigationView` or `ToggleNavigationBar`.
 
+## SelectorBar
+
+A chrome-less selector: the strip sits directly on the page and only the selected cell
+carries a sliding pill. It fits switching between a small set of views (2–5), reading
+lighter than `SegmentedControl` and flatter than `TabBar`.
+
+```qml
+Fluent.SelectorBar {
+    items: [
+        { key: "overview", text: "Overview" },
+        { key: "activity", text: "Activity", icon: "History" },
+        { key: "about", text: "About" }
+    ]
+    onItemClicked: (index, byUser) => view.push(pages[index])
+}
+```
+
+| Member | Meaning |
+|--------|---------|
+| `items: var` | `{ key, text, icon }` or plain strings |
+| `currentIndex: int` | Selected index; an out-of-range value hides the pill instead of throwing |
+| `orientation` | `Qt.Horizontal` (default) / `Qt.Vertical`; vertical stacks content-sized cells |
+| `itemFontSize / iconSize` | Cell text and icon size |
+| `pillAnimationEnabled` | Whether the pill slides; the first snap is never animated |
+| `scrollable / maxScrollOffset / scrollOffset` | Read-only: horizontal overflow and the current scroll position |
+| `itemClicked(index, byUser)` | User click (`byUser` is `true`); programmatic selection never emits it |
+| `currentItemChanged(key)` | Selected key changed |
+| `setCurrentIndex(idx) / setCurrentItem(key)` | Programmatic selection; out-of-range or unknown values are ignored |
+| `addItem(key, text, icon) / getCurrentKey()` | Append an item / read the current key |
+| `revealCurrent()` | Scroll the selected cell into view (also runs on selection change) |
+
+A horizontal strip scrolls when it does not fit: the selected cell is scrolled into view,
+and the wheel or a drag pans the strip. Wheel ownership matches `TabBar` — an overflowing
+strip consumes the wheel itself, while a strip that fits never competes and lets the wheel
+reach the page scroll area. A vertical strip does not scroll and is sized to its content.
+
 ## TabBar / TabWidget
 
 ```qml

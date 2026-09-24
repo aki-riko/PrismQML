@@ -345,6 +345,8 @@ QtObject {
  readonly property int segmentedHeight: Math.max(36, root.touchTargetFloor) // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
  readonly property int segmentedToolSize: Math.max(36, root.touchTargetFloor) // Segmented tool item size 分段工具项尺寸
+ readonly property int selectorBarHeight: Math.max(40, root.touchTargetFloor) // SelectorBar height 选择条高度
+ readonly property int selectorBarMinItemWidth: 72 // SelectorBar item min width 选择条项最小宽度
  readonly property int commandBarButtonSize: Math.max(36, root.touchTargetFloor) // CommandBar button size (square) 命令栏按钮尺寸（正方形）
  readonly property int statusBarHeight: 24 // StatusBar height 状态栏高度
  // Feedback controls 反馈控件

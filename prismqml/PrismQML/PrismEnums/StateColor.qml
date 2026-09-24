@@ -279,6 +279,19 @@ QtObject {
     // Pressed bg 按下背景
     readonly property color segmentedPressed: isNeumorphism ? _neu.pressed : (isTicket ? Qt.darker(_ticket.muted, 1.06) : (root.isDark ? Qt.rgba(1,1,1,0.025) : Qt.rgba(0,0,0,0.025)))
     
+    // ==================== SelectorBar Colors 选择条颜色 ====================
+    // The bar reuses the segmented selection chrome, so the values stay single-sourced;
+    // only the per-item state names are owned here.
+    // 选择条复用分段控件的选中外观, 取值保持单一来源; 此处只拥有按项的状态名。
+    // Selected pill 选中胶囊
+    readonly property color selectorBarItemSelected: segmentedSelected
+    // Selected pill border 选中胶囊边框
+    readonly property color selectorBarItemSelectedBorder: segmentedSelectedBorder
+    // Hover bg 悬停背景
+    readonly property color selectorBarItemHover: segmentedHover
+    // Pressed bg 按下背景
+    readonly property color selectorBarItemPressed: segmentedPressed
+
     // ==================== Dialog Button Group 对话框按钮组 ====================
     // Button group background 按钮组背景
     readonly property color actionsRowBg: isNeo ? _neo.muted : (isNeumorphism ? _neu.muted : (isTicket ? _ticket.muted : (root.isDark ? Qt.rgba(1,1,1,0.04) : Qt.rgba(0,0,0,0.024))))
