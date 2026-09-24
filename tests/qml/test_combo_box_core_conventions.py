@@ -504,6 +504,19 @@ def test_combo_box_core_wide_popup_left_aligns_and_tracks_control(qapp):
         _dispose_scene(engine, component, window, combo, editable)
         assert _new_visible_windows(windows_before) == []
 
+def test_combo_box_core_popup_width_override_is_independent_of_control(qapp):
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        popup, popup_window = _open_popup(window, combo, windows_before)
+        assert popup.property("popupWidth") == pytest.approx(420)
+        assert popup_window.width() >= 420
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
 def test_combo_box_core_source_conventions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(SOURCE_PATH.relative_to(ROOT).as_posix())

@@ -72,6 +72,7 @@ Window {
         currentIndex: 0
         maxVisibleItems: 3
         popupItemHeight: 40
+        popupWidthOverride: 420
     }
 
     ComboBoxCore {

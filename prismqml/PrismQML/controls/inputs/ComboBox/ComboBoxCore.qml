@@ -37,6 +37,9 @@ Widget {
     property color focusedBorderColorDark: Enums.accentColor
     property bool acceptWheel: false  // Whether to intercept wheel events 是否拦截滚轮事件
     property bool popupCloseOnClickOutside: true  // Close on click outside 点击外部关闭
+    // Optional explicit popup width. Zero keeps the content/control auto sizing.
+    // 可选的显式弹层宽度；为 0 时保持内容/控件自动计算。
+    property int popupWidthOverride: 0
     property Component popupContent: defaultPopupContent  // Popup content component 弹出内容组件
     property Component popupDelegate: defaultDelegate  // Delegate for items (subclass override) 项目委托
     property int popupItemHeight: Enums.controlSize.inputHeight  // Item height 项目高度
@@ -165,7 +168,8 @@ Widget {
         _popupContentRequested = true
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
-        _popup.popupWidth = Math.max(contentW, control.width)
+        _popup.popupWidth = popupWidthOverride > 0
+            ? popupWidthOverride : Math.max(contentW, control.width)
         // Let PopupWindowCore add its content padding exactly once.
         // 由 PopupWindowCore 统一补入一次内容内边距。
         var itemCount = (_safeModel || []).length
