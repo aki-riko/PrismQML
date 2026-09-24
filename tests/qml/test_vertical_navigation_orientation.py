@@ -156,7 +156,7 @@ Window {
         orientation: Qt.Vertical
         x: 20
         y: 20
-        width: Enums.controlSize.tabBarVerticalWidth
+        // Width stays implicit so it follows the public stripWidth
         height: 400
         closable: true
         movable: true
@@ -406,6 +406,30 @@ def test_vertical_pivot_stacks_and_keeps_the_indicator_on_the_left_edge(qapp):
         control, indicator, delegates = _parts(window, "verticalPivot")
         _assert_stacked(control, window, delegates)
         _assert_indicator_tracks_selection(control, window, indicator, delegates)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_vertical_tab_bar_honours_a_custom_strip_width(qapp):
+    """The vertical strip width must be caller-settable, like tabBarHeight.
+
+    纵向条带宽度必须可被调用方设置, 与 tabBarHeight 对称。
+    """
+    engine, component, window, warnings = _create_scene(
+        qapp, TAB_BAR_SCENE, "vertical-tab-bar.qml"
+    )
+    try:
+        bar, _indicator, flickable, delegates = _tab_parts(window)
+        bar.setProperty("stripWidth", 320)
+        assert _wait_for(lambda: bar.property("stripWidth") == 320)
+        assert _wait_for(
+            lambda: bar.width() == 320
+        ), f"strip width not applied: {bar.width()}"
+        assert delegates[0].width() == pytest.approx(
+            320 - window.property("stripInset") * 2, abs=0.5
+        )
+        assert flickable.width() == pytest.approx(delegates[0].width(), abs=0.5)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
