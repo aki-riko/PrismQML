@@ -36,6 +36,9 @@ Item {
     // 可选显式滚动面; 为空则自动取内容里第一个 Flickable
     property Flickable target: null
 
+    // Caller content collected into the host item 调用方内容收进宿主 Item
+    default property alias content: contentHost.data
+
     // ==================== Internal Props 内部属性 ====================
     // Content displacement; negative values are clamped away 内容位移, 负值被夹掉
     property real _offset: 0
@@ -113,9 +116,6 @@ Item {
     onRefreshingChanged: if (!refreshing && !_dragging) _offset = 0
 
     // ==================== Content 内容 ====================
-    // Content goes through the default property 内容走默认属性
-    default property alias content: contentHost.data
-
     // Pull indicator 下拉指示器
     Item {
         id: indicator
