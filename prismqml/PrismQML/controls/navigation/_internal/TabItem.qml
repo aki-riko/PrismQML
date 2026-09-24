@@ -84,14 +84,18 @@ Item {
             (_tabClosable ? Enums.iconSize.xxl : 0))
 
     // ==================== Size 尺寸 ====================
-    // Content-driven main-axis extent, shared by both orientations
-    // 由内容决定的主轴长度, 两个方向共用
-    readonly property real _mainExtent: {
+    // Horizontal cells are as wide as their content; vertical rows take a fixed row
+    // height, because a tab's content width says nothing about how tall its row is.
+    // 横向单元按内容定宽; 纵向行取固定行高 —— 标签内容宽度与行高无关。
+    readonly property real _horizontalExtent: {
         var value = host.tabWidth > 0 ? host.tabWidth : _automaticWidth
         if (host.maximumTabWidth > 0)
             value = Math.min(host.maximumTabWidth, value)
         return Math.max(host.minimumTabWidth, value)
     }
+    readonly property real _mainExtent: vertical
+        ? (host.tabWidth > 0 ? host.tabWidth : host._tabHeight)
+        : _horizontalExtent
     width: vertical ? host._verticalCellWidth : _mainExtent
     height: vertical ? _mainExtent : host._tabHeight
 
@@ -377,14 +381,15 @@ Item {
     Separator {
         id: separator
 
-        type: tabItem.vertical
-            ? Enums.separator.horizontal : Enums.separator.vertical
-        anchors.right: tabItem.vertical ? undefined : parent.right
-        anchors.verticalCenter: tabItem.vertical ? undefined : parent.verticalCenter
-        anchors.bottom: tabItem.vertical ? parent.bottom : undefined
-        anchors.horizontalCenter: tabItem.vertical ? parent.horizontalCenter : undefined
+        type: Enums.separator.vertical
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
         lineLength: Enums.iconSize.small
         visible: {
+            // Vertical rows separate themselves with the selected surface; the short
+            // tick that works between side-by-side tabs only reads as a stray dash.
+            // 纵向行靠选中底色区分; 并排标签之间那条短竖线放到纵向只会像多余划痕。
+            if (tabItem.vertical) return false
             if (host._dragging) return false
             if (index >= (host._safeTabs || []).length - 1) return false
             if (tabItem.selected) return false
