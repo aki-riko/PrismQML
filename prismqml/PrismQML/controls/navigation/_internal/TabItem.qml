@@ -64,24 +64,48 @@ Item {
         }
         return index
     }
-    readonly property real visualOffsetX: {
+    readonly property bool vertical: host.vertical
+    // Main axis is X for horizontal tabs and Y for vertical ones; the drag step,
+    // the visual offset and the cell size all follow it.
+    // 主轴: 横向为 X, 纵向为 Y; 拖拽步长、位移与单元尺寸都跟随它。
+    readonly property real _mainSize: vertical ? height : width
+    readonly property real _mainVisualOffset: {
         if (!host._dragging) return 0
         if (isDragSource) return host._dragSourceOffsetX
-        return (visualIndex - index) * width
+        return (visualIndex - index) * _mainSize
     }
+    readonly property real visualOffsetX: vertical ? 0 : _mainVisualOffset
+    readonly property real visualOffsetY: vertical ? _mainVisualOffset : 0
+    // Space a full-width vertical row may use before the close affordance
+    // 整宽纵向行在关闭入口之前可用的宽度
+    readonly property real _verticalContentWidth: Math.max(
+        0,
+        width - Enums.spacing.m * 2 -
+            (_tabClosable ? Enums.iconSize.xxl : 0))
 
     // ==================== Size 尺寸 ====================
-    width: {
+    // Content-driven main-axis extent, shared by both orientations
+    // 由内容决定的主轴长度, 两个方向共用
+    readonly property real _mainExtent: {
         var value = host.tabWidth > 0 ? host.tabWidth : _automaticWidth
         if (host.maximumTabWidth > 0)
             value = Math.min(host.maximumTabWidth, value)
         return Math.max(host.minimumTabWidth, value)
     }
-    height: host._tabHeight
+    width: vertical ? host._verticalCellWidth : _mainExtent
+    height: vertical ? _mainExtent : host._tabHeight
 
     transform: Translate {
         x: tabItem.visualOffsetX
+        y: tabItem.visualOffsetY
         Behavior on x {
+            enabled: !tabItem.isDragSource
+            NumberAnimation {
+                duration: Enums.duration.fast
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
             enabled: !tabItem.isDragSource
             NumberAnimation {
                 duration: Enums.duration.fast
@@ -120,8 +144,15 @@ Item {
         id: compactContent
 
         visible: !tabItem._hasDetails
-        anchors.centerIn: parent
-        anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
+        // Vertical cells are full-width rows, so the content starts at the leading
+        // edge instead of being centred. 纵向单元是整行宽, 内容改为从起始边排布。
+        anchors.centerIn: tabItem.vertical ? undefined : parent
+        anchors.left: tabItem.vertical ? parent.left : undefined
+        anchors.leftMargin: tabItem.vertical ? Enums.spacing.m : 0
+        anchors.verticalCenter: tabItem.vertical ? parent.verticalCenter : undefined
+        anchors.horizontalCenterOffset: (tabItem.vertical || !tabItem._tabClosable)
+            ? 0 : -Enums.spacing.l
+        width: tabItem.vertical ? tabItem._verticalContentWidth : implicitWidth
         spacing: Enums.spacing.s
 
         Icon {
@@ -147,6 +178,14 @@ Item {
             text: tabItem._title
             color: Enums.foregroundColor
             anchors.verticalCenter: parent.verticalCenter
+            // Row-layout cells must elide instead of overflowing the strip
+            // 整行布局的单元需要省略号, 避免溢出标签条
+            width: tabItem.vertical
+                ? Math.max(0, compactContent.width -
+                           (compactIcon.visible
+                                ? compactIcon.width + Enums.spacing.s : 0))
+                : compactText.implicitWidth
+            elide: tabItem.vertical ? Text.ElideRight : Text.ElideNone
             opacity: tabItem.selected
                      ? Enums.opacityLevel.visible
                      : (Enums.isDark ? Enums.opacityLevel.strong
@@ -161,12 +200,19 @@ Item {
         objectName: "tabItemDetailContent"
 
         visible: tabItem._hasDetails
-        width: host.tabWidth > 0
-            ? Math.max(0, tabItem.width - Enums.spacing.xl * 2 -
-                       (tabItem._tabClosable ? Enums.spacing.xxl : 0))
-            : implicitWidth
-        anchors.centerIn: parent
-        anchors.horizontalCenterOffset: tabItem._tabClosable ? -Enums.spacing.l : 0
+        width: tabItem.vertical
+            ? Math.max(0, tabItem.width - Enums.spacing.m * 2 -
+                       (tabItem._tabClosable ? Enums.iconSize.xxl : 0))
+            : (host.tabWidth > 0
+                ? Math.max(0, tabItem.width - Enums.spacing.xl * 2 -
+                           (tabItem._tabClosable ? Enums.spacing.xxl : 0))
+                : implicitWidth)
+        anchors.centerIn: tabItem.vertical ? undefined : parent
+        anchors.left: tabItem.vertical ? parent.left : undefined
+        anchors.leftMargin: tabItem.vertical ? Enums.spacing.m : 0
+        anchors.verticalCenter: tabItem.vertical ? parent.verticalCenter : undefined
+        anchors.horizontalCenterOffset: (tabItem.vertical || !tabItem._tabClosable)
+            ? 0 : -Enums.spacing.l
         spacing: Enums.spacing.xxs
 
         Row {
@@ -277,12 +323,14 @@ Item {
     DragHandler {
         id: tabDragHandler
 
-        property real _pressRowX: 0
+        property real _pressRowMain: 0
 
         enabled: tabItem._tabEnabled && host.movable
         target: null
-        xAxis.enabled: true
-        yAxis.enabled: false
+        // Only the main axis drags, so reordering stays 1-D in both orientations
+        // 只有主轴参与拖拽, 因此两个方向的重排都是一维的
+        xAxis.enabled: !tabItem.vertical
+        yAxis.enabled: tabItem.vertical
         dragThreshold: 6
 
         onActiveChanged: {
@@ -291,8 +339,8 @@ Item {
                 host._dragVisualIndex = index
                 var point = tabItem.mapToItem(
                     rowContainer, centroid.pressPosition.x, centroid.pressPosition.y)
-                _pressRowX = point.x
-                host._dragPointerRowX = point.x
+                _pressRowMain = tabItem.vertical ? point.y : point.x
+                host._dragPointerRowX = _pressRowMain
                 host._dragSourceOffsetX = 0
             } else if (host._dragSourceIndex >= 0) {
                 var owner = host
@@ -310,15 +358,17 @@ Item {
 
         onActiveTranslationChanged: {
             if (!active) return
-            host._dragSourceOffsetX = activeTranslation.x
-            var pointerRowX = _pressRowX + activeTranslation.x
-            host._dragPointerRowX = pointerRowX
-            var widthValue = tabItem.width
-            if (widthValue <= 0) return
-            var sourceCenterRowX = index * widthValue + activeTranslation.x + widthValue / 2
+            var translation = tabItem.vertical
+                ? activeTranslation.y : activeTranslation.x
+            host._dragSourceOffsetX = translation
+            var pointerRowMain = _pressRowMain + translation
+            host._dragPointerRowX = pointerRowMain
+            var extent = tabItem._mainSize
+            if (extent <= 0) return
+            var sourceCenterRowMain = index * extent + translation + extent / 2
             var newVisual = Math.max(
                 0, Math.min((host._safeTabs || []).length - 1,
-                            Math.floor(sourceCenterRowX / widthValue)))
+                            Math.floor(sourceCenterRowMain / extent)))
             if (newVisual !== host._dragVisualIndex)
                 host._dragVisualIndex = newVisual
         }
@@ -327,9 +377,12 @@ Item {
     Separator {
         id: separator
 
-        type: Enums.separator.vertical
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
+        type: tabItem.vertical
+            ? Enums.separator.horizontal : Enums.separator.vertical
+        anchors.right: tabItem.vertical ? undefined : parent.right
+        anchors.verticalCenter: tabItem.vertical ? undefined : parent.verticalCenter
+        anchors.bottom: tabItem.vertical ? parent.bottom : undefined
+        anchors.horizontalCenter: tabItem.vertical ? parent.horizontalCenter : undefined
         lineLength: Enums.iconSize.small
         visible: {
             if (host._dragging) return false

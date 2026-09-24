@@ -529,8 +529,11 @@ def test_tab_widget_keeps_indicator_modularized():
         "host: control",
         "tabBar: tabBarBg",
         "tabFlickable: tabFlickable",
-        "tabRepeater: tabRepeater",
-        "tabRow: tabRow",
+        # The strip is orientation-selected, so these two are qualified: bare names
+        # would resolve to TabIndicator's own required properties.
+        # 条带按方向选择, 这两项必须限定: 裸名会解析到 TabIndicator 自身的 required 属性。
+        "tabRepeater: control.tabRepeater",
+        "tabRow: control.tabRow",
     ):
         assert binding in tab_bar_source
     assert "function _scheduleSync(animate)" in helper_source
@@ -547,6 +550,44 @@ def test_tab_widget_keeps_indicator_modularized():
         "id: indicatorBg",
     ):
         assert marker not in tab_bar_source
+
+def test_tab_bar_keeps_orientation_selected_strips_modularized():
+    tab_bar = _source("prismqml/PrismQML/controls/navigation/TabBar.qml")
+    tab_item = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/TabItem.qml"
+    )
+    tab_indicator = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/TabIndicator.qml"
+    )
+    source = tab_bar.read_text(encoding="utf-8")
+    item_source = tab_item.read_text(encoding="utf-8")
+    indicator_source = tab_indicator.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert "property int orientation: Qt.Horizontal" in source
+    assert "readonly property bool vertical: orientation === Qt.Vertical" in source
+    assert (
+        "readonly property Item tabRow: control.vertical ? verticalTabRow : horizontalTabRow"
+        in source
+    )
+    assert (
+        "readonly property var tabRepeater:\n"
+        "        control.vertical ? verticalTabRepeater : horizontalTabRepeater"
+        in source
+    )
+    # Exactly one strip owns delegates: the idle strip keeps an empty model, so the
+    # two orientations never build a duplicate delegate tree.
+    # 只有一个条带持有委托: 闲置条带模型为空, 两个方向不会构建重复委托树。
+    assert source.count("model: control.vertical ? [] : control._safeTabs") == 1
+    assert source.count("model: control.vertical ? control._safeTabs : []") == 1
+    assert "id: horizontalTabRow" in source
+    assert "id: verticalTabRow" in source
+    # Main-axis switching must stay in the delegate and the indicator
+    # 主轴切换必须留在委托与指示器里
+    assert "readonly property bool vertical: host.vertical" in item_source
+    assert "xAxis.enabled: !tabItem.vertical" in item_source
+    assert "yAxis.enabled: tabItem.vertical" in item_source
+    assert "readonly property bool vertical: host.vertical" in indicator_source
 
 def test_bar_chart_keeps_single_series_delegate_modularized():
     entry = _source(

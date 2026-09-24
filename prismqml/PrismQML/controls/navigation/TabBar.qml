@@ -37,12 +37,16 @@ Widget {
     property int maximumTabWidth: 0  // Zero means unlimited 零值表示不限制
     property bool interactionEnabled: true
     property var canCloseTab: null  // Optional function(index, tab)->bool 可选关闭判定
+    // Main axis of the strip; Qt.Horizontal behaves exactly as before
+    // 条带主轴; Qt.Horizontal 与之前完全一致
+    property int orientation: Qt.Horizontal
 
     readonly property var _safeTabs:
         tabs === null || tabs === undefined ? []
         : (typeof tabs.length === "number" ? tabs : [])
 
     // ==================== Internal Props 内部属性 ====================
+    readonly property bool vertical: orientation === Qt.Vertical
     readonly property int _tabHeight: detailsEnabled
         ? Math.max(
             Enums.controlSize.inputHeightLarge - Enums.spacing.xs,
@@ -53,6 +57,17 @@ Widget {
     readonly property int _selectedTabRadius: Enums.surfaceRadius(Enums.radius.card)
     readonly property real _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
+    readonly property real _availableHeight: control.height - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
+    // Vertical cells fill a fixed-width strip instead of sizing to their content
+    // 纵向单元填满固定宽度标签条, 而不是按内容定宽
+    readonly property int _stripWidth: Enums.controlSize.tabBarVerticalWidth
+    readonly property real _verticalCellWidth: _stripWidth - Enums.spacing.xs * 2
+    // Only the strip matching the orientation owns delegates: the idle strip keeps
+    // an empty model, so no duplicate delegate tree is ever built.
+    // 只有与方向匹配的条带持有委托: 闲置条带模型为空, 不会构建重复委托树。
+    readonly property Item tabRow: control.vertical ? verticalTabRow : horizontalTabRow
+    readonly property var tabRepeater:
+        control.vertical ? verticalTabRepeater : horizontalTabRepeater
     property int _dragSourceIndex: -1
     property int _dragVisualIndex: -1
     property real _dragSourceOffsetX: 0
@@ -151,13 +166,17 @@ Widget {
     }
 
     // ==================== Size 尺寸 ====================
-    contentWidth: Enums.controlSize.chartDefaultWidth
+    contentWidth: control.vertical ? _stripWidth : Enums.controlSize.chartDefaultWidth
     contentHeight: _tabBarHeight
 
     onCurrentIndexChanged: {
         currentChanged(currentIndex)
         if (tabFlickable) tabFlickable.scrollToCurrentTab()
         if (slidingIndicator) slidingIndicator._scheduleSync(true)
+    }
+    onOrientationChanged: {
+        if (tabFlickable) tabFlickable.scrollToCurrentTab()
+        if (slidingIndicator) slidingIndicator._scheduleSync(false)
     }
 
     // ==================== Content 内容 ====================
@@ -173,8 +192,10 @@ Widget {
         objectName: "tabBarBg"
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.right: parent.right
-        height: control._tabBarHeight
+        anchors.right: control.vertical ? undefined : parent.right
+        anchors.bottom: control.vertical ? parent.bottom : undefined
+        width: control.vertical ? control._stripWidth : undefined
+        height: control.vertical ? undefined : control._tabBarHeight
         color: Enums.stateColor.cardDefaultBg
         clip: true
 
@@ -183,8 +204,12 @@ Widget {
             host: control
             tabBar: tabBarBg
             tabFlickable: tabFlickable
-            tabRepeater: tabRepeater
-            tabRow: tabRow
+            // Qualified on purpose: the strip is orientation-selected, and bare
+            // names would resolve to TabIndicator's own required properties.
+            // 必须显式限定: 条带按方向选择, 裸名会解析到 TabIndicator 自身的
+            // required 属性上。
+            tabRepeater: control.tabRepeater
+            tabRow: control.tabRow
         }
     }
 
@@ -198,6 +223,15 @@ Widget {
             if (control.currentIndex < 0 || control.currentIndex >= tabRepeater.count) return
             var item = tabRepeater.itemAt(control.currentIndex)
             if (!item) return
+            if (control.vertical) {
+                var itemTop = item.y
+                var itemBottom = item.y + item.height
+                if (itemTop < tabScrollHelper.targetPos)
+                    smoothScrollTo(itemTop)
+                else if (itemBottom > tabScrollHelper.targetPos + height)
+                    smoothScrollTo(itemBottom - height)
+                return
+            }
             var itemLeft = item.x
             var itemRight = item.x + item.width
             if (itemLeft < tabScrollHelper.targetPos)
@@ -206,14 +240,27 @@ Widget {
                 smoothScrollTo(itemRight - width)
         }
 
+        // Horizontal: a top strip above the pages. Vertical: a left-hand column.
+        // The cross axis carries the full cell thickness: strip height when
+        // horizontal, cell width when vertical.
+        // 横向: 位于页面上方的顶部条; 纵向: 位于页面左侧的竖列。
+        // 副轴承载完整单元厚度: 横向为条带高度, 纵向为单元宽度。
         anchors.left: parent.left
         anchors.leftMargin: Enums.spacing.xs
-        anchors.bottom: tabBarBg.bottom
-        anchors.bottomMargin: (tabBarBg.height - control._tabHeight) / 2
-        width: Math.min(tabRow.width, control._availableWidth)
-        height: control._tabHeight
-        contentWidth: tabRow.width
-        contentHeight: control._tabHeight
+        anchors.top: control.vertical ? parent.top : undefined
+        anchors.topMargin: control.vertical ? Enums.spacing.xs : 0
+        anchors.bottom: control.vertical ? undefined : tabBarBg.bottom
+        anchors.bottomMargin: control.vertical
+            ? 0 : (tabBarBg.height - control._tabHeight) / 2
+        width: control.vertical
+            ? control._verticalCellWidth
+            : Math.min(tabRow.width, control._availableWidth)
+        height: control.vertical
+            ? Math.min(tabRow.height, control._availableHeight)
+            : control._tabHeight
+        contentWidth: control.vertical ? control._verticalCellWidth : tabRow.width
+        contentHeight: control.vertical
+            ? Math.max(tabRow.height, height) : control._tabHeight
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         z: Enums.zIndex.header
@@ -221,7 +268,7 @@ Widget {
         SmoothScrollHelper {
             id: tabScrollHelper
             target: tabFlickable
-            orientation: Qt.Horizontal
+            orientation: control.vertical ? Qt.Vertical : Qt.Horizontal
             enabled: true
             bounceEnabled: true
             // Keep the historical TabWidget behavior: wheel input remains active
@@ -231,21 +278,45 @@ Widget {
         }
 
         Row {
-            id: tabRow
+            id: horizontalTabRow
+            objectName: "tabBarRow"
+            visible: !control.vertical
             height: control._tabHeight
             spacing: Enums.spacing.none
 
             Repeater {
-                id: tabRepeater
-                model: control._safeTabs
+                id: horizontalTabRepeater
+                model: control.vertical ? [] : control._safeTabs
 
                 onItemAdded: slidingIndicator._currentTabKey++
                 onItemRemoved: slidingIndicator._currentTabKey++
 
                 TabItem {
                     host: control
-                    rowContainer: tabRow
-                    repeater: tabRepeater
+                    rowContainer: horizontalTabRow
+                    repeater: horizontalTabRepeater
+                }
+            }
+        }
+
+        Column {
+            id: verticalTabRow
+            objectName: "tabBarColumn"
+            visible: control.vertical
+            width: control._verticalCellWidth
+            spacing: Enums.spacing.none
+
+            Repeater {
+                id: verticalTabRepeater
+                model: control.vertical ? control._safeTabs : []
+
+                onItemAdded: slidingIndicator._currentTabKey++
+                onItemRemoved: slidingIndicator._currentTabKey++
+
+                TabItem {
+                    host: control
+                    rowContainer: verticalTabRow
+                    repeater: verticalTabRepeater
                 }
             }
         }
@@ -258,10 +329,14 @@ Widget {
         height: Enums.controlSize.closeButtonSize
         radius: width / 2
         visible: control.showAddButton
-        anchors.left: tabFlickable.right
-        anchors.leftMargin: Enums.spacing.xs
-        anchors.bottom: tabBarBg.bottom
-        anchors.bottomMargin: (control._tabBarHeight - Enums.controlSize.closeButtonSize) / 2
+        anchors.left: control.vertical ? undefined : tabFlickable.right
+        anchors.leftMargin: control.vertical ? 0 : Enums.spacing.xs
+        anchors.horizontalCenter: control.vertical ? tabBarBg.horizontalCenter : undefined
+        anchors.top: control.vertical ? tabFlickable.bottom : undefined
+        anchors.topMargin: control.vertical ? Enums.spacing.xs : 0
+        anchors.bottom: control.vertical ? undefined : tabBarBg.bottom
+        anchors.bottomMargin: control.vertical
+            ? 0 : (control._tabBarHeight - Enums.controlSize.closeButtonSize) / 2
         z: Enums.zIndex.controls
         color: control._touchActive ? Enums.stateColor.hover : Enums.transparent
 

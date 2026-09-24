@@ -336,6 +336,7 @@ QtObject {
  readonly property int navBarItemHeight: 60 // NavigationBarItem height 导航栏项高度
  readonly property int bottomTabBarHeight: 56 // BottomTabBar height 底部导航栏高度
  readonly property int tabBarHeight: Math.max(40, root.touchTargetFloor) // TabBar height
+ readonly property int tabBarVerticalWidth: 200 // Vertical TabBar strip width 纵向标签条宽度
  readonly property int segmentedHeight: Math.max(36, root.touchTargetFloor) // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
  readonly property int segmentedToolSize: Math.max(36, root.touchTargetFloor) // Segmented tool item size 分段工具项尺寸

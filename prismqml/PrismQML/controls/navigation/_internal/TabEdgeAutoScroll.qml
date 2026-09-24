@@ -17,12 +17,29 @@ FrameAnimation {
     onTriggered: {
         if (!host._dragging) return
         var edgeMargin = 40
-        var visibleLeft = tabFlickable.contentX
-        var visibleRight = visibleLeft + tabFlickable.width
-        var pointerX = host._dragPointerRowX
         // Scale the per-frame step by frame time for refresh-rate independence.
         // 按帧时长换算步长，保证不同刷新率下的滚动速度一致。
         var step = 480 * frameTime
+        if (host.vertical) {
+            // Vertical strips scroll on the Y axis with the same edge margin
+            // 纵向条带在 Y 轴滚动, 边缘留白一致
+            var visibleTop = tabFlickable.contentY
+            var visibleBottom = visibleTop + tabFlickable.height
+            var pointerY = host._dragPointerRowX
+            if (pointerY < visibleTop + edgeMargin && tabFlickable.contentY > 0) {
+                tabFlickable.contentY = Math.max(
+                    0, tabFlickable.contentY - step)
+            } else if (pointerY > visibleBottom - edgeMargin) {
+                var maxY = Math.max(
+                    0, tabFlickable.contentHeight - tabFlickable.height)
+                tabFlickable.contentY = Math.min(
+                    maxY, tabFlickable.contentY + step)
+            }
+            return
+        }
+        var visibleLeft = tabFlickable.contentX
+        var visibleRight = visibleLeft + tabFlickable.width
+        var pointerX = host._dragPointerRowX
         if (pointerX < visibleLeft + edgeMargin && tabFlickable.contentX > 0) {
             tabFlickable.contentX = Math.max(
                 0, tabFlickable.contentX - step)

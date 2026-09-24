@@ -459,6 +459,32 @@ Item {
                             }
                         }
                     }
+                    // Vertical tabs: the column takes the leading edge, pages the rest
+                    // 纵向标签: 标签列占起始边, 页面占其余区域
+                    ComponentCard {
+                        label: "TabWidget (orientation: Qt.Vertical)"
+                        TabWidget {
+                            id: verticalTabWidget
+                            orientation: Qt.Vertical
+                            width: 360; height: 170
+                            closable: true
+                            movable: true
+                            showAddButton: true
+                            tabs: [
+                                {title: Fluent.Translator.tr("gallery_6c273ecc79d229ed", Fluent.Translator._v), icon: "", content: tab1Content},
+                                {title: Fluent.Translator.tr("gallery_8d7f8612a58f664d", Fluent.Translator._v), icon: "", content: tab2Content},
+                                {title: Fluent.Translator.tr("gallery_222b33ef1adb6046", Fluent.Translator._v), icon: "", content: tab3Content}
+                            ]
+                            onTabClosed: (index) => { removeTab(index); apiStatus.text = Fluent.Translator.tr("gallery_2ef467443bfc1d59") + index }
+                            onTabAddClicked: { addTab(Fluent.Translator.tr("gallery_7b545b05f46129d5", Fluent.Translator._v) + (count() + 1), "", tab4Content); apiStatus.text = Fluent.Translator.tr("gallery_d58198f696132ad1", Fluent.Translator._v) }
+                            onCurrentChanged: (index) => apiStatus.text = Fluent.Translator.tr("gallery_b63e5b2e2fde167a") + index
+                            onTabsReordered: (from, to) => {
+                                var reordered = tabs.slice()
+                                reordered.splice(to, 0, reordered.splice(from, 1)[0])
+                                tabs = reordered
+                            }
+                        }
+                    }
                     // API演示
                     Row {
                         spacing: Fluent.Enums.spacing.m
