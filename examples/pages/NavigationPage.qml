@@ -12,7 +12,32 @@ import PrismQML as Fluent
 // Navigation components page 导航组件页面
 Item {
     id: root
-    
+
+    // ==================== Demo Models 演示模型 ====================
+    // Shared model for the vertical navigation panels. Text and labels stay
+    // ASCII on purpose: the Gallery i18n contract only localizes
+    // user-visible literals, and these are component names.
+    // 垂直导航面板共用模型。文本与标签刻意保持 ASCII：画廊 i18n 合同只本地化
+    // 用户可见文案，而这些是组件名。
+    readonly property var navPanelModel: [
+        { "key": "home", "text": "Home", "icon": iconPath("Home") },
+        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
+        { "key": "search", "text": "Search", "icon": iconPath("Search") },
+        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
+    ]
+    readonly property var navPanelScrollModel: [
+        { "key": "home", "text": "Home", "icon": iconPath("Home") },
+        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
+        { "key": "search", "text": "Search", "icon": iconPath("Search") },
+        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
+        { "key": "people", "text": "People", "icon": iconPath("Person") },
+        { "key": "calendar", "text": "Calendar", "icon": iconPath("Calendar") },
+        { "key": "favorites", "text": "Favorites", "icon": iconPath("Star") },
+        { "key": "reports", "text": "Reports", "icon": iconPath("ChartMultiple") },
+        { "key": "folders", "text": "Folders", "icon": iconPath("Folder") },
+        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
+    ]
+
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
@@ -119,6 +144,71 @@ Item {
                 }
             }
             
+            // Vertical navigation panels 垂直导航面板
+            // Window-level panels: a sidebar, its compact icon rail, and a
+            // mutually-exclusive toggle rail. They are plain Items, so they can
+            // be inspected inside a page instead of only inside a window shell.
+            // 窗口级面板：侧边栏、其紧凑图标栏，以及互斥切换栏。它们都是普通
+            // Item，因此可以放在页面里查看，而不必依赖窗口外壳。
+            ExampleCard {
+                title: "Vertical navigation"
+                description: "NavigationView / NavigationBar / ToggleNavigationBar"
+                ComponentCard {
+                    label: "NavigationView (compact)"
+                    Item {
+                        width: 48
+                        height: 232
+                        NavigationView {
+                            width: parent.width
+                            height: parent.height
+                            showReturnButton: false
+                            model: root.navPanelModel
+                        }
+                    }
+                }
+                ComponentCard {
+                    label: "NavigationView (expanded)"
+                    Item {
+                        width: 224
+                        height: 232
+                        NavigationView {
+                            width: parent.width
+                            height: parent.height
+                            isExpanded: true
+                            showReturnButton: false
+                            model: root.navPanelModel
+                            bottomItems: [
+                                { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
+                            ]
+                        }
+                    }
+                }
+                ComponentCard {
+                    label: "NavigationBar"
+                    Item {
+                        width: 68
+                        height: 232
+                        NavigationBar {
+                            width: parent.width
+                            height: parent.height
+                            model: root.navPanelScrollModel
+                        }
+                    }
+                }
+                ComponentCard {
+                    label: "ToggleNavigationBar"
+                    Item {
+                        width: 200
+                        height: 232
+                        ToggleNavigationBar {
+                            width: parent.width
+                            height: parent.height
+                            model: root.navPanelModel
+                        }
+                    }
+                }
+            }
+
             // Segmented controls 分段控件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_e998714a526683d7", Fluent.Translator._v)
