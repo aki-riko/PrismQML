@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import QtQuick.Shapes
 import "../../.."
 import "../../../effects"
 import "../../utils/_internal"
@@ -265,18 +266,144 @@ Item {
             onWidthChanged: if (control._active) Qt.callLater(control._refreshSpotlight)
             onHeightChanged: if (control._active) Qt.callLater(control._refreshSpotlight)
 
-            Rectangle {
+            // Spotlight scrim without any masking: layer.effect masking is a silent no-op in
+            // Qt 6.11 (see OpacityMask docs and tests/tooling/test_opacity_mask_contract.py),
+            // and one ShapePath only fills its last subpath. The scrim is therefore built from
+            // four bands around the hole plus four rounded corner patches.
+            // 无遮罩聚光蒙层: Qt 6.11 下 layer.effect 遮罩静默失效(见 OpacityMask 文档与
+            // tests/tooling/test_opacity_mask_contract.py), 且一个 ShapePath 只填充最后一个
+            // 子路径。因此蒙层由"孔四周四条带 + 四个圆角补块"构成。
+            Item {
                 id: maskSurface
 
                 objectName: "teachingTourMaskSurface"
                 anchors.fill: parent
-                color: control.maskColor
-                // The layer.effect spotlight hole was a silent no-op in Qt 6.11 (see
-                // OpacityMask docs and tests/tooling/test_opacity_mask_contract.py), so it was
-                // removed. A working hole needs a mask-free construction (overlay bands).
-                // layer.effect 聚光孔在 Qt 6.11 下静默失效 (见 OpacityMask 文档与
-                // tests/tooling/test_opacity_mask_contract.py), 故移除;
-                // 真正可用的孔需要用无遮罩的构造方式 (遮罩带) 重做。
+
+                Rectangle {
+                    objectName: "teachingTourMaskScrim"
+                    anchors.fill: parent
+                    color: control.maskColor
+                    visible: !control._targetAvailable
+                }
+
+                Rectangle {
+                    x: 0
+                    y: 0
+                    width: maskSurface.width
+                    height: control._holeTop
+                    color: control.maskColor
+                    visible: control._targetAvailable
+                }
+
+                Rectangle {
+                    x: 0
+                    y: control._holeBottom
+                    width: maskSurface.width
+                    height: maskSurface.height - control._holeBottom
+                    color: control.maskColor
+                    visible: control._targetAvailable
+                }
+
+                Rectangle {
+                    x: 0
+                    y: control._holeTop
+                    width: control._holeLeft
+                    height: control._holeBottom - control._holeTop
+                    color: control.maskColor
+                    visible: control._targetAvailable
+                }
+
+                Rectangle {
+                    x: control._holeRight
+                    y: control._holeTop
+                    width: maskSurface.width - control._holeRight
+                    height: control._holeBottom - control._holeTop
+                    color: control.maskColor
+                    visible: control._targetAvailable
+                }
+
+                Shape {
+                    objectName: "teachingTourMaskCorners"
+                    anchors.fill: parent
+                    antialiasing: true
+                    visible: control._targetAvailable
+
+                    ShapePath {
+                        fillColor: control.maskColor
+                        strokeColor: Enums.transparent
+                        strokeWidth: 0
+                        PathMove { x: control._holeLeft; y: control._holeTop }
+                        PathLine {
+                            x: control._holeLeft
+                            y: control._holeTop + control._currentHighlightRadius
+                        }
+                        PathArc {
+                            x: control._holeLeft + control._currentHighlightRadius
+                            y: control._holeTop
+                            radiusX: control._currentHighlightRadius
+                            radiusY: control._currentHighlightRadius
+                            direction: PathArc.Clockwise
+                        }
+                        PathLine { x: control._holeLeft; y: control._holeTop }
+                    }
+
+                    ShapePath {
+                        fillColor: control.maskColor
+                        strokeColor: Enums.transparent
+                        strokeWidth: 0
+                        PathMove { x: control._holeRight; y: control._holeTop }
+                        PathLine {
+                            x: control._holeRight - control._currentHighlightRadius
+                            y: control._holeTop
+                        }
+                        PathArc {
+                            x: control._holeRight
+                            y: control._holeTop + control._currentHighlightRadius
+                            radiusX: control._currentHighlightRadius
+                            radiusY: control._currentHighlightRadius
+                            direction: PathArc.Clockwise
+                        }
+                        PathLine { x: control._holeRight; y: control._holeTop }
+                    }
+
+                    ShapePath {
+                        fillColor: control.maskColor
+                        strokeColor: Enums.transparent
+                        strokeWidth: 0
+                        PathMove { x: control._holeRight; y: control._holeBottom }
+                        PathLine {
+                            x: control._holeRight
+                            y: control._holeBottom - control._currentHighlightRadius
+                        }
+                        PathArc {
+                            x: control._holeRight - control._currentHighlightRadius
+                            y: control._holeBottom
+                            radiusX: control._currentHighlightRadius
+                            radiusY: control._currentHighlightRadius
+                            direction: PathArc.Clockwise
+                        }
+                        PathLine { x: control._holeRight; y: control._holeBottom }
+                    }
+
+                    ShapePath {
+                        fillColor: control.maskColor
+                        strokeColor: Enums.transparent
+                        strokeWidth: 0
+                        PathMove { x: control._holeLeft; y: control._holeBottom }
+                        PathLine {
+                            x: control._holeLeft + control._currentHighlightRadius
+                            y: control._holeBottom
+                        }
+                        PathArc {
+                            x: control._holeLeft
+                            y: control._holeBottom - control._currentHighlightRadius
+                            radiusX: control._currentHighlightRadius
+                            radiusY: control._currentHighlightRadius
+                            direction: PathArc.Clockwise
+                        }
+                        PathLine { x: control._holeLeft; y: control._holeBottom }
+                    }
+                }
             }
 
             MouseArea {

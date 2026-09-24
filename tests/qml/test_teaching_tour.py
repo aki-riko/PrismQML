@@ -357,13 +357,17 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert "maskSpreadAtMin: 1.0" in opacity_mask_source
 
     tour_source = TEACHING_TOUR_SOURCE.read_text(encoding="utf-8")
-    # The spotlight hole used layer.effect masking, which is a silent no-op in Qt 6.11
-    # (see tests/tooling/test_opacity_mask_contract.py); it must not come back until a
-    # mask-free construction replaces it.
-    # 聚光孔原先用 layer.effect 遮罩, 在 Qt 6.11 下静默失效 (见
-    # tests/tooling/test_opacity_mask_contract.py); 在改成无遮罩构造之前不得回流。
+    # The spotlight hole is built without any mask: layer.effect masking is a silent no-op in
+    # Qt 6.11 and one ShapePath only fills its last subpath, so the scrim uses four bands plus
+    # four rounded corner patches.
+    # 聚光孔不使用任何遮罩: Qt 6.11 下 layer.effect 遮罩静默失效, 且一个 ShapePath 只填充最后
+    # 一个子路径, 因此蒙层由四条带 + 四个圆角补块构成。
     assert "layer.effect: OpacityMask" not in tour_source
     assert "mask: ShaderEffectSource" not in tour_source
+    assert "import QtQuick.Shapes" in tour_source
+    assert 'objectName: "teachingTourMaskCorners"' in tour_source
+    assert 'objectName: "teachingTourMaskScrim"' in tour_source
+    assert tour_source.count("PathArc {") == 4
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
     assert "property color highlightBorderColor: Enums.transparent" in tour_source
     assert "border.width: Enums.border.thin" in tour_source
