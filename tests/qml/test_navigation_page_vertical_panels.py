@@ -14,19 +14,44 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QObject,
+    QPoint,
+    QPointF,
     QTimer,
     QUrl,
+    Qt,
     QtMsgType,
     qInstallMessageHandler,
 )
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
-from PySide6.QtQuick import QQuickItem
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import configure_qml_environment, register_types
 
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PAGE = _ROOT / "examples" / "pages" / "NavigationPage.qml"
+
+# A host window is needed to deliver real mouse events to the Gallery page.
+# 需要宿主窗口才能向画廊页面投递真实鼠标事件。
+_GALLERY_HOST_SCENE = """
+import QtQuick
+import QtQuick.Window
+
+Window {{
+    id: host
+    objectName: "galleryHost"
+    width: 900
+    height: 900
+    visible: true
+
+    Loader {{
+        objectName: "pageLoader"
+        anchors.fill: parent
+        source: "{page_url}"
+    }}
+}}
+"""
 
 # Window-level vertical navigation panels the Gallery page must demonstrate.
 # 画廊页面必须展示的窗口级垂直导航面板。
@@ -178,3 +203,134 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp)
         and any(marker in message for marker in _ERROR_MARKERS)
     ]
     assert failures == []
+
+
+def _create_host_scene(qapp):
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        _GALLERY_HOST_SCENE.format(
+            page_url=QUrl.fromLocalFile(str(_PAGE)).toString()
+        ).encode("utf-8"),
+        QUrl.fromLocalFile(str(_ROOT / "tests" / "qml" / "gallery-nav-host.qml")),
+    )
+    assert _wait_until(
+        lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    loader = window.findChild(QObject, "pageLoader")
+    # Read the loaded item instead of Loader.status: the status enum has no Python
+    # converter. 读取已加载项而不是 Loader.status: 该状态枚举在 Python 侧无转换器。
+    assert _wait_until(lambda: loader.property("item") is not None)
+    _pump(120)
+    return engine, component, window, loader.property("item")
+
+
+def _class_histogram(root) -> list:
+    counts = {}
+    for child in root.findChildren(QObject):
+        name = _type_name(child)
+        counts[name] = counts.get(name, 0) + 1
+    return sorted(counts.items(), key=lambda entry: -entry[1])[:12]
+
+
+def _visual_descendants(root):
+    """Walk the visual tree.
+
+    Panel rows are created from JS and only joined to the visual parent tree, so
+    QObject-based findChildren does not see them.
+    面板条目由 JS 创建、只挂进视觉父级树, 因此基于 QObject 的 findChildren 看不到它们。
+    """
+    pending = list(root.childItems())
+    while pending:
+        child = pending.pop(0)
+        yield child
+        pending.extend(child.childItems())
+
+
+def _nav_items(panel):
+    """Panel rows, located by their own properties inside the visual tree.
+
+    在视觉树中按自身属性定位面板条目。
+    """
+    return sorted(
+        (
+            item
+            for item in _visual_descendants(panel)
+            if item.metaObject().indexOfProperty("selected") >= 0
+            and item.metaObject().indexOfProperty("icon") >= 0
+            and item.metaObject().indexOfProperty("compact") >= 0
+        ),
+        key=lambda item: item.mapToItem(panel, QPointF(0, 0)).y(),
+    )
+
+
+def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
+    """Clicking a Gallery panel item must really move its selection.
+
+    点击画廊面板条目必须真的改变选中项。
+
+    回归点：NavigationPanelCore 刻意不自改 currentIndex（只发 itemClicked，交由宿主
+    外壳回灌），演示里漏了这段接线时面板点不动。
+    """
+    engine = component = window = page = None
+    try:
+        engine, component, window, page = _create_host_scene(qapp)
+        views = [
+            panel for panel in _panels_of(page, "NavigationView")
+            if panel.property("isExpanded") is False
+        ]
+        assert len(views) == 1
+        compact = views[0]
+        assert compact.property("currentIndex") == 0
+
+        assert _wait_until(lambda: len(_nav_items(compact)) == 5), (
+            f"compact rail items: {len(_nav_items(compact))} "
+            f"size={compact.width()}x{compact.height()} "
+            f"qobjects={len(compact.findChildren(QObject))} "
+            f"classes={_class_histogram(compact)}"
+        )
+        items = _nav_items(compact)
+
+        target = items[2]
+        centre = target.mapToItem(
+            window.contentItem(),
+            QPointF(target.width() / 2, target.height() / 2),
+        )
+        point = QPoint(round(centre.x()), round(centre.y()))
+        QTest.mouseMove(window, point)
+        QTest.mouseClick(
+            window, Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier, point,
+        )
+        assert _wait_until(lambda: compact.property("currentIndex") == 2), (
+            f"click did not move the selection: {compact.property('currentIndex')}"
+        )
+
+        # A second click on another row must move it again
+        # 再点另一行必须继续移动
+        other = items[4]
+        centre = other.mapToItem(
+            window.contentItem(),
+            QPointF(other.width() / 2, other.height() / 2),
+        )
+        point = QPoint(round(centre.x()), round(centre.y()))
+        QTest.mouseClick(
+            window, Qt.MouseButton.LeftButton,
+            Qt.KeyboardModifier.NoModifier, point,
+        )
+        assert _wait_until(lambda: compact.property("currentIndex") == 4), (
+            f"second click did not move: {compact.property('currentIndex')}"
+        )
+    finally:
+        if window is not None:
+            window.close()
+        _release(qapp, page, component, engine)

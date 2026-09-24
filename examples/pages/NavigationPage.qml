@@ -173,14 +173,27 @@ Item {
                             showReturnButton: false
                             titleBarHeight: 0
                             model: root.navPanelModel
+                            // The panels never move their own selection: they emit
+                            // itemClicked and expect the host shell to push a new
+                            // currentIndex back (single-direction binding). Inside a
+                            // page this handler IS that shell.
+                            // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
+                            // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
+                            onItemClicked: (index) => {
+                                if (index >= 0 && index < root.navPanelModel.length)
+                                    currentIndex = index
+                            }
                         }
                     }
                 }
                 ComponentCard {
                     label: "NavigationView (expanded)"
                     Rectangle {
+                        // Tall enough that 5 rows plus the pinned bottom item fit
+                        // without overflow: otherwise the scroll fade dims the top row.
+                        // 高度足以让 5 行加底部固定项不溢出, 否则滚动渐隐会把首行压暗。
                         width: 240
-                        height: 300
+                        height: 340
                         radius: Fluent.Enums.radius.large
                         color: Fluent.Enums.surfaceColor
                         border.width: Fluent.Enums.border.thin
@@ -196,6 +209,10 @@ Item {
                             bottomItems: [
                                 { "text": "Account", "icon": root.iconPath("Person"), "selectable": false }
                             ]
+                            onItemClicked: (index) => {
+                                if (index >= 0 && index < root.navPanelModel.length)
+                                    currentIndex = index
+                            }
                         }
                     }
                 }
@@ -213,6 +230,10 @@ Item {
                             width: parent.width
                             height: parent.height
                             model: root.navPanelScrollModel
+                            onItemClicked: (index) => {
+                                if (index >= 0 && index < root.navPanelScrollModel.length)
+                                    currentIndex = index
+                            }
                         }
                     }
                 }
