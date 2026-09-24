@@ -170,6 +170,31 @@ def test_teaching_tour_keeps_state_reset_timer_modularized():
     assert "repeat: false" in helper_source
     assert "onTriggered: if (!host._active) host._currentIndex = -1" in helper_source
 
+def test_teaching_tour_keeps_mask_surface_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Overlay/TeachingTour.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Overlay/_internal/"
+        "TeachingTourMaskSurface.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 365
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 200
+    assert "OverlayInternal.TeachingTourMaskSurface {" in source
+    assert "host: control" in source
+    # The mask-free scrim lives in the helper, not in the entry
+    # 无遮罩蒙层属于助手文件, 不属于入口
+    assert "Shape {" not in source
+    assert "PathArc {" not in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "teachingTourMaskSurface"' in helper_source
+    assert "preferredRendererType: Shape.CurveRenderer" in helper_source
+    assert helper_source.count("PathArc {") == 4
+
 def test_chart_data_zoom_keeps_drag_end_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/Chart/ChartDataZoom.qml"
