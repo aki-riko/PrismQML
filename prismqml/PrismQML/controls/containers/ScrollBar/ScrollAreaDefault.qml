@@ -257,6 +257,12 @@ Item {
         for (var i = rootItem.children.length - 1; i >= 0; i--) {
             var child = rootItem.children[i]
             if (!child || !child.visible) continue
+            // A nested scroll surface that does not own this axis must not be
+            // descended into: its inner Flickable carries no orientation property,
+            // so a foreign-axis overflow would otherwise be adopted as a target.
+            // 声明不支持当前轴的嵌套滚动面不得继续下钻: 其内部 Flickable 没有
+            // orientation 属性, 否则另一轴的溢出会被误当成滚动目标。
+            if (!_supportsScrollAxis(child, horizontal)) continue
             var pt = rootItem.mapToItem(child, mouseX, mouseY)
             if (pt.x < 0 || pt.y < 0 || pt.x > child.width || pt.y > child.height) continue
             // Prefer recursing into a deeper hit 优先递归命中更深层
