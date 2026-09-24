@@ -226,8 +226,15 @@ Item {
             .replace(/'/g, '&#39;')
     }
 
-    // When _hits changes reset cursor to 0 (in sync with query) 当 _hits 变化时,重置光标到 0 (跟 query 输入一致)
-    on_HitsChanged: reset()
+    // Reset follows the *semantic* inputs: a new query or a replaced result set puts
+    // the cursor back on the top hit. An incidental re-ranking with the same inputs
+    // (a host reading implicitHeight, for example) must not steal the cursor, or
+    // arrow navigation is silently undone before Enter.
+    // 重置跟随语义输入: 新查询或结果集被替换时把光标收回首个命中。相同输入下的偶然
+    // 重新排名(例如宿主读取隐式高度)不得夺走光标, 否则方向键移动会在回车前被静默撤销。
+    onQueryChanged: reset()
+    onEntriesChanged: reset()
+    on_HitsChanged: if (control._itemCursor >= hitCount) reset()
     // Row layout changes when grouping toggles 分组开关变化会改变行布局
     onSectionHeadersChanged: reset()
     // The ListView may rewrite currentIndex while the row model resettles 行模型重建期间 ListView 可能改写 currentIndex

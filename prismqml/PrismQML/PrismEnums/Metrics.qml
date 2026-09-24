@@ -337,6 +337,8 @@ QtObject {
  readonly property int bottomTabBarHeight: 56 // BottomTabBar height 底部导航栏高度
  readonly property int tabBarHeight: Math.max(40, root.touchTargetFloor) // TabBar height
  readonly property int tabBarVerticalWidth: 200 // Vertical TabBar strip width 纵向标签条宽度
+ readonly property int commandPaletteWidth: 560 // CommandPalette panel width 命令面板宽度
+ readonly property real commandPaletteTopRatio: 0.18 // CommandPalette upper-third placement ratio 命令面板上三分之一位置比例
  readonly property int segmentedHeight: Math.max(36, root.touchTargetFloor) // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
  readonly property int segmentedToolSize: Math.max(36, root.touchTargetFloor) // Segmented tool item size 分段工具项尺寸
