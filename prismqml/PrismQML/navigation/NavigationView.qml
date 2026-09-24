@@ -117,6 +117,9 @@ NavigationPanelCore {
         }
     }
 
+    onItemCountChanged: Qt.callLater(control._initIndicatorPosition)
+    onBottomItemCountChanged: Qt.callLater(control._initIndicatorPosition)
+
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navPanelExpandWidth
     implicitHeight: parent ? parent.height : 400
@@ -342,7 +345,7 @@ NavigationPanelCore {
         Repeater {
             id: bottomRep
             model: control._safeBottomItems
-            
+
             delegate: NavigationViewItem {
                 readonly property bool itemVisible: !modelData || modelData.visible !== false
 

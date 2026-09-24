@@ -6,12 +6,10 @@ import QtQuick
 import ".."
 import "../controls/navigation/_internal"
 import "_internal"
-
 // NavigationPanelCore - Base class for navigation panels 导航面板基类
 // Provides common navigation logic: indicator animation, top/bottom items, route mapping 提供公共导航逻辑：指示器动画、上下项、路由映射
 Item {
     id: control
-    
     // ==================== Public Props 公开属性 ====================
     property int currentIndex: 0
     property var model: []
@@ -21,7 +19,6 @@ Item {
     property bool ticketPaperEnabled: true
     property real paperOriginX: 0
     property real paperOriginY: 0
-    
     // Acrylic effect control 亚克力效果控制
     property bool acrylicEnabled: false
     property string acrylicImageSource: ""
@@ -330,8 +327,6 @@ Item {
             _prevIndex = currentIndex
             return
         }
-
-
         var prevItem = _getItemAt(_prevIndex)
         if (prevItem && control._isNavigationItemVisible(prevItem)) {
             var startRect = _computeIndicatorRect(prevItem)
@@ -375,13 +370,19 @@ Item {
             item = _getItemAt(currentIndex)
             _prevIndex = currentIndex
         }
+        if (!item) {
+            control._indicatorVisible = false
+            navIndicator.stopAnimation()
+            return false
+        }
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
             navIndicator.stopAnimation()
-            return
+            return true
         }
         var rect = _computeIndicatorRect(item)
         navIndicator.setGeometry(rect)
+        return true
     }
 
     onCurrentIndexChanged: {
@@ -420,12 +421,12 @@ Item {
     // Initialize indicator after component loaded 组件加载后初始化指示器
     Component.onCompleted: {
         // Delay init to ensure layout is complete 延迟初始化以确保布局完成
-        _initTimer.start()
+        _initTimer.armInitialization()
     }
 
     // Re-init when model changes 模型变化时重新初始化
     onModelChanged: {
-        _initTimer.restart()
+        _initTimer.armInitialization()
     }
 
     // ==================== Content 内容 ====================
@@ -459,7 +460,6 @@ Item {
         z: (control._currentKey !== "" || navIndicator.running)
             ? (Enums.zIndex.controlsAbove + 1)
             : (Enums.zIndex.controls - 1)
-
         SlidingIndicator {
             id: navIndicator
             x: control.indicatorX

@@ -108,7 +108,7 @@ NavigationPanelCore {
             Repeater {
                 id: topRep
                 model: control._safeModel
-                
+
                 delegate: NavigationBarItem {
                     readonly property bool itemVisible: !modelData || modelData.visible !== false
 
@@ -170,7 +170,7 @@ NavigationPanelCore {
         Repeater {
             id: bottomRep
             model: control._safeBottomItems
-            
+
             delegate: NavigationBarItem {
                 readonly property bool itemVisible: !modelData || modelData.visible !== false
 

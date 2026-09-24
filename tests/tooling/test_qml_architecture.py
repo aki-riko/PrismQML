@@ -441,7 +441,9 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "host._updateIndicatorPositionRealtime()" in tracker_source
     assert "tracker._scrolling = false" in scroll_stop_source
     assert "Enums.duration.fast" in scroll_stop_source
-    assert "interval: Enums.duration.none" in init_source
+    assert "interval: _retrying ? Enums.duration.slow : Enums.duration.none" in init_source
+    assert "function armInitialization()" in init_source
+    assert "Enums.duration.notification" in init_source
     assert "host._initIndicatorPosition()" in init_source
     assert "\n    Timer {" not in source
 

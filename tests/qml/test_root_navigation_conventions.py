@@ -81,6 +81,35 @@ def test_navigation_view_routes_expand_and_real_click(navigation_scene):
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
+
+def test_navigation_view_reinitializes_indicator_after_delegate_creation(navigation_scene):
+    """A late Repeater delegate must recover the initial indicator.
+
+    异步 Repeater 委托晚于面板创建时, 初始指示器仍必须恢复。
+    """
+    window, items, warnings, windows_before = navigation_scene
+    view = items["navigationView"]
+    indicator = _component_items(view, "SlidingIndicator")[0]
+
+    view.setProperty("bottomItems", [])
+    view.setProperty("model", [])
+    _pump()
+    assert view.property("_indicatorVisible") is False
+
+    view.setProperty(
+        "model",
+        [
+            {"key": "late-home", "text": "Late Home"},
+            {"key": "late-docs", "text": "Late Docs"},
+        ],
+    )
+    assert _wait_for(lambda: view.property("_indicatorVisible"))
+    visual = _indicator_visual(indicator)
+    assert visual.width() > 0
+    assert visual.height() > 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
 def test_navigation_bar_and_toggle_indicator_geometry(navigation_scene):
     window, items, warnings, windows_before = navigation_scene
     bar = items["navigationBar"]
