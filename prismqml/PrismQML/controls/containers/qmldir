@@ -37,6 +37,7 @@ ScrollBarEntry ScrollBar/ScrollBarEntry.qml
 ScrollBar ScrollBar/ScrollBar.qml
 ScrollArea ScrollArea.qml
 Flickable Flickable.qml
+RefreshContainer RefreshContainer.qml
 
 # Separator 分隔线
 Separator Separator/Separator.qml

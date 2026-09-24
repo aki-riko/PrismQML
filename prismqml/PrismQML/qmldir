@@ -45,6 +45,7 @@ CloseButton controls/buttons/CloseButton.qml
 
 # ==================== Containers 容器 ====================
 Widget controls/containers/Widget.qml
+RefreshContainer controls/containers/RefreshContainer.qml
 CommandBar controls/containers/CommandBar/CommandBarEntry.qml
 ComponentCard controls/containers/ComponentCard.qml
 DropZone controls/containers/DropZone.qml
