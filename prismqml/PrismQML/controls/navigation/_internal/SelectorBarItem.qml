@@ -45,6 +45,19 @@ Item {
     width: Math.max(Enums.controlSize.selectorBarMinItemWidth,
                     itemContent.implicitWidth + Enums.spacing.l * 2)
     height: _vertical ? Enums.controlSize.selectorBarHeight : selectorBar.height
+    // The selected cell owns the pill geometry, so it re-syncs whenever its own box
+    // settles. This is what makes the pill appear when delegates arrive late, e.g.
+    // inside an asynchronously incubated gallery page.
+    // 选中单元负责胶囊几何, 因此自身几何落定后重新同步。委托晚到(例如图库页异步孵化)时,
+    // 胶囊正是靠这里出现的。
+    onSelectedChanged: if (selected) selectorBar._schedulePillSync(false)
+    onWidthChanged: if (selected) selectorBar._schedulePillSync(false)
+    onXChanged: if (selected) selectorBar._schedulePillSync(false)
+    // Cross-axis triggers are vertical-only so horizontal stays untouched
+    // 副轴触发仅在纵向启用, 横向行为保持不变
+    onHeightChanged: if (selected && _vertical) selectorBar._schedulePillSync(false)
+    onYChanged: if (selected && _vertical) selectorBar._schedulePillSync(false)
+    Component.onCompleted: if (selected) selectorBar._schedulePillSync(false)
 
     // ==================== Content 内容 ====================
     // Hover/Press background for non-selected items 非选中项的悬停/按下背景

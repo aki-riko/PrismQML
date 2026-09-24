@@ -103,12 +103,14 @@ Fluent.SelectorBar {
 | `currentItemChanged(key)` | Selected key changed |
 | `setCurrentIndex(idx) / setCurrentItem(key)` | Programmatic selection; out-of-range or unknown values are ignored |
 | `addItem(key, text, icon) / getCurrentKey()` | Append an item / read the current key |
-| `revealCurrent()` | Scroll the selected cell into view (also runs on selection change) |
+| `revealCurrent()` | Scroll the selected cell into view (also runs on selection change; minimal scroll, cell-boundary aligned) |
 
-A horizontal strip scrolls when it does not fit: the selected cell is scrolled into view,
-and the wheel or a drag pans the strip. Wheel ownership matches `TabBar` — an overflowing
-strip consumes the wheel itself, while a strip that fits never competes and lets the wheel
-reach the page scroll area. A vertical strip does not scroll and is sized to its content.
+A horizontal strip scrolls when it does not fit: the selected cell is scrolled into view by the
+smallest amount that fits it, preferring a cell boundary as the leading edge so the strip never
+leaves a half-cut label behind. The wheel or a drag pans the strip. Wheel ownership matches
+`TabBar` — an overflowing strip consumes the wheel itself, while a strip that fits never competes
+and lets the wheel reach the page scroll area. A vertical strip does not scroll and is sized to
+its content.
 
 ## TabBar / TabWidget
 

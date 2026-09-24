@@ -347,35 +347,38 @@ Item {
                         color: Fluent.Enums.textColor.secondary
                     }
 
-                    Row {
-                        spacing: Fluent.Enums.spacing.l
-
-                        ComponentCard {
-                            label: "orientation: Qt.Vertical"
-                            SelectorBar {
-                                objectName: "gallerySelectorBarVertical"
-                                orientation: Qt.Vertical
-                                items: [
-                                    { key: "overview", text: "Overview" },
-                                    { key: "activity", text: "Activity" },
-                                    { key: "about", text: "About" }
-                                ]
-                            }
+                    // Stacked, not side by side: each demo keeps its own caption line and
+                    // no strip bleeds into a neighbour's column.
+                    // 纵向堆叠而非并排: 每个示例各自成行, 条带不会侵入相邻示例的列。
+                    ComponentCard {
+                        label: "orientation: Qt.Vertical"
+                        SelectorBar {
+                            objectName: "gallerySelectorBarVertical"
+                            orientation: Qt.Vertical
+                            items: [
+                                { key: "overview", text: "Overview" },
+                                { key: "activity", text: "Activity" },
+                                { key: "about", text: "About" }
+                            ]
                         }
+                    }
 
-                        ComponentCard {
-                            label: "width: 200 (overflow)"
-                            SelectorBar {
-                                objectName: "gallerySelectorBarNarrow"
-                                width: 200
-                                items: [
-                                    { key: "overview", text: "Overview" },
-                                    { key: "activity", text: "Activity" },
-                                    { key: "settings", text: "Settings" },
-                                    { key: "about", text: "About" },
-                                    { key: "extra", text: "Extra" }
-                                ]
-                            }
+                    // Exactly two whole cells wide, so the resting state never shows a
+                    // half-cut label; selecting a far cell scrolls the least amount that
+                    // fits it.
+                    // 宽度正好两整格, 因此静止状态不会出现半截标签; 选远端项时按最小滚动量移入。
+                    ComponentCard {
+                        label: "width: 272 (overflow)"
+                        SelectorBar {
+                            objectName: "gallerySelectorBarNarrow"
+                            width: 272
+                            items: [
+                                { key: "overview", text: "Overview" },
+                                { key: "activity", text: "Activity" },
+                                { key: "settings", text: "Settings" },
+                                { key: "about", text: "About" },
+                                { key: "extra", text: "Extra" }
+                            ]
                         }
                     }
                 }
