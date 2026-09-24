@@ -98,10 +98,15 @@ OverlayDialogCore {
         control.commandTriggered(key, entry)
     }
 
-    // Modal in-window surface: the scrim dismisses, everything else stays on the panel
-    // 模态页内浮层: 遮罩负责关闭, 其余交互都留在面板上
+    // Modal in-window surface: the scrim dismisses, everything else stays on the panel.
+    // The scrim token matches the dialog family (skin-aware dialogOverlay) instead of
+    // the global maskHeavy, so a local SkinScope keeps the palette in the same darkness
+    // as ConfirmDialog/MessageBox.
+    // 模态页内浮层: 遮罩负责关闭, 其余交互留在面板上。遮罩取与对话框家族一致的
+    // 皮肤感知 dialogOverlay(而非全局 maskHeavy), 这样局部 SkinScope 下面板的明暗
+    // 与 ConfirmDialog/MessageBox 一致。
     dismissOnScrimClick: true
-    maskColor: Enums.stateColor.maskHeavy
+    maskColor: control._skin.stateColor.dialogOverlay
 
     // ==================== Content 内容 ====================
     Shortcut {
@@ -153,13 +158,14 @@ OverlayDialogCore {
             Enums.controlSize.commandPaletteWidth,
             Math.max(Enums.controlSize.menuMinWidth, parent.width - Enums.spacing.xxl * 2))
         height: Math.min(
-            body.implicitHeight + Enums.border.thin * 2,
+            body.implicitHeight + control._skin.border.thin * 2,
             Math.max(Enums.controlSize.inputHeight * 3, parent.height - Enums.spacing.xxl * 2))
-        radius: Enums.radius.large
-        color: Enums.dialogColor
-        border.width: Enums.border.thin
-        border.color: Enums.borderColor
-        shadowLevel: Enums.shadow.level28
+        radius: control._skin.surfaceRadius(control._skin.radius.dialog)
+        color: control._skin.dialogColor
+        border.width: control._skin.surfaceBorderWidth(control._skin.border.thin)
+        border.color: control._skin.stateColor.dialogBorder
+        shadowLevel: control._skin.shadow.level28
+        shadowVisible: control._skin.usesSoftElevation
 
         // Swallow clicks and wheel so they never reach the scrim or the page below
         // 吞掉点击与滚轮, 不让它们穿到遮罩或下层页面
@@ -174,7 +180,7 @@ OverlayDialogCore {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Enums.border.thin
+            anchors.margins: control._skin.border.thin
 
             // Search row 搜索行
             Item {
@@ -189,7 +195,7 @@ OverlayDialogCore {
                     anchors.verticalCenter: parent.verticalCenter
                     icon: Enums.icon.search
                     iconSize: Enums.iconSize.m
-                    color: Enums.textColor.secondary
+                    color: control._skin.textColor.secondary
                 }
 
                 LineEdit {
@@ -208,8 +214,8 @@ OverlayDialogCore {
 
             Rectangle {
                 width: parent.width
-                height: Enums.border.thin
-                color: Enums.dividerColor
+                height: control._skin.border.thin
+                color: control._skin.stateColor.divider
             }
 
             // Ranked, highlighted, grouped results 排名/高亮/分组结果
@@ -241,8 +247,8 @@ OverlayDialogCore {
 
             Rectangle {
                 width: parent.width
-                height: Enums.border.thin
-                color: Enums.dividerColor
+                height: control._skin.border.thin
+                color: control._skin.stateColor.divider
                 visible: footerRow.visible
             }
 
@@ -259,7 +265,7 @@ OverlayDialogCore {
                     anchors.verticalCenter: parent.verticalCenter
                     type: Enums.label.type_caption
                     text: control.hintText
-                    color: Enums.textColor.secondary
+                    color: control._skin.textColor.secondary
                 }
             }
         }

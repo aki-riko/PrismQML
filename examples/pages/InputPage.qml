@@ -486,7 +486,72 @@ Item {
                     }
                 }
             }
-            
+
+            // Swipe actions 滑动操作: drag a row sideways to reveal actions
+            ExampleCard {
+                title: "SwipeControl"
+                description: "Swipe / drag a row to reveal actions"
+                Column {
+                    spacing: Enums.spacing.s
+
+                    SwipeControl {
+                        width: 420
+                        height: 52
+                        leftActions: [
+                            { key: "flag", text: "Flag", icon: iconPath("Flag"), level: Enums.statusLevel.info }
+                        ]
+                        rightActions: [
+                            { key: "archive", text: "Archive", icon: iconPath("Archive"), level: Enums.statusLevel.warning },
+                            { key: "delete", text: "Delete", icon: iconPath("Delete"), level: Enums.statusLevel.error }
+                        ]
+                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            Fluent.Label {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Enums.spacing.m
+                                anchors.verticalCenter: parent.verticalCenter
+                                type: Enums.label.type_body
+                                text: "Flag / Archive / Delete this row"
+                            }
+                        }
+                    }
+
+                    SwipeControl {
+                        width: 420
+                        height: 52
+                        rightActions: [
+                            { key: "mail", text: "Mail", icon: iconPath("Mail"), level: Enums.statusLevel.success }
+                        ]
+                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            Fluent.Label {
+                                anchors.left: parent.left
+                                anchors.leftMargin: Enums.spacing.m
+                                anchors.verticalCenter: parent.verticalCenter
+                                type: Enums.label.type_body
+                                text: "One action on the right only"
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: swipeStatus
+                        text: "No swipe action yet"
+                        font.pixelSize: Enums.typography.caption
+                        color: Enums.textColor.secondary
+                        font.family: Enums.fontFamily
+                    }
+                }
+            }
+
         }
     }
     

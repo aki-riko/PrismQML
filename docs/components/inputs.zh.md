@@ -82,6 +82,30 @@ Fluent.SpinBox {
 - `PinInput` — 验证码/PIN 分格输入
 - `BeforeAfterSlider` — 图片对比滑块
 
+## SwipeControl 滑动操作
+
+内容横向拖拽露出两侧操作按钮：拖过一半松手吸附到展开位，否则收回；点操作发 `actionTriggered(key, side)` 并收回；展开状态下点内容也会收回。鼠标与触摸走同一个 `DragHandler`，因此桌面端同样可用。
+
+```qml
+Fluent.SwipeControl {
+    width: 420; height: 52
+    leftActions: [
+        { key: "flag", text: "Flag", icon: <path>, level: Enums.statusLevel.info }
+    ]
+    rightActions: [
+        { key: "archive", text: "Archive", icon: <path>, level: Enums.statusLevel.warning },
+        { key: "delete", text: "Delete", icon: <path>, level: Enums.statusLevel.error }
+    ]
+    onActionTriggered: (key, side) => runAction(key, side)
+
+    Rectangle { anchors.fill: parent }   // 内容走默认属性
+}
+```
+
+- `actionWidth` 单个操作宽度（默认 `Enums.controlSize.swipeActionWidth`）；`enabled: false` 的操作不可点且半透明。
+- 按钮底色按 `level` 取 `Enums.statusLevel.getColorByLevel`，文字图标用 `Enums.accentForeground`。
+- 命令式开合：`open("left")` / `open("right")` / `close()`，状态读 `isOpen` / `openSide`。
+
 ## 皮肤适配
 
 新粗野下：输入框白底黑粗边，**聚焦时边框 + 硬阴影转橙**；复选框/单选/开关为黑粗边 + 橙选中态。
