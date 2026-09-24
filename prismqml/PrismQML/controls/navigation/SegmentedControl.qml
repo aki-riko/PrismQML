@@ -8,6 +8,8 @@ import "_internal" as NavigationInternal
 
 // SegmentedControl - Segmented control with icon+text support 分段控件
 // Uses HoverHandler to provide stable hover behavior 使用HoverHandler提供稳定的悬停行为
+// orientation picks the main axis; Qt.Horizontal behaves exactly as before
+// orientation 选择主轴; Qt.Horizontal 与之前完全一致
 Rectangle {
     id: control
     
@@ -18,11 +20,14 @@ Rectangle {
     property int itemFontSize: Enums.typography.body
     property int iconSize: Enums.iconSize.m
     property bool showIndicator: true
+    property int orientation: Qt.Horizontal
 
     // ==================== Internal Props 内部属性 ====================
     property real _slideX: 0
+    property real _slideY: 0
     property int _selectedItemWidth: Enums.controlSize.segmentedMinWidth
-    property int _selectedItemHeight: height - Enums.spacing.xxs * 2
+    property int _selectedItemHeight: 0
+    readonly property bool vertical: orientation === Qt.Vertical
     readonly property var _safeItems:
         items === null || items === undefined ? []
         : (typeof items.length === "number" ? items : [])
@@ -44,8 +49,14 @@ Rectangle {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Center the bottom indicator in the selected item 底部指示器居中于选中项
+    // Indicator rect; the cross axis follows the strip, the main axis keeps the
+    // historical geometry. 指示器矩形; 副轴跟随条带, 主轴保持历史几何。
     function _indicatorRect() {
+        if (vertical) {
+            return Qt.rect(_slideX,
+                           _slideY + (_selectedItemHeight - indicatorSize) / 2,
+                           Enums.border.thick, indicatorSize)
+        }
         return Qt.rect(_slideX + (_selectedItemWidth - indicatorSize) / 2,
                        control.height - 3.5,
                        indicatorSize,
@@ -59,11 +70,10 @@ Rectangle {
             return
         }
         var startRect = navIndicator.getIndicatorRect()
-        var nextSlideX = segmentRow.x + item.x
-        var nextItemWidth = item.width || 0
-        _slideX = nextSlideX
-        _selectedItemWidth = nextItemWidth
-        _selectedItemHeight = (item.height || 0) + Enums.spacing.xxs * 2
+        _slideX = segmentRow.x + item.x
+        _slideY = segmentRow.y + item.y
+        _selectedItemWidth = item.width || 0
+        _selectedItemHeight = item.height || 0
         var endRect = _indicatorRect()
         if ((animate || navIndicator.running) && navIndicator._initialized) {
             navIndicator.startAnimation(startRect, endRect)
@@ -101,7 +111,9 @@ Rectangle {
 
     // ==================== Size 尺寸 ====================
     implicitWidth: segmentRow.implicitWidth + Enums.spacing.xs * 2
-    implicitHeight: Enums.controlSize.segmentedHeight
+    implicitHeight: vertical
+        ? segmentRow.implicitHeight + Enums.spacing.xxs * 2
+        : Enums.controlSize.segmentedHeight
 
     // Background 背景
     radius: Enums.surfaceRadius(Enums.radius.small)
@@ -112,31 +124,21 @@ Rectangle {
     Component.onCompleted: slideSyncTimer.schedule(false)
     onItemsChanged: slideSyncTimer.schedule(false)
     onWidthChanged: slideSyncTimer.schedule(false)
+    onOrientationChanged: slideSyncTimer.schedule(false)
     onCurrentIndexChanged: slideSyncTimer.schedule(true)
 
     // ==================== Content 内容 ====================
-    Rectangle {
+    NavigationInternal.SegmentedSelectedBackground {
         id: selectedBg
-        x: control._slideX
-        y: Enums.spacing.xxs
-        width: control._selectedItemWidth
-        height: control.height - Enums.spacing.xxs * 2
-        radius: Enums.surfaceRadius(Enums.radius.small)
-        visible: control._safeItems.length > 0
-        color: Enums.stateColor.segmentedSelected
-        border.width: Enums.surfaceBorderWidth(Enums.border.thin)
-        border.color: Enums.stateColor.segmentedSelectedBorder
-        
-        Behavior on x { NumberAnimation { duration: Enums.duration.normal; easing.type: Easing.OutCubic } }
-        Behavior on width { NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic } }
+        host: control
     }
-    
-    // Bottom indicator with shared horizontal stretch behavior 统一基类的水平橡皮筋粘滞底部指示器
+
+    // Shared sliding indicator; it already owns both axes 统一滑动指示器; 本身已支持双轴
     NavigationInternal.SlidingIndicator {
         id: navIndicator
-        orientation: Qt.Horizontal
-        indicatorWidth: control.indicatorSize
-        indicatorHeight: Enums.border.thick
+        orientation: control.orientation
+        indicatorWidth: control.vertical ? Enums.border.thick : control.indicatorSize
+        indicatorHeight: control.vertical ? control.indicatorSize : Enums.border.thick
         radius: Enums.radius.micro
         visible: control.showIndicator && control._safeItems.length > 0
     }
@@ -148,18 +150,21 @@ Rectangle {
         segmentRow: segmentRow
         itemRepeater: repeater
     }
-    
-    // Items row 项目行
-    Row {
+
+    // Items strip; Flow switches the main axis without a second delegate tree
+    // 项目条带; Flow 切换主轴, 无需第二棵委托树
+    Flow {
         id: segmentRow
+        flow: control.vertical ? Flow.TopToBottom : Flow.LeftToRight
         anchors.centerIn: parent
         spacing: Enums.spacing.none
         onXChanged: slideSyncTimer.schedule(false)
-        
+        onYChanged: slideSyncTimer.schedule(false)
+
         Repeater {
             id: repeater
             model: control._safeItems
-            
+
             NavigationInternal.SegmentedItem {
                 segmentedControl: control
             }

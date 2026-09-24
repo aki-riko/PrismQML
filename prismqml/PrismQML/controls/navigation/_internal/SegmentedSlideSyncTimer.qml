@@ -5,8 +5,8 @@
 import QtQuick
 import "../../.."
 
-// SegmentedSlideSyncTimer - Settle selected-segment geometry after delegate rebuilds
-// SegmentedSlideSyncTimer - 委托重建后稳定选中分段几何
+// SegmentedSlideSyncTimer - Settle selected-segment geometry on the main axis after delegate rebuilds
+// SegmentedSlideSyncTimer - 委托重建后沿主轴稳定选中分段几何
 Timer {
     id: slideSyncTimer
 
@@ -49,8 +49,10 @@ Timer {
             return
         }
 
-        var nextCandidateX = segmentRow.x + item.x
-        var nextCandidateWidth = item.width || 0
+        var nextCandidateX = host.vertical
+            ? segmentRow.y + item.y : segmentRow.x + item.x
+        var nextCandidateWidth = host.vertical
+            ? (item.height || 0) : (item.width || 0)
         if (!candidateReady
                 || candidateX !== nextCandidateX
                 || candidateWidth !== nextCandidateWidth) {

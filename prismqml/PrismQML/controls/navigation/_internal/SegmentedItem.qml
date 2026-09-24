@@ -29,16 +29,25 @@ Item {
     property bool hasText: itemText !== ""
 
     // ==================== Readonly State 只读状态 ====================
+    // Vertical stacks content-sized cells, so the cell height stops depending on
+    // the control height. 纵向堆叠按内容定宽的单元, 单元高度不再取自控件高度。
+    readonly property bool _vertical: segmentedControl.vertical
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
     readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Size 尺寸 ====================
     width: Math.max(Enums.controlSize.segmentedMinWidth, itemContent.implicitWidth + Enums.spacing.l * 2)
-    height: segmentedControl.height - Enums.spacing.xxs * 2
+    height: _vertical
+        ? Enums.controlSize.segmentedHeight - Enums.spacing.xxs * 2
+        : segmentedControl.height - Enums.spacing.xxs * 2
     onSelectedChanged: if (selected) segmentedControl._scheduleSlideSync(false)
     onWidthChanged: if (selected) segmentedControl._scheduleSlideSync(false)
     onXChanged: if (selected) segmentedControl._scheduleSlideSync(false)
+    // Cross-axis triggers are vertical-only so horizontal stays untouched
+    // 副轴触发仅在纵向启用, 横向行为保持不变
+    onHeightChanged: if (selected && _vertical) segmentedControl._scheduleSlideSync(false)
+    onYChanged: if (selected && _vertical) segmentedControl._scheduleSlideSync(false)
     Component.onCompleted: if (selected) segmentedControl._scheduleSlideSync(false)
 
     // ==================== Content 内容 ====================
