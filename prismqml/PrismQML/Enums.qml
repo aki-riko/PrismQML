@@ -157,6 +157,7 @@ Item {
     Button { id: _button; isTicket: root.isVintageTicket }
     Tab { id: _tab }
     CommandBar { id: _commandBar }
+    Navigation { id: _navigation }
     StateColor { id: _stateColor; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; isNeumorphism: root.isNeumorphism; accentColor: root.accentColor; constants: _constants }
     Constants { id: _constants; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; isNeumorphism: root.isNeumorphism }
     Metrics {
@@ -212,6 +213,7 @@ Item {
     readonly property alias button: _button
     readonly property alias tab: _tab
     readonly property alias commandBar: _commandBar
+    readonly property alias navigation: _navigation
     readonly property alias stateColor: _stateColor
     readonly property alias orient: _orient
     readonly property alias flow: _flow

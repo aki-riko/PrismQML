@@ -31,6 +31,29 @@ NavigationView {
 }
 ```
 
+### 面板显示模式
+
+`paneDisplayMode` 让面板自己决定形态，不必再手工设 `isExpanded`：
+
+| 模式 | 行为 |
+|---|---|
+| `Enums.navigation.pane_unspecified`（默认） | 不接管 `isExpanded`，行为与历史完全一致 |
+| `pane_auto` | 面板宽度 ≥ `Enums.controlSize.navPanelExpandWidth` 时展开，否则紧凑 |
+| `pane_left` | 始终展开侧边栏 |
+| `pane_left_compact` | 始终紧凑图标栏 |
+| `pane_left_minimal` | 折叠到只剩菜单按钮；`openPane()` / `togglePane()` 打开后就地展开为图标栏，点菜单按钮即开合 |
+
+```qml
+Fluent.NavigationView {
+    paneDisplayMode: Enums.navigation.pane_auto
+    // pane_left_minimal 时用 isPaneOpen / openPane() / closePane() / togglePane() 控制
+}
+```
+
+设置任一模式后 `isExpanded` 由模式接管（"展开与否"正是模式要决定的事）；只有 `pane_unspecified` 例外，仍归调用方。
+
+顶栏（Top）形态不在 `paneDisplayMode` 范围内：那是窗口外壳的职责，`WindowsBar` 当前用 `NavigationBar` 承载。
+
 ## SegmentedControl / Pivot 分段控件与透视导航
 
 两者共用 `items` 模型（`{ key, text, icon }` 或纯字符串）与 `currentIndex`，默认横向排列：

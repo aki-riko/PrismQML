@@ -17,6 +17,12 @@ NavigationPanelCore {
     // ==================== Public Props 公开属性 ====================
     property bool showReturnButton: true
     property bool isExpanded: false
+    // Pane display mode; pane_unspecified keeps isExpanded fully caller-owned
+    // 面板显示模式; pane_unspecified 时 isExpanded 完全归调用方, 行为与历史一致
+    property int paneDisplayMode: Enums.navigation.pane_unspecified
+    // Minimal mode: the pane stays collapsed to the menu button until opened
+    // 极简模式: 面板折叠到只剩菜单按钮, 打开后就地展开
+    property bool isPaneOpen: false
     property bool smoothScroll: true
     property int scrollDuration: Enums.duration.navigationScroll
     property real scrollStep: Enums.spacing.navigationScrollStep
@@ -33,6 +39,18 @@ NavigationPanelCore {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool isCompact: !isExpanded
+    // Auto picks left while the pane can hold the expanded design width, else compact
+    // 自动模式: 面板宽度装得下展开设计宽度时用 left, 否则用 compact
+    readonly property int effectivePaneDisplayMode: {
+        if (paneDisplayMode !== Enums.navigation.pane_auto) return paneDisplayMode
+        return width >= Enums.controlSize.navPanelExpandWidth
+            ? Enums.navigation.pane_left
+            : Enums.navigation.pane_left_compact
+    }
+    readonly property bool minimalPane:
+        effectivePaneDisplayMode === Enums.navigation.pane_left_minimal
+    // Minimal keeps only the menu button while closed 极简模式关闭时只留菜单按钮
+    readonly property bool itemsVisible: !(minimalPane && !isPaneOpen)
     readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
     // Selected item fade value; pinned bottom items are outside the scroller 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
     readonly property real _selectedItemFade: scrollFade.selectionOpacity(
@@ -61,6 +79,27 @@ NavigationPanelCore {
     }
     function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
     function smoothScrollBy(delta) { topScrollBehavior.scrollBy(delta) }
+    // Minimal-mode pane control 极简模式的面板开合
+    function openPane() { isPaneOpen = true }
+    function closePane() { isPaneOpen = false }
+    function togglePane() { isPaneOpen = !isPaneOpen }
+
+    // ==================== Internal Methods 内部方法 ====================
+    // A display mode owns isExpanded, because "expanded" is exactly what the mode
+    // decides. pane_unspecified opts out and leaves the caller's value untouched.
+    // 显示模式接管 isExpanded —— "展开与否"正是模式要决定的事; pane_unspecified 例外,
+    // 完全不动调用方的值。
+    function _applyPaneDisplayMode() {
+        var mode = effectivePaneDisplayMode
+        if (mode === Enums.navigation.pane_unspecified) return
+        if (mode === Enums.navigation.pane_left) {
+            isExpanded = true
+        } else if (mode === Enums.navigation.pane_left_compact) {
+            isExpanded = false
+        } else if (mode === Enums.navigation.pane_left_minimal) {
+            isExpanded = isPaneOpen
+        }
+    }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.navPanelExpandWidth
@@ -81,10 +120,18 @@ NavigationPanelCore {
     // Indicator clip bottom = scrollable-area edge, so overflow never leaks into the pinned zone 指示器裁剪下界 = 可滚动区底边, 滚动时指示器溢出此处被裁, 不露进底部固定项区。
     indicatorClipBottom: topFlickable.y + topFlickable.height
     // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐
-    indicatorOpacity: control._selectedItemFade
+    // A collapsed minimal pane shows no items, so it shows no indicator either
+    // 极简模式折叠时没有条目, 也就不该有指示器
+    indicatorOpacity: control.itemsVisible
+        ? control._selectedItemFade : Enums.navigationFade.minOpacity
 
     // Forward signal 转发信号
     onCurrentItemChanged: (key) => currentItemUpdated(key)
+
+    onPaneDisplayModeChanged: control._applyPaneDisplayMode()
+    onEffectivePaneDisplayModeChanged: control._applyPaneDisplayMode()
+    onIsPaneOpenChanged: control._applyPaneDisplayMode()
+    Component.onCompleted: control._applyPaneDisplayMode()
 
     // ==================== Content 内容 ====================
     // Return button 返回按钮
@@ -157,7 +204,10 @@ NavigationPanelCore {
             id: menuArea
             anchors.fill: parent
             hoverEnabled: true
-            onClicked: control.toggle()
+            // In minimal mode the button opens the pane; in the other modes the same
+            // gesture is the collapse/expand toggle.
+            // 极简模式下这个按钮负责开合面板; 其它模式里同一个手势就是折叠/展开。
+            onClicked: control.minimalPane ? control.togglePane() : control.toggle()
         }
     }
     
@@ -181,6 +231,9 @@ NavigationPanelCore {
     // Flickable, items past the panel height were clipped and unreachable.
     Flickable {
         id: topFlickable
+        // A collapsed minimal pane hides its items and keeps only the menu button
+        // 极简模式折叠时隐藏条目, 只留菜单按钮
+        visible: control.itemsVisible
         anchors.top: menuBtn.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -257,6 +310,9 @@ NavigationPanelCore {
     // Bottom fixed items 底部固定项
     Item {
         id: bottomLayout
+        // Hidden together with the scrollable items in a collapsed minimal pane
+        // 极简模式折叠时与可滚动条目一起隐藏
+        visible: control.itemsVisible
         height: NavigationLayout.contentHeight(
             control._safeBottomItems,
             Enums.controlSize.navItemHeight,
