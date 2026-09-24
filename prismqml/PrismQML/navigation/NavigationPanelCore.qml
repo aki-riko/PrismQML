@@ -100,30 +100,11 @@ Item {
     readonly property var _safeBottomItems:
         bottomItems === null || bottomItems === undefined ? []
         : (typeof bottomItems.length === "number" ? bottomItems : [])
-    // Rows are created from JS and only join the visual parent tree, so QObject-based
-    // findChildren cannot see them. These counts plus itemAt()/bottomItemAt() are the
-    // sanctioned way for tests, tooling and hosts to read the instantiated rows.
-    // 条目由 JS 创建且只挂进视觉父级树, 基于 QObject 的 findChildren 看不到它们。
-    // 这两个计数与 itemAt()/bottomItemAt() 是测试/工具/宿主读取条目的正式入口。
-    readonly property int itemCount: topRepeater ? topRepeater.count : 0
-    readonly property int bottomItemCount: bottomRepeater ? bottomRepeater.count : 0
 
     // ==================== Signals 信号 ====================
     signal itemClicked(int index)
     signal bottomItemClicked(int index)
     signal currentItemChanged(string key)
-
-    // ==================== Public Methods 公开方法 ====================
-    // Instantiated top row at index, or null 已实例化的顶部条目, 越界返回 null
-    function itemAt(index) {
-        if (!topRepeater || index < 0 || index >= topRepeater.count) return null
-        return topRepeater.itemAt(index)
-    }
-    // Instantiated pinned bottom row at index, or null 已实例化的底部固定条目
-    function bottomItemAt(index) {
-        if (!bottomRepeater || index < 0 || index >= bottomRepeater.count) return null
-        return bottomRepeater.itemAt(index)
-    }
 
     // ==================== Internal Methods 内部方法 ====================
     // Return whether a model item participates in the navigation presentation.
