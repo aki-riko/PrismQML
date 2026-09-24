@@ -490,6 +490,56 @@ Item {
                 }
             }
 
+            // Command palette 命令面板
+            ExampleCard {
+                title: "CommandPalette"
+                description: "Ctrl+K command surface"
+                ComponentCard {
+                    label: "CommandPalette"
+                    Column {
+                        spacing: Fluent.Enums.spacing.m
+                        Button {
+                            text: "Open palette (Ctrl+K)"
+                            onClicked: galleryPalette.open()
+                        }
+                        Text {
+                            id: galleryPaletteStatus
+                            text: "No command ran yet"
+                            font.pixelSize: Fluent.Enums.typography.caption
+                            color: Fluent.Enums.textColor.secondary
+                            font.family: Fluent.Enums.fontFamily
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    // The palette is a modal overlay, so it lives at the page root rather than inside
+    // a card: opening reparents it onto the window content item.
+    // 命令面板是模态浮层, 因此挂在页面根而不是卡片里: 打开时会重挂到窗口内容项。
+    CommandPalette {
+        id: galleryPalette
+        objectName: "galleryCommandPalette"
+        shortcut: "Ctrl+K"
+        placeholderText: "Type a command"
+        hintText: "Up/Down navigate  Enter run  Esc close"
+        items: [
+            { key: "open-file", title: "Open File", subtitle: "Ctrl+O",
+              section: "File", icon: iconPath("FolderOpen") },
+            { key: "save-file", title: "Save File", subtitle: "Ctrl+S",
+              section: "File", icon: iconPath("Save") },
+            { key: "toggle-theme", title: "Toggle Theme", subtitle: "View",
+              section: "View", icon: iconPath("DarkTheme"),
+              keywords: ["dark", "light", "appearance"] },
+            { key: "goto-navigation", title: "Go to Navigation", subtitle: "Go",
+              section: "Navigate", icon: iconPath("Navigation") },
+            { key: "open-settings", title: "Open Settings", subtitle: "Go",
+              section: "Navigate", icon: iconPath("Settings") }
+        ]
+        onCommandTriggered: (key, item) => {
+            galleryPaletteStatus.text = "Ran: " + key
         }
     }
 }

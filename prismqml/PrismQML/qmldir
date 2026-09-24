@@ -122,6 +122,7 @@ Breadcrumb controls/navigation/Breadcrumb.qml
 StackedWidget controls/navigation/StackedWidget.qml
 PageTransition controls/navigation/PageTransition.qml
 NavigationProfileCard controls/navigation/NavigationProfileCard.qml
+CommandPalette controls/navigation/CommandPalette.qml
 
 # navigation (顶层)
 NavigationBar navigation/NavigationBar.qml

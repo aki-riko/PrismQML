@@ -76,6 +76,31 @@ Fluent.TabWidget {
 
 纵向形态的行为：标签行占满列宽、**行高取行高**（`tabWidth` 若设置则作为行高）、标题过长省略、关闭按钮贴右、拖拽沿纵轴重排、添加按钮落在列尾、溢出沿 Y 轴滚动。列宽由 `Enums.controlSize.tabBarVerticalWidth` 决定。
 
+## CommandPalette 命令面板
+
+Ctrl+K 风格的命令面板：模态浮层 + 搜索框 + 排名结果列表。过滤、模糊匹配、分组标题、命中高亮与 ↑↓ 导航复用库内搜索栈（`SearchResultList`），本组件只负责开合、遮罩、焦点与命令派发。
+
+```qml
+Fluent.CommandPalette {
+    id: palette
+    shortcut: "Ctrl+K"                        // 可选全局快捷键, 留空则关闭
+    placeholderText: "输入命令..."
+    hintText: "↑↓ 导航  Enter 执行  Esc 关闭"   // 留空则隐藏底部提示
+    items: [
+        { key: "open-file", title: "打开文件", subtitle: "Ctrl+O",
+          section: "文件", icon: Enums.iconPath + "FolderOpen.svg" },
+        { key: "toggle-theme", title: "切换主题", keywords: ["dark", "light"] }
+    ]
+    onCommandTriggered: (key, item) => runCommand(key)
+}
+```
+
+- **打开**：`open()` / `toggle()`，或 `shortcut` 指定的快捷键；每次打开都会清空查询并把键盘焦点收进搜索框。
+- **关闭**：`Esc`、点击遮罩、`close()`。执行命令时先关闭再发 `onCommandTriggered(key, item)`，宿主拿到的状态已经收敛。
+- **数据**：`items` 每项支持 `key / title / subtitle / icon / section / keywords / enabled`；`section` 非空且 `sectionHeaders` 为真时按分组显示。
+- **文案**：`placeholderText` / `emptyText` / `hintText` 由调用方注入本地化文本，组件内不硬编码。
+- **键路由**：面板打开期间 ↑ / ↓ / Enter / Esc 走窗口级快捷键——焦点在搜索框上，其内部文本输入会先吞掉方向键，事件冒泡不到面板。
+
 ## Breadcrumb 面包屑
 
 层级路径导航。

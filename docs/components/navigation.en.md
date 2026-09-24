@@ -76,6 +76,31 @@ Fluent.TabWidget {
 
 Vertical behaviour: rows fill the column width and take the **row height** (`tabWidth`, when set, becomes the row height), long titles elide, the close button sits at the trailing edge, drag reordering runs along the column, the add button lands at the end of the column, and overflow scrolls on Y. The column width comes from `Enums.controlSize.tabBarVerticalWidth`.
 
+## CommandPalette
+
+A Ctrl+K style command surface: modal overlay + search field + ranked result list. Filtering, fuzzy matching, group headers, match highlighting and ↑↓ navigation are reused from the library's search stack (`SearchResultList`); this component owns only opening, the scrim, focus and command dispatch.
+
+```qml
+Fluent.CommandPalette {
+    id: palette
+    shortcut: "Ctrl+K"                        // optional global shortcut; empty disables it
+    placeholderText: "Type a command..."
+    hintText: "Up/Down navigate  Enter run  Esc close"   // empty hides the footer
+    items: [
+        { key: "open-file", title: "Open File", subtitle: "Ctrl+O",
+          section: "File", icon: Enums.iconPath + "FolderOpen.svg" },
+        { key: "toggle-theme", title: "Toggle Theme", keywords: ["dark", "light"] }
+    ]
+    onCommandTriggered: (key, item) => runCommand(key)
+}
+```
+
+- **Open**: `open()` / `toggle()`, or the `shortcut`. Every open clears the query and takes the keyboard into the search field.
+- **Close**: `Esc`, a scrim click, or `close()`. Running a command closes first and then emits `onCommandTriggered(key, item)`, so the host sees a settled state.
+- **Data**: each `items` entry accepts `key / title / subtitle / icon / section / keywords / enabled`; a non-empty `section` plus `sectionHeaders: true` groups the list.
+- **Copy**: `placeholderText` / `emptyText` / `hintText` are injected by the caller; nothing is hard-coded.
+- **Key routing**: while open, ↑ / ↓ / Enter / Esc are window-level shortcuts — the search field holds the focus and its inner text input swallows arrow keys before they can bubble to the panel.
+
 ## Breadcrumb
 
 Hierarchical path navigation.

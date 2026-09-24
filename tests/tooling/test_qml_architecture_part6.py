@@ -311,6 +311,38 @@ def test_segmented_control_keeps_slide_sync_timer_modularized():
     assert "itemRepeater.itemAt(host.currentIndex)" in helper_source
     assert "host._updateSlidePosition(false)" in helper_source
 
+def test_command_palette_reuses_the_search_stack():
+    entry = _source("prismqml/PrismQML/controls/navigation/CommandPalette.qml")
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 320
+    # Reuse, do not re-implement: filtering, ranking, grouping, highlighting and cursor
+    # movement stay in the shared search stack. 复用而非重写: 过滤/排名/分组/高亮/光标
+    # 移动都留在共享搜索栈里。
+    assert 'import "../inputs/Search/_internal" as SearchInternal' in source
+    assert "SearchInternal.SearchResultList {" in source
+    assert "LineEdit {" in source
+    assert "maxSuggestions: control.maxResults" in source
+    assert "OverlayDialogCore {" in source
+    for marker in ("FuzzyMatcher", "_hits", "_rows", "score"):
+        assert marker not in source
+    # Key routing stays window-level: the search field's TextInput swallows arrow keys
+    # before they can bubble, so Up/Down/Return/Escape are Shortcuts while open.
+    # 键路由留在窗口级: 搜索框的 TextInput 会先吞掉方向键, 因此开启期间用 Shortcut。
+    assert source.count('sequence: "Up"') == 1
+    assert source.count('sequence: "Down"') == 1
+    assert 'sequence: "Return"' in source
+    assert 'sequence: "Escape"' in source
+    assert "Keys.onDownPressed" not in source
+    # Registered in both the sub-module and the root module
+    # 子模块与根模块都要注册
+    assert "CommandPalette CommandPalette.qml" in _source(
+        "prismqml/PrismQML/controls/navigation/qmldir"
+    ).read_text(encoding="utf-8")
+    assert "CommandPalette controls/navigation/CommandPalette.qml" in _source(
+        "prismqml/PrismQML/qmldir"
+    ).read_text(encoding="utf-8")
+
 def test_confetti_keeps_lifecycle_timers_modularized():
     entry = _source("prismqml/PrismQML/controls/feedback/Confetti.qml")
     spawn_helper = _source(
