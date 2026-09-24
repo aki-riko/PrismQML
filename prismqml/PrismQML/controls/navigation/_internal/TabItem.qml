@@ -381,14 +381,15 @@ Item {
     Separator {
         id: separator
 
-        type: tabItem.vertical
-            ? Enums.separator.horizontal : Enums.separator.vertical
-        anchors.right: tabItem.vertical ? undefined : parent.right
-        anchors.verticalCenter: tabItem.vertical ? undefined : parent.verticalCenter
-        anchors.bottom: tabItem.vertical ? parent.bottom : undefined
-        anchors.horizontalCenter: tabItem.vertical ? parent.horizontalCenter : undefined
+        type: Enums.separator.vertical
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
         lineLength: Enums.iconSize.small
         visible: {
+            // Vertical rows separate themselves with the selected surface; the short
+            // tick that works between side-by-side tabs only reads as a stray dash.
+            // 纵向行靠选中底色区分; 并排标签之间那条短竖线放到纵向只会像多余划痕。
+            if (tabItem.vertical) return false
             if (host._dragging) return false
             if (index >= (host._safeTabs || []).length - 1) return false
             if (tabItem.selected) return false

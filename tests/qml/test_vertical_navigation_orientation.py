@@ -567,6 +567,17 @@ def test_vertical_tab_bar_stacks_cells_and_keeps_the_add_button_below(qapp):
         assert bar.property("tabRow").height() == pytest.approx(
             3 * row_height, abs=1.0
         )
+        # Vertical rows carry no divider tick; one would read as a stray dash
+        # 纵向行不带分隔短线; 否则会像一条多余划痕
+        ticks = [
+            node
+            for item in delegates
+            for node in _visual_descendants(item)
+            if node.metaObject().indexOfProperty("lineLength") >= 0
+        ]
+        assert all(not tick.isVisible() for tick in ticks), (
+            "vertical rows must not draw separator ticks"
+        )
         # Only the column is fed a model; the idle row must stay empty
         # 只有竖列拿到模型; 闲置的横向行必须为空
         assert bar.property("tabRepeater").property("count") == 3
