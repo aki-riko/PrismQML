@@ -326,6 +326,10 @@ Item {
                     objectName: "teachingTourMaskCorners"
                     anchors.fill: parent
                     antialiasing: true
+                    // Curve renderer is what actually antialiases Shape geometry here;
+                    // the default geometry renderer leaves the arcs stepped.
+                    // 圆角弧线真正获得抗锯齿靠曲线渲染器; 默认几何渲染器会让弧边出现阶梯。
+                    preferredRendererType: Shape.CurveRenderer
                     visible: control._targetAvailable
 
                     ShapePath {

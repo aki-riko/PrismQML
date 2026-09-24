@@ -368,6 +368,9 @@ def test_tour_components_are_public_and_follow_qml_conventions():
     assert 'objectName: "teachingTourMaskCorners"' in tour_source
     assert 'objectName: "teachingTourMaskScrim"' in tour_source
     assert tour_source.count("PathArc {") == 4
+    # Curved geometry only antialiases with the curve renderer here.
+    # 曲线几何只有用曲线渲染器才有抗锯齿。
+    assert "preferredRendererType: Shape.CurveRenderer" in tour_source
     assert "overlayComponent.createObject(resolvedTarget)" in tour_source
     assert "property color highlightBorderColor: Enums.transparent" in tour_source
     assert "border.width: Enums.border.thin" in tour_source
