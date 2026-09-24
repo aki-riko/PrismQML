@@ -8,9 +8,8 @@ import QtQuick.Window
 import "../../../.."
 
 // DrawerOutsideWindow - Native outside drawer host 外侧抽屉原生承载窗口
-// This HWND never carries a DWM shadow, so the seam side stays free of any shadow band.
-// The drawer paints its own window shadow inside the outward padding instead.
-// 该 HWND 始终不携带 DWM 阴影, 接缝侧因此不会出现阴影带; 抽屉改为在外侧留白内自绘窗口阴影。
+// No DWM shadow on this HWND, so the seam side stays free of any shadow band.
+// 该 HWND 不带 DWM 阴影, 接缝侧因此不会出现阴影带。
 Window {
     id: outsideDrawerWindow
 
@@ -36,8 +35,7 @@ Window {
         ? (control.position === Enums.position.left ? spread : 0) : spread
     readonly property real panelOffsetY: control.isHorizontal
         ? spread : (control.position === Enums.position.top ? spread : 0)
-    // Revealed extent along the host edge, plus the clip origin per position
-    // 沿宿主边显露的范围, 以及各位置对应的裁剪原点
+    // Revealed extent along the host edge 沿宿主边显露的范围
     readonly property real clipExtent: control.isHorizontal
         ? Math.min(control._outsideExtent, panelWidth)
         : Math.min(control._outsideExtent, panelHeight)
@@ -77,24 +75,28 @@ Window {
     Component.onDestruction: control._unregisterOutsideWindow()
 
     // ==================== Content 内容 ====================
-    // The HWND has no DWM shadow; this is the drawer's only outward shadow
-    // 该 HWND 没有 DWM 阴影, 这里是抽屉唯一的外侧阴影
     RectangularShadow {
         id: outsideDrawerShadow
 
-        // The shadow silhouette retracts from the seam: its bands then fade out inside the
-        // window instead of being cut off at the host border. Fade length = retract - blur,
-        // so two blur radii guarantee a band that reaches zero before the seam.
-        // 阴影轮廓从接缝侧内收: 阴影像带因此在窗口内自然淡出, 而不是被宿主边界切断。
-        // 淡出长度 = 内收量 - 模糊半径, 取 2 倍模糊可保证像带在接缝前已衰减到 0。
-        readonly property real retract: 2 * Enums.shadow.windowOutside.blur
+        // Seam-side corners take a large radius (instead of retracting the silhouette), so
+        // the bands keep the panel's full width yet decay to zero at the host border.
+        // 接缝侧两角用大半径(而不是整块内收): 像带保持面板满宽, 在宿主边界处衰减到 0。
+        readonly property real seamFade: 2 * Enums.shadow.windowOutside.blur
 
         anchors.fill: outsideDrawerViewport
-        anchors.leftMargin: control.position === Enums.position.right ? retract : 0
-        anchors.rightMargin: control.position === Enums.position.left ? retract : 0
-        anchors.topMargin: control.position === Enums.position.bottom ? retract : 0
-        anchors.bottomMargin: control.position === Enums.position.top ? retract : 0
-        radius: outsideDrawerPanel.radius
+        radius: Enums.radius.none
+        topLeftRadius: control.position === Enums.position.right
+            || control.position === Enums.position.bottom
+            ? seamFade : outsideDrawerPanel.radius
+        topRightRadius: control.position === Enums.position.left
+            || control.position === Enums.position.bottom
+            ? seamFade : outsideDrawerPanel.radius
+        bottomLeftRadius: control.position === Enums.position.right
+            || control.position === Enums.position.top
+            ? seamFade : outsideDrawerPanel.radius
+        bottomRightRadius: control.position === Enums.position.left
+            || control.position === Enums.position.top
+            ? seamFade : outsideDrawerPanel.radius
         // Blur must stay inside the reserved padding or the shadow gets clipped
         // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
         blur: Enums.shadow.windowOutside.blur
