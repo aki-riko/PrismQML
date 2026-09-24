@@ -340,6 +340,8 @@ QtObject {
  readonly property int commandPaletteWidth: 560 // CommandPalette panel width 命令面板宽度
  readonly property real commandPaletteTopRatio: 0.18 // CommandPalette upper-third placement ratio 命令面板上三分之一位置比例
  readonly property int swipeActionWidth: 72 // SwipeControl revealed action width 滑动操作宽度
+ readonly property int refreshPullThreshold: 64 // RefreshContainer pull distance to refresh 下拉刷新触发距离
+ readonly property int refreshIndicatorSize: 28 // RefreshContainer indicator size 下拉刷新指示器尺寸
  readonly property int segmentedHeight: Math.max(36, root.touchTargetFloor) // SegmentedControl height
  readonly property int segmentedMinWidth: 60 // SegmentedControl item min width 分段项最小宽度
  readonly property int segmentedToolSize: Math.max(36, root.touchTargetFloor) // Segmented tool item size 分段工具项尺寸
