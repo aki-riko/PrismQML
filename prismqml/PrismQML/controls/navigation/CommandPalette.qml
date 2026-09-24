@@ -147,6 +147,7 @@ OverlayDialogCore {
 
     ShadowedRectangle {
         id: panel
+        objectName: "commandPalettePanel"
 
         anchors.horizontalCenter: parent.horizontalCenter
         // Upper-third placement, Fluent's spot for a command surface
@@ -166,6 +167,30 @@ OverlayDialogCore {
         border.color: control._skin.stateColor.dialogBorder
         shadowLevel: control._skin.shadow.level28
         shadowVisible: control._skin.usesSoftElevation
+
+        // Enter/exit motion matches the dialog family (DialogBoxCore): fade plus a
+        // slight scale, with the overlay staying alive until the close animation ends.
+        // 进出动画与对话框家族(DialogBoxCore)一致: 淡入淡出 + 轻微缩放; 关闭时整个浮层
+        // 保留到动画结束才隐藏。
+        scale: control._isOpen ? 1 : 0.9
+        opacity: control._isOpen ? 1 : 0
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: control._skin.duration.medium
+                easing.type: control._isClosing ? Easing.InBack : Easing.OutBack
+            }
+        }
+        Behavior on opacity {
+            NumberAnimation {
+                duration: control._skin.duration.medium
+                onRunningChanged: {
+                    // Hide the overlay once the close animation has finished
+                    // 关闭动画结束后再收起整个浮层
+                    if (!running && control._isClosing) control._isClosing = false
+                }
+            }
+        }
 
         // Swallow clicks and wheel so they never reach the scrim or the page below
         // 吞掉点击与滚轮, 不让它们穿到遮罩或下层页面

@@ -7,6 +7,7 @@
 import time
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -322,6 +323,52 @@ def test_palette_escape_and_scrim_click_dismiss(qapp):
         )
         assert _wait_for(lambda: palette.property("isOpen") is False)
         assert window.property("triggerCount") == 0
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_palette_animates_in_and_out(qapp):
+    """The panel must fade/scale in and out like the dialog family.
+
+    面板必须像对话框家族一样淡入淡出 + 缩放进出。
+    """
+    engine, component, window, warnings = _create_scene(qapp)
+    try:
+        palette = _palette(window)
+        panel = window.findChild(QObject, "commandPalettePanel")
+        assert panel is not None, "palette panel not found"
+        # Closed: fully transparent and scaled down 关闭时全透明且缩到下位
+        assert panel.property("opacity") == pytest.approx(0, abs=0.01)
+        assert panel.property("scale") < 1
+
+        window.openPalette()
+        # Read immediately: without an enter transition the panel would already be at
+        # full opacity. 立刻读: 没有入场过渡时它已经完全不透明。
+        assert panel.property("opacity") < 1, (
+            "panel appeared instantly (no enter animation)"
+        )
+        assert _wait_for(
+            lambda: panel.property("opacity") == pytest.approx(1, abs=0.01)
+        ), "panel never reached full opacity"
+        assert _wait_for(
+            lambda: panel.property("scale") == pytest.approx(1, abs=0.01)
+        ), "panel never reached full scale"
+
+        window.closePalette()
+        assert palette.property("isOpen") is False
+        # The overlay stays alive for the exit animation, and the panel is on its way
+        # out a moment later. 退出动画期间浮层保持存活, 稍后读取面板正在淡出。
+        assert palette.isVisible() is True, (
+            "overlay hid before the exit animation could run"
+        )
+        _pump(40)
+        assert panel.property("opacity") < 1, (
+            "panel vanished instantly (no exit animation)"
+        )
+        assert _wait_for(lambda: palette.isVisible() is False), (
+            "overlay stayed visible after the exit animation"
+        )
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
