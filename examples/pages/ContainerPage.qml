@@ -293,6 +293,83 @@ Item {
                     DropZone { width: 220; height: 120 }
                 }
             }
+
+            // Pull to refresh 下拉刷新
+            ExampleCard {
+                title: "RefreshContainer"
+                description: "Pull down from the top of the list to refresh"
+                Row {
+                    spacing: Fluent.Enums.spacing.l
+
+                    ComponentCard {
+                        label: "pullThreshold: default"
+                        RefreshContainer {
+                            id: refreshDemo
+                            objectName: "refreshDemo"
+                            width: 300
+                            height: 220
+                            // Host contract: the container sets refreshing and the host
+                            // must clear it when the work is done.
+                            // 宿主契约: 容器置刷新中, 宿主完成后必须置回。
+                            onRefreshRequested: refreshDemoTimer.restart()
+                            ListView {
+                                id: refreshDemoList
+                                objectName: "refreshDemoList"
+                                anchors.fill: parent
+                                clip: true
+                                model: 12
+                                delegate: Rectangle {
+                                    width: ListView.view.width
+                                    height: 36
+                                    color: index % 2 === 0 ? Fluent.Enums.surfaceColor : Fluent.Enums.cardColor
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: Fluent.Enums.spacing.m
+                                        text: "item " + (index + 1)
+                                        font.family: Fluent.Enums.fontFamily
+                                        font.pixelSize: Fluent.Enums.typography.body
+                                        color: Fluent.Enums.textColor.primary
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
+                        spacing: Fluent.Enums.spacing.s
+                        Text {
+                            text: "refreshing: " + refreshDemo.refreshing
+                            font.family: Fluent.Enums.fontFamily
+                            font.pixelSize: Fluent.Enums.typography.body
+                            color: Fluent.Enums.textColor.secondary
+                        }
+                        Text {
+                            text: "armed: " + refreshDemo.armed
+                            font.family: Fluent.Enums.fontFamily
+                            font.pixelSize: Fluent.Enums.typography.body
+                            color: Fluent.Enums.textColor.secondary
+                        }
+                        Text {
+                            text: "progress: " + Math.round(refreshDemo.progress * 100) + "%"
+                            font.family: Fluent.Enums.fontFamily
+                            font.pixelSize: Fluent.Enums.typography.body
+                            color: Fluent.Enums.textColor.secondary
+                        }
+                        Button {
+                            text: "requestRefresh()"
+                            onClicked: refreshDemo.requestRefresh()
+                        }
+                    }
+                }
+
+                // Simulated host work 模拟宿主工作
+                Timer {
+                    id: refreshDemoTimer
+                    interval: 900
+                    onTriggered: refreshDemo.refreshing = false
+                }
+            }
         }
     }
     
