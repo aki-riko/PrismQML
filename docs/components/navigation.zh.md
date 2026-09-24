@@ -97,6 +97,7 @@ Fluent.SelectorBar {
 | `orientation` | `Qt.Horizontal`（默认）/ `Qt.Vertical`，纵向按内容定宽堆叠 |
 | `itemFontSize / iconSize` | 单元文字与图标尺寸 |
 | `pillAnimationEnabled` | 是否动画滑动胶囊；首次吸附始终不带动画 |
+| `scrollDuration` | 程序化平移时长，默认 `Enums.duration.scroll`（与 TabBar / 滚动区一致） |
 | `scrollable / maxScrollOffset / scrollOffset` | 只读：横向溢出与当前滚动位置 |
 | `itemClicked(index, byUser)` | 用户点击（`byUser` 为 `true`）；编程式选中不发出 |
 | `currentItemChanged(key)` | 选中键变化 |
@@ -105,9 +106,10 @@ Fluent.SelectorBar {
 | `revealCurrent()` | 把选中项滚入可视区（选中变化时自动调用，按最小滚动量并优先对齐单元格边界） |
 
 横向条带在宽度不足时可横向滚动：选中项会自动滚入可视区（最小滚动量，并优先让前缘落在
-单元格边界上，因此不会留下半截标签），滚轮与拖拽平移条带。滚轮归属与 `TabBar` 一致 ——
-溢出时条带自己消费滚轮；未溢出的条带不参与竞争，滚轮原样交给页面滚动区。纵向条带不滚动，
-按内容定高。
+单元格边界上，因此不会留下半截标签），滚轮与拖拽平移条带。程序化位移（滚轮、自动滚入）
+复用仓库的平滑滚动引擎，是平滑滑行而非瞬跳；`scrollDuration` 可调。滚轮归属与 `TabBar`
+一致 —— 溢出时条带自己消费滚轮；未溢出的条带不参与竞争，滚轮原样交给页面滚动区。
+纵向条带不滚动，按内容定高。
 
 ## TabBar / TabWidget 标签页
 

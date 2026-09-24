@@ -359,10 +359,10 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
     pill_source = pill_helper.read_text(encoding="utf-8")
     timer_source = timer_helper.read_text(encoding="utf-8")
 
-    # 268 lines after adding the minimal-scroll reveal and the delegate sync hook;
-    # the entry stays far below the repository's 500/700 limits.
-    # 加入最小滚动定位与委托同步钩子后为 268 行, 仍远低于仓库 500/700 的上限。
-    assert len(source.splitlines()) < 290
+    # 285 lines after adding the boundary-aligned reveal and the smooth-scroll engine
+    # wiring; the entry stays far below the repository's 500/700 limits.
+    # 加入边界对齐定位与平滑滚动引擎接线后为 285 行, 仍远低于仓库 500/700 的上限。
+    assert len(source.splitlines()) < 300
     assert len(item_source.splitlines()) < 140
     assert len(pill_source.splitlines()) < 90
     assert len(timer_source.splitlines()) < 80
@@ -414,6 +414,17 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
     assert "WheelEventUtils.verticalDelta(event)" in source
     assert "revealCurrent()" in source
     assert "interactive: control.scrollable" in source
+
+    # Every programmatic move goes through the shared smooth-scroll engine, so wheel
+    # and auto-reveal glide instead of jumping; no direct contentX writes remain.
+    # 所有程序化位移都走共享平滑滚动引擎, 滚轮与自动滚入是滑行; 不再直接写 contentX。
+    assert 'import "../containers/ScrollBar"' in source
+    assert "SmoothScrollHelper {" in source
+    assert "orientation: Qt.Horizontal" in source
+    assert "handleWheel: false" in source
+    assert "scrollHelper.scrollTo(" in source
+    assert "scrollHelper.scrollBy(" in source
+    assert "scrollArea.contentX =" not in source
 
     # Registered in both the sub-module and the root module
     # 子模块与根模块都要注册

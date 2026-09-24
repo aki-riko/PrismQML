@@ -442,6 +442,24 @@ def test_vertical_selector_bar_covers_the_selected_row(qapp):
         _dispose_scene(engine, component, window)
 
 
+def _settled_offset(bar: QQuickItem, timeout_ms: int = 2_000) -> float:
+    """Wait until the animated scroll stops, then report the resting offset."""
+    previous = float(bar.property("scrollOffset"))
+    deadline = time.monotonic() + timeout_ms / 1000
+    stable = 0
+    while time.monotonic() < deadline:
+        _pump(50)
+        current = float(bar.property("scrollOffset"))
+        if abs(current - previous) < 0.05:
+            stable += 1
+            if stable >= 3:
+                return current
+        else:
+            stable = 0
+        previous = current
+    return previous
+
+
 def test_narrow_selector_bar_scrolls_the_selected_cell_into_view(qapp):
     """An overflowing strip scrolls the least amount that fits the selected cell.
 
@@ -458,8 +476,7 @@ def test_narrow_selector_bar_scrolls_the_selected_cell_into_view(qapp):
 
         for index in (1, 2, 3):
             bar.setProperty("currentIndex", index)
-            _pump(240)
-            offset = float(bar.property("scrollOffset"))
+            offset = _settled_offset(bar)
             cell = cells[index]
             # The selected cell is fully inside the viewport 选中单元完整落在可视区内
             assert cell.x() - offset >= -0.5
@@ -477,8 +494,9 @@ def test_narrow_selector_bar_scrolls_the_selected_cell_into_view(qapp):
         # A cell that is visible from the very start leaves the strip unscrolled
         # 从头就完整可见的单元不产生滚动
         bar.setProperty("currentIndex", 0)
-        _pump(240)
-        assert float(bar.property("scrollOffset")) == pytest.approx(cells[0].x())
+        assert _wait_for(
+            lambda: float(bar.property("scrollOffset")) == pytest.approx(cells[0].x())
+        )
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -503,8 +521,7 @@ def test_selector_bar_keeps_the_leading_edge_on_a_cell_boundary(qapp):
 
         for index in (0, 1, 2, 3):
             bar.setProperty("currentIndex", index)
-            _pump(240)
-            offset = float(bar.property("scrollOffset"))
+            offset = _settled_offset(bar)
             cell = cells[index]
             assert any(abs(offset - other.x()) < 0.5 for other in cells), (
                 f"offset {offset} is not a cell boundary"
@@ -515,9 +532,9 @@ def test_selector_bar_keeps_the_leading_edge_on_a_cell_boundary(qapp):
         # No boundary can show the last cell: only there does the strip fall back to
         # the clamped minimal scroll. 最后一项无法对齐边界, 只有此时退化为最小滚动量。
         bar.setProperty("currentIndex", 4)
-        _pump(240)
-        assert float(bar.property("scrollOffset")) == pytest.approx(
-            bar.property("maxScrollOffset")
+        assert _wait_for(
+            lambda: float(bar.property("scrollOffset"))
+            == pytest.approx(bar.property("maxScrollOffset"), abs=0.5)
         )
         assert warnings == []
     finally:
@@ -570,6 +587,46 @@ def test_vertical_wheel_over_an_overflowing_bar_pans_the_strip(qapp):
             "a wheel over the overflowing strip did not pan it"
         )
         assert page.property("contentY") == pytest.approx(0)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_strip_scrolling_is_animated_not_an_instant_jump(qapp):
+    """Wheel and auto-reveal moves must glide, not teleport.
+
+    滚轮与自动滚入必须是滑行, 不能瞬跳。
+    """
+    engine, component, window, root, warnings = _create_scene(
+        qapp, BOUNDARY_SCENE, BOUNDARY_URL
+    )
+    try:
+        bar = _item(root, "boundaryBar")
+        strip = _inner_flickable(bar)
+        assert bar.property("scrollable") is True
+
+        # Auto-reveal: sample while the move is still running
+        # 自动滚入: 在位移尚未结束时采样
+        bar.setProperty("currentIndex", 3)
+        _pump(60)
+        mid = float(strip.property("contentX"))
+        assert mid > 0, "the strip never started moving"
+        target = _settled_offset(bar)
+        assert target > mid + 1, (
+            f"auto-reveal jumped straight to {target} instead of animating (sampled {mid})"
+        )
+        assert strip.property("contentX") == pytest.approx(target, abs=0.5)
+
+        # Wheel: same expectation 滚轮同理
+        before = float(strip.property("contentX"))
+        _send_vertical_wheel(window, bar)
+        _pump(60)
+        wheel_mid = float(strip.property("contentX"))
+        wheel_target = _settled_offset(bar)
+        assert wheel_mid != wheel_target or wheel_target == before, (
+            f"the wheel jumped straight to {wheel_target} (sampled {wheel_mid})"
+        )
+        assert abs(wheel_target - before) > 1, "the wheel did not pan the strip"
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../containers/ScrollBar"
 import "_internal" as NavigationInternal
 
 // SelectorBar - Flat selector bar for switching between a small set of views
@@ -22,6 +23,8 @@ Item {
     property int itemFontSize: Enums.typography.body
     property int iconSize: Enums.iconSize.m
     property bool pillAnimationEnabled: true
+    // Duration of programmatic strip movement 程序化平移时长
+    property int scrollDuration: Enums.duration.scroll
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool vertical: orientation === Qt.Vertical
@@ -106,7 +109,7 @@ Item {
         // No boundary can show the cell (e.g. the last one): clamp the minimal scroll
         // 没有边界能容纳该单元(例如最后一项): 退化为最小滚动量并夹紧
         if (chosen < 0) chosen = Math.min(minOffset, maxScrollOffset)
-        scrollArea.contentX = Math.max(0, chosen)
+        scrollHelper.scrollTo(Math.max(0, chosen))
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -179,6 +182,23 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         clip: true
 
+        // The repository's smooth-scroll engine drives every programmatic move, so a
+        // wheel notch or an auto-reveal glides instead of jumping. Native drag/flick
+        // stays on the Flickable and is synced back by the helper's own sync child.
+        // 所有程序化位移都交给仓库的平滑滚动引擎, 因此滚轮与自动滚入是滑行而不是瞬跳。
+        // 原生拖拽/惯性仍由 Flickable 负责, 由助手自带的同步子对象回写。
+        SmoothScrollHelper {
+            id: scrollHelper
+            target: scrollArea
+            orientation: Qt.Horizontal
+            enabled: true
+            duration: control.scrollDuration
+            bounceEnabled: true
+            // Ownership stays with the handler below: it is the one that knows both
+            // wheel axes. 归属仍由下面的处理器决定: 只有它同时识别两个滚轮轴。
+            handleWheel: false
+        }
+
         // Measured: a horizontal Flickable never hands a vertical wheel to its
         // ancestor scroll area, and Qt drops that wheel instead of panning the strip.
         // The handler is therefore required, not optional: it pans the strip, so a
@@ -196,10 +216,7 @@ Item {
                     event.accepted = false
                     return
                 }
-                // Half a viewport per notch 每格滚动半个视口
-                scrollArea.contentX = Math.max(
-                    0, Math.min(scrollArea.contentX - delta / 120 * scrollArea.width / 2,
-                                control.maxScrollOffset))
+                scrollHelper.scrollBy(-delta / 120 * scrollHelper.step)
                 event.accepted = true
             }
         }
