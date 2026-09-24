@@ -552,6 +552,21 @@ def test_vertical_tab_bar_stacks_cells_and_keeps_the_add_button_below(qapp):
             item.width() == pytest.approx(cell_width, abs=0.5)
             for item in delegates
         )
+        # Vertical rows take the row height, never the tab's content width: using the
+        # content width made every cell ~204px tall, so one tab filled the viewport.
+        # 纵向行取行高, 绝不能取标签内容宽度: 曾用内容宽度导致每格约 204px 高,
+        # 一个标签就占满视口。
+        row_height = bar.property("_tabHeight")
+        assert all(
+            item.height() == pytest.approx(row_height, abs=0.5)
+            for item in delegates
+        )
+        assert origins[1].y() == pytest.approx(
+            origins[0].y() + row_height, abs=0.5
+        )
+        assert bar.property("tabRow").height() == pytest.approx(
+            3 * row_height, abs=1.0
+        )
         # Only the column is fed a model; the idle row must stay empty
         # 只有竖列拿到模型; 闲置的横向行必须为空
         assert bar.property("tabRepeater").property("count") == 3

@@ -84,14 +84,18 @@ Item {
             (_tabClosable ? Enums.iconSize.xxl : 0))
 
     // ==================== Size 尺寸 ====================
-    // Content-driven main-axis extent, shared by both orientations
-    // 由内容决定的主轴长度, 两个方向共用
-    readonly property real _mainExtent: {
+    // Horizontal cells are as wide as their content; vertical rows take a fixed row
+    // height, because a tab's content width says nothing about how tall its row is.
+    // 横向单元按内容定宽; 纵向行取固定行高 —— 标签内容宽度与行高无关。
+    readonly property real _horizontalExtent: {
         var value = host.tabWidth > 0 ? host.tabWidth : _automaticWidth
         if (host.maximumTabWidth > 0)
             value = Math.min(host.maximumTabWidth, value)
         return Math.max(host.minimumTabWidth, value)
     }
+    readonly property real _mainExtent: vertical
+        ? (host.tabWidth > 0 ? host.tabWidth : host._tabHeight)
+        : _horizontalExtent
     width: vertical ? host._verticalCellWidth : _mainExtent
     height: vertical ? _mainExtent : host._tabHeight
 
