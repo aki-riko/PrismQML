@@ -5,7 +5,6 @@
 import QtQuick
 import QtQuick.Window
 import "../../../.."
-
 // DrawerOutsideWindow - Native outside drawer host 外侧抽屉原生承载窗口
 Window {
     id: outsideDrawerWindow
@@ -20,8 +19,8 @@ Window {
     objectName: "outsideDrawerWindow"
     x: 0
     y: 0
-    width: control.drawerWidth
-    height: control.drawerHeight
+    width: control.isHorizontal ? control._outsideWindowExtent : control.drawerWidth
+    height: control.isHorizontal ? control.drawerHeight : control._outsideWindowExtent
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint | Qt.NoFluentShadowWindowHint
@@ -44,32 +43,31 @@ Window {
     }
     onClosing: (close) => control._resetDrawerState()
     Component.onDestruction: control._unregisterOutsideWindow()
-
     // Clipped reveal viewport 裁剪显露视口
     Item {
         id: outsideDrawerViewport
         objectName: "outsideDrawerViewport"
 
         x: control.position === Enums.position.left
-            ? outsideDrawerWindow.width - width : 0
+            ? control._outsideShadowExtent : 0
         y: control.position === Enums.position.top
-            ? outsideDrawerWindow.height - height : 0
+            ? control._outsideShadowExtent : 0
         width: control.isHorizontal
-            ? Math.min(control._outsideExtent, outsideDrawerWindow.width)
+            ? Math.min(control._outsideExtent, control.drawerWidth)
             : outsideDrawerWindow.width
         height: control.isHorizontal
-            ? outsideDrawerWindow.height
-            : Math.min(control._outsideExtent, outsideDrawerWindow.height)
+            ? control.drawerHeight
+            : Math.min(control._outsideExtent, control.drawerHeight)
         clip: true
 
-        Rectangle {
+    Rectangle {
             id: outsideDrawerPanel
             objectName: "outsideDrawerPanel"
 
-            width: outsideDrawerWindow.width
-            height: outsideDrawerWindow.height
-            x: -outsideDrawerViewport.x
-            y: -outsideDrawerViewport.y
+            width: control.drawerWidth
+            height: control.drawerHeight
+            x: 0
+            y: 0
             color: control._drawerBackground
             radius: Enums.radius.none
             topLeftRadius: control.position === Enums.position.left
@@ -95,11 +93,12 @@ Window {
                 anchors.fill: parent
             }
         }
-
-        // Three outward shadow edges; the host-facing edge stays clean.
-        Rectangle {
+    }
+    // Three outward shadow edges; host-facing edge stays clean.
+    Rectangle {
             visible: control._outsidePrepared && control.position !== Enums.position.left
-            x: outsideDrawerPanel.width - Enums.shadow.level8.blur
+            x: control.position === Enums.position.right
+                ? control.drawerWidth : 0
             y: 0
             width: Enums.shadow.level8.blur
             height: outsideDrawerPanel.height
@@ -109,10 +108,11 @@ Window {
                 GradientStop { position: 1; color: Enums.shadow.level8.color }
             }
         }
-        Rectangle {
+    Rectangle {
             visible: control._outsidePrepared && control.position !== Enums.position.right
             x: 0
-            y: 0
+            y: control.position === Enums.position.left
+                ? control._outsideShadowExtent : 0
             width: Enums.shadow.level8.blur
             height: outsideDrawerPanel.height
             gradient: Gradient {
@@ -121,11 +121,12 @@ Window {
                 GradientStop { position: 1; color: Enums.transparent }
             }
         }
-        Rectangle {
+    Rectangle {
             visible: control._outsidePrepared && control.position !== Enums.position.top
             x: 0
-            y: outsideDrawerPanel.height - Enums.shadow.level8.blur
-            width: outsideDrawerPanel.width
+            y: control.position === Enums.position.bottom
+                ? control.drawerHeight : control.drawerHeight - Enums.shadow.level8.blur
+            width: control.drawerWidth
             height: Enums.shadow.level8.blur
             gradient: Gradient {
                 orientation: Gradient.Vertical
@@ -133,11 +134,11 @@ Window {
                 GradientStop { position: 1; color: Enums.shadow.level8.color }
             }
         }
-        Rectangle {
+    Rectangle {
             visible: control._outsidePrepared && control.position !== Enums.position.bottom
             x: 0
             y: 0
-            width: outsideDrawerPanel.width
+            width: control.drawerWidth
             height: Enums.shadow.level8.blur
             gradient: Gradient {
                 orientation: Gradient.Vertical
@@ -145,5 +146,4 @@ Window {
                 GradientStop { position: 1; color: Enums.transparent }
             }
         }
-    }
 }

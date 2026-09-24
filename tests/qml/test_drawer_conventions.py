@@ -191,25 +191,27 @@ def _drawer_window():
 
 
 def _outside_window_geometry(host_window, position, extent):
+    shadow = 16
     frame = host_window.frameGeometry()
     left = frame.left()
     top = frame.top()
     right = frame.right() + 1
     bottom = frame.bottom() + 1
     if position == host_window.property("leftPosition"):
-        return (left - extent, top, extent, frame.height())
+        return (left - extent - shadow, top, extent + shadow, frame.height())
     if position == host_window.property("rightPosition"):
-        return (right, top, extent, frame.height())
+        return (right, top, extent + shadow, frame.height())
     if position == host_window.property("topPosition"):
-        return (left, top - extent, frame.width(), extent)
-    return (left, bottom, frame.width(), extent)
+        return (left, top - extent - shadow, frame.width(), extent + shadow)
+    return (left, bottom, frame.width(), extent + shadow)
 
 
 def _outside_viewport_origin(host_window, position, full_extent, extent):
+    shadow = 16
     if position == host_window.property("leftPosition"):
-        return (full_extent - extent, 0)
+        return (shadow, 0)
     if position == host_window.property("topPosition"):
-        return (0, full_extent - extent)
+        return (0, shadow)
     return (0, 0)
 
 
@@ -478,7 +480,10 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
                 drawer.property("_outsideExtent"),
             )
         )
-        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx(
+            (16 if position == window.property("leftPosition") else 0,
+             16 if position == window.property("topPosition") else 0)
+        )
         expected_content_size = (
             (full_extent - 32, outside_panel.height() - 32)
             if position in (
@@ -533,7 +538,10 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
                 drawer.property("_outsideExtent"),
             )
         )
-        assert (panel_origin.x(), panel_origin.y()) == pytest.approx((0, 0))
+        assert (panel_origin.x(), panel_origin.y()) == pytest.approx(
+            (16 if position == window.property("leftPosition") else 0,
+             16 if position == window.property("topPosition") else 0)
+        )
         assert _wait_for(lambda: not drawer_window.isVisible())
 
     assert warnings == []
