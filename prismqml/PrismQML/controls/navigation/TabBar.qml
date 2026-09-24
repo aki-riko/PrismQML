@@ -167,7 +167,11 @@ Widget {
 
     // ==================== Size 尺寸 ====================
     contentWidth: control.vertical ? _stripWidth : Enums.controlSize.chartDefaultWidth
-    contentHeight: _tabBarHeight
+    // A vertical strip is only as tall as its stacked rows; a horizontal one keeps
+    // the historical bar height. 纵向条带高度取行堆叠高度; 横向保持历史条高。
+    contentHeight: control.vertical
+        ? Math.max(tabRow.height, control._tabHeight)
+        : _tabBarHeight
 
     onCurrentIndexChanged: {
         currentChanged(currentIndex)
