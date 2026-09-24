@@ -13,6 +13,9 @@ Timer {
     // ==================== Required Props 必需属性 ====================
     required property var host
 
-    interval: 50
+    // Initialize on the next event-loop turn so the first settled frame already
+    // carries the selected indicator after the delegate geometry is available.
+    // 在下一轮事件循环初始化，让委托几何可用后的首个稳定帧就带上选中指示器。
+    interval: Enums.duration.none
     onTriggered: host._initIndicatorPosition()
 }
