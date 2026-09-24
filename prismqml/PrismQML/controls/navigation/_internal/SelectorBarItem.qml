@@ -91,8 +91,8 @@ Item {
             type: Enums.label.type_body
             text: selectorItem.itemText
             font.pixelSize: selectorItem.selectorBar.itemFontSize
-            // The selected cell is the only bold one 只有选中项是粗体
-            font.bold: selectorItem.selected
+            // Selection is carried by the pill alone: the text weight never changes.
+            // 选中只由胶囊表示, 文字字重不随选中变化。
             visible: selectorItem.hasText
             anchors.verticalCenter: parent.verticalCenter
         }

@@ -366,6 +366,9 @@ def test_real_click_selects_the_cell_and_moves_the_pill(qapp):
         assert bar.property("_pillReady") is True
         assert cells[2].property("selected") is True
         assert cells[0].property("selected") is False
+        # Selection is carried by the pill alone: no cell may ever bold its label
+        # 选中只由胶囊表示: 任何单元都不得把标签加粗
+        assert not any(_label_bold(cell) for cell in cells)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
@@ -440,6 +443,16 @@ def test_vertical_selector_bar_covers_the_selected_row(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def _label_bold(cell: QQuickItem) -> bool:
+    """Whether the cell's own Label renders bold."""
+    for child in cell.childItems():
+        if "Label" in child.metaObject().className():
+            return bool(child.property("font").bold())
+        if _label_bold(child):
+            return True
+    return False
 
 
 def _settled_offset(bar: QQuickItem, timeout_ms: int = 2_000) -> float:
