@@ -23,6 +23,7 @@ Widget {
     property alias detailsEnabled: tabBar.detailsEnabled
     property alias contextMenuEnabled: tabBar.contextMenuEnabled
     property alias tabBarHeight: tabBar.tabBarHeight
+    property alias stripWidth: tabBar.stripWidth
     property alias tabContentVerticalPadding: tabBar.tabContentVerticalPadding
     property alias tabWidth: tabBar.tabWidth
     property alias minimumTabWidth: tabBar.minimumTabWidth
@@ -84,7 +85,7 @@ Widget {
         anchors.left: parent.left
         anchors.right: control.vertical ? undefined : parent.right
         anchors.bottom: control.vertical ? parent.bottom : undefined
-        width: control.vertical ? tabBar._stripWidth : undefined
+        width: control.vertical ? tabBar.stripWidth : undefined
         height: control.vertical ? undefined : _tabBarHeight
     }
 

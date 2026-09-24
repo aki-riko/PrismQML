@@ -249,35 +249,15 @@ def _class_histogram(root) -> list:
     return sorted(counts.items(), key=lambda entry: -entry[1])[:12]
 
 
-def _visual_descendants(root):
-    """Walk the visual tree.
-
-    Panel rows are created from JS and only joined to the visual parent tree, so
-    QObject-based findChildren does not see them.
-    面板条目由 JS 创建、只挂进视觉父级树, 因此基于 QObject 的 findChildren 看不到它们。
-    """
-    pending = list(root.childItems())
-    while pending:
-        child = pending.pop(0)
-        yield child
-        pending.extend(child.childItems())
-
-
 def _nav_items(panel):
-    """Panel rows, located by their own properties inside the visual tree.
+    """Panel rows through the sanctioned accessor.
 
-    在视觉树中按自身属性定位面板条目。
+    通过正式访问器读取面板条目: 条目由 JS 创建, QObject 树 (findChildren) 看不到它们,
+    因此面板根提供 itemCount / itemAt()。
     """
-    return sorted(
-        (
-            item
-            for item in _visual_descendants(panel)
-            if item.metaObject().indexOfProperty("selected") >= 0
-            and item.metaObject().indexOfProperty("icon") >= 0
-            and item.metaObject().indexOfProperty("compact") >= 0
-        ),
-        key=lambda item: item.mapToItem(panel, QPointF(0, 0)).y(),
-    )
+    return [
+        panel.itemAt(index) for index in range(panel.property("itemCount"))
+    ]
 
 
 def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):

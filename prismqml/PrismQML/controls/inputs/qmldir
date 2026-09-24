@@ -16,6 +16,7 @@ FilterBarCore FilterBar/FilterBarCore.qml
 PasswordStrengthIndicator PasswordStrengthIndicator.qml
 PinInput PinInput.qml
 ShortcutEditor ShortcutEditor.qml
+SwipeControl SwipeControl.qml
 
 # Toggle 切换控件 (统一入口)
 # Use: Toggle { controlType: PrismEnums.toggle.control_xxx; type: PrismEnums.toggle.type_xxx }

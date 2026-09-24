@@ -4,3 +4,4 @@ module _internal
 ImageCropperContent ImageCropperContent.qml
 KeyTag KeyTag.qml
 InputPlaceholderLabel InputPlaceholderLabel.qml
+SwipeActionButton SwipeActionButton.qml

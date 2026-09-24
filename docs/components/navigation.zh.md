@@ -97,7 +97,7 @@ Fluent.TabWidget {
 }
 ```
 
-纵向形态的行为：标签行占满列宽、**行高取行高**（`tabWidth` 若设置则作为行高）、标题过长省略、关闭按钮贴右、拖拽沿纵轴重排、添加按钮落在列尾、溢出沿 Y 轴滚动。列宽由 `Enums.controlSize.tabBarVerticalWidth` 决定。
+纵向形态的行为：标签行占满列宽、**行高取行高**（`tabWidth` 若设置则作为行高）、标题过长省略、关闭按钮贴右、拖拽沿纵轴重排、添加按钮落在列尾、溢出沿 Y 轴滚动。列宽默认取 `Enums.controlSize.tabBarVerticalWidth`，可用公开属性 `stripWidth` 覆盖（横向的对应属性是 `tabBarHeight`，`TabWidget` 也代理了 `stripWidth`）。
 
 ## CommandPalette 命令面板
 

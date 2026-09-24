@@ -105,7 +105,7 @@ Item {
     signal itemClicked(int index)
     signal bottomItemClicked(int index)
     signal currentItemChanged(string key)
-    
+
     // ==================== Internal Methods 内部方法 ====================
     // Return whether a model item participates in the navigation presentation.
     // 判断模型项是否参与导航呈现。

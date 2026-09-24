@@ -40,6 +40,9 @@ Widget {
     // Main axis of the strip; Qt.Horizontal behaves exactly as before
     // 条带主轴; Qt.Horizontal 与之前完全一致
     property int orientation: Qt.Horizontal
+    // Vertical strip width; the horizontal counterpart is tabBarHeight
+    // 纵向条带宽度; 横向的对应公开属性是 tabBarHeight
+    property int stripWidth: Enums.controlSize.tabBarVerticalWidth
 
     readonly property var _safeTabs:
         tabs === null || tabs === undefined ? []
@@ -58,10 +61,9 @@ Widget {
     readonly property real _selectedTabBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
     readonly property real _availableWidth: control.width - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
     readonly property real _availableHeight: control.height - Enums.spacing.xs * 2 - (control.showAddButton ? Enums.controlSize.segmentedHeight : 0)
-    // Vertical cells fill a fixed-width strip instead of sizing to their content
-    // 纵向单元填满固定宽度标签条, 而不是按内容定宽
-    readonly property int _stripWidth: Enums.controlSize.tabBarVerticalWidth
-    readonly property real _verticalCellWidth: _stripWidth - Enums.spacing.xs * 2
+    // Vertical cells fill the strip instead of sizing to their content
+    // 纵向单元填满标签条, 而不是按内容定宽
+    readonly property real _verticalCellWidth: stripWidth - Enums.spacing.xs * 2
     // Only the strip matching the orientation owns delegates: the idle strip keeps
     // an empty model, so no duplicate delegate tree is ever built.
     // 只有与方向匹配的条带持有委托: 闲置条带模型为空, 不会构建重复委托树。
@@ -166,7 +168,7 @@ Widget {
     }
 
     // ==================== Size 尺寸 ====================
-    contentWidth: control.vertical ? _stripWidth : Enums.controlSize.chartDefaultWidth
+    contentWidth: control.vertical ? stripWidth : Enums.controlSize.chartDefaultWidth
     // A vertical strip is only as tall as its stacked rows; a horizontal one keeps
     // the historical bar height. 纵向条带高度取行堆叠高度; 横向保持历史条高。
     contentHeight: control.vertical
@@ -198,7 +200,7 @@ Widget {
         anchors.left: parent.left
         anchors.right: control.vertical ? undefined : parent.right
         anchors.bottom: control.vertical ? parent.bottom : undefined
-        width: control.vertical ? control._stripWidth : undefined
+        width: control.vertical ? control.stripWidth : undefined
         height: control.vertical ? undefined : control._tabBarHeight
         color: Enums.stateColor.cardDefaultBg
         clip: true

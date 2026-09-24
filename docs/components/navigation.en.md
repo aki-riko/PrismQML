@@ -97,7 +97,7 @@ Fluent.TabWidget {
 }
 ```
 
-Vertical behaviour: rows fill the column width and take the **row height** (`tabWidth`, when set, becomes the row height), long titles elide, the close button sits at the trailing edge, drag reordering runs along the column, the add button lands at the end of the column, and overflow scrolls on Y. The column width comes from `Enums.controlSize.tabBarVerticalWidth`.
+Vertical behaviour: rows fill the column width and take the **row height** (`tabWidth`, when set, becomes the row height), long titles elide, the close button sits at the trailing edge, drag reordering runs along the column, the add button lands at the end of the column, and overflow scrolls on Y. The column width defaults to `Enums.controlSize.tabBarVerticalWidth` and can be overridden with the public `stripWidth` property (the horizontal counterpart is `tabBarHeight`; `TabWidget` proxies `stripWidth` too).
 
 ## CommandPalette
 

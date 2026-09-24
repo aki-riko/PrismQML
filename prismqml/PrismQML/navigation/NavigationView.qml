@@ -51,6 +51,12 @@ NavigationPanelCore {
         effectivePaneDisplayMode === Enums.navigation.pane_left_minimal
     // Minimal keeps only the menu button while closed 极简模式关闭时只留菜单按钮
     readonly property bool itemsVisible: !(minimalPane && !isPaneOpen)
+    // Rows are JS-created and only join the visual tree, so QObject-based findChildren
+    // cannot see them; read instantiated rows through these accessors.
+    // 条目由 JS 创建且只挂进视觉树, 基于 QObject 的 findChildren 看不到它们; 通过以下
+    // 访问器读取已实例化条目。
+    readonly property int itemCount: topRepeater ? topRepeater.count : 0
+    readonly property int bottomItemCount: bottomRepeater ? bottomRepeater.count : 0
     readonly property int compactButtonWidth: Enums.controlSize.navPanelCompactWidth - Enums.controlSize.navPanelPaddingH * 2
     // Selected item fade value; pinned bottom items are outside the scroller 选中项的渐隐值; 底部固定项不在滚动区内, 不参与渐隐。
     readonly property real _selectedItemFade: scrollFade.selectionOpacity(
@@ -79,6 +85,16 @@ NavigationPanelCore {
     }
     function smoothScrollTo(targetY) { topScrollBehavior.scrollTo(targetY) }
     function smoothScrollBy(delta) { topScrollBehavior.scrollBy(delta) }
+    // Instantiated top row at index, or null 已实例化的顶部条目, 越界返回 null
+    function itemAt(index) {
+        return topRepeater && index >= 0 && index < topRepeater.count
+            ? topRepeater.itemAt(index) : null
+    }
+    // Instantiated pinned bottom row at index, or null 已实例化的底部固定条目
+    function bottomItemAt(index) {
+        return bottomRepeater && index >= 0 && index < bottomRepeater.count
+            ? bottomRepeater.itemAt(index) : null
+    }
     // Minimal-mode pane control 极简模式的面板开合
     function openPane() { isPaneOpen = true }
     function closePane() { isPaneOpen = false }
