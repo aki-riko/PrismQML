@@ -50,6 +50,34 @@ Fluent.GroupBox {
 
 虚拟化时间线（大数据量不掉帧）。
 
+## RefreshContainer 下拉刷新
+
+在内容上方包裹一层"下拉即刷新"手势。容器自动探测内容里第一个 `Flickable`
+作为滚动面，只在滚动面位于顶部时接管纵向手势，平时把滚动完全交还给它。
+
+```qml
+import PrismQML as Fluent
+
+Fluent.RefreshContainer {
+    refreshing: model.refreshing          // 宿主状态，由宿主清回 false
+    onRefreshRequested: model.reload()
+    ListView { model: model.items }       // 内容走默认属性
+}
+```
+
+| 成员 | 说明 |
+|------|------|
+| `refreshing: bool` | 宿主所有。触发时容器置 `true`，**宿主完成后必须置回 `false`**（不要绑定它） |
+| `pullThreshold: int` | 触发刷新所需下拉距离，默认 `Enums.controlSize.refreshPullThreshold` |
+| `interactionEnabled: bool` | 是否允许下拉手势 |
+| `target: Flickable` | 显式指定滚动面；为空则自动探测 |
+| `progress / armed / indicatorVisible` | 只读：下拉进度、是否已到位、指示器是否可见 |
+| `refreshRequested()` | 用户下拉到位或调用 `requestRefresh()` 时发出 |
+| `requestRefresh()` | 以编程方式开始一次刷新 |
+
+指示器居中于容器顶部上方，随位移滑入；只读状态可用于自定义绘制。滚动面变化时不
+需手工重绑：容器监听内容子项变化后重新探测（也可用 `target` 显式钉死）。
+
 ## 皮肤适配
 
 新粗野下：GroupBox / Drawer 等容器粗黑边；Separator 按场景用黑线或中灰（轻量分隔用中灰避免滚动闪烁）。
