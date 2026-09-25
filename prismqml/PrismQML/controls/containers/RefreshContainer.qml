@@ -123,9 +123,9 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         width: Enums.controlSize.refreshIndicatorSize
         height: width
-        // Slides in from under the top edge as the content is pulled down
-        // 随内容下拉从顶边下方滑出
-        y: control._offset - height
+        // Stay attached to the container top while the content moves down
+        // 固定贴住容器顶部, 内容下拉时指示器不随列表下移
+        y: 0
         visible: control.indicatorVisible
         opacity: control.progress
 

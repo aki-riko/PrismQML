@@ -167,6 +167,8 @@ def test_pull_past_threshold_requests_once_and_holds_until_finished(qapp):
     engine, component, window, warnings = _create_scene(qapp)
     try:
         container = _container(window)
+        indicator = container.findChild(QQuickItem, "refreshIndicator")
+        assert indicator is not None
         threshold = window.property("expectedThreshold")
         assert container.property("refreshing") is False
 
@@ -177,6 +179,7 @@ def test_pull_past_threshold_requests_once_and_holds_until_finished(qapp):
         assert container.property("refreshing") is True
         assert container.property("progress") == pytest.approx(1, abs=0.01)
         assert container.property("_offset") == pytest.approx(threshold, abs=0.5)
+        assert indicator.property("y") == pytest.approx(0, abs=0.5)
 
         # The host finishes: the content must settle back 宿主结束后内容归位
         window.finishRefresh()
