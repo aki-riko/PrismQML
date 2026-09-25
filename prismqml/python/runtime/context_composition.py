@@ -82,11 +82,8 @@ def register_lazy_context(
     lazy_context_objects = list(
         getattr(engine, "_prismqml_lazy_context_objects", ())
     )
-    if len(lazy_context_objects) == 2 and all(
-        isinstance(lazy_context_objects[index], expected_type)
-        for index, expected_type in enumerate(
-            (LazyQRCodeGenerator, LazyScreenEyedropperManager)
-        )
+    if _is_valid_lazy_context_objects(
+        lazy_context_objects, LazyQRCodeGenerator, LazyScreenEyedropperManager
     ):
         qrcode_generator, screen_eyedropper_manager = lazy_context_objects
     else:
@@ -100,6 +97,13 @@ def register_lazy_context(
             ("QRCodeGenerator", lambda: qrcode_generator),
             ("ScreenEyedropperManager", lambda: screen_eyedropper_manager),
         ),
+    )
+
+
+def _is_valid_lazy_context_objects(objects, qr_type, eyedropper_type) -> bool:
+    """Validate the engine-owned lazy context pair. 校验引擎持有的延迟上下文对象。"""
+    return len(objects) == 2 and isinstance(objects[0], qr_type) and isinstance(
+        objects[1], eyedropper_type
     )
 
 

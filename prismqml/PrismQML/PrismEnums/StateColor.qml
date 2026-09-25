@@ -284,13 +284,13 @@ QtObject {
     // only the per-item state names are owned here.
     // 选择条复用分段控件的选中外观, 取值保持单一来源; 此处只拥有按项的状态名。
     // Selected pill 选中胶囊
-    readonly property color selectorBarItemSelected: segmentedSelected
+    readonly property color selectorBarItemSelected: isTicket ? _ticket.muted : segmentedSelected
     // Selected pill border 选中胶囊边框
-    readonly property color selectorBarItemSelectedBorder: segmentedSelectedBorder
+    readonly property color selectorBarItemSelectedBorder: isTicket ? _ticket.primary : segmentedSelectedBorder
     // Hover bg 悬停背景
-    readonly property color selectorBarItemHover: segmentedHover
+    readonly property color selectorBarItemHover: isTicket ? _ticket.muted : segmentedHover
     // Pressed bg 按下背景
-    readonly property color selectorBarItemPressed: segmentedPressed
+    readonly property color selectorBarItemPressed: isTicket ? Qt.darker(_ticket.muted, 1.06) : segmentedPressed
 
     // ==================== Dialog Button Group 对话框按钮组 ====================
     // Button group background 按钮组背景

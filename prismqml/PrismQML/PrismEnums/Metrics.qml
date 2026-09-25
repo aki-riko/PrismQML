@@ -91,14 +91,12 @@ QtObject {
  // Indicator animation durations 指示器动画时长
  readonly property int crossFade: 600 // CrossFade animation 交叉淡入动画
  }
-
  // ==================== Motion 运动参数 ====================
  readonly property QtObject motion: QtObject {
  readonly property int hoverExitDuration: root.duration.none // Hover exit resets immediately 悬浮退出立即复位
  readonly property int navigationTitleMarqueeSpeed: 25 // Navigation title hover marquee speed in pixels per second 导航标题悬浮跑马灯速度（像素/秒）
 
  }
- 
  // ==================== Z-Index 层级 ====================
  readonly property QtObject zIndex: QtObject {
  readonly property int background: -1
@@ -115,7 +113,6 @@ QtObject {
  readonly property int inputInteraction: 10 // Input cursor/focus interaction layer 输入光标与焦点交互层
  readonly property int inputControls: 11 // Input embedded controls above interaction layer 输入内嵌控件层
  }
- 
  // ==================== Opacity 透明度 ====================
  readonly property QtObject opacity: QtObject {
  readonly property real invisible: 0.0
@@ -131,17 +128,14 @@ QtObject {
  readonly property real hover: 0.08
  readonly property real pressed: 0.12
  }
- 
  // ==================== Mask 遮罩参数 ====================
  readonly property QtObject mask: MetricsInternal.MetricsMask {}
- 
  // ==================== Blur 模糊半径 ====================
  readonly property QtObject blur: QtObject {
  readonly property real acrylic: 30 // Acrylic effect blur 亚克力效果模糊
  readonly property real background: 64 // Background blur 背景模糊
  readonly property real light: 16 // Light blur 轻度模糊
  }
- 
  // ==================== Border 边框宽度 ====================
  readonly property QtObject border: QtObject {
  readonly property int none: 0
@@ -153,7 +147,6 @@ QtObject {
  readonly property real normal: root._physicalPixelWidth(2)
  readonly property real thick: root._physicalPixelWidth(3)
  }
-
  // ==================== Neobrutalism 新粗野皮肤度量+配色 ====================
  // 几何范式集中放此; 配色【引用 Constants.neoColors 单一真相源】(dark-aware), 不在此重复定义,
  // 否则改一处忘另一处会出 bug(深色边框没反转即此坑)。控件读 Enums.neo.xxx。
@@ -177,7 +170,6 @@ QtObject {
  readonly property color warning: root.constants.neoColors.warning
  readonly property color info: root.constants.neoColors.info
  }
-
  // ==================== Neumorphism 新拟态皮肤度量+配色 ====================
  // Convex surfaces use paired outer shadows; inputs and tracks opt into inset mode.
  // 凸起表面使用双向外阴影，输入框与轨道可使用内凹模式。

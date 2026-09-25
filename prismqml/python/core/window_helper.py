@@ -415,11 +415,41 @@ class WindowHelper(QObject):
         stack_offset: float,
     ) -> bool:
         """Register natively or apply one Qt fallback rectangle. 原生注册或应用 Qt 兜底矩形。"""
+        registered = self._register_native_attachment(
+            host_window,
+            attached_window,
+            position,
+            width,
+            height,
+            gap,
+            stack_offset,
+        )
+        if registered:
+            return True
+        geometry = self._logical_attachment_geometry(
+            host_window, position, width, height, gap, stack_offset
+        )
+        attached_window.setGeometry(
+            QRect(geometry["x"], geometry["y"], geometry["width"], geometry["height"])
+        )
+        return True
+
+    def _register_native_attachment(
+        self,
+        host_window,
+        attached_window,
+        position: int,
+        width: float,
+        height: float,
+        gap: float,
+        stack_offset: float,
+    ) -> bool:
+        """Try native attachment registration. 尝试原生附着窗口注册。"""
         host_hwnd = self._window_id(host_window)
         attached_hwnd = self._window_id(attached_window)
         scale = _window_device_pixel_ratio(host_window)
         event_filter = self._ensure_follower_filter()
-        registered = bool(
+        return bool(
             event_filter
             and event_filter.register_attachment(
                 host_hwnd,
@@ -431,15 +461,6 @@ class WindowHelper(QObject):
                 max(0, round(stack_offset * scale)),
             )
         )
-        if registered:
-            return True
-        geometry = self._logical_attachment_geometry(
-            host_window, position, width, height, gap, stack_offset
-        )
-        attached_window.setGeometry(
-            QRect(geometry["x"], geometry["y"], geometry["width"], geometry["height"])
-        )
-        return True
 
     @Slot("QVariant", "QVariant", int, float, float, float, float, result=bool)
     def registerWindowAttachment(

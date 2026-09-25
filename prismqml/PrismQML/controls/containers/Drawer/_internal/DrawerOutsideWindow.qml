@@ -55,7 +55,9 @@ Window {
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint
     color: Enums.transparent
-    transientParent: control._hostWindow
+    // Native follower owns geometry and z-order; keep this window detached from the host.
+    // 原生跟随器负责几何与层级; 此窗口保持与宿主解除 transient 关联。
+    transientParent: null
 
     onVisibleChanged: {
         if (visible) {
