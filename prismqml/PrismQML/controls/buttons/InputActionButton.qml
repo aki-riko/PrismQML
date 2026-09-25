@@ -16,8 +16,9 @@ ButtonCore {
     property int collapsedSize: Enums.controlSize.inputHeight  // Collapsed size 折叠尺寸
     property bool fillParentHeight: false  // Match the parent input height 匹配父输入框高度
     
-    // Style 样式
-    style: Enums.button.style_transparent
+    // Match regular Button hover feedback only while collapsed.
+    // 仅在收起态匹配普通 Button 的悬浮反馈。
+    style: collapsed ? Enums.button.style_default : Enums.button.style_transparent
     
     // ==================== Size 尺寸 ====================
     // Keep compact by default; collapsible search can fill the input height
