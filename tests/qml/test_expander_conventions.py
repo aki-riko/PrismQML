@@ -66,6 +66,7 @@ Window {
     readonly property bool expanderState: expander.isExpanded()
     readonly property bool groupState: groupBox.isChecked()
     readonly property string groupTitle: groupBox.getTitle()
+    readonly property real groupContentGap: Enums.spacing.s
     readonly property real disabledOpacity: Enums.opacityLevel.disabled
     property var lastAddedWidget: null
 
@@ -265,6 +266,9 @@ def test_group_box_checkbox_controls_content(expander_scene):
     assert window.property("groupState")
     assert window.property("groupTitle") == "Options"
     assert content_area.isEnabled()
+    assert content_area.y() == pytest.approx(
+        group_box.property("_titleHeight") + window.property("groupContentGap")
+    )
     QTest.mouseClick(
         window,
         Qt.MouseButton.LeftButton,
