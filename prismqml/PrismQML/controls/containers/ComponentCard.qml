@@ -16,7 +16,7 @@ Column {
     readonly property int _contentWidth: contentHost.childrenRect.width > 0 ? contentHost.childrenRect.width : Enums.controlSize.buttonMinWidth
     readonly property int _contentHeight: contentHost.childrenRect.height > 0 ? contentHost.childrenRect.height : Enums.controlSize.buttonHeight
     readonly property int _labelWidth: labelItem.visible
-        ? Math.min(labelItem.implicitWidth, Enums.controlSize.galleryCardLabelMaxWidth)
+        ? Math.min(labelMetrics.width, Enums.controlSize.galleryCardLabelMaxWidth)
         : 0
     readonly property int _prismWidth: Math.max(_contentWidth, Enums.controlSize.buttonMinWidth)
     readonly property int _effectiveWidth: Math.max(_contentWidth, _labelWidth)
@@ -39,18 +39,25 @@ Column {
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
-    
+
+    TextMetrics {
+        id: labelMetrics
+        font: labelItem.font
+        text: control.label
+    }
+
     // Label 标签
     Label {
         id: labelItem
+        objectName: "componentCardLabel"
         type: Enums.label.type_caption
         width: control._effectiveWidth
         text: control.label
         color: Enums.accentColor
         visible: control.label !== ""
-        maximumLineCount: 2
+        maximumLineCount: 0
         wrapMode: Text.WordWrap
-        elide: Text.ElideRight
+        elide: Text.ElideNone
         horizontalAlignment: Text.AlignHCenter  // Center text 文本居中
     }
 }

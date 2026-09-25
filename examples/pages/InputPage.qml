@@ -184,6 +184,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_9aa66d632584eebb", Fluent.Translator._v)
                 description: "Toggle (controlType: checkbox / radio / switch, type: default / indicator / subtitle)"
                 Column {
+                    width: parent ? parent.width : 0
                     spacing: Enums.spacing.l
                     
                     // CheckBox

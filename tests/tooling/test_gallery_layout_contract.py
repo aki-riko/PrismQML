@@ -45,7 +45,8 @@ def test_gallery_navigation_follows_capability_order() -> None:
 
 def test_gallery_flow_is_width_bound_and_height_driven_by_children() -> None:
     source = FLOW.read_text(encoding="utf-8")
-    assert "width: parent && parent.width > 0 ? parent.width : implicitWidth" in source
+    assert "parent && parent.width > 0" in source
+    assert "parent.parent.width > 0" in source
     assert "height: childrenRect.height" in source
     assert "flow: Flow.LeftToRight" in source
 
@@ -53,5 +54,7 @@ def test_gallery_flow_is_width_bound_and_height_driven_by_children() -> None:
 def test_component_card_labels_wrap_with_a_shared_width_token() -> None:
     source = COMPONENT_CARD.read_text(encoding="utf-8")
     assert "Enums.controlSize.galleryCardLabelMaxWidth" in source
-    assert "maximumLineCount: 2" in source
+    assert "TextMetrics {" in source
+    assert "maximumLineCount: 0" in source
     assert "wrapMode: Text.WordWrap" in source
+    assert "elide: Text.ElideNone" in source

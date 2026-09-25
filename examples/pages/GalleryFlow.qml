@@ -12,7 +12,11 @@ Flow {
     id: control
 
     // ==================== Size 尺寸 ====================
-    width: parent && parent.width > 0 ? parent.width : implicitWidth
+    width: parent && parent.width > 0
+        ? parent.width
+        : parent && parent.parent && parent.parent.width > 0
+            ? parent.parent.width
+            : implicitWidth
     height: childrenRect.height
     spacing: Fluent.Enums.spacing.l
     flow: Flow.LeftToRight
