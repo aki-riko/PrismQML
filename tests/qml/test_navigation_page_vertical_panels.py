@@ -28,7 +28,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
-from prismqml import configure_qml_environment, register_types
+from prismqml import Skin, configure_qml_environment, getSkin, register_types, setSkin
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -312,6 +312,22 @@ def _nav_items(panel):
     ]
 
 
+def _indicator_visual(panel):
+    """Return the rendered rectangle inside a panel's shared indicator.
+
+    返回面板共享指示器中的实际绘制矩形。
+    """
+    indicator = next(
+        item for item in panel.findChildren(QQuickItem)
+        if _type_name(item) == "SlidingIndicator"
+    )
+    return next(
+        item
+        for item in indicator.childItems()
+        if item.isVisible() and item.width() > 0 and item.height() > 0
+    )
+
+
 def _pane(page):
     """The single merged NavigationView demo."""
     panes = [
@@ -374,6 +390,36 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
         if window is not None:
             window.close()
         _release(qapp, page, component, engine)
+
+
+def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):
+    """Fluent Gallery panels must render the selected vertical indicator.
+
+    Fluent 画廊面板必须绘制选中项的竖向指示器。
+    """
+    previous_skin = getSkin()
+    setSkin(Skin.FLUENT)
+    engine = component = window = page = None
+    try:
+        engine, component, window, page = _create_host_scene(qapp)
+        pane = _pane(page)
+        assert _wait_until(lambda: len(_nav_items(pane)) == 5)
+
+        for name in ("NavigationView", "NavigationBar"):
+            panel = pane if name == "NavigationView" else _panels_of(page, name)[0]
+            indicator = next(
+                item for item in panel.findChildren(QQuickItem)
+                if _type_name(item) == "SlidingIndicator"
+            )
+            assert indicator.isVisible(), name
+            visual = _indicator_visual(panel)
+            assert visual.width() > 0, name
+            assert visual.height() > 0, name
+    finally:
+        if window is not None:
+            window.close()
+        _release(qapp, page, component, engine)
+        setSkin(previous_skin)
 
 
 def _click_pane_toggle(window, pane):
