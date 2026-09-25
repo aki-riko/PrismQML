@@ -594,7 +594,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         )
         if binding is None:
             return
-        if binding.above_host:
+        if isinstance(binding, _WindowFollowerBinding) and binding.above_host:
             return
         if (
             not window_pos.flags & _SWP_NOZORDER

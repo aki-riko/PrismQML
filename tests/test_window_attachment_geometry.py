@@ -74,6 +74,27 @@ def test_attachment_respects_drawer_reservation_and_syncs_on_host_move():
     assert event_filter.binding_count == 1
 
 
+def test_attachment_native_z_order_does_not_read_follower_only_properties():
+    """Attached windows stay behind their host during native z-order changes."""
+    native_rects = {11: _rect(100, 200, 900, 800)}
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda hwnd: native_rects.get(hwnd),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+    )
+    assert event_filter.register_attachment(
+        11, 33, follower._ATTACHMENT_POS_RIGHT, 120, 60, 8, 0
+    )
+    window_pos = SimpleNamespace(flags=0, hwndInsertAfter=99)
+
+    event_filter.enforce_follower_z_order(33, window_pos)
+
+    assert promotions == [(11, 99)]
+    assert window_pos.hwndInsertAfter == 11
+    assert window_pos.flags & follower._SWP_NOOWNERZORDER
+
+
 class _FakeWindow:
     def __init__(self, hwnd: int, geometry):
         self._hwnd = hwnd
