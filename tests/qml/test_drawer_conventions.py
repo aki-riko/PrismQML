@@ -162,6 +162,9 @@ def _dispose_scene(engine, component, window) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+    for candidate in QGuiApplication.topLevelWindows():
+        if candidate.objectName() == "window" and shiboken6.isValid(candidate):
+            candidate.hide()
 
 
 @pytest.fixture
