@@ -117,208 +117,235 @@ ExampleCard {
     // ==================== Size 尺寸 ====================
     title: "Vertical navigation"
     description: "NavigationView / NavigationBar / ToggleNavigationBar"
+    orientation: Qt.Vertical
 
     // ==================== Content 内容 ====================
-    ComponentCard {
-        label: "NavigationView (expand / collapse + acrylic)"
-        Column {
-            spacing: Fluent.Enums.spacing.m
+    Column {
+        id: panelLayout
+        width: parent ? parent.width : 0
+        spacing: Fluent.Enums.spacing.xl
 
-            SelectorBar {
-                id: navPaneModeBar
-                objectName: "galleryNavPaneModeBar"
-                items: [
-                    { "key": "left", "text": "Left" },
-                    { "key": "compact", "text": "Compact" },
-                    { "key": "minimal", "text": "Minimal" },
-                    { "key": "auto", "text": "Auto" }
-                ]
-                onItemClicked: (index) => showcase.setNavPaneMode(index)
-            }
-
-            Row {
+        // Keep the interactive NavigationView as the primary reading target.
+        // 将可交互的 NavigationView 作为主要阅读目标单独成组。
+        ComponentCard {
+            label: "NavigationView (expand / collapse + acrylic)"
+            Column {
                 spacing: Fluent.Enums.spacing.m
 
-                Column {
-                    spacing: Fluent.Enums.spacing.s
+                SelectorBar {
+                    id: navPaneModeBar
+                    objectName: "galleryNavPaneModeBar"
+                    items: [
+                        { "key": "left", "text": "Left" },
+                        { "key": "compact", "text": "Compact" },
+                        { "key": "minimal", "text": "Minimal" },
+                        { "key": "auto", "text": "Auto" }
+                    ]
+                    onItemClicked: (index) => showcase.setNavPaneMode(index)
+                }
 
-                    // The frame is a clipping host with an animated width, exactly like
-                    // the window shell's nav container: the pane keeps its expanded
-                    // geometry and is revealed or hidden instead of reflowing.
-                    // 外框是与窗口外壳导航容器相同的"裁剪宿主 + 宽度动画": 面板保持展开几何,
-                    // 靠裁剪露出或遮住, 而不是每帧重排。
-                    Rectangle {
-                        id: navPaneFrame
-                        objectName: "galleryNavPaneFrame"
-                        property bool isAnimating: false
+                Row {
+                    spacing: Fluent.Enums.spacing.m
 
-                        width: showcase.navPaneTargetWidth()
-                        height: 340
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.borderColor
-                        clip: true
+                    Column {
+                        spacing: Fluent.Enums.spacing.s
 
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Fluent.Enums.duration.medium
-                                easing.type: Easing.OutCubic
-                                onRunningChanged: navPaneFrame.isAnimating = running
+                        // The frame is a clipping host with an animated width, exactly like
+                        // the window shell's nav container: the pane keeps its expanded
+                        // geometry and is revealed or hidden instead of reflowing.
+                        // 外框是与窗口外壳导航容器相同的"裁剪宿主 + 宽度动画": 面板保持展开几何,
+                        // 靠裁剪露出或遮住, 而不是每帧重排。
+                        Rectangle {
+                            id: navPaneFrame
+                            objectName: "galleryNavPaneFrame"
+                            property bool isAnimating: false
+
+                            width: showcase.navPaneTargetWidth()
+                            height: 340
+                            radius: Fluent.Enums.radius.large
+                            color: Fluent.Enums.surfaceColor
+                            border.width: Fluent.Enums.border.thin
+                            border.color: Fluent.Enums.borderColor
+                            clip: true
+
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: Fluent.Enums.duration.medium
+                                    easing.type: Easing.OutCubic
+                                    onRunningChanged: navPaneFrame.isAnimating = running
+                                }
                             }
-                        }
 
-                        NavigationView {
-                            id: galleryNavPane
-                            objectName: "galleryNavPane"
-                            // pane_auto reads the pane's own width, so auto follows the
-                            // frame; every other mode keeps the design width and is
-                            // clipped by the frame. pane_auto 读取自身宽度, 因此 auto
-                            // 跟随外框; 其它模式保持设计宽度, 由外框裁剪。
-                            width: navPaneModeBar.currentIndex === 3
-                                ? navPaneFrame.width
-                                : Fluent.Enums.controlSize.navPanelExpandWidth
-                            height: parent.height
-                            showReturnButton: false
-                            // The panels normally reserve the window title-bar strip,
-                            // which does not exist inside a page.
-                            // 面板默认为窗口标题栏预留高度, 页面里没有标题栏。
-                            titleBarHeight: 0
-                            // Expanded is the useful default; the pane's own button
-                            // collapses it to the icon rail from here.
-                            // 默认展开更实用; 从这里起用面板自己的按钮即可折叠成图标栏。
-                            paneDisplayMode: Fluent.Enums.navigation.pane_left
-                            model: showcase.navPanelModel
-                            bottomItems: [
-                                { "text": "Account", "icon": showcase.iconPath("Person"), "selectable": false }
-                            ]
-                            acrylicEnabled: (isExpanded || navPaneFrame.isAnimating)
-                                && showcase._paneAcrylicReady
-                            acrylicImageSource: showcase._paneAcrylicSource
-                            // The panels never move their own selection: they emit
-                            // itemClicked and expect the host shell to push a new
-                            // currentIndex back (single-direction binding). Inside a
-                            // page this handler IS that shell.
-                            // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
-                            // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
-                            onItemClicked: (index) => {
-                                if (index >= 0 && index < showcase.navPanelModel.length)
-                                    currentIndex = index
-                            }
-                            onAboutToExpand: showcase.capturePaneAcrylic()
-                            onIsExpandedChanged: if (isExpanded) showcase.capturePaneAcrylic()
-                            onIsPaneOpenChanged: if (isPaneOpen) showcase.capturePaneAcrylic()
-                            onPaneDisplayModeChanged: {
-                                navPaneModeBar.currentIndex =
+                            NavigationView {
+                                id: galleryNavPane
+                                objectName: "galleryNavPane"
+                                // pane_auto reads the pane's own width, so auto follows the
+                                // frame; every other mode keeps the design width and is
+                                // clipped by the frame. pane_auto 读取自身宽度, 因此 auto
+                                // 跟随外框; 其它模式保持设计宽度, 由外框裁剪。
+                                width: navPaneModeBar.currentIndex === 3
+                                    ? navPaneFrame.width
+                                    : Fluent.Enums.controlSize.navPanelExpandWidth
+                                height: parent.height
+                                showReturnButton: false
+                                // The panels normally reserve the window title-bar strip,
+                                // which does not exist inside a page.
+                                // 面板默认为窗口标题栏预留高度, 页面里没有标题栏。
+                                titleBarHeight: 0
+                                // Expanded is the useful default; the pane's own button
+                                // collapses it to the icon rail from here.
+                                // 默认展开更实用; 从这里起用面板自己的按钮即可折叠成图标栏。
+                                paneDisplayMode: Fluent.Enums.navigation.pane_left
+                                model: showcase.navPanelModel
+                                bottomItems: [
+                                    { "text": "Account", "icon": showcase.iconPath("Person"), "selectable": false }
+                                ]
+                                acrylicEnabled: (isExpanded || navPaneFrame.isAnimating)
+                                    && showcase._paneAcrylicReady
+                                acrylicImageSource: showcase._paneAcrylicSource
+                                // The panels never move their own selection: they emit
+                                // itemClicked and expect the host shell to push a new
+                                // currentIndex back (single-direction binding). Inside a
+                                // page this handler IS that shell.
+                                // 面板不会自己改选中项: 它只发 itemClicked, 由宿主外壳回灌
+                                // currentIndex（单向绑定）。页面里这段接线就是那个外壳。
+                                onItemClicked: (index) => {
+                                    if (index >= 0 && index < showcase.navPanelModel.length)
+                                        currentIndex = index
+                                }
+                                onAboutToExpand: showcase.capturePaneAcrylic()
+                                onIsExpandedChanged: if (isExpanded) showcase.capturePaneAcrylic()
+                                onIsPaneOpenChanged: if (isPaneOpen) showcase.capturePaneAcrylic()
+                                onPaneDisplayModeChanged: {
+                                    navPaneModeBar.currentIndex =
+                                        showcase.navPaneModes().indexOf(paneDisplayMode)
+                                    if (isExpanded) showcase.capturePaneAcrylic()
+                                }
+                                Component.onCompleted: navPaneModeBar.currentIndex =
                                     showcase.navPaneModes().indexOf(paneDisplayMode)
-                                if (isExpanded) showcase.capturePaneAcrylic()
                             }
-                            Component.onCompleted: navPaneModeBar.currentIndex =
-                                showcase.navPaneModes().indexOf(paneDisplayMode)
+                        }
+
+                        Slider {
+                            id: navPaneWidth
+                            objectName: "galleryNavPaneWidth"
+                            width: navPaneFrame.width
+                            from: 120
+                            to: 420
+                            value: 380
                         }
                     }
 
-                    Slider {
-                        id: navPaneWidth
-                        objectName: "galleryNavPaneWidth"
-                        width: navPaneFrame.width
-                        from: 120
-                        to: 420
-                        value: 380
+                    Column {
+                        spacing: Fluent.Enums.spacing.s
+
+                        Label {
+                            type: Fluent.Enums.label.type_caption
+                            text: "mode: " + showcase.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
+                        }
+                        Label {
+                            type: Fluent.Enums.label.type_caption
+                            text: "expanded: " + galleryNavPane.isExpanded
+                        }
+                        Label {
+                            type: Fluent.Enums.label.type_caption
+                            text: "pane open: " + galleryNavPane.isPaneOpen
+                        }
+                        Label {
+                            objectName: "galleryNavPaneFrameWidth"
+                            type: Fluent.Enums.label.type_caption
+                            text: "frame width: " + Math.round(navPaneFrame.width)
+                        }
+                        Label {
+                            objectName: "galleryNavPaneAcrylicState"
+                            type: Fluent.Enums.label.type_caption
+                            text: "acrylic: " + (showcase._paneAcrylicReady ? "on" : "off")
+                        }
+                        Button {
+                            text: "toggle()"
+                            onClicked: galleryNavPane.toggle()
+                        }
+                        Button {
+                            text: "togglePane()"
+                            onClicked: galleryNavPane.togglePane()
+                        }
+                    }
+                }
+            }
+        }
+
+        // Keep the supporting variants together so the vertical controls read as one
+        // family instead of letting Pivot fall through the outer flow.
+        // 将辅助变体集中展示，让竖向控件成为一个整体，避免 Pivot 被外层流挤到下一行。
+        Flow {
+            width: parent ? parent.width : 0
+            height: childrenRect.height
+            spacing: Fluent.Enums.spacing.xl
+            flow: Flow.LeftToRight
+
+            ComponentCard {
+                label: "NavigationBar"
+                Rectangle {
+                    width: 68
+                    height: 300
+                    radius: Fluent.Enums.radius.large
+                    color: Fluent.Enums.surfaceColor
+                    border.width: Fluent.Enums.border.thin
+                    border.color: Fluent.Enums.borderColor
+                    clip: true
+                    NavigationBar {
+                        width: parent.width
+                        height: parent.height
+                        model: showcase.navPanelScrollModel
+                        onItemClicked: (index) => {
+                            if (index >= 0 && index < showcase.navPanelScrollModel.length)
+                                currentIndex = index
+                        }
+                    }
+                }
+            }
+
+            ComponentCard {
+                label: "ToggleNavigationBar"
+                Rectangle {
+                    width: 220
+                    height: 300
+                    radius: Fluent.Enums.radius.large
+                    color: Fluent.Enums.surfaceColor
+                    border.width: Fluent.Enums.border.thin
+                    border.color: Fluent.Enums.borderColor
+                    clip: true
+                    ToggleNavigationBar {
+                        width: parent.width
+                        height: parent.height
+                        model: showcase.navPanelModel
+                    }
+                }
+            }
+
+            Column {
+                spacing: Fluent.Enums.spacing.xl
+
+                ComponentCard {
+                    label: "SegmentedControl (orientation: Qt.Vertical)"
+                    SegmentedControl {
+                        orientation: Qt.Vertical
+                        items: ["General", "Appearance", "Advanced"]
                     }
                 }
 
-                Column {
-                    spacing: Fluent.Enums.spacing.s
-
-                    Label {
-                        type: Fluent.Enums.label.type_caption
-                        text: "mode: " + showcase.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
-                    }
-                    Label {
-                        type: Fluent.Enums.label.type_caption
-                        text: "expanded: " + galleryNavPane.isExpanded
-                    }
-                    Label {
-                        type: Fluent.Enums.label.type_caption
-                        text: "pane open: " + galleryNavPane.isPaneOpen
-                    }
-                    Label {
-                        objectName: "galleryNavPaneFrameWidth"
-                        type: Fluent.Enums.label.type_caption
-                        text: "frame width: " + Math.round(navPaneFrame.width)
-                    }
-                    Label {
-                        objectName: "galleryNavPaneAcrylicState"
-                        type: Fluent.Enums.label.type_caption
-                        text: "acrylic: " + (showcase._paneAcrylicReady ? "on" : "off")
-                    }
-                    Button {
-                        text: "toggle()"
-                        onClicked: galleryNavPane.toggle()
-                    }
-                    Button {
-                        text: "togglePane()"
-                        onClicked: galleryNavPane.togglePane()
+                ComponentCard {
+                    label: "Pivot (orientation: Qt.Vertical)"
+                    Pivot {
+                        orientation: Qt.Vertical
+                        items: [
+                            { "key": "general", "text": "General" },
+                            { "key": "appearance", "text": "Appearance" },
+                            { "key": "advanced", "text": "Advanced" }
+                        ]
                     }
                 }
             }
-        }
-    }
-    ComponentCard {
-        label: "NavigationBar"
-        Rectangle {
-            width: 68
-            height: 300
-            radius: Fluent.Enums.radius.large
-            color: Fluent.Enums.surfaceColor
-            border.width: Fluent.Enums.border.thin
-            border.color: Fluent.Enums.borderColor
-            clip: true
-            NavigationBar {
-                width: parent.width
-                height: parent.height
-                model: showcase.navPanelScrollModel
-                onItemClicked: (index) => {
-                    if (index >= 0 && index < showcase.navPanelScrollModel.length)
-                        currentIndex = index
-                }
-            }
-        }
-    }
-    ComponentCard {
-        label: "ToggleNavigationBar"
-        Rectangle {
-            width: 220
-            height: 300
-            radius: Fluent.Enums.radius.large
-            color: Fluent.Enums.surfaceColor
-            border.width: Fluent.Enums.border.thin
-            border.color: Fluent.Enums.borderColor
-            clip: true
-            ToggleNavigationBar {
-                width: parent.width
-                height: parent.height
-                model: showcase.navPanelModel
-            }
-        }
-    }
-    ComponentCard {
-        label: "SegmentedControl (orientation: Qt.Vertical)"
-        SegmentedControl {
-            orientation: Qt.Vertical
-            items: ["General", "Appearance", "Advanced"]
-        }
-    }
-    ComponentCard {
-        label: "Pivot (orientation: Qt.Vertical)"
-        Pivot {
-            orientation: Qt.Vertical
-            items: [
-                { "key": "general", "text": "General" },
-                { "key": "appearance", "text": "Appearance" },
-                { "key": "advanced", "text": "Advanced" }
-            ]
         }
     }
 }
