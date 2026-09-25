@@ -62,6 +62,8 @@ NavigationPanelCore {
     // Keep the indicator in lockstep with the item it marks 指示器与所标记的项锁步渐隐
     indicatorOpacity: control._selectedItemFade
 
+    NavigationIndicatorRecoveryTimer { host: control }
+
     // ==================== Content 内容 ====================
     // Edge fade state shared by the items and the indicator 导航项与指示器共用的渐隐状态
     NavigationScrollFade {

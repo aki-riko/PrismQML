@@ -75,6 +75,35 @@ Window {{
 }}
 """
 
+_WINDOW_STACK_SCENE = """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: host
+    objectName: "galleryWindowHost"
+    width: 1200
+    height: 800
+    visible: true
+    Loader {
+        id: firstPage
+        objectName: "firstGalleryPage"
+        anchors.fill: parent
+        source: "{page_url}"
+        visible: true
+    }
+
+    Loader {
+        id: secondPage
+        objectName: "secondGalleryPage"
+        anchors.fill: parent
+        source: "{page_url}"
+        visible: false
+    }
+}
+"""
+
 # Window-level vertical navigation panels the Gallery page must demonstrate.
 # 画廊页面必须展示的窗口级垂直导航面板。
 # One NavigationView owns every pane display mode now: the pane expands and collapses
@@ -293,6 +322,64 @@ def _create_host_scene(qapp):
     return engine, component, window, loader.property("item")
 
 
+def _create_window_stack_scene(qapp):
+    configure_qml_environment()
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        _WINDOW_STACK_SCENE.replace(
+            "{page_url}", QUrl.fromLocalFile(str(_PAGE)).toString()
+        ).encode("utf-8"),
+        QUrl.fromLocalFile(
+            str(_ROOT / "tests" / "qml" / "gallery-stack-host.qml")
+        ),
+    )
+    assert _wait_until(
+        lambda: component.status() != QQmlComponent.Status.Loading
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    window.show()
+    window.requestActivate()
+    assert _wait_until(lambda: bool(_panels_of(window, "NavigationView"))), (
+        "NavigationView not found",
+        len(window.findChildren(QQuickItem)),
+    )
+    return engine, component, window
+
+
+def _effective_visible(item):
+    current = item
+    while current is not None:
+        if not current.isVisible():
+            return False
+        current = current.parentItem()
+    return True
+
+
+def _visible_indicator(panel):
+    indicators = [
+        item for item in panel.findChildren(QQuickItem)
+        if _type_name(item) == "SlidingIndicator"
+    ]
+    assert indicators, panel.objectName()
+    indicator = indicators[0]
+    visual = next(
+        (
+            item for item in indicator.childItems()
+            if item.isVisible() and item.width() > 0 and item.height() > 0
+        ),
+        None,
+    )
+    return indicator, visual
+
+
 def _class_histogram(root) -> list:
     counts = {}
     for child in root.findChildren(QObject):
@@ -390,6 +477,53 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
         if window is not None:
             window.close()
         _release(qapp, page, component, engine)
+
+
+def test_gallery_navigation_indicator_recovers_after_page_stack_switch(qapp):
+    """A page-stack activation must reinitialize its hidden navigation panels.
+
+    页面栈从其它页面切入导航页后, 隐藏期间创建的导航委托仍必须恢复选中指示器。
+    """
+    engine = component = window = None
+    try:
+        engine, component, window = _create_window_stack_scene(qapp)
+        initial_panels = {
+            name: [
+                panel for panel in _panels_of(window, name)
+                if _effective_visible(panel)
+            ]
+            for name in ("NavigationView", "NavigationBar")
+        }
+        assert all(initial_panels.values()), "initial page did not load"
+
+        first_page = window.findChild(QObject, "firstGalleryPage")
+        second_page = window.findChild(QObject, "secondGalleryPage")
+        assert first_page is not None and second_page is not None
+        first_page.setProperty("visible", False)
+        second_page.setProperty("visible", True)
+
+        def switched_pane_ready():
+            for name, initial in initial_panels.items():
+                visible = [
+                    panel for panel in _panels_of(window, name)
+                    if _effective_visible(panel)
+                ]
+                if not any(
+                    panel not in initial
+                    and _visible_indicator(panel)[0].property("_initialized")
+                    and _visible_indicator(panel)[1] is not None
+                    for panel in visible
+                ):
+                    return False
+            return True
+
+        assert _wait_until(switched_pane_ready), (
+            "Navigation page indicator did not recover after page-stack switch"
+        )
+    finally:
+        if window is not None:
+            window.close()
+        _release(qapp, window, component, engine)
 
 
 def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):

@@ -152,6 +152,8 @@ NavigationPanelCore {
     onIsPaneOpenChanged: control._applyPaneDisplayMode()
     Component.onCompleted: control._applyPaneDisplayMode()
 
+    NavigationIndicatorRecoveryTimer { host: control }
+
     // ==================== Content 内容 ====================
     // Return button 返回按钮
     Rectangle {
