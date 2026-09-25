@@ -59,6 +59,8 @@ import PrismQML
 Window {
     readonly property int normalEcho: TextInput.Normal
     readonly property int passwordEcho: TextInput.Password
+    readonly property int expectedDefaultShape: Enums.button.shape_default
+    readonly property int expectedSmallRadius: Enums.radius.small
     readonly property int expectedClearButtonSize: Enums.controlSize.lineEditClearButtonSize
     readonly property int expectedHideDelay: Enums.duration.medium
 
@@ -277,6 +279,8 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         inputs["searchInput"].searched.connect(searched.append)
         assert not search.property("expanded")
         assert search_action.property("collapsed")
+        assert search_action.property("shape") == window.property("expectedDefaultShape")
+        assert search_action.property("radius") == window.property("expectedSmallRadius")
         _click(window, search_action)
         assert _wait_for(lambda: search.property("expanded"))
         inputs["searchInput"].setProperty("text", "needle")

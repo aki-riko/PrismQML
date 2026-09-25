@@ -27,6 +27,7 @@ ButtonCore {
            : (parent ? parent.height * 0.75 : Enums.controlSize.closeButtonSize))
     preferredWidth: preferredHeight
     
-    // Collapsed mode: pill shape for rounded look 折叠模式：药丸形状
-    shape: collapsed ? Enums.button.shape_pill : Enums.button.shape_default
+    // Keep the collapsed search surface filled with the input's square bounds.
+    // 收起态搜索面保持填满输入框的方形边界。
+    shape: Enums.button.shape_default
 }
