@@ -15,7 +15,9 @@ Column {
     default property alias content: contentHost.children
     readonly property int _contentWidth: contentHost.childrenRect.width > 0 ? contentHost.childrenRect.width : Enums.controlSize.buttonMinWidth
     readonly property int _contentHeight: contentHost.childrenRect.height > 0 ? contentHost.childrenRect.height : Enums.controlSize.buttonHeight
-    readonly property int _labelWidth: labelItem.visible ? labelItem.implicitWidth : 0
+    readonly property int _labelWidth: labelItem.visible
+        ? Math.min(labelItem.implicitWidth, Enums.controlSize.galleryCardLabelMaxWidth)
+        : 0
     readonly property int _prismWidth: Math.max(_contentWidth, Enums.controlSize.buttonMinWidth)
     readonly property int _effectiveWidth: Math.max(_contentWidth, _labelWidth)
     
@@ -46,8 +48,9 @@ Column {
         text: control.label
         color: Enums.accentColor
         visible: control.label !== ""
-        maximumLineCount: 1
-        elide: Text.ElideNone
+        maximumLineCount: 2
+        wrapMode: Text.WordWrap
+        elide: Text.ElideRight
         horizontalAlignment: Text.AlignHCenter  // Center text 文本居中
     }
 }

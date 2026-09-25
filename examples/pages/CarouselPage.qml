@@ -55,7 +55,7 @@ Item {
                 Column {
                     spacing: Fluent.Enums.spacing.l
                     
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.xxl
                         
                         ComponentCard {
@@ -104,7 +104,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_cce4c8c1bc7d34b4", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_9e17cc2bef9868b7", Fluent.Translator._v)
 
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xxl
 
                     ComponentCard {
@@ -157,7 +157,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_22672541d05520ef", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_cc38c3b4060f1068", Fluent.Translator._v)
 
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xxl
 
                     ComponentCard {

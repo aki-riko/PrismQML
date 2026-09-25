@@ -29,7 +29,6 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Enums.spacing.xs
                 Text { text: Fluent.Translator.tr("gallery_8829dbcbcfce6e54", Fluent.Translator._v); font.pixelSize: Enums.typography.displayLarge; font.bold: true; color: Enums.textColor.primary; font.family: Enums.fontFamily }
-                Text { text: "prismqml.effects"; font.pixelSize: Enums.typography.caption; color: Enums.textColor.secondary; font.family: Enums.fontFamily }
             }
             
             // MatrixRain 展示 MatrixRain showcase

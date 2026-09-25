@@ -30,11 +30,6 @@ Item {
                     text: Fluent.Translator.tr("gallery_e49c9ff56ab3ff33", Fluent.Translator._v)
                 }
 
-                Fluent.Label {
-                    type: Fluent.Enums.label.type_caption
-                    text: "prismqml.controls.containers"
-                    color: Fluent.Enums.textColor.secondary
-                }
             }
 
             // Basic cards 基础卡片

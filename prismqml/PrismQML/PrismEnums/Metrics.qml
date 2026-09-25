@@ -365,6 +365,7 @@ QtObject {
  readonly property int cardWidth: 400 // Card default width
  readonly property int cardContentWidth: 300 // Card content area width (cardWidth - icon/padding area) 卡片内容区域宽度
  readonly property int cardHeight: 64 // Card default height
+ readonly property int galleryCardLabelMaxWidth: 220 // Gallery example label max width 画廊示例标签最大宽度
  readonly property int dropFileHeight: 140 // DropZone default height 拖放组件默认高度
  readonly property int splitPaneMinimumSize: 50 // SplitPane pane minimum extent 分割面板最小范围
  // Calendar controls 日历控件

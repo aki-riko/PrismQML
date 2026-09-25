@@ -29,14 +29,13 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: Fluent.Translator.tr("gallery_ece4a638e075fe2d", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "prismqml.controls.containers"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Layout components 布局组件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_047006167c1e7f73", Fluent.Translator._v)
                 description: "Layout(mode=mode_horizontal/mode_vertical/mode_grid)"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "mode_horizontal"
@@ -209,7 +208,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_94e5ca260bd07309", Fluent.Translator._v)
                 description: "SplitPane"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl
                     ComponentCard {
                         label: "horizontal"
@@ -236,7 +235,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3bf97e9265673fb5", Fluent.Translator._v)
                 description: "Drawer (mode_inside)"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard { label: "position.left"; Button { text: Fluent.Translator.tr("gallery_e5646ede46742a0b", Fluent.Translator._v); onClicked: leftDrawer.open() } }
                     ComponentCard { label: "position.right"; Button { text: Fluent.Translator.tr("gallery_8d768501ecb25a2b", Fluent.Translator._v); onClicked: rightDrawer.open() } }
@@ -248,7 +247,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ba59d151d3d96219", Fluent.Translator._v)
                 description: "Drawer (mode_outside)"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard { label: "position.left"; Button { text: Fluent.Translator.tr("gallery_86d5449130890834", Fluent.Translator._v); onClicked: outsideLeftDrawer.open() } }
                     ComponentCard { label: "position.right"; Button { text: Fluent.Translator.tr("gallery_8013ac3b2f8ddbe7", Fluent.Translator._v); onClicked: outsideRightDrawer.open() } }
@@ -262,7 +261,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_9b1cd3668052b24b", Fluent.Translator._v)
                 description: "QRCode"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xxxl
                     ComponentCard { label: "size: 120"; QRCode { content: "https://github.com"; size: 120 } }
                     ComponentCard { label: "size: 150"; QRCode { content: Fluent.Translator.tr("gallery_3534dd4f90ae9616", Fluent.Translator._v); size: 150 } }
@@ -298,7 +297,7 @@ Item {
             ExampleCard {
                 title: "RefreshContainer"
                 description: "Pull down from the top of the list to refresh"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
 
                     ComponentCard {

@@ -31,7 +31,6 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: Fluent.Translator.tr("gallery_416a19daaaa5e27a", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "prismqml.controls.navigation"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Breadcrumbs 面包屑
@@ -239,7 +238,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ee1f55ea470c1fb0", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_9f6fc091d21f095d", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "opacity"

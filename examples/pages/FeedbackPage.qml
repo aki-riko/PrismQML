@@ -38,7 +38,6 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: Fluent.Translator.tr("gallery_bf367252d1ee1b72", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "prismqml.controls.feedback"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Progress indicators 进度指示
@@ -47,7 +46,7 @@ Item {
                 description: "Progress (type_bar / type_bar_filled / type_ring)"
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.xxl
                         ComponentCard { label: "type_bar"; Progress { type: Fluent.Enums.progress.type_bar; width: 140; value: 60 } }
                         ComponentCard { label: "indeterminate"; Progress { type: Fluent.Enums.progress.type_bar; width: 140; indeterminate: true } }
@@ -69,7 +68,7 @@ Item {
                 description: "Skeleton (shape_rounded / shape_rect / shape_circle)"
                 Column {
                     spacing: Fluent.Enums.spacing.xl
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.xl
                         ComponentCard { label: "shape_rounded"; Skeleton { shape: Fluent.Enums.skeleton.shape_rounded; width: 200; height: 14 } }
                         ComponentCard { label: "shape_rect"; Skeleton { shape: Fluent.Enums.skeleton.shape_rect; width: 80; height: 80 } }
@@ -121,7 +120,7 @@ Item {
             ExampleCard {
                 title: "NotificationManager.desktop (Toast options)"
                 description: Fluent.Translator.tr("gallery_11eb088399ff4760", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     Button {
                         style: Fluent.Enums.button.style_filled
@@ -151,7 +150,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_7cffe28ddcedd1d0", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_9b6c6de92f21ee98", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.demoMetrics.gapLarge
                     ComponentCard { label: "type_no_data"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_no_data } }
                     ComponentCard { label: "type_result (success)"; StateWidget { width: 160; height: 180; stateType: Fluent.Enums.state.type_result; severity: "success"; title: Fluent.Translator.tr("gallery_205dfc7ce8cd7288", Fluent.Translator._v) } }
@@ -167,7 +166,7 @@ Item {
                 description: "MessageBox / DialogBoxCore / ProgressDialog"
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.l
                         ComponentCard { label: "MessageBox"; Button { text: Fluent.Translator.tr("gallery_877850d2f430ee78", Fluent.Translator._v); onClicked: demoMessageBox.open() } }
                         ComponentCard { label: Fluent.Translator.tr("gallery_a0e0c0bae980ef35", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_a0e0c0bae980ef35", Fluent.Translator._v); onClicked: confirmBox.open() } }
@@ -175,7 +174,7 @@ Item {
                         ComponentCard { label: Fluent.Translator.tr("gallery_0bb79bdc93beabe5", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_0bb79bdc93beabe5", Fluent.Translator._v); onClicked: maskCloseBox.open() } }
                         Text { id: dialogResult; text: Fluent.Translator.tr("gallery_d1f5b5d4bdea4b12", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; topPadding: Fluent.Enums.spacing.m }
                     }
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.l
                         ComponentCard { label: Fluent.Translator.tr("gallery_a500fb63eeacf9ac", Fluent.Translator._v); Button { text: Fluent.Translator.tr("gallery_a500fb63eeacf9ac", Fluent.Translator._v); onClicked: dialogDemo.open() } }
                         ComponentCard { label: "ProgressDialog"; Button { text: "ProgressDialog"; onClicked: { progressDlg.open(); progressTimer.start() } } }
@@ -189,7 +188,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_470739e4f4ac1431", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_087b36f7897ea738", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "PullUp"
@@ -228,7 +227,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_4ea266b55b66cdff", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_f40558e0064fd14c", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "Bottom"
@@ -262,7 +261,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_08f2cb12e2942057", Fluent.Translator._v)
                 description: "ToolTip"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "ToolTip"

@@ -36,7 +36,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_8e0daec2a60a370c", Fluent.Translator._v)
                 description: "Label + type"
-                Column {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.s
                     ComponentCard { label: "type_display"; Label { type: Fluent.Enums.label.type_display; text: "Display" } }
                     ComponentCard { label: "type_title_large"; Label { type: Fluent.Enums.label.type_title_large; text: Fluent.Translator.tr("gallery_dfab9636ca22e6df", Fluent.Translator._v) } }
@@ -55,20 +55,20 @@ Item {
                 description: Fluent.Translator.tr("gallery_ed154f2610a9fa4f", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.l
                         ComponentCard { label: "count: 5"; Badge { count: 5 } }
                         ComponentCard { label: "count: 99"; Badge { count: 99 } }
                         ComponentCard { label: "dot"; Badge { dot: true } }
                     }
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.l
                         ComponentCard { label: "info"; Badge { text: "New"; level: Fluent.Enums.statusLevel.info } }
                         ComponentCard { label: "attention"; Badge { text: Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v); level: Fluent.Enums.statusLevel.attention } }
                         ComponentCard { label: "success"; Badge { text: Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v); level: Fluent.Enums.statusLevel.success } }
                         ComponentCard { label: "error"; Badge { text: Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v); level: Fluent.Enums.statusLevel.error } }
                     }
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.xl
                         ComponentCard { 
                             label: "Button+Badge"
@@ -112,7 +112,7 @@ Item {
             ExampleCard {
                 title: "Chip"
                 description: Fluent.Translator.tr("gallery_e2040891d0422823", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.m
                     ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); Chip { text: "Attach camera"; icon: Fluent.Enums.icon.camera } }
                     ComponentCard { label: Fluent.Translator.tr("gallery_45c21a9e1fe271db", Fluent.Translator._v); Chip { text: "Add friend"; icon: Fluent.Enums.icon.people; checked: true } }
@@ -124,7 +124,7 @@ Item {
             ExampleCard {
                 title: "Tag"
                 description: Fluent.Translator.tr("gallery_3cf45f685654a77b", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.m
                     ComponentCard { label: "info"; Tag { text: Fluent.Translator.tr("gallery_e7028601e7da793d", Fluent.Translator._v); status: Fluent.Enums.statusLevel.info } }
                     ComponentCard { label: "success"; Tag { text: Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v); status: Fluent.Enums.statusLevel.success } }
@@ -162,7 +162,7 @@ Item {
                     spacing: Fluent.Enums.spacing.l
 
                     // Vertical 竖向
-                    Row {
+                    GalleryFlow {
                         spacing: Fluent.Enums.spacing.xxl
                         ComponentCard {
                             label: Fluent.Translator.tr("gallery_7ac8a25212e4053c", Fluent.Translator._v)

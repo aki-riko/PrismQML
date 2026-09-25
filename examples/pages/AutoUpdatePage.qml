@@ -73,12 +73,6 @@ Item {
                     font.bold: true
                     color: Fluent.Enums.textColor.primary
                 }
-                Text {
-                    text: "prismqml.controls.feedback.AutoUpdater"
-                    font.family: Fluent.Enums.fontFamily
-                    font.pixelSize: Fluent.Enums.typography.caption
-                    color: Fluent.Enums.textColor.secondary
-                }
             }
 
             ExampleCard {

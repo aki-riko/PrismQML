@@ -29,7 +29,6 @@ Item {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
                 Text { text: Fluent.Translator.tr("gallery_0f978a6dffcf9c4e", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
-                Text { text: "prismqml.controls.menus"; font.pixelSize: Fluent.Enums.typography.caption; color: Fluent.Enums.textColor.secondary; font.family: Fluent.Enums.fontFamily }
             }
             
             // Context menus 右键菜单
@@ -68,7 +67,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ee9fee3d038211be", Fluent.Translator._v)
                 description: "ListWidget / TableWidget / TreeWidget"
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl
                     ComponentCard { 
                         label: "ListWidget"
@@ -160,7 +159,7 @@ Item {
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ccff6b9a85f87905", Fluent.Translator._v)
                 description: Fluent.Translator.tr("gallery_d8cae3421f371e22", Fluent.Translator._v)
-                Row {
+                GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl
                     ComponentCard {
                         label: "ListView"
