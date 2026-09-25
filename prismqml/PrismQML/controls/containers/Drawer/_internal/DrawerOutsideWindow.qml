@@ -55,9 +55,9 @@ Window {
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint
     color: Enums.transparent
-    // Native follower owns geometry and z-order; keep this window detached from the host.
-    // 原生跟随器负责几何与层级; 此窗口保持与宿主解除 transient 关联。
-    transientParent: null
+    // Keep the outside drawer in the host's native owner group so modal dialogs stay above it.
+    // 外层抽屉保持在宿主原生 owner 组内, 确保模态选择框位于抽屉之上。
+    transientParent: control._hostWindow
 
     onVisibleChanged: {
         if (visible) {

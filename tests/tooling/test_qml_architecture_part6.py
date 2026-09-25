@@ -486,8 +486,14 @@ def test_selector_bar_colors_are_registered_tokens():
         assert token in state_source
     # Single-sourced values: the names are owned here, the chrome is shared
     # 取值单一来源: 这里拥有名称, 外观复用分段控件的选中样式
-    assert "selectorBarItemSelected: segmentedSelected" in state_source
-    assert "selectorBarItemHover: segmentedHover" in state_source
+    assert (
+        "selectorBarItemSelected: isTicket ? _ticket.muted : segmentedSelected"
+        in state_source
+    )
+    assert (
+        "selectorBarItemHover: isTicket ? _ticket.muted : segmentedHover"
+        in state_source
+    )
 
     assert "readonly property int selectorBarHeight" in metrics_source
     assert "readonly property int selectorBarMinItemWidth" in metrics_source

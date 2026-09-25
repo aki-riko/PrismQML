@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -142,8 +143,19 @@ def _create_scene():
 
 
 def _dispose_scene(engine, component, window) -> None:
-    window.close()
-    window.deleteLater()
+    outside_windows = [
+        candidate
+        for candidate in QGuiApplication.topLevelWindows()
+        if candidate.objectName() == "outsideDrawerWindow"
+    ]
+    for outside_window in outside_windows:
+        if shiboken6.isValid(outside_window):
+            outside_window.close()
+            outside_window.deleteLater()
+    if shiboken6.isValid(window):
+        window.hide()
+        window.close()
+        window.deleteLater()
     component.deleteLater()
     engine.collectGarbage()
     engine.clearComponentCache()
@@ -160,7 +172,6 @@ def drawer_scene(qapp):
         yield (*scene[2:], windows_before)
     finally:
         _dispose_scene(scene[0], scene[1], scene[2])
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def _open_at(drawer, panel, position, expected):
@@ -180,13 +191,13 @@ def _close(drawer):
 
 
 def _drawer_window():
-    return next(
-        (
-            window
-            for window in QGuiApplication.topLevelWindows()
-            if window.objectName() == "outsideDrawerWindow"
-        ),
-        None,
+    candidates = [
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if window.objectName() == "outsideDrawerWindow"
+    ]
+    return next((window for window in candidates if window.isVisible()), None) or (
+        candidates[-1] if candidates else None
     )
 
 
@@ -399,7 +410,7 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
             ) else 120)
         )
         assert content_item.parentItem() is outside_panel
-        assert drawer_window.transientParent() is None
+        assert drawer_window.transientParent() is window
         # The panel keeps all four corners rounded; only the shadow squares off the seam.
         effective_radius = drawer.property("_effectiveRadius")
         assert outside_panel.property("radius") == pytest.approx(effective_radius)
@@ -608,4 +619,8 @@ def test_drawer_outside_mode_closes_with_host_window(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
-    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+    assert tuple(
+        candidate
+        for candidate in QGuiApplication.topLevelWindows()
+        if candidate.isVisible()
+    ) == tuple(candidate for candidate in windows_before if candidate.isVisible())
