@@ -143,28 +143,17 @@ def _create_scene():
 
 
 def _dispose_scene(engine, component, window) -> None:
-    outside_windows = [
-        candidate
-        for candidate in QGuiApplication.topLevelWindows()
-        if candidate.objectName() == "outsideDrawerWindow"
-    ]
-    for outside_window in outside_windows:
-        if shiboken6.isValid(outside_window):
-            outside_window.close()
-            outside_window.deleteLater()
+    for candidate in QGuiApplication.topLevelWindows():
+        if candidate.objectName() in {"outsideDrawerWindow", "window"}:
+            if shiboken6.isValid(candidate):
+                candidate.close()
+                candidate.deleteLater()
     if shiboken6.isValid(window):
-        window.hide()
         window.close()
         window.deleteLater()
     component.deleteLater()
-    engine.collectGarbage()
-    engine.clearComponentCache()
-    engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
-    for candidate in QGuiApplication.topLevelWindows():
-        if candidate.objectName() == "window" and shiboken6.isValid(candidate):
-            candidate.hide()
 
 
 @pytest.fixture
