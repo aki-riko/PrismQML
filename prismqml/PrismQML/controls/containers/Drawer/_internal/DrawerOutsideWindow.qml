@@ -85,6 +85,7 @@ Window {
     RectangularShadow {
         id: outsideDrawerShadow
 
+        objectName: "outsideDrawerShadow"
         // The silhouette is the panel grown outwards by `blur`, not the panel itself.
         // `RectangularShadow` spreads its blur into AND out of the given rectangle, so a
         // silhouette equal to the panel hides the outer half of every band and the dark

@@ -81,7 +81,7 @@ def test_outside_window_owns_its_outward_shadow():
     # The HWND reserves the window-outward shadow padding and paints that shadow itself.
     assert (
         "readonly property real _outsideShadowSpread: "
-        "Enums.shadow.windowOutside.blur" in source
+        "Enums.shadow.windowOutside.blur * 2.5" in source
     )
     assert (
         "readonly property real _outsideWindowExtent: "
@@ -123,6 +123,38 @@ def test_outside_window_owns_its_outward_shadow():
     assert "seamFade" not in helper_source
     assert "readonly property real retract:" not in helper_source
     assert "anchors.leftMargin" not in helper_source
+
+
+def test_outside_drawer_shadow_reserve_covers_silhouette_growth_and_band():
+    """宿主外侧留白必须同时容下轮廓外扩量与模糊像带。
+
+    The silhouette is the panel grown outwards by `blur`, and the measured band spans about
+    another 1.5x blur beyond that silhouette, so reserving only one of the two puts the
+    outermost band back on the HWND edge — the shadow then reads as clipped again.
+    轮廓是面板朝外各扩 `blur`, 实测像带在轮廓之外再铺约 1.5 倍 blur; 只预留其中一项,
+    最外圈就会重新落在 HWND 边界上, 阴影再次表现为被裁剪。
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    # Silhouette growth in blur units, taken from the shadow item geometry below.
+    # 轮廓外扩量 (以 blur 为单位), 取自下面阴影 item 的几何。
+    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
+    assert "x: outsideDrawerWindow.panelOffsetX - blur" in helper_source
+    silhouette_growth = 1.0
+    # Band spread measured on the real effect 真实效果实测的像带铺开量
+    band_spread = 1.5
+    assert (
+        "readonly property real _outsideShadowSpread: "
+        f"Enums.shadow.windowOutside.blur * {silhouette_growth + band_spread}" in source
+    )
+
+    # Same relation in pixels: what is left of the reserve once the silhouette has used its
+    # `blur` has to still hold the whole measured band.
+    # 同一条关系的像素形式: 留白减去轮廓占用的 `blur` 之后, 仍须容下完整的实测像带。
+    blur = 40
+    spread = blur * (silhouette_growth + band_spread)
+    assert spread - blur * silhouette_growth >= band_spread * blur
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

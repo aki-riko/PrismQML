@@ -457,6 +457,78 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_outside_drawer_reserves_the_whole_self_drawn_shadow_band(drawer_scene):
+    """自绘阴影的像带必须整体落在抽屉 HWND 内(接缝侧除外)。
+
+    The silhouette is the panel grown by one `blur`, and the measured band spans about
+    1.5x blur past that silhouette, so the HWND reserve has to hold both. This reads the
+    geometry the control really commits instead of only the source expressions, so a
+    reserve that covers just one of the two fails here.
+    轮廓是面板朝外各扩 1 倍 blur, 实测像带在轮廓之外再铺约 1.5 倍 blur, 因此 HWND 留白
+    必须同时容下两者。这里读的是控件真实提交的几何, 只覆盖其中一项的留白会在此失败。
+    """
+    window, drawer, _content_item, _panel, warnings, windows_before = drawer_scene
+    drawer.setProperty("mode", window.property("outsideMode"))
+    drawer_window = _drawer_window()
+    assert isinstance(drawer_window, QQuickWindow)
+    shadow = drawer_window.findChild(QQuickItem, "outsideDrawerShadow")
+    assert isinstance(shadow, QQuickItem)
+
+    blur = shadow.property("blur")
+    spread = drawer.property("_outsideShadowSpread")
+    # Measured on the real effect 真实效果实测的像带铺开量
+    band = blur * 1.5
+    assert spread == pytest.approx(blur * 2.5)
+    # What is left of the reserve once the silhouette used its `blur` must still hold the
+    # whole measured band. 留白减去轮廓占用的 `blur` 之后仍须容下完整的实测像带。
+    assert spread - blur >= band
+    tolerance = 1.0
+    horizontal = (
+        window.property("leftPosition"),
+        window.property("rightPosition"),
+    )
+
+    for position in (
+        *horizontal,
+        window.property("topPosition"),
+        window.property("bottomPosition"),
+    ):
+        drawer.setProperty("position", position)
+        assert QMetaObject.invokeMethod(drawer, "open")
+        assert _wait_for(lambda: drawer.property("opened"))
+        assert _wait_for(drawer_window.isVisible)
+        assert _wait_for(lambda: shadow.width() > 0)
+        _pump(60)
+
+        left = shadow.x()
+        top = shadow.y()
+        right = left + shadow.width()
+        bottom = top + shadow.height()
+        width = drawer_window.width()
+        height = drawer_window.height()
+        if position in horizontal:
+            # Only the seam side (the panel edge that meets the host) may run past the
+            # HWND; every other side has to hold the whole band.
+            # 只有接缝侧(与宿主相接的面板边)允许越出 HWND; 其余各面都必须容下整条像带。
+            assert top - band >= -tolerance, (position, top, band)
+            assert bottom + band <= height + tolerance, (position, bottom, band, height)
+            if position == window.property("rightPosition"):
+                assert right + band <= width + tolerance, (right, band, width)
+            else:
+                assert left - band >= -tolerance, (left, band)
+        else:
+            assert left - band >= -tolerance, (position, left, band)
+            assert right + band <= width + tolerance, (position, right, band, width)
+            if position == window.property("topPosition"):
+                assert top - band >= -tolerance, (top, band)
+            else:
+                assert bottom + band <= height + tolerance, (bottom, band, height)
+        _close(drawer)
+        assert _wait_for(lambda: not drawer_window.isVisible())
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
     drawer_scene,
 ):
