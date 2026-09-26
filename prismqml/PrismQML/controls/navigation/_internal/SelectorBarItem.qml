@@ -42,8 +42,13 @@ Item {
     readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     // ==================== Size 尺寸 ====================
+    // Use a deterministic character metric so the strip does not change width with
+    // platform fallback fonts. 使用确定性的字符度量, 避免平台回退字体改变条带宽度。
+    readonly property real _stableTextWidth: itemText.length * selectorBar.itemFontSize
+    readonly property real _stableIconWidth: hasIcon
+        ? selectorBar.iconSize + (hasText ? Enums.spacing.s : 0) : 0
     width: Math.max(Enums.controlSize.selectorBarMinItemWidth,
-                    itemContent.implicitWidth + Enums.spacing.l * 2)
+                    _stableTextWidth + _stableIconWidth + Enums.spacing.l * 2)
     height: _vertical ? Enums.controlSize.selectorBarHeight : selectorBar.height
     // The selected cell owns the pill geometry, so it re-syncs whenever its own box
     // settles. This is what makes the pill appear when delegates arrive late, e.g.
