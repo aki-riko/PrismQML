@@ -18,6 +18,26 @@ ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "scripts" / "test_process.py"
 PROBE = ROOT / "tests" / "qml" / "navigation_panel_acrylic_native_probe.py"
 STATES = ("initial", "updated", "resized", "dark", "reexpanded")
+# Alpha at or below this counts as fully transparent 该 alpha 及以下视为完全透明
+# grabWindow leaves RGB rounding residue on nearly invisible pixels on some
+# drivers: the CI runner reports [255, 204, 204, 5] where a local run reports
+# [0, 0, 0, 0] for the very same sample point. Such a pixel carries no verifiable
+# signal, so the corner contract compares it as fully transparent instead of
+# failing on the residue.
+# 部分驱动的 grabWindow 会在近透明像素上留下 RGB 取整残值: CI runner 实测
+# [255, 204, 204, 5], 本机同一点为 [0, 0, 0, 0]。这类像素不含可验证信号,
+# 因此圆角契约把它按全透明比较, 而不是因残值判定失败。
+NEAR_TRANSPARENT_ALPHA = 8
+
+
+def _is_fully_transparent(pixel: list[int]) -> bool:
+    return pixel[3] <= NEAR_TRANSPARENT_ALPHA
+
+
+def _same_transparency(left: list[int], right: list[int]) -> bool:
+    if _is_fully_transparent(left) and _is_fully_transparent(right):
+        return True
+    return left == right
 
 
 def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
@@ -61,7 +81,7 @@ def _pixel_delta(pair: dict[str, object], name: str) -> int:
 
 def _assert_corner_contract(pair: dict[str, object]) -> None:
     for name in ("top_outside", "bottom_outside"):
-        assert pair["on"][name] == pair["off"][name], (name, pair)
+        assert _same_transparency(pair["on"][name], pair["off"][name]), (name, pair)
     for name in ("top_inside", "bottom_inside", "upper_center", "lower_center"):
         assert _changed(pair, name), (name, pair)
 
