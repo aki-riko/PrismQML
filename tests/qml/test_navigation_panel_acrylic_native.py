@@ -19,25 +19,20 @@ RUNNER = ROOT / "scripts" / "test_process.py"
 PROBE = ROOT / "tests" / "qml" / "navigation_panel_acrylic_native_probe.py"
 STATES = ("initial", "updated", "resized", "dark", "reexpanded")
 # Alpha at or below this counts as fully transparent 该 alpha 及以下视为完全透明
-# grabWindow leaves RGB rounding residue on nearly invisible pixels on some
-# drivers: the CI runner reports [255, 204, 204, 5] where a local run reports
-# [0, 0, 0, 0] for the very same sample point. Such a pixel carries no verifiable
-# signal, so the corner contract compares it as fully transparent instead of
-# failing on the residue.
-# 部分驱动的 grabWindow 会在近透明像素上留下 RGB 取整残值: CI runner 实测
-# [255, 204, 204, 5], 本机同一点为 [0, 0, 0, 0]。这类像素不含可验证信号,
-# 因此圆角契约把它按全透明比较, 而不是因残值判定失败。
+# grabWindow leaves RGB rounding residue on nearly invisible pixels on some drivers
+# (CI reports [255, 204, 204, 5] where a local run reports [0, 0, 0, 0]); such a
+# pixel carries no verifiable signal, so outside points are compared by delta.
+# 部分驱动的 grabWindow 会在近透明像素上留下 RGB 取整残值 (CI 实测 [255, 204, 204, 5],
+# 本机同点为 [0, 0, 0, 0]); 这类像素不含可验证信号, 因此轮廓外的点按差值比较。
 NEAR_TRANSPARENT_ALPHA = 8
-
-
-def _is_fully_transparent(pixel: list[int]) -> bool:
-    return pixel[3] <= NEAR_TRANSPARENT_ALPHA
-
-
-def _same_transparency(left: list[int], right: list[int]) -> bool:
-    if _is_fully_transparent(left) and _is_fully_transparent(right):
-        return True
-    return left == right
+# Sub-pixel noise floor: a summed RGB delta at or below this counts as unchanged.
+# Sample points sit on the acrylic mask hard edge, so the half-pixel shift between a
+# DPR 1.5 desktop and a DPR 1.0 runner flips which side of that edge is read. A real
+# regression (missing shadow, leaking acrylic) moves whole surfaces, far above this.
+# 亚像素噪声下限: RGB 通道差之和不超过它即视为未变化。采样点落在亚克力遮罩硬边上,
+# DPR 1.5 桌面与 DPR 1.0 runner 之间的半像素位移会翻转读到硬边的哪一侧。真实回归
+# (阴影缺失、亚克力外溢)会让整个表面移位, 远高于该下限。
+SUB_PIXEL_DELTA = 3
 
 
 def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
@@ -66,10 +61,6 @@ def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _changed(pair: dict[str, object], name: str) -> bool:
-    return pair["on"][name] != pair["off"][name]
-
-
 def _pixel_delta(pair: dict[str, object], name: str) -> int:
     return sum(
         abs(on_channel - off_channel)
@@ -79,9 +70,31 @@ def _pixel_delta(pair: dict[str, object], name: str) -> int:
     )
 
 
+def _changed(pair: dict[str, object], name: str) -> bool:
+    return _pixel_delta(pair, name) > SUB_PIXEL_DELTA
+
+
+def _translucent_delta(pair: dict[str, object], name: str) -> int:
+    return abs(pair["on"][name][3] - pair["off"][name][3])
+
+
+def _visibly_changed(pair: dict[str, object], name: str) -> bool:
+    """Visible change for the outside-the-silhouette points.
+
+    轮廓外采样点的可见变化判定: 两帧都接近全透明时, RGB 取整残值不算变化。
+    """
+    both_near_transparent = (
+        pair["on"][name][3] <= NEAR_TRANSPARENT_ALPHA
+        and pair["off"][name][3] <= NEAR_TRANSPARENT_ALPHA
+    )
+    if both_near_transparent:
+        return _translucent_delta(pair, name) > NEAR_TRANSPARENT_ALPHA
+    return _changed(pair, name)
+
+
 def _assert_corner_contract(pair: dict[str, object]) -> None:
     for name in ("top_outside", "bottom_outside"):
-        assert _same_transparency(pair["on"][name], pair["off"][name]), (name, pair)
+        assert not _visibly_changed(pair, name), (name, pair)
     for name in ("top_inside", "bottom_inside", "upper_center", "lower_center"):
         assert _changed(pair, name), (name, pair)
 
