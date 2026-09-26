@@ -33,6 +33,9 @@ OverlayDialogCore {
     property int radius: _isOutside
         ? Enums.radius.large
         : (Enums.radius.none)
+    // Native parent window for system dialogs opened from drawer content 系统对话框的原生宿主窗口
+    readonly property var dialogParentWindow: _isOutside && _outsideDrawerWindow
+        ? _outsideDrawerWindow : _hostWindow
 
     // ==================== Internal Props 内部属性 ====================
     property bool _outsideFollowRegistered: false
