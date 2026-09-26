@@ -28,6 +28,7 @@ SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
 CORE_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxCoreContent.qml"
 POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
 STYLE_HELPER_SOURCE_PATH = INTERNAL_DIR / "ComboBoxStyleHelper.qml"
+SURFACE_SOURCE_PATH = INTERNAL_DIR / "ComboBoxSurface.qml"
 FONT_SOURCE_PATH = INTERNAL_DIR.parent / "ComboBoxFont.qml"
 SEARCH_SCENE = b"""
 import QtQuick
@@ -408,17 +409,17 @@ def test_combo_box_style_helper_uses_enum_tokens():
     assert "Enums.comboBox.primaryHoverLighten" in source
 
 
-def test_combo_box_core_content_locks_resting_fill_while_expanded():
+def test_combo_box_surface_locks_resting_fill_while_expanded():
     """展开分支必须返回静止底色, 且先于 hover/press 求值。
 
     The open branch must return the resting fill and outrank hover/press; otherwise
     the pointer parked on the control after clicking keeps a tint on it.
     展开分支必须返回静止底色并优先于 hover/press, 否则点击后仍停在控件上的指针会留下染色。
     """
-    source = CORE_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    source = SURFACE_SOURCE_PATH.read_text(encoding="utf-8")
     expanded = "if (comboControl.popupVisible) return Enums.stateColor.controlBg\n"
     pressed = "if (comboControl.pressed) return Enums.stateColor.controlBgPressed"
-    hovered = "if (content._touchActive) return Enums.stateColor.controlBgHover"
+    hovered = "if (surface._touchActive) return Enums.stateColor.controlBgHover"
     assert expanded in source
     assert (
         source.index(expanded) < source.index(pressed) < source.index(hovered)

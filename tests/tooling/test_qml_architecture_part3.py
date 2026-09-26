@@ -307,12 +307,16 @@ def test_combo_box_core_keeps_visual_content_modularized():
     helper = _source(
         "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxCoreContent.qml"
     )
+    surface = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxSurface.qml"
+    )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
+    surface_source = surface.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 280
     assert helper.exists()
-    assert len(helper_source.splitlines()) < 350
+    assert len(helper_source.splitlines()) < 260
     assert "ComboBoxCoreContent {" in source
     assert "required property var comboControl" in helper_source
     for alias in (
@@ -330,9 +334,22 @@ def test_combo_box_core_keeps_visual_content_modularized():
     # (见 tests/tooling/test_opacity_mask_contract.py)。
     assert "layer.effect: OpacityMask" not in helper_source
     assert "PopupWindowCore {" in helper_source
-    assert "RectangularShadow {" in helper_source
     assert "PopupWindowCore {" not in source
     assert "layer.enabled: true" not in source
+    # The control surface owns the fill, border and elevation layers. 控件表面拥有底色、
+    # 边框与阴影层级。
+    assert surface.exists()
+    assert len(surface_source.splitlines()) < 120
+    assert "ComboBoxSurface {" in helper_source
+    assert "required property var comboControl" in surface_source
+    for token in (
+        "RectangularShadow {",
+        "NeumorphicShadow {",
+        "NeoShadow {",
+        "\n        id: background\n",
+    ):
+        assert token in surface_source, token
+        assert token not in helper_source, token
 
 def test_combo_box_core_keeps_the_candidate_row_delegate_modularized():
     """默认候选行委托必须留在 _internal, 入口只允许引用。

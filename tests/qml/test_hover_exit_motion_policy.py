@@ -71,7 +71,7 @@ HOVER_POLICY_COUNTS = {
     "controls/data/Table/_internal/TableHeader.qml": 1,
     "controls/data/Table/TableView.qml": 1,
     "controls/data/Chart/_internal/XYChartAxes.qml": 2,
-    "controls/inputs/ComboBox/_internal/ComboBoxCoreContent.qml": 1,
+    "controls/inputs/ComboBox/_internal/ComboBoxSurface.qml": 1,
     "controls/inputs/ColorPicker/_internal/ColorCircles.qml": 1,
     "controls/inputs/_internal/PinInputCell.qml": 2,
     "controls/data/List/TreeWidget/_internal/TreeWidgetDelegate.qml": 1,

@@ -89,6 +89,8 @@ TOUCH_EXEMPT = {
         "hover 只驱动动作 tooltip 的延时计时; 触摸端不显示 tooltip, 由 TooltipCore 统一关闭",
     "controls/inputs/CycleWheelPicker.qml":
         "hover 揭示的滚动按钮已在 _internal/CycleWheelPickerButtons.qml 经 Touch.reveal 常显",
+    "controls/inputs/ComboBox/_internal/ComboBoxCoreContent.qml":
+        "本文件已无 hover 视觉, hoverEnabled 只服务预热与光标; 表面决策在 ComboBoxSurface",
 }
 
 # Hover input ports: helpers that receive a hover state and turn it into visuals.
