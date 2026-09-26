@@ -19,9 +19,22 @@ TITLE = "剑网三工具"
 # Title + long body, the shape that used to size the body from the bar's maximum
 # width and let the wrapped line run over the close button.
 # 标题 + 长正文: 旧实现用信息条最大宽度反推正文宽度, 折行会压到关闭按钮上。
+#
+# The message must be long enough that its natural advance exceeds the bar's
+# maximum width on every platform font, otherwise the bar legitimately shrinks to
+# its content instead of hitting the cap and the width assertion below would pin
+# one platform's glyph advances (Windows CJK glyphs measured 14.0 px/char, a
+# fontless Linux runner measured 8.5 px/char; the fixed chrome is 94 px, so the
+# cap needs 51 and 83 characters respectively).
+# 正文必须长到在任何平台字体下自然宽度都超过信息条上限: 否则信息条会合法地按内容
+# 收缩而不是顶到上限, 下面的宽度断言就等于钉死某一平台的字形宽度 (实测 Windows 中日韩
+# 字形 14.0 px/字, 无中日韩字形的 Linux runner 8.5 px/字; 固定装饰 94 px, 顶到上限
+# 分别只需 51 与 83 字)。
 LONG_MESSAGE = (
     "源角色和目标角色都不能在线。新角色必须至少进入过一次游戏并退回角色选择界面，"
-    "否则本地配置尚未生成，无法同步。"
+    "否则本地配置尚未生成，无法同步。请先退出当前角色并确认本地配置文件已经写入，"
+    "再重新选择需要同步的角色。若仍然失败，请关闭游戏后重新打开同步面板再试一次。"
+    "同步开始后请不要关闭工具窗口，完成后会自动提示结果。如遇网络异常，请稍后重试。"
 )
 SHORT_MESSAGE = "目标角色尚未生成本地配置，请先进入游戏并退回角色选择界面"
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "infobar-layout.qml"))
@@ -37,7 +50,7 @@ Item {{
     readonly property int textRightMargin: Enums.infoBarMetrics.textRightMargin
 
     width: 1100
-    height: 420
+    height: 800
 
     InfoBarCore {{
         objectName: "titledLongBar"
@@ -51,7 +64,7 @@ Item {{
 
     InfoBarCore {{
         objectName: "titledShortBar"
-        y: 120
+        y: 200
         desktopMode: true
         duration: 0
         visible: true
@@ -62,7 +75,7 @@ Item {{
 
     InfoBarCore {{
         objectName: "untitledLongBar"
-        y: 240
+        y: 400
         desktopMode: true
         duration: 0
         visible: true
@@ -155,6 +168,7 @@ def test_titled_infobar_wraps_message_clear_of_close_button(qapp):
         close_left = _left_edge(bar, closer)
 
         assert bar.width() == pytest.approx(root.property("barMaxWidth"))
+        assert len(LONG_MESSAGE) >= 150
         assert body.property("lineCount") > 1
         assert _right_edge(bar, title) <= close_left
         # The regression: the wrapped line must stay left of the close button and
@@ -200,6 +214,7 @@ def test_untitled_infobar_wraps_inside_the_card(qapp):
         closer = _close_button(bar)
 
         assert bar.width() == pytest.approx(root.property("barMaxWidth"))
+        assert len(LONG_MESSAGE) >= 150
         assert body.property("lineCount") > 1
         assert _right_edge(bar, body) <= _left_edge(bar, closer)
         assert _right_edge(bar, body) <= bar.width() - root.property("textRightMargin")
