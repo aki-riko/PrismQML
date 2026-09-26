@@ -253,10 +253,32 @@ Widget {
         Qt.callLater(_syncCurrentTextFromSelection)
     }
     Component.onCompleted: _syncCurrentTextFromSelection()
+    // Editable mode keeps the candidate list and the control's own focus state in
+    // step: opening the list focuses the input, and losing that focus dismisses the
+    // list, so the control can never show itself as unfocused while the list stays
+    // open. Non-editable dropdowns keep the native surface's own focus handling.
+    // 可编辑模式让候选列表与控件自身聚焦态保持一致: 展开即聚焦输入框, 失焦即收起候选,
+    // 因此不会出现控件已失焦而候选仍展开的状态; 非可编辑下拉维持原生表面的焦点处理。
+    onIsOpenChanged: {
+        if (isOpen && editable && useDefaultContent) editableInput.forceActiveFocus()
+    }
 
     // ==================== Content 内容 ====================
     ComboBoxCoreContent {
         id: comboContent
         comboControl: control
+    }
+
+    // The candidate surface deliberately takes no focus in editable mode, so its own
+    // focus-loss guard can never fire; the input owns that state and closes here.
+    // 可编辑模式的候选表面刻意不持有焦点, 其自身的失焦守卫永远不会触发;
+    // 该状态由输入框持有, 因此在这里收起候选。
+    Connections {
+        function onActiveFocusChanged() {
+            if (!editable || !useDefaultContent || editableInput.activeFocus) return
+            if (isOpen) closePopup()
+        }
+
+        target: editableInput
     }
 }
