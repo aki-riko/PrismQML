@@ -88,18 +88,18 @@ QtObject {
     }
 
     // Window outward shadow: replaces the native DWM shadow on an outside drawer HWND.
-    // Measured against the real DWM window shadow: blur 40 with 0.50 black reaches ~20% at
-    // the edge and fades out by 40px, and its corner taper lands at 0.46 of full strength,
-    // the same ratio DWM tapers to at the seam. Offset stays 0 because a window shadow is
-    // centred, unlike the popup elevation levels.
-    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影。按真实 DWM 窗口阴影实测标定:
-    // blur 40 + 0.50 黑在边缘约 20%, 40px 内衰减完毕; 圆角收口为满强度的 0.46,
-    // 与 DWM 在接缝处的收口比例一致。偏移保持 0: 窗口阴影居中, 与弹层高度等级不同。
+    // Measured on the real effect with 0.50 black: the panel edge lands at ~21% darkening for
+    // every blur, and the fade settles at about 0.8x the blur (40 -> 32px, 24 -> 19px,
+    // 16 -> 13px). Blur therefore decides how wide the shadow reads and the follower reserve
+    // has to cover that fade, or the band is cut off on the HWND edge. Offset stays 0 because
+    // a window shadow is centred, unlike the popup elevation levels.
+    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影。真实效果实测(0.50 黑): 面板边缘在
+    // 任何 blur 下都落在约 21% 暗化 —— 即 DWM 量级 —— 衰减跨度约为 blur 的 0.8 倍
+    // (40 -> 32px, 24 -> 19px, 16 -> 13px)。因此 blur 决定阴影的观感宽度, 而附属窗口留白
+    // 必须覆盖该衰减, 否则像带会被 HWND 边界切断。偏移保持 0: 窗口阴影居中, 与弹层不同。
     readonly property QtObject windowOutside: QtObject {
         readonly property real offset: 0
-        readonly property real blur: shadow.isTicket ? 0 : 40
-        readonly property int samples: shadow.isTicket ? 1 : 29
+        readonly property real blur: shadow.isTicket ? 0 : 24
         readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.50 * shadow._alphaMultiplier)
-        readonly property real blurNormalized: shadow.isTicket ? 0 : 0.45
     }
 }

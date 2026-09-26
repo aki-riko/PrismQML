@@ -457,15 +457,16 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_outside_drawer_reserves_the_whole_self_drawn_shadow_band(drawer_scene):
-    """自绘阴影的像带必须整体落在抽屉 HWND 内(接缝侧除外)。
+def test_outside_drawer_shadow_silhouette_matches_the_panel(drawer_scene):
+    """自绘阴影的轮廓必须与面板逐边重合, 且不得靠 spread 外扩。
 
-    The silhouette is the panel grown by one `blur`, and the measured band spans about
-    1.5x blur past that silhouette, so the HWND reserve has to hold both. This reads the
-    geometry the control really commits instead of only the source expressions, so a
-    reserve that covers just one of the two fails here.
-    轮廓是面板朝外各扩 1 倍 blur, 实测像带在轮廓之外再铺约 1.5 倍 blur, 因此 HWND 留白
-    必须同时容下两者。这里读的是控件真实提交的几何, 只覆盖其中一项的留白会在此失败。
+    Measured on the real effect at blur 40 / 0.50 black on white: a panel-sized silhouette
+    darkens the panel edge by 21.6% (the DWM calibration target) and fades out within ~40px,
+    while a silhouette grown by `blur` fills the first 40px beside the panel with the full
+    49.8% and doubles the band width — the heavy edge users reported.
+    真实效果实测(blur 40, 0.50 黑, 白底): 轮廓等于面板时面板边缘暗化 21.6% (DWM 标定目标)
+    并在约 40px 内衰减完; 朝外各扩 `blur` 会让紧邻面板的 40px 全是满浓度 49.8%, 像带宽度翻倍
+    —— 即用户报告的浓重边缘。这里读控件真实提交的几何, 而不只是源码表达式。
     """
     window, drawer, _content_item, _panel, warnings, windows_before = drawer_scene
     drawer.setProperty("mode", window.property("outsideMode"))
@@ -473,23 +474,24 @@ def test_outside_drawer_reserves_the_whole_self_drawn_shadow_band(drawer_scene):
     assert isinstance(drawer_window, QQuickWindow)
     shadow = drawer_window.findChild(QQuickItem, "outsideDrawerShadow")
     assert isinstance(shadow, QQuickItem)
+    outside_panel = drawer.findChild(QQuickItem, "outsideDrawerPanel")
+    assert isinstance(outside_panel, QQuickItem)
 
     blur = shadow.property("blur")
     spread = drawer.property("_outsideShadowSpread")
-    # Measured on the real effect 真实效果实测的像带铺开量
-    band = blur * 1.5
-    assert spread == pytest.approx(blur * 2.5)
-    # What is left of the reserve once the silhouette used its `blur` must still hold the
-    # whole measured band. 留白减去轮廓占用的 `blur` 之后仍须容下完整的实测像带。
-    assert spread - blur >= band
-    tolerance = 1.0
-    horizontal = (
-        window.property("leftPosition"),
-        window.property("rightPosition"),
-    )
+    # Measured on the real effect: the band settles within about 0.8x the blur, so the reserve
+    # has to cover that fade or the visible tail is cut on the HWND edge (a hard-edged shadow).
+    # 真实效果实测: 像带在约 0.8 倍 blur 内衰减完, 留白必须覆盖该衰减, 否则仍有浓度的尾部
+    # 会被切在 HWND 边界上 —— 观感即"阴影很硬"。
+    assert spread == pytest.approx(blur)
+    assert spread >= 0.8 * blur
+    # The silhouette must not be inflated through the effect's own `spread` either.
+    # 轮廓也不得通过该效果的 `spread` 属性被放大。
+    assert shadow.property("spread") == 0
 
     for position in (
-        *horizontal,
+        window.property("leftPosition"),
+        window.property("rightPosition"),
         window.property("topPosition"),
         window.property("bottomPosition"),
     ):
@@ -500,29 +502,14 @@ def test_outside_drawer_reserves_the_whole_self_drawn_shadow_band(drawer_scene):
         assert _wait_for(lambda: shadow.width() > 0)
         _pump(60)
 
-        left = shadow.x()
-        top = shadow.y()
-        right = left + shadow.width()
-        bottom = top + shadow.height()
-        width = drawer_window.width()
-        height = drawer_window.height()
-        if position in horizontal:
-            # Only the seam side (the panel edge that meets the host) may run past the
-            # HWND; every other side has to hold the whole band.
-            # 只有接缝侧(与宿主相接的面板边)允许越出 HWND; 其余各面都必须容下整条像带。
-            assert top - band >= -tolerance, (position, top, band)
-            assert bottom + band <= height + tolerance, (position, bottom, band, height)
-            if position == window.property("rightPosition"):
-                assert right + band <= width + tolerance, (right, band, width)
-            else:
-                assert left - band >= -tolerance, (left, band)
-        else:
-            assert left - band >= -tolerance, (position, left, band)
-            assert right + band <= width + tolerance, (position, right, band, width)
-            if position == window.property("topPosition"):
-                assert top - band >= -tolerance, (top, band)
-            else:
-                assert bottom + band <= height + tolerance, (bottom, band, height)
+        content = drawer_window.contentItem()
+        shadow_origin = shadow.mapToItem(content, QPointF(0, 0))
+        panel_origin = outside_panel.mapToItem(content, QPointF(0, 0))
+        assert shadow_origin.x() == pytest.approx(panel_origin.x()), position
+        assert shadow_origin.y() == pytest.approx(panel_origin.y()), position
+        assert shadow.width() == pytest.approx(outside_panel.width()), position
+        assert shadow.height() == pytest.approx(outside_panel.height()), position
+
         _close(drawer)
         assert _wait_for(lambda: not drawer_window.isVisible())
     assert warnings == []

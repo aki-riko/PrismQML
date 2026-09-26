@@ -33,6 +33,13 @@ SOURCE_PATH = (
 OUTSIDE_WINDOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideWindow.qml"
 
 
+def _lines(source: str) -> list[str]:
+    """Trimmed source lines, so assertions do not depend on line endings.
+    去掉首尾空白的源码行, 让断言不依赖换行符。
+    """
+    return [line.strip() for line in source.splitlines()]
+
+
 def test_drawer_source_follows_conventions():
     for source_path in (SOURCE_PATH, OUTSIDE_WINDOW_SOURCE_PATH):
         source = source_path.read_text(encoding="utf-8")
@@ -81,7 +88,7 @@ def test_outside_window_owns_its_outward_shadow():
     # The HWND reserves the window-outward shadow padding and paints that shadow itself.
     assert (
         "readonly property real _outsideShadowSpread: "
-        "Enums.shadow.windowOutside.blur * 2.5" in source
+        "Enums.shadow.windowOutside.blur" in _lines(source)
     )
     assert (
         "readonly property real _outsideWindowExtent: "
@@ -92,16 +99,19 @@ def test_outside_window_owns_its_outward_shadow():
         in source
     )
     assert "RectangularShadow {" in helper_source
-    # The shadow silhouette is the panel rectangle grown outwards by `blur`: the effect
-    # spreads its blur into AND out of the rectangle it is given, so a silhouette equal
-    # to the panel hides the outer half of the band on every side and the dark band
-    # starts short of the panel edge — the reported clipped shadow.
-    # 阴影轮廓是面板矩形朝外各扩 `blur`: 该效果的模糊会同时向轮廓内外铺开, 轮廓等于面板
-    # 会让每条边的外半边像带不可见, 暗带起点落在面板边缘内侧 —— 即所报告的阴影被裁剪。
-    assert "x: outsideDrawerWindow.panelOffsetX - blur" in helper_source
-    assert "y: outsideDrawerWindow.panelOffsetY - blur" in helper_source
-    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
-    assert "height: outsideDrawerWindow.panelHeight + 2 * blur" in helper_source
+    # The silhouette must stay equal to the panel. Measured on the real effect at blur 40 /
+    # 0.50 black on white, a panel-sized silhouette darkens the panel edge by 21.6% (the DWM
+    # calibration target) and fades out within ~40px, while growing it outwards by `blur`
+    # fills the first 40px with the full 49.8% and doubles the band width.
+    # 轮廓必须与面板等大。真实效果实测(blur 40, 0.50 黑, 白底): 轮廓等于面板时面板边缘暗化
+    # 21.6% (即 DWM 标定目标) 并在约 40px 内衰减完; 朝外各扩 `blur` 会让紧邻面板的 40px 全是
+    # 满浓度 49.8%, 像带宽度翻倍。
+    assert "x: outsideDrawerWindow.panelOffsetX" in _lines(helper_source)
+    assert "y: outsideDrawerWindow.panelOffsetY" in _lines(helper_source)
+    assert "width: outsideDrawerWindow.panelWidth" in _lines(helper_source)
+    assert "height: outsideDrawerWindow.panelHeight" in _lines(helper_source)
+    assert "outsideDrawerWindow.panelWidth + 2 * blur" not in helper_source
+    assert "outsideDrawerWindow.panelOffsetX - blur" not in helper_source
     assert "anchors.fill: outsideDrawerViewport" not in helper_source
     assert "blur: Enums.shadow.windowOutside.blur" in helper_source
     assert "color: Enums.shadow.windowOutside.color" in helper_source
@@ -125,36 +135,38 @@ def test_outside_window_owns_its_outward_shadow():
     assert "anchors.leftMargin" not in helper_source
 
 
-def test_outside_drawer_shadow_reserve_covers_silhouette_growth_and_band():
-    """宿主外侧留白必须同时容下轮廓外扩量与模糊像带。
+def test_outside_drawer_shadow_silhouette_never_grows_past_the_panel():
+    """阴影轮廓必须等于面板, 留白必须覆盖像带的完整衰减。
 
-    The silhouette is the panel grown outwards by `blur`, and the measured band spans about
-    another 1.5x blur beyond that silhouette, so reserving only one of the two puts the
-    outermost band back on the HWND edge — the shadow then reads as clipped again.
-    轮廓是面板朝外各扩 `blur`, 实测像带在轮廓之外再铺约 1.5 倍 blur; 只预留其中一项,
-    最外圈就会重新落在 HWND 边界上, 阴影再次表现为被裁剪。
+    Two independent measurements back this contract. A silhouette grown by `blur` moves the
+    panel edge from ~21% to the full 49.8% darkening (the heavy band users reported), and a
+    reserve narrower than the fade (~0.8x the blur) cuts the still-visible tail off on the
+    HWND edge, which reads as a hard-edged shadow.
+    两条独立实测支撑本契约: 轮廓朝外各扩 `blur` 会把面板边缘从约 21% 顶到满浓度 49.8%
+    (用户报告的浓重像带); 留白窄于衰减跨度(约 0.8 倍 blur)则会把仍有浓度的尾部切在 HWND
+    边界上, 观感即"阴影很硬"。
     """
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    # Silhouette growth in blur units, taken from the shadow item geometry below.
-    # 轮廓外扩量 (以 blur 为单位), 取自下面阴影 item 的几何。
-    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
-    assert "x: outsideDrawerWindow.panelOffsetX - blur" in helper_source
-    silhouette_growth = 1.0
-    # Band spread measured on the real effect 真实效果实测的像带铺开量
-    band_spread = 1.5
+    assert "x: outsideDrawerWindow.panelOffsetX" in _lines(helper_source)
+    assert "y: outsideDrawerWindow.panelOffsetY" in _lines(helper_source)
+    assert "width: outsideDrawerWindow.panelWidth" in _lines(helper_source)
+    assert "height: outsideDrawerWindow.panelHeight" in _lines(helper_source)
+    assert "outsideDrawerWindow.panelWidth + 2 * blur" not in helper_source
+    assert "outsideDrawerWindow.panelHeight + 2 * blur" not in helper_source
+    assert "outsideDrawerWindow.panelOffsetX - blur" not in helper_source
+    assert "outsideDrawerWindow.panelOffsetY - blur" not in helper_source
     assert (
         "readonly property real _outsideShadowSpread: "
-        f"Enums.shadow.windowOutside.blur * {silhouette_growth + band_spread}" in source
+        "Enums.shadow.windowOutside.blur" in _lines(source)
     )
 
-    # Same relation in pixels: what is left of the reserve once the silhouette has used its
-    # `blur` has to still hold the whole measured band.
-    # 同一条关系的像素形式: 留白减去轮廓占用的 `blur` 之后, 仍须容下完整的实测像带。
-    blur = 40
-    spread = blur * (silhouette_growth + band_spread)
-    assert spread - blur * silhouette_growth >= band_spread * blur
+    # Measured fade width per blur unit. 实测的每单位 blur 对应的衰减跨度。
+    fade_per_blur = 0.8
+    blur = 24
+    spread = blur
+    assert spread >= fade_per_blur * blur
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():
@@ -247,10 +259,10 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "asynchronous: false" in source
     assert "if (_outsideDrawerWindow" in source
     assert "|| !_outsideDrawerWindow" in source
-    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
-    assert "height: outsideDrawerWindow.panelHeight + 2 * blur" in helper_source
     assert "x: outsideDrawerWindow.panelOffsetX - outsideDrawerViewport.x" in helper_source
     assert "y: outsideDrawerWindow.panelOffsetY - outsideDrawerViewport.y" in helper_source
+    assert "width: outsideDrawerWindow.panelWidth" in _lines(helper_source)
+    assert "height: outsideDrawerWindow.panelHeight" in _lines(helper_source)
 
 
 def test_drawer_source_preserves_open_state_while_host_is_minimized():
