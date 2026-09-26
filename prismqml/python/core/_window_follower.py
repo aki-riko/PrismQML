@@ -283,17 +283,13 @@ def _follower_stack_anchor(
 ) -> Optional[int]:
     """Resolve the z-order anchor for one follower geometry commit.
 
-    A follower that must stay above its host is inserted below whatever window
-    currently precedes the host, so the follower lands directly above the host
-    instead of jumping over everything already there. System dialogs, transient
-    popups and other applications that Windows keeps above the host therefore
-    keep covering the follower. ``None`` keeps the current z-order because the
-    follower already sits directly above the host.
+    A follower that must stay above its host is inserted below the window that
+    currently precedes the host, so it lands directly above the host instead of
+    jumping over system dialogs, transient popups and other applications that
+    Windows already keeps above the host. ``None`` keeps the current z-order.
 
-    解析一次附属窗口几何提交所需的层级锚点。要求位于宿主之上的附属窗口被插入到
-    宿主前一个窗口之下, 因而落在宿主正上方, 不会越过已经在宿主之上的窗口; 系统
-    对话框、瞬态弹层与其他应用因此仍然压在附属窗口之上。返回 None 表示附属窗口
-    已在宿主正上方, 保持当前层级不变。
+    解析附属窗口的层级锚点: 要求位于宿主之上的附属窗口插入到宿主前一个窗口之下,
+    因而落在宿主正上方, 不会越过系统对话框、瞬态弹层与其他应用; None 表示保持现状。
     """
     if not above_host:
         return host_hwnd
@@ -301,9 +297,7 @@ def _follower_stack_anchor(
         return None
     anchor = int(previous_window(host_hwnd) or 0)
     if not anchor:
-        # Nothing precedes the host, so the band top is directly above it.
-        # 宿主之上没有窗口时, 普通窗口带顶部即宿主正上方。
-        return _HWND_TOP
+        return _HWND_TOP  # Nothing precedes the host, so the band top is above it.
     if anchor == follower_hwnd:
         return None
     return anchor
@@ -370,6 +364,24 @@ def _set_native_window_geometry(
     )
 
 
+def _default_native_calls(functions):
+    """Build the default native callbacks. 构造默认的原生回调。"""
+    if functions is None:
+        return None
+    get_window_rect, set_window_pos, set_foreground_window, get_window = functions
+    return (
+        lambda hwnd: _read_native_window_rect(get_window_rect, hwnd),
+        lambda hwnd, geometry, insert_after: _set_native_window_geometry(
+            set_window_pos, hwnd, geometry, insert_after
+        ),
+        lambda hwnd, after: bool(
+            set_window_pos(hwnd, after, 0, 0, 0, 0, _SWP_PROMOTE_FLAGS)
+        ),
+        lambda hwnd: bool(set_foreground_window(hwnd)),
+        lambda hwnd: int(get_window(hwnd, _GW_HWNDPREV) or 0),
+    )
+
+
 class _WindowFollowerFilter(QAbstractNativeEventFilter):
     """Synchronize followers inside WM_MOVING/WM_SIZING. 在原生移动循环同步附属窗口。"""
 
@@ -387,24 +399,14 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         read_previous_window: Optional[Callable[[int], int]] = None,
     ) -> None:
         super().__init__()
-        functions = _load_user32_window_functions()
-        if read_rect is None and functions is not None:
-            read_rect = lambda hwnd: _read_native_window_rect(functions[0], hwnd)
-        if set_geometry is None and functions is not None:
-            set_geometry = lambda hwnd, geometry, insert_after: (
-                _set_native_window_geometry(
-                    functions[1], hwnd, geometry, insert_after
-                )
-            )
-        if promote_window is None and functions is not None:
-            promote_window = lambda hwnd, after: bool(
-                functions[1](hwnd, after, 0, 0, 0, 0, _SWP_PROMOTE_FLAGS))
-        if activate_window is None and functions is not None:
-            activate_window = lambda hwnd: bool(functions[2](hwnd))
-        if read_previous_window is None and functions is not None:
-            read_previous_window = lambda hwnd: int(
-                functions[3](hwnd, _GW_HWNDPREV) or 0
-            )
+        native = _default_native_calls(_load_user32_window_functions())
+        read_rect = read_rect or (native[0] if native else None)
+        set_geometry = set_geometry or (native[1] if native else None)
+        promote_window = promote_window or (native[2] if native else None)
+        activate_window = activate_window or (native[3] if native else None)
+        read_previous_window = read_previous_window or (
+            native[4] if native else None
+        )
         self._read_rect = read_rect
         self._set_geometry = set_geometry
         self._promote_window = promote_window
