@@ -36,6 +36,10 @@ _SWP_NOOWNERZORDER = 0x0200
 _SWP_PROMOTE_FLAGS = _SWP_NOSIZE | _SWP_NOMOVE | _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
 _DEFAULT_DEVICE_PIXEL_RATIO = 1.0
 _MINIMUM_NATIVE_EXTENT = 1
+# GetWindow relations and the top of the non-topmost z-order band
+# GetWindow 关系取值与普通窗口带顶部
+_GW_HWNDPREV = 3
+_HWND_TOP = 0
 
 
 @dataclass(frozen=True)
@@ -271,6 +275,40 @@ def _set_qt_follower_geometry(
         return False
 
 
+def _follower_stack_anchor(
+    host_hwnd: int,
+    follower_hwnd: int,
+    above_host: bool,
+    previous_window: Optional[Callable[[int], int]],
+) -> Optional[int]:
+    """Resolve the z-order anchor for one follower geometry commit.
+
+    A follower that must stay above its host is inserted below whatever window
+    currently precedes the host, so the follower lands directly above the host
+    instead of jumping over everything already there. System dialogs, transient
+    popups and other applications that Windows keeps above the host therefore
+    keep covering the follower. ``None`` keeps the current z-order because the
+    follower already sits directly above the host.
+
+    解析一次附属窗口几何提交所需的层级锚点。要求位于宿主之上的附属窗口被插入到
+    宿主前一个窗口之下, 因而落在宿主正上方, 不会越过已经在宿主之上的窗口; 系统
+    对话框、瞬态弹层与其他应用因此仍然压在附属窗口之上。返回 None 表示附属窗口
+    已在宿主正上方, 保持当前层级不变。
+    """
+    if not above_host:
+        return host_hwnd
+    if previous_window is None:
+        return None
+    anchor = int(previous_window(host_hwnd) or 0)
+    if not anchor:
+        # Nothing precedes the host, so the band top is directly above it.
+        # 宿主之上没有窗口时, 普通窗口带顶部即宿主正上方。
+        return _HWND_TOP
+    if anchor == follower_hwnd:
+        return None
+    return anchor
+
+
 def _load_user32_window_functions():
     """Load pointer-width Win32 window functions. 加载指针宽度 Win32 窗口函数。"""
     if sys.platform != "win32":
@@ -286,7 +324,10 @@ def _load_user32_window_functions():
         set_foreground_window = user32.SetForegroundWindow
         set_foreground_window.argtypes = [wintypes.HWND]
         set_foreground_window.restype = wintypes.BOOL
-        return get_window_rect, set_window_pos, set_foreground_window
+        get_window = user32.GetWindow
+        get_window.argtypes = [wintypes.HWND, wintypes.UINT]
+        get_window.restype = wintypes.HWND
+        return get_window_rect, set_window_pos, set_foreground_window, get_window
     except (AttributeError, OSError) as exc:
         debug(f"Win32窗口跟随 API 不可用: {exc}")
         return None
@@ -306,11 +347,16 @@ def _set_native_window_geometry(
     set_window_pos,
     hwnd: int,
     geometry,
-    insert_after: int,
+    insert_after: Optional[int],
 ) -> bool:
     """Apply one physical-pixel follower geometry. 应用物理像素附属窗口几何。"""
     left, top, right, bottom = geometry
     flags = _SWP_NOACTIVATE | _SWP_NOOWNERZORDER
+    if insert_after is None:
+        # The follower already holds the requested relation; keep the z-order.
+        # 附属窗口已处于目标层级关系, 保持现有层级。
+        flags |= _SWP_NOZORDER
+        insert_after = _HWND_TOP
     return bool(
         set_window_pos(
             hwnd,
@@ -334,10 +380,11 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         self,
         read_rect: Optional[Callable[[int], Any]] = None,
         set_geometry: Optional[
-            Callable[[int, tuple[int, int, int, int], int], bool]
+            Callable[[int, tuple[int, int, int, int], Optional[int]], bool]
         ] = None,
         promote_window: Optional[Callable[[int, Optional[int]], bool]] = None,
         activate_window: Optional[Callable[[int], bool]] = None,
+        read_previous_window: Optional[Callable[[int], int]] = None,
     ) -> None:
         super().__init__()
         functions = _load_user32_window_functions()
@@ -354,10 +401,15 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 functions[1](hwnd, after, 0, 0, 0, 0, _SWP_PROMOTE_FLAGS))
         if activate_window is None and functions is not None:
             activate_window = lambda hwnd: bool(functions[2](hwnd))
+        if read_previous_window is None and functions is not None:
+            read_previous_window = lambda hwnd: int(
+                functions[3](hwnd, _GW_HWNDPREV) or 0
+            )
         self._read_rect = read_rect
         self._set_geometry = set_geometry
         self._promote_window = promote_window
         self._activate_window = activate_window
+        self._read_previous_window = read_previous_window
         self._bindings: dict[int, _WindowFollowerBinding] = {}
         self._attachments: dict[int, _WindowAttachmentBinding] = {}
 
@@ -446,7 +498,7 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         )
         if registration is None:
             return False
-        insert_after = 0 if above_host else host_hwnd
+        insert_after = self._follower_anchor(host_hwnd, follower_hwnd, above_host)
         if not self._set_geometry(follower_hwnd, registration, insert_after):
             debug(f"附属窗口初次原生同步失败: hwnd={follower_hwnd}")
             return False
@@ -495,6 +547,17 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
         self._attachments[follower_hwnd] = binding
         return True
 
+    def _follower_anchor(
+        self, host_hwnd: int, follower_hwnd: int, above_host: bool
+    ) -> Optional[int]:
+        """Resolve one follower z-order anchor. 解析附属窗口的层级锚点。"""
+        return _follower_stack_anchor(
+            host_hwnd,
+            follower_hwnd,
+            above_host,
+            self._read_previous_window,
+        )
+
     def _registration_geometry(
         self,
         host_hwnd: int,
@@ -540,7 +603,11 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
             host_rect, extent, edge, outward_padding
         )
         binding = self._bindings.get(follower_hwnd)
-        insert_after = 0 if binding is not None and binding.above_host else host_hwnd
+        insert_after = self._follower_anchor(
+            host_hwnd,
+            follower_hwnd,
+            binding is not None and binding.above_host,
+        )
         applied = self._set_geometry(follower_hwnd, geometry, insert_after)
         if binding is not None and binding.outward_padding != outward_padding:
             # Later host moves must replay the same padding. 后续宿主移动必须复现同一留白。
@@ -575,7 +642,9 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
                 binding.edge,
                 binding.outward_padding,
             )
-            insert_after = 0 if binding.above_host else binding.host_hwnd
+            insert_after = self._follower_anchor(
+                binding.host_hwnd, binding.follower_hwnd, binding.above_host
+            )
             if not self._set_geometry(binding.follower_hwnd, geometry, insert_after):
                 debug(f"附属窗口原生同步失败: hwnd={binding.follower_hwnd}")
         for binding in tuple(self._attachments.values()):

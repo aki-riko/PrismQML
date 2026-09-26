@@ -305,11 +305,12 @@ def test_above_host_follower_does_not_apply_behind_host_ordering():
     assert window_pos.hwndInsertAfter == 0
 
 
-def test_above_host_follower_geometry_uses_top_insert_position():
+def test_above_host_follower_anchors_directly_above_host():
     placements = []
     event_filter = window_helper._WindowFollowerFilter(
         read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
         set_geometry=lambda _hwnd, geometry, after: placements.append(after) or True,
+        read_previous_window=lambda hwnd: 99 if hwnd == 11 else 0,
     )
 
     assert event_filter.register(
@@ -318,6 +319,46 @@ def test_above_host_follower_geometry_uses_top_insert_position():
     event_filter.update_geometry(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
     event_filter.sync_host_rect(11, _rect(100, 120, 700, 520))
 
+    # The follower slots in below whatever precedes the host, never above it.
+    # 附属窗口插入到宿主前一个窗口之下, 而不是越过它。
+    assert placements == [99, 99, 99]
+
+
+def test_above_host_follower_keeps_z_order_when_already_above_host():
+    placements = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, geometry, after: placements.append(after) or True,
+        read_previous_window=lambda _hwnd: 21,
+    )
+
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+    event_filter.update_geometry(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    event_filter.sync_host_rect(11, _rect(100, 120, 700, 520))
+
+    # The follower already precedes the host, so every commit keeps the z-order.
+    # 附属窗口本就在宿主之前, 每次提交都保持现有层级。
+    assert placements == [None, None, None]
+
+
+def test_above_host_follower_uses_band_top_only_when_host_leads_it():
+    placements = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, geometry, after: placements.append(after) or True,
+        read_previous_window=lambda _hwnd: 0,
+    )
+
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+    event_filter.update_geometry(11, 21, window_helper.WINDOW_EDGE_RIGHT, 180)
+    event_filter.sync_host_rect(11, _rect(100, 120, 700, 520))
+
+    # Nothing precedes the host, so the band top is directly above it.
+    # 宿主之上没有窗口时, 普通窗口带顶部即宿主正上方。
     assert placements == [0, 0, 0]
 
 
