@@ -365,6 +365,31 @@ def test_combo_box_core_keeps_visual_content_modularized():
     assert "function _dispatchEditAction(actionName, mutatesText)" not in source
     assert "property alias defaultPopupContent: coreActions.defaultPopupContent" in source
 
+    # The type-to-search state owns the visible view and the visible-row mapping; the
+    # entry only wires the model, the surface lifetime and the delegate contract.
+    # 输入即搜索状态拥有可见视图与可见行映射; 入口只装配模型、表面生命周期与委托契约。
+    search = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxSearchState.qml"
+    )
+    search_source = search.read_text(encoding="utf-8")
+    assert search.exists()
+    assert len(search_source.splitlines()) < 80
+    assert "ComboBoxSearchState {" in source
+    assert "property alias _search: searchState" in source
+    assert "required property var model" in search_source
+    assert "required property bool expanded" in search_source
+    assert "required property bool mapsSourceIndex" in search_source
+    assert "function sourceIndex(visibleIndex)" in search_source
+    assert "function filterModel(" not in source
+    # Filtering stays on the delegate that maps a visible row back to its source index;
+    # a custom popupDelegate reports the view index straight through, so narrowing the
+    # list would renumber what it hands back to the control.
+    # 过滤只留给会把可见行映射回源下标的委托; 自定义 popupDelegate 直接回报视图 index,
+    # 收窄列表会重新编号它交还给控件的下标。
+    assert (
+        "mapsSourceIndex: control.popupDelegate === control.defaultDelegate" in source
+    )
+
 def test_combo_box_core_keeps_the_candidate_row_delegate_modularized():
     """默认候选行委托必须留在 _internal, 入口只允许引用。
 

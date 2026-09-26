@@ -6,12 +6,22 @@
 
 The editable input doubles as the search field: typing narrows the candidate list,
 a match expands it, a non-matching free value keeps the full list, and every visible
-row still reports its source model index.
+row still reports its source model index. The filter belongs to the default candidate
+row — a custom popupDelegate keeps the full list — and it survives the close animation.
 可编辑输入框同时充当搜索框: 输入收窄候选, 命中即展开, 未命中的自由文本保持完整列表,
-且每个可见行仍回报其源模型下标。
+且每个可见行仍回报其源模型下标。过滤归默认候选行所有 —— 自定义 popupDelegate 保持完整
+列表 —— 并且会活过关闭动画。
 """
 
+from pathlib import Path
+
 import pytest  # noqa: F401
+import shiboken6
+from PySide6.QtCore import QCoreApplication, QEvent, QUrl
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem, QQuickWindow
+
+from prismqml import register_types
 
 from combo_box_core_conventions_shared import (
     Qt,
@@ -27,8 +37,60 @@ from combo_box_core_conventions_shared import (
     _popup_rows,
     _pump,
     _type_custom,
+    _visual_descendants,
     _wait_for,
 )
+
+ROOT = Path(__file__).resolve().parents[2]
+# The scene is inline, so the URL only supplies a base for relative imports.
+# 场景内联定义, 该 URL 只用于给相对 import 提供基准。
+CUSTOM_DELEGATE_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "combo-box-editable-search-custom-delegate.qml")
+)
+CUSTOM_DELEGATE_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 380
+    height: 260
+    visible: true
+    color: Enums.backgroundColor
+
+    ComboBoxCore {
+        id: customDelegateCombo
+        objectName: "customDelegateCombo"
+        x: 20
+        y: 20
+        width: 200
+        model: ["Alpha", "Beta", "Gamma"]
+        editable: true
+
+        // A user-supplied row delegate owns its own index mapping: it reports the view's
+        // `index` straight through, so the candidate list must never be narrowed.
+        popupDelegate: Component {
+            Rectangle {
+                objectName: "customCandidateRow"
+                property int candidateIndex: index
+                property string candidateText: modelData
+                width: ListView.view ? ListView.view.width : 200
+                height: 32
+                color: Enums.transparent
+                Label { anchors.centerIn: parent; text: modelData }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        customDelegateCombo.currentIndex = index
+                        customDelegateCombo.currentText = modelData
+                        customDelegateCombo.closePopup()
+                    }
+                }
+            }
+        }
+    }
+}
+"""
 
 
 def _type_text(window, text: str) -> None:
@@ -70,6 +132,53 @@ def _open_without_activating(window, combo, windows_before):
     popup_windows = _new_visible_windows(windows_before, window)
     assert len(popup_windows) == 1
     return popup, popup_windows[0]
+
+
+def _custom_rows(popup_window):
+    """Candidate rows of the custom delegate scene. 自定义委托场景的候选行。"""
+    rows = [
+        item
+        for item in _visual_descendants(popup_window.contentItem())
+        if item.objectName() == "customCandidateRow"
+    ]
+    return sorted(
+        rows, key=lambda item: item.mapToItem(popup_window.contentItem(), 0, 0).y()
+    )
+
+
+def _create_custom_delegate_scene():
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    register_types(engine)
+    engine.addImportPath(str(ROOT / "prismqml"))
+    component = QQmlComponent(engine)
+    component.setData(CUSTOM_DELEGATE_SCENE, CUSTOM_DELEGATE_SCENE_URL)
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    assert _wait_for(window.isExposed)
+    window.requestActivate()
+    assert _wait_for(window.isActive)
+    combo = window.findChild(QQuickItem, "customDelegateCombo")
+    assert combo is not None
+    return engine, component, window, combo, warnings
+
+
+def _dispose_custom_delegate_scene(engine, component, window) -> None:
+    window.close()
+    for obj in (window, component, engine):
+        if obj is not None and shiboken6.isValid(obj):
+            obj.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    _pump()
 
 
 def test_combo_box_editable_input_narrows_candidates_and_keeps_source_index(qapp):
@@ -176,4 +285,87 @@ def test_combo_box_editable_forgets_the_query_after_close(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_editable_keeps_the_filtered_view_while_closing(qapp):
+    """关闭动画期间候选列表必须保持过滤视图, 展开态也不得掉一拍。
+
+    Dropping the query as soon as `isOpen` turns false made the fading list jump back to
+    the full model, and made `popupVisible` dip to false for one turn — which released the
+    open-fill lock in the middle of the close animation.
+    isOpen 一变 false 就丢弃查询, 会让收起中的列表跳回全量模型, 并让 popupVisible 掉一拍
+    false, 从而在关闭动画中途解除展开底色的锁定。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    scene = _create_scene()
+    engine, component, window, combo, editable, warnings = scene
+    try:
+        popup, popup_window = _open_without_activating(window, editable, windows_before)
+        _select_all(window)
+        _type_text(window, "amm")
+        assert _wait_for(lambda: len(_popup_rows(popup_window)) == 1)
+
+        editable.closePopup()
+        # The close call publishes `isClosing` synchronously. 关闭调用同步发布 isClosing。
+        assert popup.property("isClosing") is True
+        assert editable.property("popupVisible") is True
+
+        samples = []
+        while popup.property("isClosing"):
+            samples.append(
+                (
+                    bool(editable.property("popupVisible")),
+                    len(_popup_rows(popup_window)) if popup_window.isVisible() else 0,
+                )
+            )
+            _pump(5)
+        assert samples, "关闭动画没有产生任何采样"
+        assert all(visible for visible, _rows in samples), samples
+        assert all(rows == 1 for _visible, rows in samples), samples
+        assert _wait_for(lambda: not editable.property("popupVisible"))
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_custom_delegate_keeps_every_candidate(qapp):
+    """自定义候选行委托不做源下标映射, 因此候选列表不得被输入即搜索收窄。
+
+    The row reports the view's own `index`, so a narrowed list hands the control a
+    renumbered index — the only visible row of a three-item model reports 0 instead of 2.
+    Filtering therefore stays limited to the default delegate.
+    该行直接回报视图自身的 index, 收窄后的列表会把重新编号的下标交给控件 —— 三项模型中唯一
+    的可见行会回报 0 而不是 2。因此过滤只对默认委托生效。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, warnings = _create_custom_delegate_scene()
+    try:
+        popup, popup_window = _open_without_activating(window, combo, windows_before)
+        assert len(_custom_rows(popup_window)) == 3
+
+        _select_all(window)
+        _type_text(window, "amm")
+        assert combo.property("currentText") == "amm"
+
+        rows = _custom_rows(popup_window)
+        assert [row.property("candidateIndex") for row in rows] == [0, 1, 2]
+        assert [row.property("candidateText") for row in rows] == [
+            "Alpha",
+            "Beta",
+            "Gamma",
+        ]
+
+        QTest.mouseClick(
+            popup_window,
+            Qt.MouseButton.LeftButton,
+            pos=_point_for(popup_window, rows[2]),
+        )
+        assert _wait_for(lambda: not combo.property("isOpen"))
+        assert combo.property("currentIndex") == 2
+        assert combo.property("currentText") == "Gamma"
+        assert warnings == []
+    finally:
+        _dispose_custom_delegate_scene(engine, component, window)
         assert _new_visible_windows(windows_before) == []

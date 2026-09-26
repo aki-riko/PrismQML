@@ -151,8 +151,13 @@ Widget {
 
     function closePopup() {
         if (!isOpen) return
-        isOpen = false
+        // Close the candidate surface first: it publishes `isClosing` synchronously, so
+        // `popupVisible` never dips to false between these two writes. The open fill stays
+        // locked and the type-to-search query stays alive for the whole close animation.
+        // 先关闭候选表面: 它同步发布 isClosing, 因此 popupVisible 不会在这两次写入之间掉到
+        // false —— 展开底色与输入即搜索查询在整个关闭动画期间保持不变。
         _popup.close()
+        isOpen = false
     }
 
     function getCurrentIndex() { return currentIndex }
@@ -219,12 +224,19 @@ Widget {
     }
 
     // Type-to-search state shared by the editable input, the candidate list and the
-    // delegate's index mapping. 输入即搜索状态, 由可编辑输入框、候选列表与委托下标映射共用。
+    // delegate's index mapping. Filtering runs only while the candidate row owns the
+    // visible-row to source-index mapping: a custom popupDelegate keeps the full list,
+    // because a narrowed list would renumber the index it reports. The query outlives
+    // the close animation so the fading list cannot jump back to the full model.
+    // 输入即搜索状态, 由可编辑输入框、候选列表与委托下标映射共用。仅当候选行持有
+    // "可见行 -> 源下标" 映射时才过滤: 自定义 popupDelegate 保持完整列表, 否则收窄后的
+    // 列表会改变它回报的下标。查询活过关闭动画, 收起中的列表因此不会跳回全量模型。
     ComboBoxSearchState {
         id: searchState
 
         model: control._safeModel
-        open: control.isOpen
+        expanded: control.popupVisible
+        mapsSourceIndex: control.popupDelegate === control.defaultDelegate
         onOpenRequested: control.openPopup()
     }
 
