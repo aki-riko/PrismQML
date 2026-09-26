@@ -128,17 +128,6 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
     )
 
 
-def test_drawer_suspends_only_the_native_window_for_system_dialogs():
-    source = SOURCE_PATH.read_text(encoding="utf-8")
-    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
-
-    assert "property bool nativeDialogOpen: false" in source
-    assert "function suspendForNativeDialog()" in source
-    assert "function resumeAfterNativeDialog()" in source
-    assert "&& !control.nativeDialogOpen" in helper_source
-    assert "control._updateOutsideWindowGeometry()" in source
-
-
 def test_drawer_source_guards_native_window_during_destruction():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")

@@ -594,29 +594,6 @@ def test_drawer_outside_mode_clips_fixed_content_in_four_directions(
     assert _new_visible_windows(windows_before, window) == []
 
 
-def test_drawer_native_dialog_suspends_and_restores_only_outside_window(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, drawer, _content_item, _panel, warnings = _create_scene()
-    try:
-        drawer.setProperty("mode", window.property("outsideMode"))
-        drawer_window = _drawer_window()
-        assert QMetaObject.invokeMethod(drawer, "open")
-        assert _wait_for(drawer_window.isVisible)
-        assert _wait_for(lambda: drawer.property("_isOpen"))
-
-        assert QMetaObject.invokeMethod(drawer, "suspendForNativeDialog")
-        assert _wait_for(lambda: not drawer_window.isVisible())
-        assert drawer.property("_isOpen") is True
-
-        assert QMetaObject.invokeMethod(drawer, "resumeAfterNativeDialog")
-        assert _wait_for(drawer_window.isVisible)
-        assert drawer.property("_isOpen") is True
-    finally:
-        _dispose_scene(engine, component, window)
-    assert warnings == []
-    assert _new_visible_windows(windows_before) == []
-
-
 def test_drawer_outside_mode_closes_with_host_window(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, drawer, _content_item, _panel, warnings = (

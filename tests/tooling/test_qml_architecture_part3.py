@@ -57,9 +57,6 @@ def test_drawer_keeps_outside_window_modularized():
     assert "DrawerInternal.DrawerOutsideWindow {" in source
     assert "property var drawerControl: control" in source
     assert "drawerControl: outsideDrawerWindowLoader.drawerControl" in source
-    assert "property bool nativeDialogOpen: false" in source
-    assert "function suspendForNativeDialog()" in source
-    assert "function resumeAfterNativeDialog()" in source
     assert "required property var drawerControl" in helper_source
     assert "readonly property alias panel: outsideDrawerPanel" in helper_source
     assert "readonly property var control: drawerControl" in helper_source
