@@ -20,9 +20,13 @@ Item {
     readonly property int _maxItems: (control && control.maxVisibleItems > 0)
         ? control.maxVisibleItems
         : Enums.comboBoxMetrics.popupDefaultMaxItems
+    // Candidate list actually shown: the type-to-search view when the host owns one,
+    // otherwise the host model directly. 实际展示的候选列表: 宿主具备输入即搜索视图时用该视图,
+    // 否则直接用宿主模型。
     readonly property var _safeControlModel: {
-        var value = control && control._safeModel !== undefined
-                    ? control._safeModel : (control ? control.model : [])
+        if (!control) return []
+        var value = control._search !== undefined ? control._search.visibleModel
+                    : (control._safeModel !== undefined ? control._safeModel : control.model)
         return value && typeof value.length === "number" ? value : []
     }
     readonly property bool needsScroll: _safeControlModel.length > _maxItems

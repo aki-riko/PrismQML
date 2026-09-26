@@ -206,14 +206,20 @@ function getItemText(model, index) {
     return item.toString()
 }
 
-function hasMatchingItems(model, searchText) {
-    if (!searchText) return false
+// Type-to-search filter: returns the matching items together with their source
+// indices, so filtering never renumbers the public index contract.
+// 输入即搜索过滤: 返回命中项及各自的源下标, 过滤因此不会改变公开的下标契约。
+function filterModel(model, searchText) {
+    var safeModel = model && typeof model.length === "number" ? model : []
+    var items = []
+    var indices = []
+    if (!searchText) return { items: items, indices: indices }
     var lowerSearch = searchText.toLowerCase()
-    for (var i = 0; i < model.length; i++) {
-        var text = getItemText(model, i).toLowerCase()
-        if (text.indexOf(lowerSearch) !== -1) {
-            return true
+    for (var i = 0; i < safeModel.length; i++) {
+        if (getItemText(safeModel, i).toLowerCase().indexOf(lowerSearch) !== -1) {
+            items.push(safeModel[i])
+            indices.push(i)
         }
     }
-    return false
+    return { items: items, indices: indices }
 }

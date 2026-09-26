@@ -165,6 +165,8 @@ Item {
             if (comboControl.currentIndex !== -1) comboControl.currentIndex = -1
             comboControl.currentText = editedText
             if (comboControl.textEdited) comboControl.textEdited(editedText)
+            // The editable input doubles as the search field. 可编辑输入框同时充当搜索框。
+            if (comboControl._search) comboControl._search.apply(editedText)
         }
 
         InputsInternal.InputPlaceholderLabel {

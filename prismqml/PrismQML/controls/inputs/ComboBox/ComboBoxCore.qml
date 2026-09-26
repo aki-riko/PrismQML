@@ -52,6 +52,7 @@ Widget {
     property var _methods: ComboBoxMethods
     property bool _popupContentRequested: false
     property alias _popup: comboContent.popup
+    property alias _search: searchState
     property alias editableInput: comboContent.editableInput
     property alias mouseArea: comboContent.mouseArea
     property alias editableClickArea: comboContent.editableClickArea
@@ -85,9 +86,11 @@ Widget {
             id: menuDelegateItem
 
             property var _comboControl: ListView.view ? ListView.view.parentControl : null
-            // Keep the ListView delegate index available throughout signal delivery.
-            // 在信号投递期间保留 ListView 委托索引，避免运行时作用域丢失。
-            property int _delegateIndex: index
+            // Visible row mapped back to its source model index: a narrowed candidate
+            // list must not renumber icons, item data, enabled flags or activated().
+            // 可见行映射回源模型下标: 候选被收窄后不得改变图标、项目数据、禁用态与 activated()。
+            property int _delegateIndex: _comboControl && _comboControl._search
+                ? _comboControl._search.sourceIndex(index) : index
 
             text: {
                 if (modelData === undefined || modelData === null) return ""
@@ -172,7 +175,9 @@ Widget {
             ? popupWidthOverride : Math.max(contentW, control.width)
         // Let PopupWindowCore add its content padding exactly once.
         // 由 PopupWindowCore 统一补入一次内容内边距。
-        var itemCount = (_safeModel || []).length
+        // Reserve room for the candidates actually shown, which the type-to-search
+        // filter may have narrowed. 只为实际可见的候选预留高度, 输入即搜索可能已收窄候选。
+        var itemCount = _search.visibleModel.length
         var maxContentHeight = maxVisibleItems > 0
             ? maxVisibleItems * popupItemHeight
             : Math.max(0, Enums.comboBoxMetrics.popupMaxHeight
@@ -209,7 +214,6 @@ Widget {
     }
 
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
-    function _hasMatchingItems(searchText) { return _methods.hasMatchingItems(_safeModel || [], searchText) }
     function _syncCurrentTextFromSelection() {
         if (editable && currentIndex === -1) return
         var safeModel = _safeModel || []
@@ -264,6 +268,16 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
+    // Type-to-search state shared by the editable input, the candidate list and the
+    // delegate's index mapping. 输入即搜索状态, 由可编辑输入框、候选列表与委托下标映射共用。
+    ComboBoxSearchState {
+        id: searchState
+
+        model: control._safeModel
+        open: control.isOpen
+        onOpenRequested: control.openPopup()
+    }
+
     ComboBoxCoreContent {
         id: comboContent
         comboControl: control
