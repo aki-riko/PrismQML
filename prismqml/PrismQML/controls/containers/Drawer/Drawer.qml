@@ -23,6 +23,7 @@ OverlayDialogCore {
     /// Drawer slide-in/out animation duration in ms (default matches global slow; 抽屉滑入/滑出动画时长 (毫秒)。默认与全局慢速一致;
     /// 紧凑场景可调小,例如 200。
     property int animationDuration: Enums.duration.slow
+    property bool nativeDialogOpen: false
     default property alias content: drawerSurface.content
     readonly property bool isHorizontal: position === Enums.position.left || position === Enums.position.right
     
@@ -33,10 +34,6 @@ OverlayDialogCore {
     property int radius: _isOutside
         ? Enums.radius.large
         : (Enums.radius.none)
-    // Native parent window for system dialogs opened from drawer content 系统对话框的原生宿主窗口
-    readonly property var dialogParentWindow: _isOutside && _outsideDrawerWindow
-        ? _outsideDrawerWindow : _hostWindow
-
     // ==================== Internal Props 内部属性 ====================
     property bool _outsideFollowRegistered: false
     property bool _outsideHostSyncPending: false
@@ -117,13 +114,12 @@ OverlayDialogCore {
 
     function toggle() { _isOpen ? close() : open() }
 
-    // Check if open 检查是否打开
     function isOpen() {
         return _isOpen
     }
 
-    // Start the first inside animation after reparenting geometry has settled
-    // 重父化几何稳定后再启动首次内侧动画
+    function suspendForNativeDialog() { if (_isOutside && !nativeDialogOpen) nativeDialogOpen = true }
+    function resumeAfterNativeDialog() { if (nativeDialogOpen) nativeDialogOpen = false }
     function _completeInsideOpen() {
         if (!control._insideOpenPending) return
         control._insideOpenPending = false
@@ -175,7 +171,13 @@ OverlayDialogCore {
     // 在 Qt 完成 show 后校正一次几何,随后再显露固定窗口
     function _beginOutsideReveal() {
         if (!control._isOutside || !control._outsideVisible
-                || control._outsidePrepared || control._isOpen) return
+                || control.nativeDialogOpen) return
+        if (control._outsidePrepared && control._isOpen) {
+            control._updateOutsideWindowGeometry()
+            control._registerOutsideWindow()
+            return
+        }
+        if (control._outsidePrepared || control._isOpen) return
         control._updateOutsideWindowGeometry()
         control._outsidePrepared = true
         control._registerOutsideWindow()

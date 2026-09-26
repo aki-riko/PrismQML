@@ -52,6 +52,7 @@ Window {
     width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread
     height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread
     visible: control._outsideVisible && control._hostWindow !== null
+             && !control.nativeDialogOpen
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint
     color: Enums.transparent
