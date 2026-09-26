@@ -26,6 +26,7 @@ INTERNAL_DIR = (
 )
 SEARCH_SOURCE_PATH = INTERNAL_DIR / "PopupSearchBox.qml"
 CORE_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxCoreContent.qml"
+CORE_ACTIONS_SOURCE_PATH = INTERNAL_DIR / "ComboBoxCoreActions.qml"
 POPUP_CONTENT_SOURCE_PATH = INTERNAL_DIR / "ComboBoxPopupContent.qml"
 STYLE_HELPER_SOURCE_PATH = INTERNAL_DIR / "ComboBoxStyleHelper.qml"
 SURFACE_SOURCE_PATH = INTERNAL_DIR / "ComboBoxSurface.qml"
@@ -322,6 +323,18 @@ def test_combo_box_core_content_does_not_steal_focus_in_editable_mode():
     path = PurePosixPath(CORE_CONTENT_SOURCE_PATH.relative_to(ROOT).as_posix())
     violations = scan_source_text(source, path)
     assert "stealFocus: !comboControl.editable" in source
+    assert [
+        item for item in violations if item.rule in {"QML008", "QML009"}
+    ] == []
+
+
+def test_combo_box_core_actions_source_conventions():
+    source = CORE_ACTIONS_SOURCE_PATH.read_text(encoding="utf-8")
+    path = PurePosixPath(CORE_ACTIONS_SOURCE_PATH.relative_to(ROOT).as_posix())
+    violations = scan_source_text(source, path)
+    assert "required property var comboControl" in source
+    assert "property Component defaultPopupContent: Component" in source
+    assert "function _dispatchEditAction(actionName, mutatesText)" in source
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []

@@ -351,6 +351,20 @@ def test_combo_box_core_keeps_visual_content_modularized():
         assert token in surface_source, token
         assert token not in helper_source, token
 
+    actions = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxCoreActions.qml"
+    )
+    actions_source = actions.read_text(encoding="utf-8")
+    assert actions.exists()
+    assert len(actions_source.splitlines()) < 80
+    assert "ComboBoxCoreActions {" in source
+    assert "required property var comboControl" in actions_source
+    assert "property Component defaultPopupContent: Component" in actions_source
+    assert "ComboBoxPopupContent {" in actions_source
+    assert "function _dispatchEditAction(actionName, mutatesText)" in actions_source
+    assert "function _dispatchEditAction(actionName, mutatesText)" not in source
+    assert "property alias defaultPopupContent: coreActions.defaultPopupContent" in source
+
 def test_combo_box_core_keeps_the_candidate_row_delegate_modularized():
     """默认候选行委托必须留在 _internal, 入口只允许引用。
 

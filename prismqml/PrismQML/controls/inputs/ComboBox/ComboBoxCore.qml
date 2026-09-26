@@ -51,6 +51,7 @@ Widget {
     property var _itemEnabledMap: ({})  // {index: enabled}
     property var _methods: ComboBoxMethods
     property bool _popupContentRequested: false
+    property alias defaultPopupContent: coreActions.defaultPopupContent
     property alias _popup: comboContent.popup
     property alias _search: searchState
     property alias editableInput: comboContent.editableInput
@@ -85,13 +86,6 @@ Widget {
         ComboBoxItemDelegate {}
     }
 
-    // Default popup content (uses popupDelegate) 默认弹出内容(使用popupDelegate)
-    property Component defaultPopupContent: Component {
-        ComboBoxPopupContent {
-            control: control
-        }
-    }
-
     // ==================== Signals 信号 ====================
     signal activated(int index)
     signal textActivated(string text)  // Qt-style signal Qt风格信号
@@ -109,13 +103,13 @@ Widget {
     function insertItem(index, text, userData) { _methods.insertItem(control, index, text, userData) }
     function insertItems(index, texts) { _methods.insertItems(control, index, texts) }  // Batch insert 批量插入
     function clear() { _methods.clear(control) }
-    function clearEditText() { return _dispatchEditAction("clear", true) }
-    function selectAll() { return _dispatchEditAction("selectAll", false) }
-    function undo() { return _dispatchEditAction("undo", true) }
-    function redo() { return _dispatchEditAction("redo", true) }
-    function copy() { return _dispatchEditAction("copy", false) }
-    function cut() { return _dispatchEditAction("cut", true) }
-    function paste() { return _dispatchEditAction("paste", true) }
+    function clearEditText() { return coreActions._dispatchEditAction("clear", true) }
+    function selectAll() { return coreActions._dispatchEditAction("selectAll", false) }
+    function undo() { return coreActions._dispatchEditAction("undo", true) }
+    function redo() { return coreActions._dispatchEditAction("redo", true) }
+    function copy() { return coreActions._dispatchEditAction("copy", false) }
+    function cut() { return coreActions._dispatchEditAction("cut", true) }
+    function paste() { return coreActions._dispatchEditAction("paste", true) }
     function showPopup() { openPopup() }
     function hidePopup() { closePopup() }
     function itemText(index) { return _methods.itemText(_safeModel || [], index) }
@@ -163,22 +157,6 @@ Widget {
 
     function getCurrentIndex() { return currentIndex }
     function isEnabled() { return enabled }
-
-    // ==================== Internal Methods 内部方法 ====================
-    function _dispatchEditAction(actionName, mutatesText) {
-        if (!editable || !useDefaultContent || !enabled
-                || typeof editableInput[actionName] !== "function") return false
-        var previousText = editableInput.text
-        editableInput[actionName]()
-        if (mutatesText && editableInput.text !== previousText) {
-            if (currentIndex !== -1) currentIndex = -1
-            if (currentText !== editableInput.text) {
-                currentText = editableInput.text
-                textEdited(currentText)
-            }
-        }
-        return true
-    }
 
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
     function _syncCurrentTextFromSelection() {
@@ -235,6 +213,11 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
+    ComboBoxCoreActions {
+        id: coreActions
+        comboControl: control
+    }
+
     // Type-to-search state shared by the editable input, the candidate list and the
     // delegate's index mapping. 输入即搜索状态, 由可编辑输入框、候选列表与委托下标映射共用。
     ComboBoxSearchState {
