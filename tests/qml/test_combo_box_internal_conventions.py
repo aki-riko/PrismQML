@@ -66,7 +66,6 @@ Item {
     readonly property int defaultStyle: Enums.comboBox.style_default
     readonly property int primaryStyle: Enums.comboBox.style_primary
     readonly property int transparentStyle: Enums.comboBox.style_transparent
-    readonly property real popupDarken: Enums.comboBox.primaryPopupDarken
     readonly property real pressedDarken: Enums.comboBox.primaryPressedDarken
     readonly property real hoverLighten: Enums.comboBox.primaryHoverLighten
     readonly property color defaultBg: Enums.stateColor.controlBg
@@ -335,24 +334,30 @@ def test_combo_box_style_helper_background_contract(qapp):
     try:
         control = root.findChild(QObject, "control")
         accent = QColor("#336699")
-        assert root.property("popupDarken") == 1.1
         assert root.property("pressedDarken") == 1.15
         assert root.property("hoverLighten") == 1.08
         assert root.property("backgroundColor") == root.property("defaultBg")
+        # An expanded list keeps the resting fill in every style, and the open branch
+        # outranks hover/press so a pointer parked on the control cannot tint it.
+        # 展开态各样式都锁定静止底色, 且展开分支优先于 hover/press, 指针停在控件上也不染色。
+        _set_control(control, pressed=True, hovered=True, popupVisible=True)
+        assert root.property("backgroundColor") == root.property("defaultBg")
         _set_control(control, style=root.property("primaryStyle"))
         assert root.property("backgroundColor") == accent
-        _set_control(control, hovered=True)
+        _set_control(control, pressed=False, hovered=True, popupVisible=False)
         assert root.property("backgroundColor") == accent.lighter(108)
         _set_control(control, hovered=False, pressed=True)
         assert root.property("backgroundColor") == accent.darker(115)
-        _set_control(control, pressed=False, popupVisible=True)
-        assert root.property("backgroundColor") == accent.darker(110)
-        _set_control(control, popupVisible=False, style=root.property("transparentStyle"))
+        _set_control(control, pressed=True, hovered=True, popupVisible=True)
+        assert root.property("backgroundColor") == accent
+        _set_control(control, style=root.property("transparentStyle"))
         assert root.property("backgroundColor") == root.property("transparentBg")
-        _set_control(control, hovered=True)
+        _set_control(control, pressed=False, hovered=True, popupVisible=False)
         assert root.property("backgroundColor") == root.property("transparentHover")
         _set_control(control, hovered=False, pressed=True)
         assert root.property("backgroundColor") == root.property("transparentPressed")
+        _set_control(control, pressed=True, hovered=True, popupVisible=True)
+        assert root.property("backgroundColor") == root.property("transparentBg")
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
     finally:
@@ -396,9 +401,29 @@ def test_combo_box_style_helper_uses_enum_tokens():
     assert "c.style === 1" not in source
     assert "c.style === 2" not in source
     assert "control.style === 1" not in source
-    assert "Enums.comboBox.primaryPopupDarken" in source
+    # The expanded state no longer darkens the primary fill, so its factor is gone.
+    # 展开态不再加深主样式底色, 该系数已删除。
+    assert "primaryPopupDarken" not in source
     assert "Enums.comboBox.primaryPressedDarken" in source
     assert "Enums.comboBox.primaryHoverLighten" in source
+
+
+def test_combo_box_core_content_locks_resting_fill_while_expanded():
+    """展开分支必须返回静止底色, 且先于 hover/press 求值。
+
+    The open branch must return the resting fill and outrank hover/press; otherwise
+    the pointer parked on the control after clicking keeps a tint on it.
+    展开分支必须返回静止底色并优先于 hover/press, 否则点击后仍停在控件上的指针会留下染色。
+    """
+    source = CORE_CONTENT_SOURCE_PATH.read_text(encoding="utf-8")
+    expanded = "if (comboControl.popupVisible) return Enums.stateColor.controlBg\n"
+    pressed = "if (comboControl.pressed) return Enums.stateColor.controlBgPressed"
+    hovered = "if (content._touchActive) return Enums.stateColor.controlBgHover"
+    assert expanded in source
+    assert (
+        source.index(expanded) < source.index(pressed) < source.index(hovered)
+    ), "展开分支必须在 hover/press 之前求值"
+    assert "controlBgPressed" not in expanded
 
 
 def test_combo_box_font_runtime_contract(qapp):

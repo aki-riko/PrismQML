@@ -84,7 +84,10 @@ Item {
         color: {
             if (comboControl.style !== 0) return styleHelper.getBackgroundColor()
             if (!comboControl.enabled) return Enums.stateColor.controlBgDisabled
-            if (comboControl.popupVisible) return Enums.stateColor.controlBgPressed
+            // Expanded list keeps the resting fill and outranks hover/press, so the
+            // open dropdown never overlays a colour on the control.
+            // 展开下拉时锁定静止底色并优先于 hover/press, 展开态不给控件叠加任何颜色。
+            if (comboControl.popupVisible) return Enums.stateColor.controlBg
             if (comboControl.pressed) return Enums.stateColor.controlBgPressed
             if (content._touchActive) return Enums.stateColor.controlBgHover
             return Enums.stateColor.controlBg

@@ -15,6 +15,11 @@ QtObject {
     
     // ==================== Internal Methods 内部方法 ====================
     // Unified with Button controlBg series 与Button统一使用controlBg系列
+    // Expanded list keeps the resting fill: opening the dropdown must not overlay
+    // any colour on the control, and the branch is evaluated before hover/press so
+    // the pointer resting on the control cannot tint it either.
+    // 展开下拉时锁定静止底色: 展开不得给控件叠加任何颜色; 该分支先于 hover/press
+    // 求值, 因此指针停在控件上也不会染上悬浮色。
     function getBackgroundColor() {
         if (!Enums || !Enums.stateColor) return Enums.transparent
         
@@ -23,7 +28,7 @@ QtObject {
         // Primary style 主样式
         if (c.style === Enums.comboBox.style_primary) {
             if (!c.enabled) return Enums.stateColor.disabledBg
-            if (c.popupVisible) return Qt.darker(c.accentColor, Enums.comboBox.primaryPopupDarken)
+            if (c.popupVisible) return c.accentColor
             if (c.pressed) return Qt.darker(c.accentColor, Enums.comboBox.primaryPressedDarken)
             if (c.hovered) return Qt.lighter(c.accentColor, Enums.comboBox.primaryHoverLighten)
             return c.accentColor
@@ -34,7 +39,7 @@ QtObject {
 
         if (c.style === Enums.comboBox.style_transparent) {
             if (!c.enabled) return Enums.stateColor.controlBgTransparent
-            if (c.popupVisible) return Enums.stateColor.transparentPressed
+            if (c.popupVisible) return Enums.stateColor.controlBgTransparent
             if (c.pressed) return Enums.stateColor.transparentPressed
             if (c.hovered) return Enums.stateColor.transparentHover
             return Enums.stateColor.controlBgTransparent
@@ -43,7 +48,7 @@ QtObject {
         // Default style uses controlBg, same as Button 默认样式使用与 Button 相同的 controlBg
 
         if (!c.enabled) return Enums.stateColor.controlBgDisabled
-        if (c.popupVisible) return Enums.stateColor.controlBgPressed
+        if (c.popupVisible) return Enums.stateColor.controlBg
         if (c.pressed) return Enums.stateColor.controlBgPressed
         if (c.hovered) return Enums.stateColor.controlBgHover
         return Enums.stateColor.controlBg
