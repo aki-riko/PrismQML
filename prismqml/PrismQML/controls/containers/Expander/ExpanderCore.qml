@@ -31,6 +31,9 @@ Widget {
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
     property alias headerContent: headerView.headerContent
+    // Wrap long header text into multiple lines instead of overflowing the header
+    // 长标题/副标题换行显示而不是撑破头部; 关闭时保持单行省略的历史行为
+    property alias wrapHeaderText: headerView.wrapHeaderText
     // Hook for subclass to handle widget addition 子类处理控件添加的钩子
     property var onWidgetAdded: null
 

@@ -23,6 +23,9 @@ Item {
     property alias titleLabel: titleLabel
     property alias contentLabel: contentLabel
     property alias headerContentLoader: headerContentLoader
+    // Wrap long header text instead of overflowing the header row 长标题改为换行而非撑破头部
+    // 关闭时保持单行省略的历史行为 关闭时保持单行省略的历史行为
+    property bool wrapHeaderText: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: !expanderControl.disabled
@@ -32,12 +35,31 @@ Item {
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
     readonly property bool _touchActive: Touch.feedback(hovered, pressed)
+    // Width taken by the expand button, its gap and the icon column
+    // 展开按钮、其与文本之间的间距以及图标列占用的宽度
+    readonly property real _trailingWidth: Enums.controlSize.expanderIconSize
+        + (expanderControl.icon !== ""
+            ? (Enums.iconSize.m + Enums.spacing.xl) : 0)
+        + (headerContentLoader.item ? Enums.spacing.xl : 0)
+        + Enums.spacing.m
+    // Inner width left for the title column 标题列可用的内部宽度
+    readonly property real _availableTextWidth: Math.max(0,
+        headerRoot.width - Enums.spacing.xl * 2 - _trailingWidth
+        - headerContentLoader.width)
+    // Text block height, always reserved from the typography line box
+    // 文本块高度: 始终按字体行高预留, 只有换行时才会因多行而变高
+    readonly property real _textBlockHeight: titleLabel.implicitHeight
+        + (contentLabel.text !== "" ? contentLabel.implicitHeight : 0)
+    readonly property real _minHeaderHeight: 48
 
     // ==================== Size 尺寸 ====================
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
-    height: contentLabel.text !== "" ? 72 : 48
+    // 两行文本时保持 72 的历史高度; 换行超出后按实际行高自适应
+    height: Math.max(_minHeaderHeight,
+                     contentLabel.text !== "" ? Math.max(72, _textBlockHeight)
+                                              : Math.max(48, _textBlockHeight))
 
     // ==================== Content 内容 ====================
     Row {
@@ -71,11 +93,23 @@ Item {
 
             anchors.verticalCenter: parent.verticalCenter
             spacing: Enums.spacing.none
+            // Never let long header text push the expand button out of the header.
+            // Deliberately independent of titleCol.implicitWidth to avoid a width loop
+            // 绝不让长文本把展开按钮挤出头部区域; 刻意不依赖自身 implicitWidth 以免宽度循环
+            width: headerRoot._availableTextWidth
 
             Label {
                 id: titleLabel
 
                 type: Enums.label.type_body_strong
+                objectName: "expanderHeaderTitle"
+                // Explicit width: plain Column does not propagate its width to children,
+                // and it must not read titleCol.implicitWidth (that would be a width loop)
+                // 显式设宽: 普通 Column 不会把宽度传给子项, 且不能读 titleCol.implicitWidth
+                // (那会形成宽度循环)
+                width: Math.min(implicitWidth, titleCol.width)
+                wrapMode: headerRoot.wrapHeaderText ? Text.WordWrap : Text.NoWrap
+                elide: headerRoot.wrapHeaderText ? Text.ElideNone : Text.ElideRight
             }
 
             Label {
@@ -83,7 +117,11 @@ Item {
 
                 type: Enums.label.type_caption
                 color: Enums.stateColor.settingCardContent
+                objectName: "expanderHeaderContent"
                 visible: text !== ""
+                width: Math.min(implicitWidth, titleCol.width)
+                wrapMode: headerRoot.wrapHeaderText ? Text.WordWrap : Text.NoWrap
+                elide: headerRoot.wrapHeaderText ? Text.ElideNone : Text.ElideRight
             }
         }
 
@@ -94,7 +132,7 @@ Item {
                 headerRoot.width - Enums.spacing.xl - Enums.spacing.m
                 - (expanderControl.icon !== ""
                     ? (Enums.iconSize.m + Enums.spacing.xl) : 0)
-                - titleCol.implicitWidth - headerContentLoader.width
+                - titleCol.width - headerContentLoader.width
                 - Enums.controlSize.expanderIconSize
                 - (headerContentLoader.item ? Enums.spacing.xl : 0)
             )

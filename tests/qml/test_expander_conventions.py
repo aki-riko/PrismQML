@@ -13,6 +13,7 @@ from PySide6.QtCore import (
     QEventLoop,
     QMetaObject,
     QPoint,
+    QPointF,
     QTimer,
     QUrl,
     Qt,
@@ -309,6 +310,131 @@ def test_expander_custom_header_and_widget_parent_contracts(expander_scene):
     assert last_added is not None
     assert last_added.objectName() == "expandWidget"
     assert warnings == []
+
+
+LONG_TITLE = (
+    "PerformanceRiskWarning 性能风险警告（非拒审判据） · Python UI 性能风险警告（合并 46 项）"
+)
+LONG_CONTENT = (
+    "OnUiInitFinished（第 741 行）调用高成本操作：CreateUI, RegisterUI。"
+    "这是静态风险提示，需用 Tracy/AirPerf 在真实玩法中确认。"
+)
+SCENE_LONG_HEADER_SOURCE = (
+    """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+    objectName: "longHeaderWindow"
+
+    width: 720
+    height: 520
+    visible: true
+
+    Expander {
+        id: plainHeader
+        objectName: "plainHeader"
+        x: 20
+        y: 20
+        width: 320
+        title: __TITLE__
+        content: __CONTENT__
+    }
+
+    Expander {
+        id: wrappedHeader
+        objectName: "wrappedHeader"
+        x: 20
+        y: 220
+        width: 320
+        wrapHeaderText: true
+        title: __TITLE__
+        content: __CONTENT__
+    }
+}
+"""
+    .replace("__TITLE__", '"' + LONG_TITLE + '"')
+    .replace("__CONTENT__", '"' + LONG_CONTENT + '"')
+    .encode("utf-8")
+)
+
+
+def test_expander_long_header_text_is_clamped_and_can_wrap():
+    """长标题不得撑破头部；默认省略，wrapHeaderText 打开后换行并自适应高度。"""
+
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        SCENE_LONG_HEADER_SOURCE,
+        QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "expander-long-header.qml")),
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    _pump()
+
+    plain = window.findChild(QQuickItem, "plainHeader")
+    wrapped = window.findChild(QQuickItem, "wrappedHeader")
+    assert plain is not None and wrapped is not None
+
+    def header_items(expander):
+        return (
+            expander.findChild(QQuickItem, "expanderHeaderTitle"),
+            expander.findChild(QQuickItem, "expanderHeaderContent"),
+        )
+
+    plain_title, plain_content = header_items(plain)
+    wrapped_title, wrapped_content = header_items(wrapped)
+    for item in (plain_title, plain_content, wrapped_title, wrapped_content):
+        assert item is not None
+
+    # 默认：单行 + 省略，绝不越过头部可用宽度
+    assert plain_title.property("width") < plain_title.property("implicitWidth")
+    assert plain_title.property("lineCount") == 1
+    assert plain_title.property("truncated") is True
+    assert plain_content.property("truncated") is True
+    assert plain_title.property("width") <= plain.property("width")
+    assert plain_content.property("width") <= plain.property("width")
+
+    # 打开 wrapHeaderText：换成多行、不再被截断，头部按内容变高
+    assert wrapped.property("wrapHeaderText") is True
+    assert wrapped_title.property("lineCount") > 1
+    assert wrapped_content.property("lineCount") > 1
+    assert wrapped_title.property("truncated") is False
+    assert wrapped_content.property("truncated") is False
+    assert wrapped.property("height") > plain.property("height")
+    # 文本右边缘始终留在头部区域内
+    title_right = wrapped_title.mapToItem(
+        window.contentItem(), QPointF(wrapped_title.width(), 0)
+    ).x()
+    assert title_right <= wrapped.property("x") + wrapped.property("width")
+
+    # 关闭后回到单行省略
+    wrapped.setProperty("wrapHeaderText", False)
+    assert _wait_for(lambda: wrapped_title.property("lineCount") == 1)
+    assert wrapped_title.property("truncated") is True
+
+    assert warnings == []
+    window.close()
+    window.deleteLater()
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
 def test_expander_sources_follow_conventions():
