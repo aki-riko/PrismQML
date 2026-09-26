@@ -135,6 +135,17 @@ def _pixel(image: QImage, window: QQuickWindow, x: float, y: float) -> QColor:
     return image.pixelColor(px, py)
 
 
+def _window_dpr(window: QQuickWindow) -> float:
+    """Frame scale factor of this window 该窗口的帧缩放系数。"""
+    ratio = float(window.devicePixelRatio())
+    if ratio > 0:
+        return ratio
+    screen = QGuiApplication.primaryScreen()
+    if screen is not None and float(screen.devicePixelRatio()) > 0:
+        return float(screen.devicePixelRatio())
+    return 1.0
+
+
 def _rgba(color: QColor) -> list[int]:
     return [color.red(), color.green(), color.blue(), color.alpha()]
 
@@ -404,6 +415,12 @@ def _gallery_report(
     backend = window.rendererInterface().graphicsApi()
     return {
         "backend": backend.name,
+        # Reference values in docs/acrylic-panel-handover.md were tuned on a DPR 1.5
+        # frame; publish the frame ratio so consumers can tell whether the sampled
+        # pixels are comparable.
+        # docs/acrylic-panel-handover.md 的参考值调定于 DPR 1.5 的帧; 发布帧比例, 便于
+        # 消费方判断采样像素是否可比。
+        "frame_dpr": _window_dpr(window),
         "warnings": warnings,
         "window_visible": window.isVisible(),
         "window_class": window.metaObject().className().split("_QMLTYPE_", 1)[0],
