@@ -81,7 +81,17 @@ def test_outside_window_owns_its_outward_shadow():
         in source
     )
     assert "RectangularShadow {" in helper_source
-    assert "anchors.fill: outsideDrawerViewport" in helper_source
+    # The shadow silhouette is the panel rectangle grown outwards by `blur`: the effect
+    # spreads its blur into AND out of the rectangle it is given, so a silhouette equal
+    # to the panel hides the outer half of the band on every side and the dark band
+    # starts short of the panel edge — the reported clipped shadow.
+    # 阴影轮廓是面板矩形朝外各扩 `blur`: 该效果的模糊会同时向轮廓内外铺开, 轮廓等于面板
+    # 会让每条边的外半边像带不可见, 暗带起点落在面板边缘内侧 —— 即所报告的阴影被裁剪。
+    assert "x: outsideDrawerWindow.panelOffsetX - blur" in helper_source
+    assert "y: outsideDrawerWindow.panelOffsetY - blur" in helper_source
+    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
+    assert "height: outsideDrawerWindow.panelHeight + 2 * blur" in helper_source
+    assert "anchors.fill: outsideDrawerViewport" not in helper_source
     assert "blur: Enums.shadow.windowOutside.blur" in helper_source
     assert "color: Enums.shadow.windowOutside.color" in helper_source
     assert "offset.x: 0" in helper_source
@@ -116,16 +126,14 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
         "            true,\n"
         "            control._outsideShadowSpread)" in source
     )
-    # The panel keeps its requested extent; only the HWND grows outwards.
+    # The panel keeps its requested extent; the HWND grows by `spread` on every side,
+    # so the panel's seam-facing edge lands exactly on the host edge and the self-drawn
+    # shadow still has the inward room its blur needs.
+    # 面板保持请求尺寸; HWND 四周各长出 spread, 面板朝接缝的边因此正好落在宿主边缘上,
+    # 同时自绘阴影仍拿到模糊所需的内缩空间。
     assert "readonly property real panelWidth: control.isHorizontal" in helper_source
-    assert (
-        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
-        in helper_source
-    )
-    assert (
-        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
-        in helper_source
-    )
+    assert "width: panelWidth + 2 * spread" in helper_source
+    assert "height: panelHeight + 2 * spread" in helper_source
 
 
 def test_drawer_source_guards_native_window_during_destruction():
@@ -138,8 +146,8 @@ def test_drawer_source_guards_native_window_during_destruction():
     assert "asynchronous: false" in source
     assert "if (_outsideDrawerWindow" in source
     assert "|| !_outsideDrawerWindow" in source
-    assert "width: outsideDrawerWindow.panelWidth" in helper_source
-    assert "height: outsideDrawerWindow.panelHeight" in helper_source
+    assert "width: outsideDrawerWindow.panelWidth + 2 * blur" in helper_source
+    assert "height: outsideDrawerWindow.panelHeight + 2 * blur" in helper_source
     assert "x: outsideDrawerWindow.panelOffsetX - outsideDrawerViewport.x" in helper_source
     assert "y: outsideDrawerWindow.panelOffsetY - outsideDrawerViewport.y" in helper_source
 
@@ -165,8 +173,11 @@ def test_drawer_stages_host_signal_connections_until_component_completion():
 def test_drawer_source_reveals_from_the_corresponding_edge():
     source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "? panelOffsetX : (control.isHorizontal ? width - clipExtent : panelOffsetX)" in source
-    assert "? panelOffsetY : height - clipExtent" in source
+    # The viewport hugs the host edge via `panelOffsetX`; the panel offset carries the
+    # vertical `spread` room the shadow needs on both sides of the panel.
+    # 视口通过 panelOffsetX 贴住宿主边; 面板偏移同时承载阴影在面板两侧所需的纵向 spread 空间。
+    assert "? (control.position === Enums.position.left ? width - clipExtent" in source
+    assert ": (control.position === Enums.position.top ? height - clipExtent" in source
     assert "x: outsideDrawerWindow.viewportX" in source
     assert "y: outsideDrawerWindow.viewportY" in source
     assert "width: control.isHorizontal ? outsideDrawerWindow.clipExtent" in source

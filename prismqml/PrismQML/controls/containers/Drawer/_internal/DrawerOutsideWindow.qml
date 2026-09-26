@@ -25,8 +25,12 @@ Window {
         ? control._hostWindow.width : control.drawerWidth
     readonly property real hostHeight: control._hostWindow
         ? control._hostWindow.height : control.drawerHeight
-    // The panel keeps the full requested extent; only the HWND grows outwards
-    // 面板保持请求的完整尺寸, 只有 HWND 朝外侧长大
+    // The panel keeps the full requested extent; only the HWND grows outwards. Padding is
+    // symmetric across the seam, so the panel's seam-facing edge sits `spread` inside this
+    // HWND and lines up exactly with the host edge — and that inset is what gives the
+    // self-drawn shadow its room, since a flush panel clips its own blur on every side.
+    // 面板保持请求的完整尺寸, 只有 HWND 朝外长大。留白跨接缝对称, 面板朝接缝那一侧因此也在
+    // 本 HWND 内缩进 `spread`, 正好与宿主边缘对齐; 正是这段内缩给了自绘阴影空间。
     readonly property real panelWidth: control.isHorizontal
         ? control._outsideFullExtent : hostWidth
     readonly property real panelHeight: control.isHorizontal
@@ -35,22 +39,23 @@ Window {
         ? (control.position === Enums.position.left ? spread : 0) : spread
     readonly property real panelOffsetY: control.isHorizontal
         ? spread : (control.position === Enums.position.top ? spread : 0)
-    // Revealed extent along the host edge 沿宿主边显露的范围
     readonly property real clipExtent: control.isHorizontal
         ? Math.min(control._outsideExtent, panelWidth)
         : Math.min(control._outsideExtent, panelHeight)
     readonly property real viewportX: control.isHorizontal
-        && control.position !== Enums.position.left
-        ? panelOffsetX : (control.isHorizontal ? width - clipExtent : panelOffsetX)
+        ? (control.position === Enums.position.left ? width - clipExtent
+                                                   : panelOffsetX)
+        : panelOffsetX
     readonly property real viewportY: control.isHorizontal
-        || control.position !== Enums.position.top
-        ? panelOffsetY : height - clipExtent
+        ? panelOffsetY
+        : (control.position === Enums.position.top ? height - clipExtent
+                                                   : panelOffsetY)
 
     objectName: "outsideDrawerWindow"
     x: 0
     y: 0
-    width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread
-    height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread
+    width: panelWidth + 2 * spread
+    height: panelHeight + 2 * spread
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint
@@ -80,16 +85,20 @@ Window {
     RectangularShadow {
         id: outsideDrawerShadow
 
-        // The shadow keeps the panel silhouette at full strength, so its top/bottom bands
-        // run unchanged into the seam and continue the host window's own shadow band on the
-        // other side. Only the seam-facing side band falls outside this HWND and is clipped,
-        // which is what keeps the host content free of drawer shadow.
-        // 阴影保持面板轮廓与满强度: 上下像带一路顶到接缝, 与宿主窗口另一侧的阴影像带连成
-        // 一条完整外轮廓。只有朝接缝那一侧的像带落在本 HWND 之外被裁掉, 宿主内容因此不受影响。
-        anchors.fill: outsideDrawerViewport
+        // The silhouette is the panel grown outwards by `blur`, not the panel itself.
+        // `RectangularShadow` spreads its blur into AND out of the given rectangle, so a
+        // silhouette equal to the panel hides the outer half of every band and the dark
+        // band starts short of the panel edge — the reported clipped shadow. Growing it
+        // by exactly `blur` centres each band on the panel edge, so the blur fades across
+        // the seam the same way it fades on the outward side.
+        // 轮廓是面板朝外各扩 `blur`, 而非面板本身。该效果的模糊会同时向轮廓内外铺开, 轮廓等于
+        // 面板会让每条边的外半边像带不可见, 暗带起点落在面板边缘内侧 —— 即所报告的阴影被裁剪。
+        // 正好外扩 `blur` 可让暗带中心线落在面板边缘, 模糊跨接缝的渐变因此与朝外一侧一致。
+        x: outsideDrawerWindow.panelOffsetX - blur
+        y: outsideDrawerWindow.panelOffsetY - blur
+        width: outsideDrawerWindow.panelWidth + 2 * blur
+        height: outsideDrawerWindow.panelHeight + 2 * blur
         radius: outsideDrawerPanel.radius
-        // Blur must stay inside the reserved padding or the shadow gets clipped
-        // 模糊半径必须落在预留留白内, 否则阴影会被裁掉
         blur: Enums.shadow.windowOutside.blur
         color: Enums.shadow.windowOutside.color
         offset.x: 0

@@ -53,8 +53,13 @@ OverlayDialogCore {
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
     // Outward padding reserved inside the follower HWND for the drawer's own window shadow.
-    // 附属 HWND 内侧为抽屉自绘窗口阴影预留的外扩留白。
-    readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur
+    // Measured on the real effect: at blur 40 the RectangularShadow band spans about 1.5x
+    // the blur on each side of its silhouette, so the reserve has to be at least that wide
+    // or the outermost band lands on the HWND edge and is cut.
+    // 附属 HWND 内侧为抽屉自绘窗口阴影预留的外扩留白。按真实效果实测: blur 40 时
+    // RectangularShadow 的像带在轮廓两侧各铺约 1.5 倍 blur, 因此留白至少要这么宽,
+    // 否则最外圈正好落在 HWND 边界上被切掉。
+    readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur * 1.5
     readonly property real _outsideWindowExtent: _outsideFullExtent + _outsideShadowSpread
     // The outward shadow only exists once the full panel is revealed.
     // 只有在面板完全显露后才有外侧阴影。
