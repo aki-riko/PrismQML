@@ -28,8 +28,10 @@ from combo_box_core_conventions_shared import (
     QTest,
     QGuiApplication,
     _close_combo,
+    _create_field_click_scene,
     _create_scene,
     _dispose_scene,
+    _field_click_point,
     _local_point,
     _new_visible_windows,
     _point_for,
@@ -285,6 +287,63 @@ def test_combo_box_editable_forgets_the_query_after_close(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window, combo, editable)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_editable_field_click_focuses_without_expanding_by_default(qapp):
+    """默认: 点可编辑字段只聚焦, 候选仍由输入命中或箭头展开。
+
+    A field click must stay a plain "focus and place the caret" gesture: the caret is
+    placed where the press landed, and the candidate list only appears once the typed
+    text actually narrows it. Opting into expansion is what openOnFieldClick is for.
+    点击字段必须保持"只聚焦并定位光标"的手势: 光标落在按下的位置, 候选列表只在输入真正
+    收窄后出现。需要点击即展开时由 openOnFieldClick 显式开启。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, editable, field_click, warnings = _create_field_click_scene()
+    try:
+        assert editable.property("openOnFieldClick") is False
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            pos=_field_click_point(window, editable),
+        )
+        assert _wait_for(lambda: editable.property("focused"))
+        assert editable.property("isOpen") is False
+        assert _new_visible_windows(windows_before, window) == []
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable, field_click)
+        assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_editable_field_click_expands_when_opted_in(qapp):
+    """开启 openOnFieldClick 后, 点字段即展开完整候选并保持输入焦点。
+
+    候选表面不持有焦点, 因此展开后键盘仍属于输入框, 可以继续输入收窄候选。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, editable, field_click, warnings = _create_field_click_scene()
+    try:
+        assert field_click.property("openOnFieldClick") is True
+        QTest.mouseClick(
+            window,
+            Qt.MouseButton.LeftButton,
+            pos=_field_click_point(window, field_click),
+        )
+        assert _wait_for(lambda: field_click.property("isOpen"))
+        popup_windows = _new_visible_windows(windows_before, window)
+        assert len(popup_windows) == 1
+        assert _wait_for(lambda: len(_popup_rows(popup_windows[0])) == 3)
+        assert field_click.property("focused") is True
+
+        _select_all(window)
+        _type_text(window, "amm")
+        assert _wait_for(lambda: len(_popup_rows(popup_windows[0])) == 1)
+        assert _popup_rows(popup_windows[0])[0].property("text") == "Gamma"
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo, editable, field_click)
         assert _new_visible_windows(windows_before) == []
 
 

@@ -37,6 +37,12 @@ Widget {
     property color focusedBorderColorDark: Enums.accentColor
     property bool acceptWheel: false  // Whether to intercept wheel events 是否拦截滚轮事件
     property bool popupCloseOnClickOutside: true  // Close on click outside 点击外部关闭
+    // Editable mode: clicking the text area expands the candidate list as well as
+    // focusing the input. Off by default so a field click keeps the plain "focus and
+    // position the caret" behaviour and candidates still open on typing or the arrow.
+    // 可编辑模式: 点击文字区在聚焦输入框之外同时展开候选。默认关闭, 因此点击字段仍只做
+    // "聚焦并定位光标", 候选仍由输入命中或箭头按钮展开。
+    property bool openOnFieldClick: false
     // Optional explicit popup width. Zero keeps the content/control auto sizing.
     // 可选的显式弹层宽度；为 0 时保持内容/控件自动计算。
     property int popupWidthOverride: 0

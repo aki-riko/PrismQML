@@ -173,7 +173,15 @@ Item {
         enabled: comboControl.enabled && comboControl.editable
         hoverEnabled: true
         cursorShape: Qt.IBeamCursor
-        onClicked: editableInput.forceActiveFocus()
+        onClicked: {
+            // Focus first so the caret lands where the click did, then expand the
+            // candidates when the host asked for it. 先聚焦, 让光标落在点击位置, 再按需展开候选。
+            editableInput.forceActiveFocus()
+            if (comboControl.openOnFieldClick && !comboControl.isOpen
+                    && !comboPopup.isClosing) {
+                comboControl.openPopup()
+            }
+        }
     }
 
     // Content width measurement 内容宽度测量

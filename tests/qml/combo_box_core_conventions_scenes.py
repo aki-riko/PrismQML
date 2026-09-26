@@ -86,6 +86,20 @@ Window {
         editable: true
     }
 
+    // Same editable contract with the field-click expansion opted in; the pair exists so
+    // the default "click focuses, typing expands" behaviour stays covered next to it.
+    ComboBoxCore {
+        id: fieldClickCombo
+        objectName: "fieldClickCombo"
+        x: 380
+        y: 140
+        width: 260
+        model: ["Alpha", "Beta", "Gamma"]
+        currentIndex: 0
+        editable: true
+        openOnFieldClick: true
+    }
+
     ComboBoxCore {
         objectName: "translatedCombo"
         currentIndex: -1

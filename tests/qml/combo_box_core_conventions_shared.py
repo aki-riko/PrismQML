@@ -123,6 +123,13 @@ def _local_point(window: QQuickWindow, item: QQuickItem, x: float, y: float):
     point = item.mapToItem(window.contentItem(), QPointF(x, y))
     return QPoint(round(point.x()), round(point.y()))
 
+def _field_click_point(window: QQuickWindow, combo: QQuickItem) -> QPoint:
+    """A point on the editable text area, well clear of the chevron hit area.
+
+    可编辑文字区上的点, 远离箭头命中区。
+    """
+    return _local_point(window, combo, 40, combo.height() / 2)
+
 def _move_pointer_away(window: QQuickWindow) -> None:
     """Park the pointer off every control so the next scene starts unhovered.
 
@@ -203,9 +210,11 @@ def _close_combo(combo: QQuickItem) -> None:
     _wait_for(lambda: not combo.property("isOpen"))
     _wait_for(lambda: not popup.property("isClosing"))
 
-def _dispose_scene(engine, component, window, combo, editable) -> None:
+def _dispose_scene(engine, component, window, combo, editable, *extra) -> None:
     _close_combo(combo)
     _close_combo(editable)
+    for item in extra:
+        _close_combo(item)
     window.close()
     window.deleteLater()
     component.deleteLater()
@@ -231,3 +240,14 @@ def _open_popup(window, combo, windows_before):
     popup_window.requestActivate()
     assert _wait_for(popup_window.isActive)
     return popup, popup_window
+
+def _create_field_click_scene():
+    """Scene wiring for the editable `openOnFieldClick` pair.
+
+    可编辑 openOnFieldClick 成对场景的装配: 返回默认与开启两种控件, 供同一条
+    点击路径分别断言。共用 _create_scene 的装配与 _dispose_scene 的收尾。
+    """
+    engine, component, window, combo, editable, warnings = _create_scene()
+    field_click = window.findChild(QQuickItem, "fieldClickCombo")
+    assert field_click is not None
+    return engine, component, window, combo, editable, field_click, warnings
