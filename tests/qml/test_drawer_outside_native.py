@@ -8,6 +8,17 @@ from pathlib import Path, PurePosixPath
 
 from scripts.qml_conventions import scan_source_text
 
+from prismqml.python.core._window_follower import (
+    _WindowRect,
+    _follower_rect_for_extent,
+)
+from prismqml.python.core.window_helper import (
+    WINDOW_EDGE_BOTTOM,
+    WINDOW_EDGE_LEFT,
+    WINDOW_EDGE_RIGHT,
+    WINDOW_EDGE_TOP,
+)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = (
@@ -126,14 +137,72 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
         "            true,\n"
         "            control._outsideShadowSpread)" in source
     )
-    # The panel keeps its requested extent; the HWND grows by `spread` on every side,
-    # so the panel's seam-facing edge lands exactly on the host edge and the self-drawn
-    # shadow still has the inward room its blur needs.
-    # 面板保持请求尺寸; HWND 四周各长出 spread, 面板朝接缝的边因此正好落在宿主边缘上,
-    # 同时自绘阴影仍拿到模糊所需的内缩空间。
+    # The panel keeps its requested extent. The HWND grows by `spread` away from the host
+    # edge and by `spread` on both sides across it, exactly like
+    # _follower_rect_for_extent resolves the follower RECT; the panel's seam-facing edge
+    # therefore lands flush on the host edge (no gap, no drawer shadow on the host).
+    # 面板保持请求尺寸。HWND 朝外长 `spread`, 跨接缝方向两侧各长 `spread`, 与
+    # _follower_rect_for_extent 解析的附属 RECT 完全一致; 面板朝接缝的边因此与宿主边缘齐平
+    # (无缝隙, 抽屉阴影也不压宿主)。
     assert "readonly property real panelWidth: control.isHorizontal" in helper_source
-    assert "width: panelWidth + 2 * spread" in helper_source
-    assert "height: panelHeight + 2 * spread" in helper_source
+    assert (
+        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
+        in helper_source
+    )
+    assert (
+        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
+        in helper_source
+    )
+
+
+def test_outside_window_size_matches_the_native_follower_rect():
+    """QML 窗口尺寸必须与 Python 解析出的原生附属窗口 RECT 一致。
+
+    The native geometry commit owns the real size, so a QML size that disagrees with
+    _follower_rect_for_extent silently breaks the `width - clipExtent` reveal (a left
+    drawer would reveal one `spread` off its seam). The two must stay the same formula.
+    真实尺寸由原生几何提交决定, 因此与 _follower_rect_for_extent 不一致的 QML 尺寸会静默
+    破坏按 `width - clipExtent` 计算的显露 (左侧抽屉会偏离接缝一个 `spread`)。两者必须同式。
+    """
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert (
+        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
+        in helper_source
+    )
+    assert (
+        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
+        in helper_source
+    )
+
+    def qml_window_size(is_horizontal, panel_width, panel_height, spread):
+        # Mirror of the two expressions above. 上面两个表达式的镜像。
+        width = panel_width + spread if is_horizontal else panel_width + 2 * spread
+        height = panel_height + 2 * spread if is_horizontal else panel_height + spread
+        return width, height
+
+    host = _WindowRect(100, 120, 900, 720)
+    host_width = host.right - host.left
+    host_height = host.bottom - host.top
+    drawer_extent = 320
+    spread = 60
+    extent = drawer_extent + spread
+
+    for edge, is_horizontal in (
+        (WINDOW_EDGE_LEFT, True),
+        (WINDOW_EDGE_RIGHT, True),
+        (WINDOW_EDGE_TOP, False),
+        (WINDOW_EDGE_BOTTOM, False),
+    ):
+        left, top, right, bottom = _follower_rect_for_extent(
+            host, extent, edge, spread
+        )
+        native_size = (right - left, bottom - top)
+        panel_width = drawer_extent if is_horizontal else host_width
+        panel_height = host_height if is_horizontal else drawer_extent
+        assert qml_window_size(
+            is_horizontal, panel_width, panel_height, spread
+        ) == native_size, edge
 
 
 def test_drawer_source_guards_native_window_during_destruction():

@@ -25,12 +25,9 @@ Window {
         ? control._hostWindow.width : control.drawerWidth
     readonly property real hostHeight: control._hostWindow
         ? control._hostWindow.height : control.drawerHeight
-    // The panel keeps the full requested extent; only the HWND grows outwards. Padding is
-    // symmetric across the seam, so the panel's seam-facing edge sits `spread` inside this
-    // HWND and lines up exactly with the host edge — and that inset is what gives the
-    // self-drawn shadow its room, since a flush panel clips its own blur on every side.
-    // 面板保持请求的完整尺寸, 只有 HWND 朝外长大。留白跨接缝对称, 面板朝接缝那一侧因此也在
-    // 本 HWND 内缩进 `spread`, 正好与宿主边缘对齐; 正是这段内缩给了自绘阴影空间。
+    // The panel keeps its requested extent; the HWND grows by `spread` away from the host
+    // edge and by `spread` on both sides across it, exactly like _follower_rect_for_extent.
+    // 面板保持请求尺寸; HWND 朝外与跨接缝两侧各长 `spread`, 与 _follower_rect_for_extent 一致。
     readonly property real panelWidth: control.isHorizontal
         ? control._outsideFullExtent : hostWidth
     readonly property real panelHeight: control.isHorizontal
@@ -54,8 +51,11 @@ Window {
     objectName: "outsideDrawerWindow"
     x: 0
     y: 0
-    width: panelWidth + 2 * spread
-    height: panelHeight + 2 * spread
+    // Native size, owned by _follower_rect_for_extent; the `width - clipExtent` reveal
+    // below reads the same value.
+    // 原生尺寸归 _follower_rect_for_extent 所有; 下面的 `width - clipExtent` 显露视口读同一个值。
+    width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread
+    height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
     flags: Qt.Tool | Qt.FramelessWindowHint

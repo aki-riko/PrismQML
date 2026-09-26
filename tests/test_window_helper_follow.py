@@ -407,6 +407,70 @@ def test_mouse_activation_on_host_promotes_all_registered_followers_immediately(
     assert promotions == [(11, 0), (21, 11), (22, 21)]
 
 
+def test_mouse_activation_keeps_above_host_follower_above_the_host():
+    """点击宿主后, 注册在宿主之上的附属窗口必须回到宿主上方。
+
+    ``SetWindowPos(hwnd, after, ...)`` inserts below ``after``, so replaying the plain
+    chain anchor (the host itself) would push the outside drawer underneath the host —
+    exactly the layering flip the user reported on every click.
+    SetWindowPos 的 after 表示"插入到该窗口下方", 因此沿用普通链式锚点(宿主本身)会把外侧
+    抽屉塞到宿主下面 —— 即用户报告的"点一下抽屉就层级错位"。
+    """
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda _hwnd: True,
+        read_previous_window=lambda hwnd: 77 if hwnd == 11 else 0,
+    )
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+
+    assert event_filter.activate_window_group(11) is True
+
+    assert promotions == [(11, 0), (21, 77)]
+
+
+def test_mouse_activation_keeps_above_host_follower_already_in_place():
+    """附属窗口已经紧贴宿主上方时不得再被提升, 避免无谓的 z 序抖动。"""
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda _hwnd: True,
+        read_previous_window=lambda hwnd: 21 if hwnd == 11 else 0,
+    )
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+
+    assert event_filter.activate_window_group(11) is True
+
+    assert promotions == [(11, 0)]
+
+
+def test_mouse_activation_puts_above_host_follower_on_top_when_host_leads_the_band():
+    """宿主上方没有其他窗口时, 附属窗口直接落在窗口带顶部。"""
+    promotions = []
+    event_filter = window_helper._WindowFollowerFilter(
+        read_rect=lambda _hwnd: _rect(100, 120, 700, 520),
+        set_geometry=lambda _hwnd, _geometry, _after: True,
+        promote_window=lambda hwnd, after: promotions.append((hwnd, after)) or True,
+        activate_window=lambda _hwnd: True,
+        read_previous_window=lambda _hwnd: 0,
+    )
+    assert event_filter.register(
+        11, 21, window_helper.WINDOW_EDGE_RIGHT, 180, above_host=True
+    )
+
+    assert event_filter.activate_window_group(11) is True
+
+    assert promotions == [(11, 0), (21, 0)]
+
+
 def test_mouse_activation_falls_back_when_host_cannot_activate():
     promotions = []
     event_filter = window_helper._WindowFollowerFilter(
