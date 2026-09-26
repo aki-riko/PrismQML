@@ -23,6 +23,9 @@ Item {
     property alias customContent: customContentLoader.sourceComponent
     readonly property bool hasCustomContent:
         customContentLoader.sourceComponent !== null && customContentLoader.item !== null
+    // Bar width cap; content never sizes wrapped text from it directly.
+    // 信息条宽度上限; 内容层不得直接用它反推折行文本的宽度。
+    readonly property int maxWidth: 800
     readonly property real calculatedContentWidth: {
         var baseWidth = 0
         if (!infoBar._isRingMode) {
@@ -51,7 +54,7 @@ Item {
         }
 
         var targetWidth = baseWidth + textW
-        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), 800)
+        return Math.min(Math.max(targetWidth, Enums.controlSize.toastWidth), maxWidth)
     }
     readonly property real horizontalContentHeight:
         Math.max(Enums.spacing.xxxl, textRow.implicitHeight) + Enums.spacing.m * 2
@@ -126,6 +129,10 @@ Item {
     // Text container 文字容器（水平模式）
     Row {
         id: textRow
+
+        // Text box actually left between the icon and the close button 图标与关闭按钮之间真实可用的文字宽度
+        readonly property real availableTextWidth: Math.max(0, width)
+
         anchors.left: infoBar._isRingMode ? progressModeLoader.right : iconContainer.right
         anchors.leftMargin: Enums.infoBarMetrics.textLeftGap
         anchors.right: closeBtn.visible ? closeBtn.left : parent.right
@@ -141,6 +148,10 @@ Item {
             type: Enums.label.type_body_strong
             color: Enums.textColor.primary
             visible: infoBar.title !== ""
+            // Title stays inside the row so it cannot push the message out of it
+            // 标题限制在整行宽度内, 不允许把正文挤出预留区域
+            width: Math.min(implicitWidth, textRow.availableTextWidth)
+            elide: Text.ElideRight
         }
 
         // Content 内容
@@ -150,9 +161,13 @@ Item {
             type: Enums.label.type_body
             color: Enums.textColor.primary
             visible: infoBar.message !== ""
-            width: Math.min(implicitWidth, 800 - parent.x
-                            - (closeBtn.visible
-                               ? closeBtn.width + Enums.infoBarMetrics.margin * 2 : 0))
+            // Width comes from the row's own box minus the title, never from the bar's
+            // maximum width: wrapped text must stay clear of the close button.
+            // 宽度取自整行真实宽度减去标题, 不再按信息条最大宽度反推: 折行必须避开关闭按钮。
+            width: Math.min(implicitWidth, Math.max(
+                0,
+                textRow.availableTextWidth
+                    - (titleLabel.visible ? titleLabel.width + textRow.spacing : 0)))
             // Long text wraps to multiple lines instead of ellipsis-truncating 长文本/多行折行显示,不再单行省略号截断
             wrapMode: Text.Wrap
         }
