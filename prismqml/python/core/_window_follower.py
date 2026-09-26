@@ -702,11 +702,45 @@ class _WindowFollowerFilter(QAbstractNativeEventFilter):
     def promote_window_group(
         self, host_hwnd: int, follower_hwnds: tuple[int, ...]
     ) -> None:
-        """Place the host first, followed by every follower. 先放置宿主，再连续放置全部附属窗口。"""
+        """Raise the host and keep every follower in its registered relation.
+
+        提升宿主, 并让每个附属窗口回到它注册的层级关系。
+
+        ``SetWindowPos(hwnd, after, ...)`` inserts ``hwnd`` *below* ``after``:
+        - a plain follower (``above_host=False``) belongs under the host, so it is
+          inserted after the host;
+        - a follower registered above its host (the outside drawer) would be dropped
+          under the host by that same anchor — the reported "outside drawer jumps
+          behind the window after a click" defect. It is inserted below the window
+          that currently precedes the host instead, matching ``_follower_stack_anchor``.
+        SetWindowPos 的 after 表示"插入到该窗口下方": 普通附属窗口(above_host=False)属于宿主
+        下方, 因此插在宿主之后; 而注册在宿主之上的附属窗口(外侧抽屉)若沿用同一锚点就会被塞到
+        宿主下面 —— 正是所报告的"点击后外侧抽屉掉到窗口后面"。它改为插入到宿主前一个窗口之下,
+        与 _follower_stack_anchor 在几何提交时的处理保持一致。
+        """
         if self._promote_window is None:
             return
-        insert_after = 0
+        # Plain followers keep the original chain (host, then each follower under the
+        # previous one); only above-host followers need the different anchor.
+        # 普通附属窗口保持原有链式顺序(宿主, 然后每个插在前一个之下); 只有宿主之上的
+        # 附属窗口需要改用另一个锚点。
+        insert_after = _HWND_TOP
         for hwnd in (host_hwnd, *follower_hwnds):
+            binding = self._bindings.get(hwnd) or self._attachments.get(hwnd)
+            if (
+                hwnd != host_hwnd
+                and isinstance(binding, _WindowFollowerBinding)
+                and binding.above_host
+            ):
+                anchor = 0
+                if self._read_previous_window is not None:
+                    anchor = int(self._read_previous_window(host_hwnd) or 0)
+                follower_anchor = anchor if anchor else _HWND_TOP
+                if follower_anchor == hwnd:
+                    continue
+                if not self._promote_window(hwnd, follower_anchor):
+                    debug(f"附属窗口原生抬升失败: hwnd={hwnd}")
+                continue
             if not self._promote_window(hwnd, insert_after):
                 window_role = "宿主" if hwnd == host_hwnd else "附属"
                 debug(f"{window_role}窗口原生抬升失败: hwnd={hwnd}")
