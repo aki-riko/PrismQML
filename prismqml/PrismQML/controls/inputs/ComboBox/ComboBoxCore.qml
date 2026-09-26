@@ -82,40 +82,7 @@ Widget {
 
     // Default delegate 默认委托
     property Component defaultDelegate: Component {
-        MenuDelegate {
-            id: menuDelegateItem
-
-            property var _comboControl: ListView.view ? ListView.view.parentControl : null
-            // Visible row mapped back to its source model index: a narrowed candidate
-            // list must not renumber icons, item data, enabled flags or activated().
-            // 可见行映射回源模型下标: 候选被收窄后不得改变图标、项目数据、禁用态与 activated()。
-            property int _delegateIndex: _comboControl && _comboControl._search
-                ? _comboControl._search.sourceIndex(index) : index
-
-            text: {
-                if (modelData === undefined || modelData === null) return ""
-                if (typeof modelData === "object") return modelData.text || modelData.toString()
-                return modelData.toString()
-            }
-            icon: _comboControl ? _comboControl.itemIcon(_delegateIndex) : ""
-            selected: _comboControl && _delegateIndex === _comboControl.currentIndex
-            itemEnabled: _comboControl ? _comboControl.isItemEnabled(_delegateIndex) : true
-            height: _comboControl ? _comboControl.popupItemHeight : Enums.comboBoxMetrics.itemHeight
-            onClicked: {
-                if (!_comboControl) return
-                var oldIndex = _comboControl.currentIndex
-                var oldText = _comboControl.currentText
-                var clickedIndex = _delegateIndex
-                _comboControl.currentIndex = clickedIndex
-                _comboControl.currentText = _comboControl._getItemText(clickedIndex)
-                _comboControl.activated(clickedIndex)
-                _comboControl.textActivated(_comboControl.currentText)
-                if (oldIndex !== clickedIndex) _comboControl.indexChanged(clickedIndex)
-                if (oldText !== _comboControl.currentText) _comboControl.textChanged(_comboControl.currentText)
-                _comboControl.indexUpdated()
-                _comboControl.closePopup()
-            }
-        }
+        ComboBoxItemDelegate {}
     }
 
     // Default popup content (uses popupDelegate) 默认弹出内容(使用popupDelegate)

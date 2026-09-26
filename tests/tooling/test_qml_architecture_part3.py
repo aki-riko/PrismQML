@@ -310,7 +310,7 @@ def test_combo_box_core_keeps_visual_content_modularized():
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 300
+    assert len(source.splitlines()) < 280
     assert helper.exists()
     assert len(helper_source.splitlines()) < 350
     assert "ComboBoxCoreContent {" in source
@@ -333,6 +333,40 @@ def test_combo_box_core_keeps_visual_content_modularized():
     assert "RectangularShadow {" in helper_source
     assert "PopupWindowCore {" not in source
     assert "layer.enabled: true" not in source
+
+def test_combo_box_core_keeps_the_candidate_row_delegate_modularized():
+    """默认候选行委托必须留在 _internal, 入口只允许引用。
+
+    The row delegate is a visual owner. Keeping it inline pushed the entry against the
+    300-line governance limit, so it now lives in _internal/ComboBoxItemDelegate.qml and
+    the entry keeps only the Component factory.
+    行委托属于视觉所有者; 内联在入口会把它顶到 300 行治理上限, 因此移入
+    _internal/ComboBoxItemDelegate.qml, 入口只保留 Component 工厂。
+    """
+    entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")
+    delegate = _source(
+        "prismqml/PrismQML/controls/inputs/ComboBox/_internal/ComboBoxItemDelegate.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    delegate_source = delegate.read_text(encoding="utf-8")
+
+    assert delegate.exists()
+    assert len(source.splitlines()) < 280
+    assert len(delegate_source.splitlines()) < 60
+    assert "ComboBoxItemDelegate {}" in source
+    # Implementation markers must not flow back into the entry.
+    # 实现标记不得回流到入口。
+    assert "MenuDelegate {" not in source
+    assert "_delegateIndex" not in source
+    assert "MenuDelegate {" in delegate_source
+    # A ListView delegate cannot take required properties, so the host contract is the
+    # owning view's parentControl lookup plus the source-index mapping.
+    # ListView 委托无法接收 required 属性, 因此宿主契约就是所属视图的 parentControl
+    # 查找加上源下标映射。
+    assert "ListView.view.parentControl" in delegate_source
+    assert "_comboControl._search.sourceIndex(index)" in delegate_source
+    for call in ("itemIcon", "isItemEnabled", "popupItemHeight", "activated", "closePopup"):
+        assert call in delegate_source, call
 
 def test_combo_box_multi_tree_keeps_visual_content_modularized():
     entry = _source(
