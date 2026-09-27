@@ -5,6 +5,7 @@
 import "../../.."
 import ".."
 import "../../containers"
+import "../../menus"
 import "./_internal"
 import "./_internal/ComboBoxMethods.js" as ComboBoxMethods
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
@@ -63,6 +64,8 @@ Widget {
     property var _itemEnabledMap: ({})  // {index: enabled}
     property var _methods: ComboBoxMethods
     property bool _popupContentRequested: false
+    property int _cascadeModelRevision: 0
+    property int _cascadeSyncedRevision: -1
     property alias defaultPopupContent: coreActions.defaultPopupContent
     property alias _popup: comboContent.popup
     property alias _search: searchState
@@ -70,6 +73,7 @@ Widget {
     property alias mouseArea: comboContent.mouseArea
     property alias editableClickArea: comboContent.editableClickArea
     property alias comboTextMeasureLoader: comboContent.comboTextMeasureLoader
+    readonly property var _cascadeMenu: cascadeMenuLoader.item
 
     // ==================== Readonly State 只读状态 ====================
     // Editable mode input focus state editable模式输入框聚焦状态
@@ -137,6 +141,35 @@ Widget {
     function setItemEnabled(index, isEnabled) { _methods.setItemEnabled(control, index, isEnabled) }
     function isItemEnabled(index) { return _methods.isItemEnabled(control, index) }
 
+    function _modelHasChildren(values) {
+        var items = values === null || values === undefined ? [] : values
+        if (typeof items.length !== "number") return false
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i]
+            if (item && typeof item === "object"
+                    && item.children && typeof item.children.length === "number"
+                    && item.children.length > 0) return true
+        }
+        return false
+    }
+
+    function _syncCascadeMenu() {
+        if (!_cascadeMenu || !_modelHasChildren(_safeModel)
+                || _cascadeSyncedRevision === _cascadeModelRevision) return
+        if (_cascadeMenu.isOpen) _cascadeMenu.close()
+        _cascadeMenu.clear()
+        _cascadeMenu.addNodes(_safeModel, [])
+        _cascadeSyncedRevision = _cascadeModelRevision
+    }
+
+    function _menuIndexForPath(path) {
+        if (!path || path.length === 0) return -1
+        for (var i = 0; i < _safeModel.length; i++) {
+            if (_getItemText(i) === path[0]) return i
+        }
+        return -1
+    }
+
     function openPopup() {
         // Prevent duplicate open 防止重复打开
         if (isOpen) return
@@ -148,6 +181,15 @@ Widget {
             menu.openAtControl(control)
             isOpen = true
             return
+        }
+
+        if (_modelHasChildren(_safeModel)) {
+            _syncCascadeMenu()
+            if (_cascadeMenu) {
+                _cascadeMenu.openAtControl(control)
+                isOpen = true
+                return
+            }
         }
 
         _popupContentRequested = true
@@ -179,6 +221,11 @@ Widget {
             if (isOpen) isOpen = false
             return
         }
+        if (_modelHasChildren(_safeModel)) {
+            if (_cascadeMenu && _cascadeMenu.isOpen) _cascadeMenu.close()
+            if (isOpen) isOpen = false
+            return
+        }
         if (!isOpen) return
         // Close the candidate surface first: it publishes `isClosing` synchronously, so
         // `popupVisible` never dips to false between these two writes. The open fill stays
@@ -207,14 +254,20 @@ Widget {
     // A menu commit becomes this control's selection: the menu reports its own id/path,
     // and the control keeps only what it can show in its field.
     // 菜单提交即成为本控件的选中: 菜单上报自己的 id/路径, 控件只保留能在字段中显示的部分。
-    function _onMenuAction(actionId) {
-        var picked = typeof menu.leafPath === "function" ? menu.leafPath(actionId) : null
+    function _onMenuAction(sourceMenu, actionId) {
+        var picked = sourceMenu && typeof sourceMenu.leafPath === "function"
+            ? sourceMenu.leafPath(actionId) : null
         if (picked === null) return
         currentText = picked.length > 0 ? picked[picked.length - 1] : ""
-        if (_useExternalMenu() && typeof menu.close === "function") menu.close()
+        var selectedIndex = _menuIndexForPath(picked)
+        if (selectedIndex >= 0) currentIndex = selectedIndex
+        if (sourceMenu && typeof sourceMenu.close === "function") sourceMenu.close()
         if (isOpen) isOpen = false
         textActivated(currentText)
     }
+
+    function _onExternalMenuAction(actionId) { _onMenuAction(menu, actionId) }
+    function _onCascadeMenuAction(actionId) { _onMenuAction(_cascadeMenu, actionId) }
 
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
     function _syncCurrentTextFromSelection() {
@@ -256,8 +309,10 @@ Widget {
     // 整表替换模型时，本次通知回调里可能仍读到替换前的模型；若 currentIndex 恰好没变，
     // 上面那次同步会沿用旧文本。下一拍再校准一次，覆盖这条路径。
     onModelChanged: {
+        _cascadeModelRevision += 1
         _syncCurrentTextFromSelection()
         Qt.callLater(_syncCurrentTextFromSelection)
+        Qt.callLater(_syncCascadeMenu)
     }
     Component.onCompleted: _syncCurrentTextFromSelection()
     // Editable mode keeps the candidate list and the control's own focus state in
@@ -315,10 +370,28 @@ Widget {
     // own field and lets the menu close itself.
     // 挂载的菜单上报用户提交的行; 控件把它映射到自身字段, 菜单自行收起。
     Connections {
-        function onActionTriggered(actionId) { control._onMenuAction(actionId) }
+        function onActionTriggered(actionId) { control._onExternalMenuAction(actionId) }
         function onClosed() { if (control.isOpen) control.isOpen = false }
 
         target: control.menu
         ignoreUnknownSignals: true
+    }
+
+    Connections {
+        function onActionTriggered(actionId) { control._onCascadeMenuAction(actionId) }
+        function onClosed() { if (control.isOpen) control.isOpen = false }
+
+        target: control._cascadeMenu
+        ignoreUnknownSignals: true
+    }
+
+    Loader {
+        id: cascadeMenuLoader
+        active: control._modelHasChildren(control._safeModel)
+
+        sourceComponent: MenuCore {
+            useQtPopupWindow: true
+            closeOnClickOutside: control.popupCloseOnClickOutside
+        }
     }
 }

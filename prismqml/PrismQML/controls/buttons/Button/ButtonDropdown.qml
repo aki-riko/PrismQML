@@ -40,19 +40,25 @@ Item {
     property bool _internalMenuRequested: false
     property bool _invalidMenuWarningIssued: false
     property bool _menuContentRequested: false
+    property bool _cascadeMenuRequested: false
+    property int _cascadeModelRevision: 0
+    property int _cascadeSyncedRevision: -1
     property int _animationDuration
 
     readonly property var _internalMenu: internalMenuLoader.item
+    readonly property var _cascadeMenu: cascadeMenuLoader.item
     readonly property var _safeMenuItems:
         menuItems === null || menuItems === undefined ? []
         : (typeof menuItems.length === "number" ? menuItems : [])
     readonly property bool _hasExternalMenu: menu !== null && menu !== undefined
     readonly property bool _hasMenuContent: _hasExternalMenu || _safeMenuItems.length > 0
+    readonly property bool _hasCascadeItems: _itemsHaveChildren(_safeMenuItems)
 
     // ==================== Readonly State 只读状态 ====================
     // Expose menu open state for arrow animation 暴露菜单打开状态供箭头动画使用
     readonly property bool isMenuOpen: _hasExternalMenu && typeof menu.isOpen === "boolean"
-        ? menu.isOpen : (_internalMenu ? _internalMenu.isOpen : false)
+        ? menu.isOpen : (_hasCascadeItems && _cascadeMenu
+            ? _cascadeMenu.isOpen : (_internalMenu ? _internalMenu.isOpen : false))
     // Expose hover states for parent button color calculation 暴露悬浮状态供父按钮颜色计算
     readonly property bool mainHovered: dropdownSurface.mainHovered
     readonly property bool mainPressed: dropdownSurface.mainPressed
@@ -105,6 +111,11 @@ Item {
                 menu.prewarm()
                 return
             }
+            if (_hasCascadeItems) {
+                _cascadeMenuRequested = true
+                if (_cascadeMenu) _cascadeMenu.prewarm()
+                return
+            }
             _menuContentRequested = true
             var internalMenu = _ensureInternalMenu()
             if (!internalMenu) return
@@ -117,9 +128,48 @@ Item {
     }
 
     function _ensureInternalMenu() {
-        if (_hasExternalMenu) return null
+        if (_hasExternalMenu || _hasCascadeItems) return null
         if (!_internalMenuRequested) _internalMenuRequested = true
         return internalMenuLoader.item
+    }
+
+    function _itemsHaveChildren(items) {
+        if (!items || typeof items.length !== "number") return false
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i]
+            if (item && typeof item === "object"
+                    && item.children && typeof item.children.length === "number"
+                    && item.children.length > 0) return true
+        }
+        return false
+    }
+
+    function _syncCascadeMenu() {
+        if (!_cascadeMenu || !_hasCascadeItems
+                || _cascadeSyncedRevision === _cascadeModelRevision) return
+        if (_cascadeMenu.isOpen) _cascadeMenu.close()
+        _cascadeMenu.clear()
+        _cascadeMenu.addNodes(_safeMenuItems, [])
+        _cascadeSyncedRevision = _cascadeModelRevision
+    }
+
+    function _cascadeParentIndex(actionId) {
+        if (!_cascadeMenu || typeof _cascadeMenu.leafPath !== "function") return -1
+        var path = _cascadeMenu.leafPath(actionId)
+        if (!path || path.length === 0) return -1
+        for (var i = 0; i < _safeMenuItems.length; i++) {
+            var item = _safeMenuItems[i]
+            var text = item && typeof item === "object" ? (item.text || item) : (item || "")
+            if (text === path[0]) return i
+        }
+        return -1
+    }
+
+    function _onCascadeAction(actionId) {
+        var index = _cascadeParentIndex(actionId)
+        if (index < 0 || !_cascadeMenu || typeof _cascadeMenu.leafPath !== "function") return
+        var path = _cascadeMenu.leafPath(actionId)
+        menuItemClicked(index, path[path.length - 1] || "")
     }
 
     // Calculate max content width from menu items (imperative, avoid binding loop)
@@ -187,6 +237,18 @@ Item {
             menu.openAtControl(parent)
             return
         }
+        if (_hasCascadeItems) {
+            _cascadeMenuRequested = true
+            _syncCascadeMenu()
+            if (!_cascadeMenu) return
+            if (_cascadeMenu.isOpen) {
+                _cascadeMenu.close()
+                return
+            }
+            menuAboutToOpen()
+            _cascadeMenu.openAtControl(parent)
+            return
+        }
         var internalMenu = _internalMenu
         if (internalMenu && internalMenu.isOpen) {
             internalMenu.close()
@@ -219,6 +281,10 @@ Item {
     }
 
     Component.onCompleted: _animationDuration = skinContext.duration.fast
+    onMenuItemsChanged: {
+        _cascadeModelRevision += 1
+        Qt.callLater(_syncCascadeMenu)
+    }
 
     // ==================== Content 内容 ====================
     ButtonInternal.ButtonDropdownPrewarmTimer {
@@ -339,5 +405,21 @@ Item {
                 }
             }
         }
+    }
+
+    Loader {
+        id: cascadeMenuLoader
+        active: dropdownFeature._cascadeMenuRequested && dropdownFeature._hasCascadeItems
+
+        sourceComponent: MenuCore {
+            useQtPopupWindow: true
+            closeOnClickOutside: true
+        }
+    }
+
+    Connections {
+        function onActionTriggered(actionId) { dropdownFeature._onCascadeAction(actionId) }
+        target: dropdownFeature._cascadeMenu
+        ignoreUnknownSignals: true
     }
 }
