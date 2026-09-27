@@ -7,7 +7,6 @@ import "../../.."
 import "../../menus"
 import "../../utils"
 import "../../containers/ScrollBar"
-import "../../menus/_internal/CascadeNodes.js" as CascadeNodes
 import "_internal" as ButtonInternal
 
 // ButtonDropdown - Dropdown menu and split button features 下拉菜单功能
@@ -42,16 +41,6 @@ Item {
     property bool _invalidMenuWarningIssued: false
     property bool _menuContentRequested: false
     property int _animationDuration
-    property var _submenuPanel: null
-    property var _submenuComponent: null
-    property int _hoveredRowIndex: -1
-    property var _hoveredRowItem: null
-    property int _hoverSequence: 0
-    // Last commit made through a cascade level: {parentIndex, text}. A cascade commit
-    // is reported through menuItemClicked as well, but consumers and tests also need a
-    // readable record of it. 级联层最近一次提交: {parentIndex, text}。级联提交同样经
-    // menuItemClicked 上报, 但使用方与测试也需要一份可读记录。
-    property var _lastSubmenuCommit: null
 
     readonly property var _internalMenu: internalMenuLoader.item
     readonly property var _safeMenuItems:
@@ -133,126 +122,6 @@ Item {
         return internalMenuLoader.item
     }
 
-    // A menu item owns a deeper level when it carries children. Separator strings and
-    // plain label items never do.
-    // 带 children 的菜单项拥有更深层级; 分隔字符串与纯标签项都不会。
-    function _hasChildren(item) {
-        if (!item || typeof item !== "object") return false
-        var children = item.children
-        return !!children && typeof children.length === "number" && children.length > 0
-    }
-
-    function _closeInternalMenu() {
-        // A cascade branch never outlives the menu that owns it: the closing menu tears
-        // its own levels down instead of waiting for each level to report back.
-        // 级联分支绝不比拥有它的菜单存活更久: 关闭中的菜单自行拆除其层级, 而不等每层回报。
-        _teardownSubmenu()
-        var internalMenu = _internalMenu
-        if (internalMenu && internalMenu.isOpen) internalMenu.close()
-    }
-
-    // A branch opens on hover, not on click: the pointer resting on an owner row for the
-    // shared delay opens its level, which is the behaviour a cascade is expected to have.
-    // 分支由悬停打开而非点击: 指针在父行停留超过共享延迟即打开其层级, 这是级联应有的行为。
-    function _hoverChanged(item, index) {
-        if (item && item.hovered && _hasChildren(_safeMenuItems[index])) {
-            _hoveredRowIndex = index
-            _hoveredRowItem = item
-            _scheduleSubmenuOpen()
-            return
-        }
-        if (_hoveredRowIndex === index) {
-            _hoveredRowIndex = -1
-            _hoveredRowItem = null
-        }
-    }
-
-    // Hover delay without a Timer: timers owned by this module do not fire while the
-    // pointer rests inside the popup, so the wait is spent as a bounded run of frame
-    // callbacks. The bound is what keeps it from spinning inside a single frame.
-    // 不用 Timer 的悬停延迟: 指针停在弹层内时本模块的定时器不会触发, 因此等待改为有限次数的
-    // 帧回调。这个上界正是避免它在同一帧内空转的关键。
-    function _scheduleSubmenuOpen() {
-        _hoverSequence += 1
-        var sequence = _hoverSequence
-        var remaining = Enums.popupMetrics.showAnimDelayMs
-        var step = function () {
-            // A newer hover or a pointer release cancels this wait.
-            // 更新的悬停或指针离开会取消本次等待。
-            if (sequence !== dropdownFeature._hoverSequence) return
-            if (dropdownFeature._hoveredRowIndex < 0) return
-            remaining -= 1
-            if (remaining > 0) {
-                Qt.callLater(step)
-                return
-            }
-            var rowIndex = dropdownFeature._hoveredRowIndex
-            var rowItem = dropdownFeature._hoveredRowItem
-            if (rowItem) dropdownFeature._openSubmenuForRow(rowIndex, rowItem)
-        }
-        Qt.callLater(step)
-    }
-
-    function _teardownSubmenu() {
-        // Bumping the sequence cancels any scheduled hover open.
-        // 递增序号即取消已排程的悬停打开。
-        _hoverSequence += 1
-        _hoveredRowIndex = -1
-        _hoveredRowItem = null
-        var panel = _submenuPanel
-        if (!panel) return
-        _submenuPanel = null
-        if (panel.closeChildPanel) panel.closeChildPanel()
-        panel.close()
-        panel.destroy(Enums.popupMetrics.closingDelayMs)
-    }
-
-    function _openSubmenuForRow(index, rowItem) {
-        var items = _safeMenuItems
-        var item = items[index]
-        if (!_hasChildren(item) || !rowItem) return
-
-        _teardownSubmenu()
-        if (!_submenuComponent) {
-            _submenuComponent = Qt.createComponent(
-                Qt.resolvedUrl("../../menus/_internal/CascadePanel.qml"))
-        }
-        if (!_submenuComponent || _submenuComponent.status === Component.Error) {
-            console.warn("CascadePanel failed to load: "
-                + (_submenuComponent ? _submenuComponent.errorString() : "null"))
-            _submenuComponent = null
-            return
-        }
-        var childRows = CascadeNodes.buildRowsFrom(item.children, [])
-        if (childRows.length === 0) return
-
-        var panel = _submenuComponent.createObject(null, {
-            "rows": childRows,
-            "parentRow": rowItem,
-            "hostSelection": -1
-        })
-        if (!panel) return
-
-        _submenuPanel = panel
-        // Leaf titles are captured now: reading them back out of the panel inside the
-        // callback would depend on the panel still being alive at that moment.
-        // 叶子标题此刻捕获: 在回调里回读 panel 会依赖那一刻 panel 仍然存活。
-        var leafTitles = []
-        for (var i = 0; i < childRows.length; i++) leafTitles.push(childRows[i].text)
-        panel.itemSelected.connect(function (childIndex, _path) {
-            var leafText = leafTitles[childIndex] || ""
-            _lastSubmenuCommit = { "parentIndex": index, "text": leafText }
-            dropdownFeature._closeInternalMenu()
-            dropdownFeature.menuItemClicked(index, leafText)
-        })
-        panel.dismissed.connect(function () {
-            if (dropdownFeature._submenuPanel === panel) {
-                dropdownFeature._submenuPanel = null
-            }
-        })
-        panel.openAsSubmenu(rowItem)
-    }
-
     // Calculate max content width from menu items (imperative, avoid binding loop)
     // 根据菜单项计算最大内容宽度（命令式调用，避免绑定循环）
     function _calcContentWidth() {
@@ -305,9 +174,6 @@ Item {
 
     function openMenu() {
         if (!_hasMenuContent) return
-        // A cascade branch can never outlive the menu that owns it.
-        // 级联分支绝不比拥有它的菜单存活更久。
-        _teardownSubmenu()
         if (_hasExternalMenu) {
             if (!_externalMenuIsValid()) {
                 _warnInvalidExternalMenu()
@@ -355,8 +221,6 @@ Item {
     Component.onCompleted: _animationDuration = skinContext.duration.fast
 
     // ==================== Content 内容 ====================
-    // Hovering an owner row opens its level, matching the menu stack's behaviour.
-    // 在父行上悬停即打开其层级, 与菜单栈行为一致。
     ButtonInternal.ButtonDropdownPrewarmTimer {
         id: geometryPrewarmTimer
 
@@ -404,8 +268,6 @@ Item {
             // 按钮菜单使用原生弹窗，以保持左侧锚定并允许跨越宿主窗口边界。
             useQtPopupWindow: true
 
-            onClosed: dropdownFeature._teardownSubmenu()
-
             Loader {
                 id: menuContentLoader
                 anchors.fill: parent
@@ -452,15 +314,6 @@ Item {
                                     icon: modelData && typeof modelData === "object"
                                           ? (modelData.icon || "") : ""
                                     isSeparator: text === "-"
-                                    // An item carrying children owns a deeper level; it
-                                    // then shows the arrow and reports a submenu request
-                                    // instead of committing.
-                                    // 带 children 的项拥有更深层级: 它显示箭头并上报子菜单
-                                    // 请求, 而不是提交。
-                                    hasSubmenu: dropdownFeature._hasChildren(modelData)
-                                    onHoverChanged: dropdownFeature._hoverChanged(this, index)
-                                    onSubmenuRequested: dropdownFeature._openSubmenuForRow(
-                                        index, this)
                                     onClicked: {
                                         dropDownMenu.close()
                                         dropdownFeature.menuItemClicked(index, text)

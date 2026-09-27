@@ -201,7 +201,6 @@ ComboBoxFont controls/inputs/ComboBox/ComboBoxFont.qml
 ComboBoxMulti controls/inputs/ComboBox/ComboBoxMulti.qml
 ComboBoxTree controls/inputs/ComboBox/ComboBoxTree.qml
 ComboBoxMultiTree controls/inputs/ComboBox/ComboBoxMultiTree.qml
-ComboBoxCascade controls/inputs/ComboBox/ComboBoxCascade.qml
 DateTimePicker controls/inputs/Picker/DateTimePicker.qml
 CalendarPickerCore controls/inputs/DatePicker/CalendarPickerCore.qml
 CalendarPicker controls/inputs/DatePicker/CalendarPicker.qml

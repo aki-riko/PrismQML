@@ -54,7 +54,6 @@ ComboBoxFont ComboBox/ComboBoxFont.qml
 ComboBoxMulti ComboBox/ComboBoxMulti.qml
 ComboBoxTree ComboBox/ComboBoxTree.qml
 ComboBoxMultiTree ComboBox/ComboBoxMultiTree.qml
-ComboBoxCascade ComboBox/ComboBoxCascade.qml
 
 # DateTimePicker 日期时间选择（统一组件）
 DateTimePicker Picker/DateTimePicker.qml

@@ -78,27 +78,6 @@ Item {
             ? externalModel : item.fonts
     }
 
-    // True when any node owns children, i.e. the data describes a cascade rather than
-    // a flat list. A plain string list and a flat object list both stay on the default
-    // dropdown, so existing models keep their exact behaviour.
-    // 任一节点带 children 即为真, 即数据描述的是级联而非平铺列表。纯字符串列表与平铺
-    // 对象列表都留在默认下拉, 因此既有模型行为完全不变。
-    function _modelHasChildren() {
-        var values = model
-        if (values === null || values === undefined
-                || typeof values.length !== "number") return false
-        for (var i = 0; i < values.length; i++) {
-            var node = values[i]
-            if (node !== null && typeof node === "object"
-                    && node.children !== undefined && node.children !== null
-                    && typeof node.children.length === "number"
-                    && node.children.length > 0) {
-                return true
-            }
-        }
-        return false
-    }
-
     // ==================== Size 尺寸 ====================
     implicitWidth: loader.item ? loader.item.implicitWidth : 200
     implicitHeight: loader.item ? loader.item.implicitHeight : 32
@@ -152,13 +131,7 @@ Item {
                 case Enums.comboBox.type_tree: return "ComboBoxTree.qml"
                 case Enums.comboBox.type_multi_tree: return "ComboBoxMultiTree.qml"
                 case Enums.comboBox.type_font: return "ComboBoxFont.qml"
-                // The default dropdown serves both shapes: nested nodes describe a
-                // cascade and anything else stays a flat list, so the same control
-                // covers both without the caller naming a type.
-                // 默认下拉同时服务两种形态: 嵌套节点即描述级联, 其余保持平铺, 因此同一个
-                // 控件覆盖两种数据, 调用方无需指定 type。
-                default: return control._modelHasChildren()
-                    ? "ComboBoxCascade.qml" : "ComboBoxDefault.qml"
+                default: return "ComboBoxDefault.qml"
             }
         }
         onLoaded: {

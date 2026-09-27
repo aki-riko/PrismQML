@@ -21,8 +21,6 @@ Item {
     property bool selected: false
     property bool isSeparator: false
     property bool itemEnabled: true
-    property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
-    readonly property bool hovered: delegateMouseArea.containsMouse
     readonly property var effectiveSkinContext:
         skinContext || _nearestSkinContext || Enums
     readonly property var _skin: effectiveSkinContext
@@ -41,8 +39,6 @@ Item {
     // ==================== Signals 信号 ====================
     signal clicked()
     signal pressed()
-    signal hoverChanged()      // Row hover edge for the owning level 归属层用的悬停边沿
-    signal submenuRequested()  // Retained for explicit open requests 保留给显式打开请求
 
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : _skin.comboBoxMetrics.defaultWidth
@@ -106,8 +102,8 @@ Item {
             anchors.left: parent.left
             // Shift text right when icon is present 有图标时文本右移
             anchors.leftMargin: delegateRoot.icon !== "" ? (_skin.spacing.l + _skin.iconSize.m + _skin.spacing.m) : _skin.spacing.l
-            anchors.right: submenuArrow.left
-            anchors.rightMargin: _skin.spacing.s
+            anchors.right: parent.right
+            anchors.rightMargin: _skin.spacing.l
             anchors.verticalCenter: parent.verticalCenter
             type: _skin.label.type_body
             text: delegateRoot.text
@@ -115,19 +111,6 @@ Item {
             wrapMode: Text.NoWrap  // Override body default WordWrap 覆盖body默认的自动换行
             maximumLineCount: 1    // Single line only 仅单行
             elide: Text.ElideRight
-        }
-
-        // Submenu arrow 子菜单箭头
-        Icon {
-            id: submenuArrow
-            anchors.right: parent.right
-            anchors.rightMargin: _skin.spacing.l
-            anchors.verticalCenter: parent.verticalCenter
-            iconSize: _skin.iconSize.xs
-            icon: _skin.icon.chevron_right
-            color: delegateRoot.itemEnabled
-                ? _skin.textColor.secondary : _skin.textColor.disabled
-            visible: delegateRoot.hasSubmenu
         }
     }
     
@@ -138,17 +121,7 @@ Item {
         hoverEnabled: true
         enabled: !delegateRoot.isSeparator && delegateRoot.itemEnabled
         onPressed: delegateRoot.pressed()
-        onContainsMouseChanged: delegateRoot.hoverChanged()
-        onClicked: {
-            // An owner row never commits: hovering opens its branch, and pressing it is
-            // an explicit request for the same thing.
-            // 父行不提交: 悬停即展开其分支, 按下它则是对同一动作的显式请求。
-            if (delegateRoot.hasSubmenu) {
-                delegateRoot.submenuRequested()
-                return
-            }
-            delegateRoot.clicked()
-        }
+        onClicked: delegateRoot.clicked()
     }
 
 }
