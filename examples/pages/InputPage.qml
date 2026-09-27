@@ -155,9 +155,8 @@ Item {
                             } 
                         }
                         ComponentCard {
-                            label: "type_cascade"
+                            label: "cascade (default)"
                             ComboBox {
-                                type: Enums.comboBox.type_cascade
                                 width: 220
                                 placeholderText: Fluent.Translator.tr("gallery_da590a8fe3ce4de0", Fluent.Translator._v)
                                 model: [

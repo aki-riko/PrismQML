@@ -12,7 +12,6 @@ QtObject {
     readonly property int type_tree: 2
     readonly property int type_multi_tree: 3
     readonly property int type_font: 4
-    readonly property int type_cascade: 5
     // Style 样式
     readonly property int style_default: 0
     readonly property int style_primary: 1

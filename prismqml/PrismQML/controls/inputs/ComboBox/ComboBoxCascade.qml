@@ -244,7 +244,12 @@ ComboBoxCore {
         _popupContentRequested = true
         _rebuildVisibleRows()
     }
-    onModelChanged: _rebuildVisibleRows()
+    onModelChanged: {
+        // The derived `_safeModel` binding may still hold the previous list while this
+        // notification runs, so the rebuild is deferred one turn to read the new model.
+        // 本通知执行时派生 `_safeModel` 绑定可能仍持有旧列表, 因此延后一拍重建以读取新模型。
+        Qt.callLater(_rebuildVisibleRows)
+    }
     // The query lives on this control, so its own change handler drives the refresh.
     // 查询文本属于本控件, 因此由它自己的变更处理器驱动刷新。
     on_SearchTextChanged: _rebuildVisibleRows()

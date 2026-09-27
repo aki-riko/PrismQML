@@ -53,6 +53,31 @@ Window {
             {"text": "Help"}
         ]
     }
+
+    // Plain dropdown carrying nested nodes: it must serve the cascade itself, without
+    // the caller naming a type.
+    ComboBox {
+        id: autoCascade
+        objectName: "autoCascade"
+        x: 380
+        y: 60
+        width: 260
+        model: [
+            {"text": "File", "children": [{"text": "New"}, {"text": "Open"}]},
+            {"text": "Tools", "children": [{"text": "Options"}]},
+            {"text": "Help"}
+        ]
+    }
+
+    // Same control with a flat model: it must stay a plain dropdown.
+    ComboBox {
+        id: flatCombo
+        objectName: "flatCombo"
+        x: 60
+        y: 140
+        width: 260
+        model: ["Alpha", "Beta", "Gamma"]
+    }
 }
 """
 
@@ -217,17 +242,62 @@ def _window_content_dump() -> list:
     return dump
 
 
+def _popup_candidates(combo: QQuickItem) -> list[str]:
+    return [
+        item.metaObject().className()
+        for item in _object_descendants(combo)
+        if item.metaObject().indexOfProperty("isClosing") >= 0
+        and item.metaObject().indexOfProperty("targetControl") >= 0
+    ]
+
+
+def _active_combo(combo: QQuickItem) -> QQuickItem:
+    """容器入口组件的实际控件实例。
+
+    ComboBox 是入口容器, 真实控件由内部 Loader 加载; 直接用具体控件时可原样返回。
+    """
+    if combo.metaObject().indexOfProperty("_popup") >= 0:
+        return combo
+    for child in _object_descendants(combo):
+        if child.metaObject().className().startswith("QQuickLoader"):
+            loaded = child.property("item")
+            if isinstance(loaded, QQuickItem):
+                return loaded
+    raise AssertionError("未找到入口组件的内部控件实例")
+
+
+def _root_window(combo: QQuickItem) -> QQuickWindow:
+    """根层窗口: 经弹层原生窗口取, 尚未生成时退回按行内容定位。"""
+    popup = _popup_core(combo)
+    holder: list[QQuickWindow] = []
+
+    def ready() -> bool:
+        candidate = popup.property("_popupWindow")
+        if isinstance(candidate, QQuickWindow):
+            holder.append(candidate)
+            return True
+        for window in _all_quick_windows():
+            try:
+                if any(_cascade_rows(window)):
+                    holder.append(window)
+                    return True
+            except RuntimeError:
+                continue
+        return False
+
+    assert _wait_for(ready, 2000), "根层原生窗口缺失"
+    return holder[-1]
+
+
 def _open_root(combo: QQuickItem, window: QQuickWindow) -> QQuickWindow:
     _move_pointer_away(window)
-    popup = _popup_core(combo)
-    combo.openPopup()
-    assert _wait_for(lambda: _read(combo, "isOpen") is True), "根层未打开"
+    active = _active_combo(combo)
+    popup = _popup_core(active)
+    active.openPopup()
+    assert _wait_for(lambda: _read(active, "isOpen") is True), "根层未打开"
     assert _wait_for(lambda: not _read(popup, "isClosing")), "根层未完成入场"
-    # 根层内容渲染在弹层自己的原生窗口里, 该窗口经弹层属性取得。
-    root_window = popup.property("_popupWindow")
-    assert isinstance(root_window, QQuickWindow), "根层原生窗口缺失"
     _pump(160)
-    return root_window
+    return _root_window(active)
 
 
 def _hover_owner_row(combo: QQuickItem, root_window: QQuickWindow, text: str) -> int:
@@ -272,9 +342,14 @@ def _wait_for_submenu_rows(combo: QQuickItem, expected: list[str]) -> QQuickWind
 
 
 def _close_all(combo: QQuickItem) -> None:
-    combo.closePopupTree()
-    popup = _popup_core(combo)
-    _wait_for(lambda: _read(combo, "isOpen") is False)
+    active = _active_combo(combo)
+    # 级联控件按整条链关闭; 普通下拉只需要收起自身弹层。
+    if active.metaObject().indexOfMethod("closePopupTree()") >= 0:
+        active.closePopupTree()
+    else:
+        active.closePopup()
+    popup = _popup_core(active)
+    _wait_for(lambda: _read(active, "isOpen") is False)
     _wait_for(lambda: not _read(popup, "isClosing"))
     _pump(240)
 
@@ -336,5 +411,74 @@ def test_clicking_leaf_commits_path_and_closes_cascade(scene):
         ), f"提交文本错误: {_read(combo, 'currentText')!r}"
         assert _wait_for(lambda: _read(combo, "isOpen") is False), "级联未关闭"
         assert list(_read(combo, "activatedPath")) == ["Tools", "Options"]
+    finally:
+        _close_all(combo)
+
+
+def test_default_dropdown_serves_nested_model_as_cascade(scene):
+    """普通下拉遇到嵌套模型时自行提供级联, 无需调用方指定 type。"""
+    combo = scene.findChild(QQuickItem, "autoCascade")
+    assert combo is not None
+    assert _read(combo, "type") == 0, "该用例必须使用默认 type"
+    active = _active_combo(combo)
+    print(
+        f"\n[diag] container={combo.metaObject().className()} "
+        f"active={active.metaObject().className()} "
+        f"hasPopup={active.metaObject().indexOfProperty('_popup') >= 0} "
+        f"popups={_popup_candidates(active)}",
+        flush=True,
+    )
+    root_window = _open_root(combo, scene)
+    active = _active_combo(combo)
+    print(
+        f"\n[diag] active={active.metaObject().className()} "
+        f"isOpen={_read(active, 'isOpen')} "
+        f"safeModel={_read(active, '_safeModel')!r} "
+        f"visibleRows={_read(active, '_visibleRows')!r} "
+        f"allWindows={[(w.isVisible(), _row_texts(w)) for w in _all_quick_windows()]}",
+        flush=True,
+    )
+    try:
+        rows = _cascade_rows(root_window)
+        assert [str(_read(row, "text")) for row in rows] == ["File", "Tools", "Help"]
+        # 带子节点的行显示箭头: 说明它确实以级联方式渲染, 而不是普通平铺列表。
+        states = {
+            str(_read(row, "text")): bool(_read(row, "hasSubmenu"))
+            for row in rows
+        }
+        assert states == {"File": True, "Tools": True, "Help": False}
+
+        owner_index = _hover_owner_row(active, root_window, "Tools")
+        active.openSubmenu(owner_index)
+        child_window = _wait_for_submenu_rows(active, ["Options"])
+        assert child_window is not root_window
+
+        leaf = next(
+            row for row in _cascade_rows(child_window)
+            if _read(row, "text") == "Options"
+        )
+        QTest.mouseClick(
+            child_window,
+            Qt.MouseButton.LeftButton,
+            pos=_row_centre(child_window, leaf),
+        )
+        assert _wait_for(
+            lambda: _read(active, "currentText") == "Tools → Options"
+        ), f"提交文本错误: {_read(active, 'currentText')!r}"
+    finally:
+        _close_all(combo)
+
+
+def test_flat_model_stays_plain_dropdown(scene):
+    """平铺模型必须保持普通下拉: 行不带子菜单箭头。"""
+    combo = scene.findChild(QQuickItem, "flatCombo")
+    assert combo is not None
+    root_window = _open_root(combo, scene)
+    try:
+        rows = _cascade_rows(root_window)
+        assert [str(_read(row, "text")) for row in rows] == [
+            "Alpha", "Beta", "Gamma"
+        ]
+        assert all(not bool(_read(row, "hasSubmenu")) for row in rows)
     finally:
         _close_all(combo)
