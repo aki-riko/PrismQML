@@ -26,6 +26,7 @@ Rectangle {
             case Enums.statusLevel.error: return "error"
             case Enums.statusLevel.attention: return "attention"
             case Enums.statusLevel.processing: return "processing"
+            case Enums.statusLevel.caution: return "caution"
             default: return "info"
         }
     }

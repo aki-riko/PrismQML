@@ -20,7 +20,7 @@ Window {
     // ==================== Public Props 公开属性 ====================
     property string title: ""
     property string message: ""
-    property string severity: "info"  // info, success, warning, error
+    property string severity: "info"  // info, success, warning, error, attention, processing, caution
     property int duration: Enums.duration.notification
     property bool closable: true
     property int position: Enums.notification.posBottomRight  // Nine-grid enum (0-8), row-major 九宫格行优先枚举
@@ -47,6 +47,7 @@ Window {
         switch (severity) {
             case "success": return "Checkmark"
             case "warning": return "Warning"
+            case "caution": return "Warning"
             case "error": return "Dismiss"
             default: return "Info"
         }

@@ -171,6 +171,7 @@ Item {
                     ComponentCard { label: "level: 3"; Button { style: Fluent.Enums.button.style_filled; level: 3; text: "Error" } }
                     ComponentCard { label: "level: 4"; Button { style: Fluent.Enums.button.style_filled; level: 4; text: "Attention" } }
                     ComponentCard { label: "level: 5"; Button { style: Fluent.Enums.button.style_filled; level: 5; text: "Processing" } }
+                    ComponentCard { label: "level: 6"; Button { style: Fluent.Enums.button.style_filled; level: Fluent.Enums.statusLevel.caution; text: "Caution" } }
                 }
             }
             
@@ -187,6 +188,7 @@ Item {
                     ComponentCard { label: "level: 3"; Button { style: Fluent.Enums.button.style_text; level: 3; text: "Error" } }
                     ComponentCard { label: "level: 4"; Button { style: Fluent.Enums.button.style_text; level: 4; text: "Attention" } }
                     ComponentCard { label: "level: 5"; Button { style: Fluent.Enums.button.style_text; level: 5; text: "Processing" } }
+                    ComponentCard { label: "level: 6"; Button { style: Fluent.Enums.button.style_text; level: Fluent.Enums.statusLevel.caution; text: "Caution" } }
                 }
             }
             

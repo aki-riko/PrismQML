@@ -16,7 +16,7 @@ Widget {
     property string message: ""
     property alias text: control.message
     property int duration: Enums.duration.notification
-    property string severity: "info"  // info, success, warning, error, attention, processing
+    property string severity: "info"  // info, success, warning, error, attention, processing, caution
     property bool closable: true
     property int position: Enums.notification.posBottomRight  // Nine-grid position from NotificationManager 九宫格位置(0-8)
     property bool desktopMode: false  // Desktop mode skips internal animation 桌面模式跳过内部动画

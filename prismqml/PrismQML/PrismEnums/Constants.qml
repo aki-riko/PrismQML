@@ -95,7 +95,7 @@ QtObject {
     // success/warning/error 及其背景色取自微软 WinUI 官方 SystemFillColor 资源
     // (Common_themeresources_any.xaml: SystemFillColorSuccess/Caution/Critical[Background])，
     // 系 Fluent Design System 公开标准语义色，非第三方库衍生。
-    // info/attention/processing 为本项目自定义扩展(WinUI 无对应固定值)。
+    // info/attention/processing/caution 为本项目自定义扩展(WinUI 无对应固定值)。
     // 来源: https://github.com/microsoft/microsoft-ui-xaml CommonStyles/Common_themeresources_any.xaml
     readonly property QtObject semanticColors: QtObject {
         // Foreground semantic colors 语义前景色
@@ -105,6 +105,7 @@ QtObject {
         readonly property color errorLight: "#c42b1c"  // WinUI SystemFillColorCritical (Light)
         readonly property color processingLight: "#7b2cbf"  // custom: vivid purple marks processing 自定义：鲜紫色代表处理中
         readonly property color attentionLight: "#0a93a8"  // custom: cyan marks attention 自定义：青色代表注意
+        readonly property color cautionLight: "#b88600"  // custom: gold marks caution 自定义：金黄色代表谨慎状态
 
         readonly property color infoDark: "#a3a3a3"  // custom: neutral gray info color 自定义：中性灰信息色
         readonly property color successDark: "#6ccb5f"  // WinUI SystemFillColorSuccess (Dark)
@@ -112,6 +113,7 @@ QtObject {
         readonly property color errorDark: "#ff99a4"  // WinUI SystemFillColorCritical (Dark)
         readonly property color processingDark: "#d8b4fe"  // custom: light vivid purple on dark 自定义：深色主题亮鲜紫
         readonly property color attentionDark: "#33b5bf"  // custom: light cyan on dark 自定义：深色主题亮青色
+        readonly property color cautionDark: "#e8c547"  // custom: bright yellow on dark 自定义：深色主题亮黄色
 
         // Background semantic colors (light) 语义背景色（浅色）
         readonly property color infoBgLight: "#cce4f7"  // custom color token 自定义
@@ -120,6 +122,7 @@ QtObject {
         readonly property color errorBgLight: "#fde7e9"  // WinUI SystemFillColorCriticalBackground (Light)
         readonly property color attentionBgLight: "#f0e6fa"  // custom color token 自定义
         readonly property color processingBgLight: "#f3e8ff"  // custom: light purple background 自定义：浅紫色背景
+        readonly property color cautionBgLight: "#fff8d6"  // custom: light yellow background 自定义：浅黄色背景
     }
 
     // ==================== DemoPalette 示例色板 ====================

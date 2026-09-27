@@ -87,6 +87,7 @@ QtObject {
             case "error": return 3
             case "attention": return 4
             case "processing": return 5
+            case "caution": return 6
             default: return 0  // info
         }
     }
@@ -100,6 +101,7 @@ QtObject {
             case "error": return "DismissCircle"
             case "attention": return "Important"
             case "processing": return "ArrowSync"
+            case "caution": return "Warning"
             default: return "Info"
         }
     }

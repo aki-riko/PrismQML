@@ -23,6 +23,7 @@ QtObject {
     readonly property int error: 3
     readonly property int attention: 4
     readonly property int processing: 5
+    readonly property int caution: 6
     
     // String form 字符串形式
     readonly property string infoStr: "info"
@@ -31,6 +32,7 @@ QtObject {
     readonly property string errorStr: "error"
     readonly property string attentionStr: "attention"
     readonly property string processingStr: "processing"
+    readonly property string cautionStr: "caution"
     
     // Semantic colors (Light theme) 语义色（浅色主题）
     readonly property color infoColor: constants.semanticColors.infoLight
@@ -39,6 +41,7 @@ QtObject {
     readonly property color errorColor: constants.semanticColors.errorLight
     readonly property color attentionColor: constants.semanticColors.attentionLight
     readonly property color processingColor: constants.semanticColors.processingLight
+    readonly property color cautionColor: constants.semanticColors.cautionLight
     
     // Semantic colors (Dark theme) 语义色（深色主题）
     readonly property color infoColorDark: constants.semanticColors.infoDark
@@ -47,6 +50,7 @@ QtObject {
     readonly property color errorColorDark: constants.semanticColors.errorDark
     readonly property color attentionColorDark: constants.semanticColors.attentionDark
     readonly property color processingColorDark: constants.semanticColors.processingDark
+    readonly property color cautionColorDark: constants.semanticColors.cautionDark
     
     // Get color by level 根据level获取颜色
     function getColorByLevel(level) {
@@ -56,6 +60,7 @@ QtObject {
                 case 2: return constants.neumorphismColors.warning
                 case 3: return constants.neumorphismColors.danger
                 case 0: return constants.neumorphismColors.info
+                case 6: return constants.neumorphismColors.warning
                 default: return constants.neumorphismColors.primary
             }
         }
@@ -66,6 +71,7 @@ QtObject {
                 case 2: return constants.neoColors.warning
                 case 3: return constants.neoColors.danger
                 case 0: return constants.neoColors.info
+                case 6: return constants.neoColors.warning
                 default: return constants.neoColors.primary
             }
         }
@@ -75,6 +81,7 @@ QtObject {
                 case 2: return constants.ticketColors.warning
                 case 3: return constants.ticketColors.danger
                 case 0: return constants.ticketColors.info
+                case 6: return constants.ticketColors.warning
                 default: return constants.ticketColors.primary
             }
         }
@@ -84,6 +91,7 @@ QtObject {
             case 3: return root.isDark ? errorColorDark : errorColor
             case 4: return root.isDark ? attentionColorDark : attentionColor
             case 5: return root.isDark ? processingColorDark : processingColor
+            case 6: return root.isDark ? cautionColorDark : cautionColor
             default: return root.isDark ? infoColorDark : infoColor
         }
     }
@@ -97,6 +105,7 @@ QtObject {
                 case "error": return constants.neumorphismColors.danger
                 case "attention": return constants.neumorphismColors.warning
                 case "processing": return constants.neumorphismColors.primary
+                case "caution": return constants.neumorphismColors.warning
                 default: return constants.neumorphismColors.info
             }
         }
@@ -107,6 +116,7 @@ QtObject {
                 case "error": return constants.ticketColors.danger
                 case "attention": return constants.ticketColors.warning
                 case "processing": return constants.ticketColors.primary
+                case "caution": return constants.ticketColors.warning
                 default: return constants.ticketColors.info
             }
         }
@@ -116,6 +126,7 @@ QtObject {
             case "error": return root.isDark ? errorColorDark : errorColor
             case "attention": return root.isDark ? attentionColorDark : attentionColor
             case "processing": return root.isDark ? processingColorDark : processingColor
+            case "caution": return root.isDark ? cautionColorDark : cautionColor
             default: return root.isDark ? infoColorDark : infoColor
         }
     }
@@ -140,6 +151,7 @@ QtObject {
                 case "error": return constants.semanticColors.errorBgLight
                 case "attention": return constants.semanticColors.attentionBgLight
                 case "processing": return constants.semanticColors.processingBgLight
+                case "caution": return constants.semanticColors.cautionBgLight
                 default: return constants.semanticColors.infoBgLight
             }
         }

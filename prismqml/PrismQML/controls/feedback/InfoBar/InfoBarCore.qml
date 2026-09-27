@@ -15,7 +15,7 @@ Widget {
     property string title: ""
     property string message: ""
     property alias content: control.message
-    property string severity: "info"  // info, success, warning, error, attention, processing
+    property string severity: "info"  // info, success, warning, error, attention, processing, caution
     property bool closable: true
     property int duration: Enums.duration.notification
     property string icon: ""
