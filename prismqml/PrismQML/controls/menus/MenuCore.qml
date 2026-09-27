@@ -139,17 +139,32 @@ PopupWindowCore {
  }
 
  function _openSubmenuForAction(action, submenuComponent, initialProperties) {
- if (!action || !submenuComponent) return
+ if (!action) return
  if (_openSubmenu && _openSubmenuAction === action) return
+ // A data-built row carries its own nodes and needs no component; every other row must
+ // bring the component that produces its level.
+ // 数据构建的父行自带节点, 不需要组件; 其余父行必须带上产出其层级的组件。
+ var buildsFromData = action._submenuData !== undefined && action._submenuData !== null
+ if (!buildsFromData && !submenuComponent) return
 
  _closeOpenSubmenu()
- // A row may already own its level (data-built cascade, QAction::menu()); reuse that
- // instance so whatever was added to it is what actually opens.
- // 行可能已经持有自己的层级(数据构建的级联, 即 QAction::menu()); 复用该实例, 使加入其中的
- // 内容正是实际打开的内容。
- var submenu = action._level !== undefined && action._level !== null
+ // A data-built row rebuilds its level from its own data every time it opens: the previous
+ // instance is destroyed when another branch takes over, and a destroyed QML object is
+ // still a non-null reference, so reusing it would open an empty panel.
+ // 数据构建的父行每次打开都按自身数据重建层级: 上一个实例在分支被接管时已销毁, 而已销毁的
+ // QML 对象引用仍非 null, 复用它只会开出空面板。
+ var submenu = null
+ if (buildsFromData) {
+  var levelComponent = _levelComponent()
+  if (!levelComponent) return
+  submenu = levelComponent.createObject(null, {})
+  if (!submenu) return
+  submenu.addNodes(action._submenuData.nodes, action._submenuData.basePath)
+ } else {
+  submenu = action._level !== undefined && action._level !== null
   ? action._level
   : submenuComponent.createObject(null, initialProperties || {})
+ }
  if (!submenu) return
 
  submenu.stealFocus = false
@@ -382,13 +397,23 @@ PopupWindowCore {
   var children = isText ? null : node.children
 
   if (children && typeof children.length === "number" && children.length > 0) {
-  var branch = addSubmenuLevel(text, icon)
-  if (!branch) continue
-  if (branch.action) {
-  branch.action.enabled = enabled
-  created.push(branch.action)
-  }
-  branch.level.addNodes(children, path)
+  var owner = addAction(text, icon, "", {
+  "hasSubmenu": true,
+  "enabled": enabled
+  })
+  if (!owner) continue
+  // The row carries its own data; the level is built when it opens, so a level that was
+  // destroyed by a sibling branch is rebuilt instead of being reused as a dead object.
+  // 父行携带自身数据; 层级在打开时才构建, 因此被同级分支销毁过的层级会被重建, 而不是被当作
+  // 已死对象复用。
+  owner._submenuData = { "nodes": children, "basePath": path }
+  // Hover delay and the arrow request are the menu stack's job, so a data-built row gets
+  // the same wiring a hand-written Action gets; the component argument is unused because
+  // the level is rebuilt from the row's own data.
+  // 悬停延迟与箭头请求由菜单栈负责, 因此数据构建的父行获得与手写 Action 相同的接线; 组件参数
+  // 不会被用到, 因为层级是由父行自身数据重建的。
+  _bindSubmenuAction(owner, null, {})
+  created.push(owner)
   continue
   }
 
@@ -400,25 +425,6 @@ PopupWindowCore {
   }
   Qt.callLater(_updateSize)
   return created
- }
-
- // Create a level and attach it to an owner row 创建层级并挂到父行上
- // Mirrors QMenu::addMenu(title, icon): the returned level is what this row opens, with
- // anchored placement, hover delay, the arrow request and dismissal already wired.
- // 对应 QMenu::addMenu(title, icon): 返回的层级即该行打开的层级, 锚定定位、悬停延迟、箭头
- // 请求与收起都已接好。
- // @returns object - { action: the owner row, level: the level it opens } 父行与其层级
- function addSubmenuLevel(text, icon) {
-  var component = _levelComponent()
-  if (!component) return null
-  var action = addAction(text, icon, "", { "hasSubmenu": true })
-  if (!action) return null
-  var level = component.createObject(null, {})
-  if (!level) return null
-  action._level = level
-  _bindSubmenuAction(action, component, {})
-  Qt.callLater(_updateSize)
-  return { "action": action, "level": level }
  }
 
  // The level component is loaded on demand rather than declared inline: a component that

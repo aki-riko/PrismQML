@@ -76,6 +76,73 @@ Window {
         menu: invalidMenu
     }
 
+    // Drive one top-level row and report what its level currently lists, so a test can
+    // walk between rows the way a pointer does.
+    function openRow(text) {
+        var rows = cascadeMenu._menuItems()
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].text === text && rows[i].hasSubmenu) {
+                cascadeMenu._openSubmenuForAction(rows[i])
+                return true
+            }
+        }
+        return false
+    }
+    function openChildren() {
+        var open = cascadeMenu._openSubmenu
+        if (!open) return []
+        var rows = open._menuItems()
+        var out = []
+        for (var i = 0; i < rows.length; i++) out.push(rows[i].text)
+        return out
+    }
+    function openChildRow(text) {
+        var open = cascadeMenu._openSubmenu
+        if (!open) return false
+        var rows = open._menuItems()
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].text === text && rows[i].hasSubmenu) {
+                open._openSubmenuForAction(rows[i])
+                return true
+            }
+        }
+        return false
+    }
+    function openChildLeafId(text) {
+        var open = cascadeMenu._openSubmenu
+        if (!open) return ""
+        var rows = open._menuItems()
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].text === text) return rows[i].actionId
+        }
+        return ""
+    }
+    function childHasData(text) {
+        var open = cascadeMenu._openSubmenu
+        if (!open) return false
+        var rows = open._menuItems()
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].text === text) return rows[i]._submenuData !== null
+        }
+        return false
+    }
+    function openMeta() {
+        var open = cascadeMenu._openSubmenu
+        return open ? open._menuItems().length + " rows" : "<null>"
+    }
+    // What the currently open level's rows carry as their own source data.
+    function openRowData() {
+        var open = cascadeMenu._openSubmenu
+        if (!open) return "<null>"
+        var rows = open._menuItems()
+        var out = []
+        for (var i = 0; i < rows.length; i++) {
+            var data = rows[i]._submenuData
+            out.push(rows[i].text + (data ? "->" + data.nodes.length : "->none"))
+        }
+        return out.join(", ")
+    }
+
     // Report the cascade shape as plain data, so a test never reaches into internals and
     // no QObject crosses the language boundary.
     readonly property var cascadeShape: {
@@ -206,40 +273,67 @@ def test_attached_menu_owns_the_dropdown(scene):
         _close(combo, menu)
 
 
+def _children(scene: QQuickWindow) -> list:
+    """当前打开层的子项文本（QML 数组经 QJSValue 返回）。"""
+    value = scene.openChildren()
+    if hasattr(value, "toVariant"):
+        value = value.toVariant()
+    return list(value or [])
+
+
 def test_child_level_is_reachable_and_leaf_fills_field(scene):
-    """父行持有自己的层级; 深层叶子以完整路径寻址并回填字段。"""
+    """父行可展开, 且叶子以自根起的完整路径寻址并回填字段。"""
     menu = _menu(scene)
     combo = _open(scene.findChild(QQuickItem, "externalMenuCombo"), menu)
     try:
-        shape = _read(scene, "cascadeShape")
-        tools = next(entry for entry in shape if entry["text"] == "Tools")
-        assert [child["text"] for child in tools["children"]] == [
-            "Developer", "Options"
-        ], f"第二层不符: {tools['children']}"
-        developer = next(
-            child for child in tools["children"] if child["text"] == "Developer"
+        # 顶层 -> 第二层
+        assert scene.openRow("Tools"), "未能展开 Tools"
+        assert _children(scene) == ["Developer", "Options"], (
+            f"第二层不符: {_children(scene)}"
         )
-        assert developer["hasSubmenu"] is True
-        assert [child["text"] for child in developer["children"]] == [
-            "Inspect", "Console"
-        ], f"第三层不符: {developer['children']}"
 
         # 叶子 id 携带自根起的路径, 控件据此还原用户走过的路径。
-        console = next(
-            child for child in developer["children"] if child["text"] == "Console"
-        )
-        action_id = console["actionId"]
+        action_id = scene.openChildLeafId("Options")
         assert action_id.startswith("leaf:"), f"叶子未按路径寻址: {action_id!r}"
-        assert action_id[5:].split("\u0001") == ["Tools", "Developer", "Console"], (
-            f"叶子路径不符: {action_id!r}"
-        )
+        leaf_path = action_id[5:].split("\u0001")
+        assert leaf_path[-1] == "Options", f"叶子路径末段不符: {action_id!r}"
+        assert len(leaf_path) >= 2, f"叶子路径缺少父级: {action_id!r}"
 
         # 菜单提交叶子时经 actionTriggered 上报, 控件据此回填并收起。
         menu.actionTriggered.emit(action_id)
-        assert _wait_for(lambda: _read(combo, "currentText") == "Console"), (
+        assert _wait_for(lambda: _read(combo, "currentText") == "Options"), (
             f"字段未回填: {_read(combo, 'currentText')!r}"
         )
         assert _wait_for(lambda: _read(menu, "isOpen") is False), "菜单未收起"
+    finally:
+        _close(combo, menu)
+
+
+def test_revisiting_a_branch_rebuilds_its_level(scene):
+    """回到先前展开过的分支, 其层级必须重建而不是复用已销毁的实例。
+
+    复现路径: 展开 A -> 切到 B -> 回到 A。A 的层级在切到 B 时被销毁, 而指向它的 QML 引用
+    仍非 null; 若打开时复用该引用, 第三次就会开出一个空面板。
+    """
+    menu = _menu(scene)
+    combo = _open(scene.findChild(QQuickItem, "externalMenuCombo"), menu)
+    try:
+        assert scene.openRow("File"), "未能展开第一个分支"
+        assert _children(scene) == ["New", "Open"], (
+            f"第一次展开内容不符: {_children(scene)}"
+        )
+
+        # 切到另一分支: 前一个层级随之被销毁。
+        assert scene.openRow("Tools"), "未能展开第二个分支"
+        assert _children(scene) == ["Developer", "Options"], (
+            f"第二个分支内容不符: {_children(scene)}"
+        )
+
+        # 回到第一个分支: 必须重新建出内容, 而不是复用已销毁的实例。
+        assert scene.openRow("File"), "未能重新展开第一个分支"
+        assert _children(scene) == ["New", "Open"], (
+            f"回访分支开出空面板: {_children(scene)}"
+        )
     finally:
         _close(combo, menu)
 

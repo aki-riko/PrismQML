@@ -29,6 +29,12 @@ Rectangle {
     // 本行打开的层级, 对应 QAction::menu()。由创建它的菜单持有; 置于此处使数据构建的行能
     // 携带自己的子菜单。
     property var _level: null
+    // Source data for a data-built level, kept so the level can be rebuilt every time it
+    // opens. A level is destroyed when another branch takes over, and QML references do
+    // not clear themselves, so reusing the destroyed instance would open an empty panel.
+    // 数据构建层级的源数据, 用于每次打开时重建该层级。分支被接管时层级会被销毁, 而 QML 引用
+    // 不会自行清空, 因此复用已销毁的实例会开出一个空面板。
+    property var _submenuData: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: itemArea.containsMouse
