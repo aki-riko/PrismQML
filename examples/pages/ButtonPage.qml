@@ -13,6 +13,23 @@ import PrismQML as Fluent
 Item {
     id: root
     readonly property int _flowSpacing: Fluent.Enums.spacing.l
+    readonly property var cascadeMenuItems: [
+        {
+            text: "通知",
+            children: [
+                { text: "窗口内部" },
+                { text: "窗口外部" }
+            ]
+        },
+        {
+            text: "消息条",
+            children: [
+                { text: "左上位置" },
+                { text: "右上位置" }
+            ]
+        },
+        { text: "桌面" }
+    ]
 
     MenuCore {
         id: externalButtonMenu
@@ -137,6 +154,23 @@ Item {
                             text: Fluent.Translator.tr("gallery_c0dd9864b2f72353", Fluent.Translator._v)
                             menu: externalButtonMenu
                             onClicked: console.log(Fluent.Translator.tr("gallery_69b751f934f21944", Fluent.Translator._v))
+                        }
+                    }
+                    ComponentCard {
+                        label: "feature_dropdown + cascade"
+                        Button {
+                            feature: Fluent.Enums.button.feature_dropdown
+                            text: "通知管理器"
+                            menuItems: root.cascadeMenuItems
+                        }
+                    }
+                    ComponentCard {
+                        label: "feature_split + cascade"
+                        Button {
+                            style: Fluent.Enums.button.style_primary
+                            feature: Fluent.Enums.button.feature_split
+                            text: "通知管理器"
+                            menuItems: root.cascadeMenuItems
                         }
                     }
                     ComponentCard { 
