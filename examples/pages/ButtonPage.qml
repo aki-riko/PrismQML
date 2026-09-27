@@ -33,8 +33,7 @@ Item {
 
     MenuCore {
         id: externalButtonMenu
-        Action { text: Fluent.Translator.tr("gallery_d54f1a0703d99975", Fluent.Translator._v) }
-        Action { text: Fluent.Translator.tr("gallery_b03fab65bf7cae21", Fluent.Translator._v) }
+        Component.onCompleted: addNodes(root.cascadeMenuItems, [])
     }
 
     // Icon path resolver (portable via Enums.iconPath, no source-tree dependency) 图标路径解析函数 (用模块内 Enums.iconPath, 可移植: 不依赖源码树位置)
@@ -131,7 +130,7 @@ Item {
                         Button { 
                             feature: Fluent.Enums.button.feature_dropdown
                             text: "DropDown"
-                            menuItems: [Fluent.Translator.tr("gallery_96198518dab609f0", Fluent.Translator._v), Fluent.Translator.tr("gallery_5f04a01fe105bb4d", Fluent.Translator._v), "-", Fluent.Translator.tr("gallery_74b97119bee5c66d", Fluent.Translator._v)]
+                            menu: externalButtonMenu
                             onMenuItemClicked: function(index, text) { console.log(Fluent.Translator.tr("gallery_667bc88022ff7f7b", Fluent.Translator._v), text) }
                         }
                     }
@@ -141,36 +140,9 @@ Item {
                             style: Fluent.Enums.button.style_primary
                             feature: Fluent.Enums.button.feature_split
                             text: "Split"
-                            menuItems: [Fluent.Translator.tr("gallery_661302e956cba192", Fluent.Translator._v), Fluent.Translator.tr("gallery_353ad4f734d73cdd", Fluent.Translator._v)]
+                            menu: externalButtonMenu
                             onClicked: console.log(Fluent.Translator.tr("gallery_6b3dc852457b0e1b", Fluent.Translator._v))
                             onMenuItemClicked: function(index, text) { console.log(Fluent.Translator.tr("gallery_5248f80383486038", Fluent.Translator._v), text) }
-                        }
-                    }
-                    ComponentCard {
-                        label: "feature_split + MenuCore"
-                        Button {
-                            style: Fluent.Enums.button.style_primary
-                            feature: Fluent.Enums.button.feature_split
-                            text: Fluent.Translator.tr("gallery_c0dd9864b2f72353", Fluent.Translator._v)
-                            menu: externalButtonMenu
-                            onClicked: console.log(Fluent.Translator.tr("gallery_69b751f934f21944", Fluent.Translator._v))
-                        }
-                    }
-                    ComponentCard {
-                        label: "feature_dropdown + cascade"
-                        Button {
-                            feature: Fluent.Enums.button.feature_dropdown
-                            text: "通知管理器"
-                            menuItems: root.cascadeMenuItems
-                        }
-                    }
-                    ComponentCard {
-                        label: "feature_split + cascade"
-                        Button {
-                            style: Fluent.Enums.button.style_primary
-                            feature: Fluent.Enums.button.feature_split
-                            text: "通知管理器"
-                            menuItems: root.cascadeMenuItems
                         }
                     }
                     ComponentCard { 
