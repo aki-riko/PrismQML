@@ -34,6 +34,9 @@ PopupWindowCore {
     property var _childPanel: null
     property var _submenuComponent: null
     property int _hoveredRow: -1
+    // Remaining turns allowed to wait for this level's popup surface.
+    // 允许等待本层弹层表面的剩余拍数。
+    property int _surfaceWaitTurns: 0
     readonly property int _submenuDelay: Enums.duration.fast
 
     // ==================== Signals 信号 ====================
@@ -115,19 +118,27 @@ PopupWindowCore {
         if (!parentAction) return
         targetControl = parentAction
         _submenuPlacement = true
+        _surfaceWaitTurns = Enums.popupMetrics.showAnimDelayMs
         _openWhenSurfaceReady()
     }
 
     // The surface host is created by a Loader that has not produced its window yet
     // while this panel is being constructed, and opening without a surface is a no-op.
     // Waiting here — instead of re-entering open every turn — keeps the lifecycle
-    // completion timer free to fire.
+    // completion timer free to fire. The wait is bounded: an unbounded chain of frame
+    // callbacks would spend the whole frame and starve the surface it is waiting for.
     // 本面板构建期间, 弹层宿主由尚未生成窗口的 Loader 创建; 没有表面时打开是空操作。
-    // 在此等待而非每拍重入 open, 使生命周期完成定时器得以触发。
+    // 在此等待而非每拍重入 open, 使生命周期完成定时器得以触发。等待有上界: 无界的帧回调链会
+    // 吃满整帧, 反而饿死它所等待的表面。
     function _openWhenSurfaceReady() {
         if (!targetControl) return
         if (isOpen || isClosing) return
         if (!_popupWindow) {
+            if (_surfaceWaitTurns <= 0) {
+                console.warn("CascadePanel gave up waiting for its popup surface")
+                return
+            }
+            _surfaceWaitTurns -= 1
             _nativeWindowRequested = true
             Qt.callLater(_openWhenSurfaceReady)
             return

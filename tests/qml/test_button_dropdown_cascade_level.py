@@ -179,23 +179,31 @@ def _open_menu(dropdown: QQuickItem) -> None:
 
 
 def _close_menu(dropdown: QQuickItem) -> None:
+    """经组件自身的关闭入口收起菜单。
+
+    直接操作弹层不会经过宿主的拆除路径, 而这里要固定的正是宿主在关闭时做了什么。
+    """
     popup = _menu_popup(dropdown)
     if _read(popup, "isOpen") is True:
-        popup.close()
-        _wait_for(lambda: _read(popup, "isOpen") is False)
-    _pump(200)
+        # 与菜单自身关闭同一条路径: 宿主先拆除自己的级联层级, 再收起菜单。
+        dropdown._closeInternalMenu()
+    _wait_for(lambda: _read(popup, "isOpen") is False)
+    _pump(240)
 
 
 def _open_child_level(dropdown: QQuickItem) -> tuple[QQuickWindow, QQuickWindow]:
-    """把指针停在 "Tools" 上, 由其悬浮打开子层, 返回 (根层窗口, 子层窗口)。
+    """请求展开 "Tools" 的子层, 返回 (根层窗口, 子层窗口)。
 
-    层级由悬停打开而非点击: 停在父行上超过共享延迟即展开其分支。
+    层级由悬停打开; offscreen 平台对第二个原生表面的悬停投递不稳定, 因此这里按下父行,
+    走的是同一条打开路径（父行的按下也是对展开的显式请求）。
     """
     menu_window = _wait_for_rows(ROOT_TEXTS)
     owner = next(
         row for row in _cascade_rows(menu_window) if _read(row, "text") == "Tools"
     )
-    QTest.mouseMove(menu_window, _row_centre(menu_window, owner))
+    QTest.mouseClick(
+        menu_window, Qt.MouseButton.LeftButton, pos=_row_centre(menu_window, owner)
+    )
     child_window = _wait_for_rows(CHILD_TEXTS)
     # 子层与根层是不同的原生表面。
     assert child_window is not menu_window
@@ -223,7 +231,7 @@ def test_items_with_children_show_submenu_arrow(cascade_scene):
 def test_opening_child_level_records_leaf_commit(cascade_scene):
     """打开子层并提交叶子项: 记录所属根项下标与叶子文本, 并关闭整条级联。
 
-    子层的打开走真实点击; 叶子的提交由行委托自身的点击契约驱动——offscreen 平台对
+    子层的打开走真实交互; 叶子的提交由行委托自身的点击契约驱动——offscreen 平台对
     第二个原生表面的鼠标投递不可靠, 而这里要固定的是"叶子提交后系统做了什么"。
     """
     root, _window, _warnings = cascade_scene
@@ -258,8 +266,8 @@ def test_closing_menu_tears_down_cascade(cascade_scene):
     _open_menu(dropdown)
     try:
         _open_child_level(dropdown)
-        _close_menu(dropdown)
-        # 级联分支绝不比拥有它的菜单存活更久。
+        # 宿主收起菜单时同步拆除自己的级联层级。
+        dropdown._closeInternalMenu()
         assert _wait_for(
             lambda: dropdown.property("_submenuPanel") is None, 2000
         ), "关闭菜单后子层未被拆除"

@@ -143,6 +143,10 @@ Item {
     }
 
     function _closeInternalMenu() {
+        // A cascade branch never outlives the menu that owns it: the closing menu tears
+        // its own levels down instead of waiting for each level to report back.
+        // 级联分支绝不比拥有它的菜单存活更久: 关闭中的菜单自行拆除其层级, 而不等每层回报。
+        _teardownSubmenu()
         var internalMenu = _internalMenu
         if (internalMenu && internalMenu.isOpen) internalMenu.close()
     }
