@@ -112,6 +112,7 @@ PopupWindowCore {
 
  var submenu = _openSubmenu
  _openSubmenu = null
+ if (!submenu || typeof submenu.destroy !== "function") return
  if (submenu.close) submenu.close()
  submenu.destroy(Enums.popupMetrics.closingDelayMs)
  }
@@ -338,6 +339,10 @@ PopupWindowCore {
  var items = _itemRegistry.clear()
  for (var i = items.length - 1; i >= 0; i--) {
  var child = items[i]
+ // A failed submenu build can leave a thrown value where an item was expected;
+ // skipping it keeps one failure from cascading into a second one here.
+ // 子菜单构建失败可能在被当作项的位置留下抛出值; 跳过它可避免一次失败在此二次扩散。
+ if (!child || typeof child.destroy !== "function") continue
  // destroy() 是延迟执行的，先设 visible=false 防止 _calcHeight 计入
  child.visible = false
  child.height = 0

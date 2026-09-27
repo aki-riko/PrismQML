@@ -187,14 +187,15 @@ def _close_menu(dropdown: QQuickItem) -> None:
 
 
 def _open_child_level(dropdown: QQuickItem) -> tuple[QQuickWindow, QQuickWindow]:
-    """点开 "Tools" 的子层, 返回 (根层窗口, 子层窗口)。"""
+    """把指针停在 "Tools" 上, 由其悬浮打开子层, 返回 (根层窗口, 子层窗口)。
+
+    层级由悬停打开而非点击: 停在父行上超过共享延迟即展开其分支。
+    """
     menu_window = _wait_for_rows(ROOT_TEXTS)
     owner = next(
         row for row in _cascade_rows(menu_window) if _read(row, "text") == "Tools"
     )
-    QTest.mouseClick(
-        menu_window, Qt.MouseButton.LeftButton, pos=_row_centre(menu_window, owner)
-    )
+    QTest.mouseMove(menu_window, _row_centre(menu_window, owner))
     child_window = _wait_for_rows(CHILD_TEXTS)
     # 子层与根层是不同的原生表面。
     assert child_window is not menu_window

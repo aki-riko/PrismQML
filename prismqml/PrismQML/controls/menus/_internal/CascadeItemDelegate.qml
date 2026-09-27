@@ -149,6 +149,9 @@ Item {
         }
         onContainsMouseChanged: delegateRoot.hoverChanged()
         onClicked: {
+            // An owner row never commits: hovering opens its branch, and pressing it is
+            // an explicit request for the same thing.
+            // 父行不提交: 悬停即展开其分支, 按下它则是对同一动作的显式请求。
             if (delegateRoot.hasChildren) {
                 delegateRoot.submenuRequested()
                 return

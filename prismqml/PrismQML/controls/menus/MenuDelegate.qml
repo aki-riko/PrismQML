@@ -22,6 +22,7 @@ Item {
     property bool isSeparator: false
     property bool itemEnabled: true
     property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
+    readonly property bool hovered: delegateMouseArea.containsMouse
     readonly property var effectiveSkinContext:
         skinContext || _nearestSkinContext || Enums
     readonly property var _skin: effectiveSkinContext
@@ -40,7 +41,8 @@ Item {
     // ==================== Signals 信号 ====================
     signal clicked()
     signal pressed()
-    signal submenuRequested()  // Owner row asks for its own level 父行请求打开自身层级
+    signal hoverChanged()      // Row hover edge for the owning level 归属层用的悬停边沿
+    signal submenuRequested()  // Retained for explicit open requests 保留给显式打开请求
 
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : _skin.comboBoxMetrics.defaultWidth
@@ -136,10 +138,11 @@ Item {
         hoverEnabled: true
         enabled: !delegateRoot.isSeparator && delegateRoot.itemEnabled
         onPressed: delegateRoot.pressed()
+        onContainsMouseChanged: delegateRoot.hoverChanged()
         onClicked: {
-            // An owner row opens its own level instead of committing, exactly like an
-            // Action with hasSubmenu.
-            // 父行打开自身层级而不是提交, 与带 hasSubmenu 的 Action 一致。
+            // An owner row never commits: hovering opens its branch, and pressing it is
+            // an explicit request for the same thing.
+            // 父行不提交: 悬停即展开其分支, 按下它则是对同一动作的显式请求。
             if (delegateRoot.hasSubmenu) {
                 delegateRoot.submenuRequested()
                 return

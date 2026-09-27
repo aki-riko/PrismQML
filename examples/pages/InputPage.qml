@@ -13,6 +13,33 @@ import PrismQML as Fluent
 Item {
     id: root
     
+    // Cascade model for the default dropdown: nested nodes make the plain ComboBox a
+    // cascade level by level, no type required.
+    // 默认下拉的级联模型: 嵌套节点让普通 ComboBox 逐层级联, 无需指定 type。
+    readonly property var cascadeMenus: [
+        {
+            text: Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v),
+            children: [
+                {
+                    text: Fluent.Translator.tr("gallery_2e9414cac2cae506", Fluent.Translator._v),
+                    children: [
+                        { text: Fluent.Translator.tr("gallery_88bf5f4eea8d83fb", Fluent.Translator._v) },
+                        { text: Fluent.Translator.tr("gallery_e7ce130eda090dc3", Fluent.Translator._v) }
+                    ]
+                },
+                { text: Fluent.Translator.tr("gallery_ac7240a660d14397", Fluent.Translator._v) }
+            ]
+        },
+        {
+            text: Fluent.Translator.tr("gallery_5715f626316ce566", Fluent.Translator._v),
+            children: [
+                { text: Fluent.Translator.tr("gallery_ee410024807c0467", Fluent.Translator._v) },
+                { text: Fluent.Translator.tr("gallery_892d3dbc5120a794", Fluent.Translator._v) }
+            ]
+        },
+        { text: Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v) }
+    ]
+    
     function iconPath(name) {
         return Fluent.Enums.iconPath + name + ".svg"
     }
@@ -97,7 +124,7 @@ Item {
                     spacing: Enums.spacing.l
                     GalleryFlow {
                         spacing: Enums.spacing.l
-                        ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); ComboBox { model: [Fluent.Translator.tr("gallery_96198518dab609f0", Fluent.Translator._v), Fluent.Translator.tr("gallery_5f04a01fe105bb4d", Fluent.Translator._v), Fluent.Translator.tr("gallery_74b97119bee5c66d", Fluent.Translator._v), Fluent.Translator.tr("gallery_400823a3d4340d25", Fluent.Translator._v), Fluent.Translator.tr("gallery_3b13a36cf3789cb7", Fluent.Translator._v), Fluent.Translator.tr("gallery_a827ea9a6cf89c08", Fluent.Translator._v), Fluent.Translator.tr("gallery_c16eb8a24ffc6ce9", Fluent.Translator._v), Fluent.Translator.tr("gallery_7ddc74635d0d5e24", Fluent.Translator._v), Fluent.Translator.tr("gallery_5a4c64fc826dfedf", Fluent.Translator._v), Fluent.Translator.tr("gallery_7881ad1b2622aae3", Fluent.Translator._v)]; width: 140 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); ComboBox { model: root.cascadeMenus; width: 140 } }
                         ComponentCard { label: "style_primary"; ComboBox { style: Enums.comboBox.style_primary; model: ["Primary1", "Primary2"]; width: 140 } }
                         ComponentCard { label: "style_transparent"; ComboBox { style: Enums.comboBox.style_transparent; model: [Fluent.Translator.tr("gallery_d8efa593c9afae84", Fluent.Translator._v), Fluent.Translator.tr("gallery_c224e980b5cd88f2", Fluent.Translator._v)]; width: 140 } }
                         ComponentCard { label: "feature_editable"; ComboBox { feature: Enums.comboBox.feature_editable; model: [Fluent.Translator.tr("gallery_68c77e155132565e", Fluent.Translator._v), Fluent.Translator.tr("gallery_4906a49adc5c472b", Fluent.Translator._v), Fluent.Translator.tr("gallery_85da183b0683e5f7", Fluent.Translator._v), Fluent.Translator.tr("gallery_1bb5e3986433569c", Fluent.Translator._v), Fluent.Translator.tr("gallery_a8027f71a8e38bcb", Fluent.Translator._v), Fluent.Translator.tr("gallery_c690fe6240419c66", Fluent.Translator._v), Fluent.Translator.tr("gallery_d222587118255cbd", Fluent.Translator._v), Fluent.Translator.tr("gallery_48afd8d3b9269706", Fluent.Translator._v), Fluent.Translator.tr("gallery_e2d11378ac1898de", Fluent.Translator._v), Fluent.Translator.tr("gallery_ea31f4d6d27dd76d", Fluent.Translator._v)]; placeholderText: Fluent.Translator.tr("gallery_854f96221f84c69e", Fluent.Translator._v); width: 140 } }
@@ -153,36 +180,6 @@ Item {
                                     }
                                 ]
                             } 
-                        }
-                        ComponentCard {
-                            label: "cascade (default)"
-                            ComboBox {
-                                width: 220
-                                placeholderText: Fluent.Translator.tr("gallery_da590a8fe3ce4de0", Fluent.Translator._v)
-                                model: [
-                                    {
-                                        text: Fluent.Translator.tr("gallery_780e5b757b2d7a5b", Fluent.Translator._v),
-                                        children: [
-                                            {
-                                                text: Fluent.Translator.tr("gallery_2e9414cac2cae506", Fluent.Translator._v),
-                                                children: [
-                                                    { text: Fluent.Translator.tr("gallery_88bf5f4eea8d83fb", Fluent.Translator._v) },
-                                                    { text: Fluent.Translator.tr("gallery_e7ce130eda090dc3", Fluent.Translator._v) }
-                                                ]
-                                            },
-                                            { text: Fluent.Translator.tr("gallery_ac7240a660d14397", Fluent.Translator._v) }
-                                        ]
-                                    },
-                                    {
-                                        text: Fluent.Translator.tr("gallery_5715f626316ce566", Fluent.Translator._v),
-                                        children: [
-                                            { text: Fluent.Translator.tr("gallery_ee410024807c0467", Fluent.Translator._v) },
-                                            { text: Fluent.Translator.tr("gallery_892d3dbc5120a794", Fluent.Translator._v) }
-                                        ]
-                                    },
-                                    { text: Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v) }
-                                ]
-                            }
                         }
                         ComponentCard { label: "type_font"; ComboBox { type: Enums.comboBox.type_font; width: 160 } }
                     }

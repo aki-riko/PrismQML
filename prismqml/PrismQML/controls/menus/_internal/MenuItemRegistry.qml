@@ -11,8 +11,12 @@ QtObject {
     property var items: []
 
     // ==================== Public Methods 公开方法 ====================
+    // Only a real visual item is owned here: value objects and thrown errors must never
+    // enter the registry, because clear() destroys what it holds.
+    // 这里只持有真正的可视项: 值对象与抛出的异常绝不能进入注册表, 因为 clear() 会销毁其内容。
     function registerItem(item) {
-        if (!item || items.indexOf(item) !== -1) return
+        if (!item || typeof item.destroy !== "function") return
+        if (items.indexOf(item) !== -1) return
         items = items.concat([item])
     }
 

@@ -415,29 +415,26 @@ def test_clicking_leaf_commits_path_and_closes_cascade(scene):
         _close_all(combo)
 
 
+def test_hovering_owner_row_opens_child_level(scene):
+    """悬停父行即展开下一级, 与 Gallery 菜单的悬停级联一致。"""
+    combo = scene.findChild(QQuickItem, "cascade")
+    root_window = _open_root(combo, scene)
+    active = _active_combo(combo)
+    try:
+        _hover_owner_row(active, root_window, "Tools")
+        child_window = _wait_for_submenu_rows(active, ["Developer", "Options"])
+        assert child_window is not root_window
+    finally:
+        _close_all(combo)
+
+
 def test_default_dropdown_serves_nested_model_as_cascade(scene):
     """普通下拉遇到嵌套模型时自行提供级联, 无需调用方指定 type。"""
     combo = scene.findChild(QQuickItem, "autoCascade")
     assert combo is not None
     assert _read(combo, "type") == 0, "该用例必须使用默认 type"
-    active = _active_combo(combo)
-    print(
-        f"\n[diag] container={combo.metaObject().className()} "
-        f"active={active.metaObject().className()} "
-        f"hasPopup={active.metaObject().indexOfProperty('_popup') >= 0} "
-        f"popups={_popup_candidates(active)}",
-        flush=True,
-    )
     root_window = _open_root(combo, scene)
     active = _active_combo(combo)
-    print(
-        f"\n[diag] active={active.metaObject().className()} "
-        f"isOpen={_read(active, 'isOpen')} "
-        f"safeModel={_read(active, '_safeModel')!r} "
-        f"visibleRows={_read(active, '_visibleRows')!r} "
-        f"allWindows={[(w.isVisible(), _row_texts(w)) for w in _all_quick_windows()]}",
-        flush=True,
-    )
     try:
         rows = _cascade_rows(root_window)
         assert [str(_read(row, "text")) for row in rows] == ["File", "Tools", "Help"]
