@@ -126,6 +126,7 @@ Item {
                 case Enums.comboBox.type_multi: return "ComboBoxMulti.qml"
                 case Enums.comboBox.type_tree: return "ComboBoxTree.qml"
                 case Enums.comboBox.type_multi_tree: return "ComboBoxMultiTree.qml"
+                case Enums.comboBox.type_cascade: return "ComboBoxCascade.qml"
                 case Enums.comboBox.type_font: return "ComboBoxFont.qml"
                 default: return "ComboBoxDefault.qml"
             }
@@ -153,6 +154,11 @@ Item {
             }
             // Tree specific props 树形特有属性
             if (control.type === Enums.comboBox.type_tree || control.type === Enums.comboBox.type_multi_tree) {
+                if (item.showPathFromRoot !== undefined)
+                    item.showPathFromRoot = Qt.binding(() => control.showPathFromRoot)
+            }
+            // Cascade specific props 级联特有属性
+            if (control.type === Enums.comboBox.type_cascade) {
                 if (item.showPathFromRoot !== undefined)
                     item.showPathFromRoot = Qt.binding(() => control.showPathFromRoot)
             }
