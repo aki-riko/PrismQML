@@ -382,14 +382,13 @@ PopupWindowCore {
   var children = isText ? null : node.children
 
   if (children && typeof children.length === "number" && children.length > 0) {
-  var level = addSubmenuLevel(text, icon)
-  if (!level) continue
-  var owner = getAction(_ownerActionId(text))
-  if (owner) {
-  owner.enabled = enabled
-  created.push(owner)
+  var branch = addSubmenuLevel(text, icon)
+  if (!branch) continue
+  if (branch.action) {
+  branch.action.enabled = enabled
+  created.push(branch.action)
   }
-  level.addNodes(children, path)
+  branch.level.addNodes(children, path)
   continue
   }
 
@@ -408,7 +407,7 @@ PopupWindowCore {
  // anchored placement, hover delay, the arrow request and dismissal already wired.
  // 对应 QMenu::addMenu(title, icon): 返回的层级即该行打开的层级, 锚定定位、悬停延迟、箭头
  // 请求与收起都已接好。
- // @returns MenuCore - the level this row opens 该行打开的层级
+ // @returns object - { action: the owner row, level: the level it opens } 父行与其层级
  function addSubmenuLevel(text, icon) {
   var component = _levelComponent()
   if (!component) return null
@@ -419,17 +418,7 @@ PopupWindowCore {
   action._level = level
   _bindSubmenuAction(action, component, {})
   Qt.callLater(_updateSize)
-  return level
- }
-
- // The owner row of a data-built level 数据构建层级对应的父行
- function _ownerActionId(text) {
-  var items = _menuItems()
-  for (var i = items.length - 1; i >= 0; i--) {
-  var item = items[i]
-  if (item && item.hasSubmenu && item._level && item.text === text) return item.actionId
-  }
-  return ""
+  return { "action": action, "level": level }
  }
 
  // The level component is loaded on demand rather than declared inline: a component that
