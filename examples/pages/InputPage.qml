@@ -154,9 +154,9 @@ Item {
                                 ]
                             } 
                         }
-                        ComponentCard { 
+                        ComponentCard {
                             label: "type_cascade"
-                            ComboBox { 
+                            ComboBox {
                                 type: Enums.comboBox.type_cascade
                                 width: 220
                                 placeholderText: Fluent.Translator.tr("gallery_da590a8fe3ce4de0", Fluent.Translator._v)
@@ -183,7 +183,7 @@ Item {
                                     },
                                     { text: Fluent.Translator.tr("gallery_5395aa56194876b9", Fluent.Translator._v) }
                                 ]
-                            } 
+                            }
                         }
                         ComponentCard { label: "type_font"; ComboBox { type: Enums.comboBox.type_font; width: 160 } }
                     }
