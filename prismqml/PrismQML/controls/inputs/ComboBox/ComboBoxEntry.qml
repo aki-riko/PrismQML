@@ -27,6 +27,10 @@ Item {
     property int currentIndex: type === Enums.comboBox.type_font ? -1 : 0
     property string currentText: ""
     property string placeholderText: ""
+    // Optional external menu, forwarded to the loaded control. Same contract as
+    // Button.menu, so attaching a MenuCore is all a cascade needs here.
+    // 可选外部菜单, 转发给被加载的控件。契约与 Button.menu 相同, 因此挂上 MenuCore 即获得级联。
+    property var menu: null
     property bool asyncLoad: false
     property bool showPathFromRoot: true  // Show full path or only leaf name 显示完整路径或仅叶子名称
 
@@ -163,6 +167,7 @@ Item {
             // 持续跟随后续模型更新，同时保留 Font 默认列表。
             item.model = Qt.binding(() => control._modelForLoadedItem(item))
             item.enabled = Qt.binding(() => control.enabled)
+            if (item.menu !== undefined) item.menu = control.menu
             if (item.placeholderText !== undefined && control.placeholderText !== "")
                 item.placeholderText = Qt.binding(() => control.placeholderText)
             // Bind the external index to ComboBoxCore; Font defaults to -1

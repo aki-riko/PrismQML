@@ -49,6 +49,12 @@ Widget {
     property Component popupContent: defaultPopupContent  // Popup content component 弹出内容组件
     property Component popupDelegate: defaultDelegate  // Delegate for items (subclass override) 项目委托
     property int popupItemHeight: Enums.controlSize.inputHeight  // Item height 项目高度
+    // Optional external menu, same contract as Button.menu: anything exposing
+    // isOpen / openAtControl() / close() works, so a MenuCore can be attached directly and
+    // brings its own cascade (nested levels, hover opening, anchored placement) with it.
+    // 可选的外部菜单, 契约与 Button.menu 相同: 只要暴露 isOpen / openAtControl() / close()
+    // 即可, 因此可以直接挂上 MenuCore, 并由它自带级联能力(逐层嵌套、悬停展开、锚定定位)。
+    property var menu: null
 
     // ==================== Internal Props 内部属性 ====================
     // Internal data storage 内部数据存储
@@ -135,6 +141,15 @@ Widget {
         // Prevent duplicate open 防止重复打开
         if (isOpen) return
 
+        // An attached menu owns the dropdown entirely; the built-in candidate list stays
+        // out of the way, exactly as Button hands its dropdown to an external menu.
+        // 挂载的外部菜单完全接管下拉; 内置候选列表让位, 与 Button 把下拉交给外部菜单一致。
+        if (_useExternalMenu()) {
+            menu.openAtControl(control)
+            isOpen = true
+            return
+        }
+
         _popupContentRequested = true
         // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
         var contentW = _calcContentWidth()
@@ -156,6 +171,14 @@ Widget {
     }
 
     function closePopup() {
+        // The attached menu is closed through the same entry point that opened it, so a
+        // cascade level never outlives the dropdown that owns it.
+        // 挂载的菜单经开启它的同一入口关闭, 因此级联层绝不比拥有它的下拉存活更久。
+        if (_useExternalMenu()) {
+            if (typeof menu.close === "function") menu.close()
+            if (isOpen) isOpen = false
+            return
+        }
         if (!isOpen) return
         // Close the candidate surface first: it publishes `isClosing` synchronously, so
         // `popupVisible` never dips to false between these two writes. The open fill stays
@@ -168,6 +191,30 @@ Widget {
 
     function getCurrentIndex() { return currentIndex }
     function isEnabled() { return enabled }
+
+    // Mirrors Button's external-menu check: the attached object must actually be a menu,
+    // so a wrong value degrades to the built-in candidate list instead of breaking the
+    // dropdown.
+    // 与 Button 的外部菜单校验一致: 挂载对象必须确实是菜单, 因此误传的值会退化为内置候选
+    // 列表, 而不会让下拉失效。
+    function _useExternalMenu() {
+        if (menu === null || menu === undefined) return false
+        if (typeof menu.openAtControl !== "function") return false
+        if (typeof menu.close !== "function") return false
+        return typeof menu.isOpen === "boolean"
+    }
+
+    // A menu commit becomes this control's selection: the menu reports its own id/path,
+    // and the control keeps only what it can show in its field.
+    // 菜单提交即成为本控件的选中: 菜单上报自己的 id/路径, 控件只保留能在字段中显示的部分。
+    function _onMenuAction(actionId) {
+        var picked = typeof menu.leafPath === "function" ? menu.leafPath(actionId) : null
+        if (picked === null) return
+        currentText = picked.length > 0 ? picked[picked.length - 1] : ""
+        if (_useExternalMenu() && typeof menu.close === "function") menu.close()
+        if (isOpen) isOpen = false
+        textActivated(currentText)
+    }
 
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
     function _syncCurrentTextFromSelection() {
@@ -262,5 +309,16 @@ Widget {
         }
 
         target: editableInput
+    }
+
+    // An attached menu reports the row the user committed; the control mirrors it in its
+    // own field and lets the menu close itself.
+    // 挂载的菜单上报用户提交的行; 控件把它映射到自身字段, 菜单自行收起。
+    Connections {
+        function onActionTriggered(actionId) { control._onMenuAction(actionId) }
+        function onClosed() { if (control.isOpen) control.isOpen = false }
+
+        target: control.menu
+        ignoreUnknownSignals: true
     }
 }

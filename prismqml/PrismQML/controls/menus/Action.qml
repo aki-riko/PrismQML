@@ -24,6 +24,11 @@ Rectangle {
     property string actionId: ""         // Unique ID for targeting 唯一标识符
     property string toolTip: ""          // Hover tooltip 悬停提示
     property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
+    // The level this row opens, mirroring QAction::menu(). Owned by the menu that created
+    // it; kept here so a data-built row can carry its own submenu.
+    // 本行打开的层级, 对应 QAction::menu()。由创建它的菜单持有; 置于此处使数据构建的行能
+    // 携带自己的子菜单。
+    property var _level: null
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: itemArea.containsMouse

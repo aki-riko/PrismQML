@@ -50,6 +50,12 @@ PopupWindowCore {
  property var _pendingSubmenuComponent: null
  property var _pendingSubmenuProperties: null
  property MenuItemRegistry _itemRegistry: MenuItemRegistry {}
+ // The level component is loaded on demand rather than declared inline: a component that
+ // instantiates MenuCore cannot live inside MenuCore itself, or every menu would recurse
+ // into another menu while being built.
+ // 层级组件按需加载而非内联声明: 实例化 MenuCore 的组件不能定义在 MenuCore 内部, 否则每个
+ // 菜单在构建时都会递归地再建一个菜单。
+ property Component _menuLevelComponent: null
 
  // ==================== Signals 信号 ====================
  signal dismissed()
@@ -137,7 +143,13 @@ PopupWindowCore {
  if (_openSubmenu && _openSubmenuAction === action) return
 
  _closeOpenSubmenu()
- var submenu = submenuComponent.createObject(null, initialProperties || {})
+ // A row may already own its level (data-built cascade, QAction::menu()); reuse that
+ // instance so whatever was added to it is what actually opens.
+ // 行可能已经持有自己的层级(数据构建的级联, 即 QAction::menu()); 复用该实例, 使加入其中的
+ // 内容正是实际打开的内容。
+ var submenu = action._level !== undefined && action._level !== null
+  ? action._level
+  : submenuComponent.createObject(null, initialProperties || {})
  if (!submenu) return
 
  submenu.stealFocus = false
@@ -333,6 +345,111 @@ PopupWindowCore {
  })
  }
  
+ // Path carried by a leaf action id 叶子 action id 携带的路径
+ // A data-built level addresses its leaves by a namespaced id, so a commit at any depth
+ // can be resolved back to the path the user actually walked.
+ // 数据构建的层级以带命名空间的 id 寻址其叶子, 因此任意深度的提交都能还原为用户实际走过的路径。
+ // @param actionId: string - id reported by actionTriggered 动作上报的 id
+ // @returns array, or null when the id addresses no leaf 叶子路径; 非叶子返回 null
+ function leafPath(actionId) {
+  var id = String(actionId)
+  if (id.indexOf("leaf:") !== 0) return null
+  return id.slice(5).split("\u0001")
+ }
+
+ // Add a whole level from nested data 由嵌套数据添加一整层
+ // A node carrying children becomes an owner row whose level is built by recursing into
+ // the same children, so a caller feeds nested data straight into the menu stack and the
+ // stack carries the cascade: anchored placement, hover opening and dismissal all come
+ // from MenuCore rather than from the caller.
+ // 带 children 的节点成为父行, 其层级由对同一批子节点的递归构建而来: 调用方把嵌套数据直接
+ // 喂给菜单栈, 级联由栈承载 —— 锚定定位、悬停展开与收起都来自 MenuCore, 而非调用方。
+ // @param nodes: array of string | { text, icon, enabled, children } 节点数组
+ // @param basePath: array - path prefix of these nodes 这批节点的路径前缀
+ // @returns array of created items 创建出的项
+ function addNodes(nodes, basePath) {
+  var created = []
+  var list = nodes && typeof nodes.length === "number" ? nodes : []
+  var prefix = basePath || []
+  for (var i = 0; i < list.length; i++) {
+  var node = list[i]
+  if (node === null || node === undefined) continue
+  var isText = typeof node === "string"
+  var text = isText ? node : (node.text || "")
+  var icon = isText ? "" : (node.icon || "")
+  var enabled = isText ? true : (node.enabled === undefined ? true : !!node.enabled)
+  var path = prefix.concat([text])
+  var children = isText ? null : node.children
+
+  if (children && typeof children.length === "number" && children.length > 0) {
+  var level = addSubmenuLevel(text, icon)
+  if (!level) continue
+  var owner = getAction(_ownerActionId(text))
+  if (owner) {
+  owner.enabled = enabled
+  created.push(owner)
+  }
+  level.addNodes(children, path)
+  continue
+  }
+
+  var leaf = addAction(text, icon, "", {
+  "actionId": "leaf:" + path.join("\u0001"),
+  "enabled": enabled
+  })
+  if (leaf) created.push(leaf)
+  }
+  Qt.callLater(_updateSize)
+  return created
+ }
+
+ // Create a level and attach it to an owner row 创建层级并挂到父行上
+ // Mirrors QMenu::addMenu(title, icon): the returned level is what this row opens, with
+ // anchored placement, hover delay, the arrow request and dismissal already wired.
+ // 对应 QMenu::addMenu(title, icon): 返回的层级即该行打开的层级, 锚定定位、悬停延迟、箭头
+ // 请求与收起都已接好。
+ // @returns MenuCore - the level this row opens 该行打开的层级
+ function addSubmenuLevel(text, icon) {
+  var component = _levelComponent()
+  if (!component) return null
+  var action = addAction(text, icon, "", { "hasSubmenu": true })
+  if (!action) return null
+  var level = component.createObject(null, {})
+  if (!level) return null
+  action._level = level
+  _bindSubmenuAction(action, component, {})
+  Qt.callLater(_updateSize)
+  return level
+ }
+
+ // The owner row of a data-built level 数据构建层级对应的父行
+ function _ownerActionId(text) {
+  var items = _menuItems()
+  for (var i = items.length - 1; i >= 0; i--) {
+  var item = items[i]
+  if (item && item.hasSubmenu && item._level && item.text === text) return item.actionId
+  }
+  return ""
+ }
+
+ // The level component is loaded on demand rather than declared inline: a component that
+ // instantiates MenuCore cannot live inside MenuCore itself, or every menu would recurse
+ // into another menu while being built.
+ // 层级组件按需加载而非内联声明: 实例化 MenuCore 的组件不能定义在 MenuCore 内部, 否则每个
+ // 菜单在构建时都会递归地再建一个菜单。
+ function _levelComponent() {
+  if (_menuLevelComponent && _menuLevelComponent.status === Component.Ready) {
+  return _menuLevelComponent
+  }
+  _menuLevelComponent = Qt.createComponent(Qt.resolvedUrl("MenuCore.qml"))
+  if (_menuLevelComponent.status === Component.Error) {
+  console.warn("MenuCore level failed to load: "
+  + _menuLevelComponent.errorString())
+  return null
+  }
+  return _menuLevelComponent
+ }
+
  // Clear all items 清空所有项
  function clear() {
  _closeOpenSubmenu()
