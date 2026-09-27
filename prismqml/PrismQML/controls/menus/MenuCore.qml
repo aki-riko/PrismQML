@@ -124,7 +124,10 @@ PopupWindowCore {
  }
 
  function _bindSubmenuAction(action, submenuComponent, initialProperties) {
- if (!action || !submenuComponent) return action
+ if (!action) return action
+ var hasDataSubmenu = action._submenuData !== undefined
+  && action._submenuData !== null
+ if (!submenuComponent && !hasDataSubmenu) return action
  action.hoveredChanged.connect(function() {
  if (!action.hovered) return
  _pendingSubmenuAction = action

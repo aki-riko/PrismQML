@@ -88,6 +88,16 @@ Window {
         }
         return false
     }
+    function openRowBySignal(text) {
+        var rows = cascadeMenu._menuItems()
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].text === text && rows[i].hasSubmenu) {
+                rows[i].submenuRequested()
+                return true
+            }
+        }
+        return false
+    }
     function openChildren() {
         var open = cascadeMenu._openSubmenu
         if (!open) return []
@@ -305,6 +315,19 @@ def test_child_level_is_reachable_and_leaf_fills_field(scene):
             f"字段未回填: {_read(combo, 'currentText')!r}"
         )
         assert _wait_for(lambda: _read(menu, "isOpen") is False), "菜单未收起"
+    finally:
+        _close(combo, menu)
+
+
+def test_parent_action_signal_opens_child_level(scene):
+    """父项真实展开信号必须与直接菜单 API 使用同一条级联路径。"""
+    menu = _menu(scene)
+    combo = _open(scene.findChild(QQuickItem, "externalMenuCombo"), menu)
+    try:
+        assert scene.openRowBySignal("File"), "父项展开信号未触发"
+        assert _children(scene) == ["New", "Open"], (
+            f"父项信号未打开子层: {_children(scene)}"
+        )
     finally:
         _close(combo, menu)
 
