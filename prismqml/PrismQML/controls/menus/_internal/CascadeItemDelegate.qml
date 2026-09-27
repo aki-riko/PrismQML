@@ -3,16 +3,16 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../../../.."
-import "../../../icons"
-import "../../../data"
+import "../../.."
+import "../../icons"
+import "../../data"
 
-// CascadeItemDelegate - One row inside a cascade ComboBox popup 级联下拉框单行
-// Owner nodes with children open a sibling panel instead of selecting, so the row
+// CascadeItemDelegate - One row inside a cascade level 级联结构中的单行
+// Owner nodes with children open a sibling level instead of committing, so the row
 // carries a trailing arrow and reports a submenu request. Visual language matches
-// MenuDelegate so a cascade panel never reads as a different surface.
-// 含子节点的行打开同级面板而不是选中，因此行尾带箭头并上报子菜单请求。
-// 视觉沿用 MenuDelegate 语言，使级联面板不会看起来像另一种弹层。
+// MenuDelegate so a cascade level never reads as a different surface.
+// 含子节点的行打开同级层级而不是提交, 因此行尾带箭头并上报子菜单请求。
+// 视觉沿用 MenuDelegate 语言, 使级联层级不会看起来像另一种弹层。
 Item {
     id: delegateRoot
 

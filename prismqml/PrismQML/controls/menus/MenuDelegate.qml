@@ -21,6 +21,7 @@ Item {
     property bool selected: false
     property bool isSeparator: false
     property bool itemEnabled: true
+    property bool hasSubmenu: false       // Show submenu arrow 显示子菜单箭头
     readonly property var effectiveSkinContext:
         skinContext || _nearestSkinContext || Enums
     readonly property var _skin: effectiveSkinContext
@@ -39,6 +40,7 @@ Item {
     // ==================== Signals 信号 ====================
     signal clicked()
     signal pressed()
+    signal submenuRequested()  // Owner row asks for its own level 父行请求打开自身层级
 
     // ==================== Size 尺寸 ====================
     width: parent ? parent.width : _skin.comboBoxMetrics.defaultWidth
@@ -102,8 +104,8 @@ Item {
             anchors.left: parent.left
             // Shift text right when icon is present 有图标时文本右移
             anchors.leftMargin: delegateRoot.icon !== "" ? (_skin.spacing.l + _skin.iconSize.m + _skin.spacing.m) : _skin.spacing.l
-            anchors.right: parent.right
-            anchors.rightMargin: _skin.spacing.l
+            anchors.right: submenuArrow.left
+            anchors.rightMargin: _skin.spacing.s
             anchors.verticalCenter: parent.verticalCenter
             type: _skin.label.type_body
             text: delegateRoot.text
@@ -111,6 +113,19 @@ Item {
             wrapMode: Text.NoWrap  // Override body default WordWrap 覆盖body默认的自动换行
             maximumLineCount: 1    // Single line only 仅单行
             elide: Text.ElideRight
+        }
+
+        // Submenu arrow 子菜单箭头
+        Icon {
+            id: submenuArrow
+            anchors.right: parent.right
+            anchors.rightMargin: _skin.spacing.l
+            anchors.verticalCenter: parent.verticalCenter
+            iconSize: _skin.iconSize.xs
+            icon: _skin.icon.chevron_right
+            color: delegateRoot.itemEnabled
+                ? _skin.textColor.secondary : _skin.textColor.disabled
+            visible: delegateRoot.hasSubmenu
         }
     }
     
@@ -121,7 +136,16 @@ Item {
         hoverEnabled: true
         enabled: !delegateRoot.isSeparator && delegateRoot.itemEnabled
         onPressed: delegateRoot.pressed()
-        onClicked: delegateRoot.clicked()
+        onClicked: {
+            // An owner row opens its own level instead of committing, exactly like an
+            // Action with hasSubmenu.
+            // 父行打开自身层级而不是提交, 与带 hasSubmenu 的 Action 一致。
+            if (delegateRoot.hasSubmenu) {
+                delegateRoot.submenuRequested()
+                return
+            }
+            delegateRoot.clicked()
+        }
     }
 
 }

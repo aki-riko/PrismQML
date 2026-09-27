@@ -4,15 +4,19 @@
 
 import QtQuick
 import QtQuick as Native
-import "../../../.."
-import "../../../containers/ScrollBar"
+import "../../.."
+import "../../containers/ScrollBar"
+// The search field is shared with the ComboBox series rather than duplicated: a
+// cascade level's search box must behave exactly like a dropdown's.
+// 搜索框与 ComboBox 系列共用而非复制: 级联层的搜索框行为必须与下拉框完全一致。
+import "../../inputs/ComboBox/_internal"
 
-// CascadeRowList - One cascade level's rows 级联下拉框单层的行列表
+// CascadeRowList - One cascade level's rows 级联结构单层的行列表
 // Owns how a level looks and scrolls; it never owns a window. The root level renders
-// inside the host ComboBox popup, every deeper level inside its own popup surface, so
-// the two hosts share exactly this rendering and nothing else.
-// 持有单层的呈现与滚动, 从不持有窗口。根层渲染在宿主下拉弹层内, 更深层级渲染在各自的
-// 弹层表面内, 因此两种宿主只共享这份呈现, 不共享其他任何东西。
+// inside its host popup, every deeper level inside its own popup surface, so both hosts
+// share exactly this rendering and nothing else.
+// 持有单层的呈现与滚动, 从不持有窗口。根层渲染在宿主弹层内, 更深层级渲染在各自的弹层
+// 表面内, 因此两种宿主只共享这份呈现, 不共享其他任何东西。
 Item {
     id: rowList
 

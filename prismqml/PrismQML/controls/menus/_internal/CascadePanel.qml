@@ -3,19 +3,22 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import "../../../.."
+import "../../.."
+import "../../utils"
 import "."
 import "CascadeNodes.js" as CascadeNodes
 
-// ComboBoxCascadePanel - A deeper cascade level 级联下拉框的更深层级
+// CascadePanel - A deeper cascade level 级联结构的更深层级
 // One native popup surface per level, rendering the same CascadeRowList the root level
 // uses, so every level of a cascade reads as one control. Submenu placement, native
 // surfaces and the open/close lifecycle come from PopupWindowCore; the anchored
 // submenu entry point is owned here because only MenuCore offers one and this level is
-// a cascade panel rather than a menu.
+// a cascade panel rather than a menu. Button dropdowns and cascade combo boxes share
+// this stack instead of each carrying its own.
 // 每层一个原生弹层表面, 渲染与根层相同的 CascadeRowList, 因此级联的每一层读起来都是
 // 同一个控件。子菜单定位、原生表面与开关生命周期来自 PopupWindowCore; 锚定式子菜单入口
-// 由本组件持有, 因为只有 MenuCore 提供该入口, 而本层是级联面板而非菜单。
+// 由本组件持有, 因为只有 MenuCore 提供该入口, 而本层是级联面板而非菜单。下拉按钮与级联
+// 下拉框共用这份栈, 而非各自持有一份。
 // Each level owns at most one child level and tears it down depth-first, so a deeper
 // level can never outlive the level it came from.
 // 每层至多持有一个子层并按深度优先拆除, 更深层级绝不比其来源层存活更久。
@@ -55,9 +58,9 @@ PopupWindowCore {
     function _ensureSubmenuComponent() {
         if (_submenuComponent) return _submenuComponent
         _submenuComponent = Qt.createComponent(
-            Qt.resolvedUrl("ComboBoxCascadePanel.qml"))
+            Qt.resolvedUrl("CascadePanel.qml"))
         if (!_submenuComponent || _submenuComponent.status === Component.Error) {
-            console.warn("ComboBoxCascadePanel failed to load: "
+            console.warn("CascadePanel failed to load: "
                 + (_submenuComponent ? _submenuComponent.errorString() : "null"))
             _submenuComponent = null
         }

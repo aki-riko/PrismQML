@@ -5,8 +5,8 @@
 import QtQuick
 import "../../.."
 import ".."
-import "_internal"
-import "_internal/CascadeNodes.js" as CascadeNodes
+import "../../menus/_internal"
+import "../../menus/_internal/CascadeNodes.js" as CascadeNodes
 
 // ComboBoxCascade - Cascade (nested submenu) combo box 级联下拉框
 // The root level renders inside the host popup; every deeper level is a sibling
@@ -101,10 +101,10 @@ ComboBoxCore {
 
         if (!_submenuComponent) {
             _submenuComponent = Qt.createComponent(
-                Qt.resolvedUrl("_internal/ComboBoxCascadePanel.qml"))
+                Qt.resolvedUrl("../../menus/_internal/CascadePanel.qml"))
         }
         if (!_submenuComponent || _submenuComponent.status === Component.Error) {
-            console.warn("ComboBoxCascadePanel failed to load: "
+            console.warn("CascadePanel failed to load: "
                 + (_submenuComponent ? _submenuComponent.errorString() : "null"))
             _submenuComponent = null
             return
