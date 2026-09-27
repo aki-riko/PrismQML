@@ -135,6 +135,23 @@ def test_outside_window_owns_its_outward_shadow():
     assert "anchors.leftMargin" not in helper_source
 
 
+def test_outside_window_uses_a_window_type_that_can_take_keyboard_focus():
+    """外侧抽屉的原生窗口必须能被激活, 否则窗口内任何输入控件都拿不到键盘焦点。
+
+    Windows 给 Tool 窗口加 `WS_EX_TOOLWINDOW`, 该 HWND 从此不能被激活: 同一份外侧
+    抽屉内容, `Qt.Tool | Qt.FramelessWindowHint` 下实测 exstyle=0x00080080 / active=false /
+    `QGuiApplication.focusWindow()` 为 null, 窗口内 TextInput 的 `forceActiveFocus()` 完全
+    无效(表现即"点击搜索框无法聚焦")。宿主的"被拥有窗口"层级语义由
+    `transientParent` 承担, 不依赖窗口类型。
+    """
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "flags: Qt.Window | Qt.FramelessWindowHint" in _lines(helper_source)
+    assert "Qt.Tool" not in helper_source
+    # 抢焦点仍由用户交互触发, 不得改成为显露而主动请求激活。
+    assert "requestActivate()" not in helper_source
+
+
 def test_outside_drawer_shadow_silhouette_never_grows_past_the_panel():
     """阴影轮廓必须等于面板, 留白必须覆盖像带的完整衰减。
 

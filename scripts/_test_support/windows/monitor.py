@@ -38,6 +38,7 @@ class _RunOptions:
     timeout_exit_code: int
     cleanup_failure_exit_code: int
     visible_window_exit_code: int
+    allow_visible_windows: bool
 
 
 def _terminate_boundary_result(
@@ -161,6 +162,8 @@ def _detected_visible_window_result(
     boundary: _WindowsBoundary,
     options: _RunOptions,
 ) -> int | None:
+    if options.allow_visible_windows:
+        return None
     visible_windows = boundary.visible_job_windows()
     if not visible_windows:
         return None

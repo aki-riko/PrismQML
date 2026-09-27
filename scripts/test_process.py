@@ -300,6 +300,11 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         default="offscreen",
     )
     parser.add_argument("--timeout", type=_positive_timeout)
+    parser.add_argument(
+        "--allow-visible-windows",
+        action="store_true",
+        help="仅用于真实桌面验收; 允许子进程保留可见窗口",
+    )
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     if args.command[:1] == ["--"]:
@@ -422,7 +427,11 @@ def _normalize_child_command(command: Sequence[str]) -> tuple[str, ...]:
     return (_resolve_executable(normalized[0]), *normalized[1:])
 
 
-def run_child(command: Sequence[str], timeout: float | None = None) -> int:
+def run_child(
+    command: Sequence[str],
+    timeout: float | None = None,
+    allow_visible_windows: bool = False,
+) -> int:
     """Run one child command and preserve its raw exit status."""
     normalized_command = _normalize_child_command(command)
     if sys.platform == "win32":
@@ -433,6 +442,7 @@ def run_child(command: Sequence[str], timeout: float | None = None) -> int:
             timeout_exit_code=TEST_TIMEOUT_EXIT_CODE,
             cleanup_failure_exit_code=TEST_CLEANUP_FAILURE_EXIT_CODE,
             visible_window_exit_code=TEST_VISIBLE_WINDOW_EXIT_CODE,
+            allow_visible_windows=allow_visible_windows,
         )
         if return_code != 0:
             detail = _format_return_code(return_code)
@@ -458,10 +468,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
     qt_platform = None if args.qt_platform == "inherit" else args.qt_platform
     configure_test_launcher(qt_platform)
+    if args.allow_visible_windows:
+        os.environ["PRISMQML_ALLOW_VISIBLE_WINDOWS"] = "1"
     mark_automated_test_boundary()
     with tempfile.TemporaryDirectory(prefix="prismqml-test-config-") as directory:
         os.environ[TEST_CONFIG_FILE_ENV] = str(Path(directory) / "app.json")
-        return run_child(args.command, args.timeout)
+        return run_child(args.command, args.timeout, args.allow_visible_windows)
 
 
 if __name__ == "__main__":

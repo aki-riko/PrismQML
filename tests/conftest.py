@@ -15,11 +15,15 @@ pyproject.toml 在加载第三方插件前执行边界引导；这里自定义�
 让统一 runner 入口下的测试套件不依赖 pytest-qt 也能拿到 QApplication。
 """
 
+import os
+
 from scripts.test_process import prepare_automated_test_process
 
 # Force automated tests to stay headless and suppress native crash dialogs.
 # 强制自动化测试无界面运行，并禁止原生崩溃弹窗。
-prepare_automated_test_process()
+prepare_automated_test_process(
+    "windows" if os.environ.get("PRISMQML_ALLOW_VISIBLE_WINDOWS") == "1" else "offscreen"
+)
 
 import pytest
 

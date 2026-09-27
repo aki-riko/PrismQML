@@ -93,7 +93,6 @@ Window {
 }
 """
 
-
 def _pump(milliseconds: int = 30) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -120,7 +119,7 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
-def _create_scene():
+def _create_scene(source=SCENE_SOURCE, scene_url=SCENE_URL):
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -129,7 +128,7 @@ def _create_scene():
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
+    component.setData(source, scene_url)
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]

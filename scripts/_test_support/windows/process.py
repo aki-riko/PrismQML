@@ -472,8 +472,9 @@ def run_isolated_windows_child(
     timeout_exit_code: int,
     cleanup_failure_exit_code: int,
     visible_window_exit_code: int,
+    allow_visible_windows: bool = False,
 ) -> int:
-    """Run privately and fail when polling detects visible Job windows."""
+    """Run privately and reject visible windows unless explicitly allowed."""
     boundary = _WindowsTestBoundary(command)
     options = _RunOptions(
         timeout,
@@ -481,6 +482,7 @@ def run_isolated_windows_child(
         timeout_exit_code,
         cleanup_failure_exit_code,
         visible_window_exit_code,
+        allow_visible_windows,
     )
     try:
         result = _run_boundary(boundary, options)

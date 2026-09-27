@@ -58,7 +58,10 @@ Window {
     height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
-    flags: Qt.Tool | Qt.FramelessWindowHint
+    // The outside drawer must accept keyboard focus. 外侧抽屉必须允许键盘焦点。
+    // `transientParent` keeps the native owner and layering semantics;
+    // `transientParent` 保留原生 owner 与层级语义, 不需要用 Tool 表达。
+    flags: Qt.Window | Qt.FramelessWindowHint
     color: Enums.transparent
     // Keep the outside drawer in the host's native owner group so modal dialogs stay above it.
     // 外层抽屉保持在宿主原生 owner 组内, 确保模态选择框位于抽屉之上。
