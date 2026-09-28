@@ -184,7 +184,7 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
         assert show_timer.parent() is tooltip
         assert show_timer.property("actionControl") == action
         assert show_timer.property("tooltip") == tooltip
-        assert show_timer.property("hoverArea").parent() is action
+        assert show_timer.property("hoverArea").parent().objectName() == "actionInteraction"
         assert show_timer.property("interval") == 600
         assert show_timer.property("repeat") is False
         loaded_timers = _timers(action)
@@ -228,12 +228,12 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
             loaded_objects,
             shown_objects,
             restored_objects,
-        ) == (
-            30,
-            30,
-            36,
-            59,
-            30,
+            ) == (
+                31,
+                31,
+                37,
+                60,
+                31,
         )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
@@ -245,14 +245,18 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
 def test_action_source_loads_timer_with_tooltip():
     """The delay timer must share the tooltip lifecycle. 延迟计时器必须跟随提示生命周期。"""
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    interaction_source = (
+        SOURCE_PATH.parent / "_internal" / "ActionInteraction.qml"
+    ).read_text(encoding="utf-8")
     timer_source = TIMER_SOURCE_PATH.read_text(encoding="utf-8")
     assert "id: tipTimer" not in source
-    assert "id: actionTooltip" in source
-    assert "itemArea.containsMouse || item !== null" in source
-    assert "MenuInternal.ActionTooltipShowTimer {" in source
-    assert "actionControl: control" in source
-    assert "hoverArea: itemArea" in source
-    assert "tooltip: actionTooltip" in source
+    assert "MenuInternal.ActionInteraction {" in source
+    assert "id: actionTooltip" in interaction_source
+    assert "itemArea.containsMouse || item !== null" in interaction_source
+    assert "ActionTooltipShowTimer {" in interaction_source
+    assert "actionControl: interaction.actionControl" in interaction_source
+    assert "hoverArea: itemArea" in interaction_source
+    assert "tooltip: actionTooltip" in interaction_source
     assert 'running: actionControl.toolTip !== "" && hoverArea.containsMouse' in timer_source
     assert "onTriggered: tooltip.show()" in timer_source
 

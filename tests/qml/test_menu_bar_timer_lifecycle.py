@@ -299,9 +299,9 @@ def test_menu_bar_close_timer_and_native_popup_lifecycle(qapp):
         # Four unopened menus no longer instantiate one native Window each.
         # 四个未打开菜单不再各自提前实例化一个原生 Window。
         if os.name == "nt":
-            # Popup helpers add eight stable objects; four MenuItemRegistry owners add four more.
-            # Popup helper 稳定增加八个对象；四个 MenuItemRegistry owner 再增加四个。
-            assert initial_objects <= 387
+            # Popup, registry and action helpers add stable native-free owners.
+            # Popup、注册表与操作 helper 仅增加稳定的非原生 owner。
+            assert initial_objects <= 391
         else:
             assert initial_objects > 0
         assert restored_objects == initial_objects

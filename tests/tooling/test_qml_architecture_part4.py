@@ -75,22 +75,31 @@ def test_tooltip_core_keeps_follow_anchor_timer_modularized():
 
 def test_action_keeps_tooltip_show_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/menus/Action.qml")
+    interaction = _source(
+        "prismqml/PrismQML/controls/menus/_internal/ActionInteraction.qml"
+    )
     helper = _source(
         "prismqml/PrismQML/controls/menus/_internal/ActionTooltipShowTimer.qml"
     )
     source = entry.read_text(encoding="utf-8")
+    interaction_source = interaction.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 220
+    assert interaction.exists()
+    assert len(interaction_source.splitlines()) < 100
     assert helper.exists()
     assert len(helper_source.splitlines()) < 25
     assert 'import "_internal" as MenuInternal' in source
-    assert "MenuInternal.ActionTooltipShowTimer {" in source
-    assert "id: tooltipShowTimer" in source
-    assert "actionControl: control" in source
-    assert "hoverArea: itemArea" in source
-    assert "tooltip: actionTooltip" in source
-    assert "\n            Timer {" not in source
+    assert "MenuInternal.ActionInteraction {" in source
+    assert "required property var actionControl" in interaction_source
+    assert "readonly property alias hoverArea: itemArea" in interaction_source
+    assert "ActionTooltipShowTimer {" in interaction_source
+    assert "id: tooltipShowTimer" in interaction_source
+    assert "actionControl: interaction.actionControl" in interaction_source
+    assert "hoverArea: itemArea" in interaction_source
+    assert "tooltip: actionTooltip" in interaction_source
+    assert "\n            Timer {" not in interaction_source
     assert "required property var actionControl" in helper_source
     assert "required property var hoverArea" in helper_source
     assert "required property var tooltip" in helper_source
@@ -308,8 +317,13 @@ def test_desktop_notification_keeps_auto_close_timer_modularized():
         "prismqml/PrismQML/controls/feedback/Notification/_internal/"
         "DesktopNotificationAutoCloseTimer.qml"
     )
+    click_area = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "DesktopNotificationClickArea.qml"
+    )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
+    click_area_source = click_area.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 235
     assert helper.exists()
@@ -325,6 +339,10 @@ def test_desktop_notification_keeps_auto_close_timer_modularized():
     assert 'objectName: "desktopNotificationAutoCloseTimer"' in helper_source
     assert "interval: host.duration" in helper_source
     assert "onTriggered: host.hide()" in helper_source
+    assert click_area.exists()
+    assert "DesktopNotificationClickArea {" in source
+    assert "required property var host" in click_area_source
+    assert "onClicked: clickArea.host.clicked()" in click_area_source
 
 def test_notification_animator_keeps_geometry_update_timer_modularized():
     entry = _source(

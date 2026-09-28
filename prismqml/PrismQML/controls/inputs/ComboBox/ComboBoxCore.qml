@@ -73,7 +73,7 @@ Widget {
     property alias mouseArea: comboContent.mouseArea
     property alias editableClickArea: comboContent.editableClickArea
     property alias comboTextMeasureLoader: comboContent.comboTextMeasureLoader
-    readonly property var _cascadeMenu: cascadeMenuLoader.item
+    readonly property var _cascadeMenu: cascadeController.menu
 
     // ==================== Readonly State 只读状态 ====================
     // Editable mode input focus state editable模式输入框聚焦状态
@@ -141,100 +141,11 @@ Widget {
     function setItemEnabled(index, isEnabled) { _methods.setItemEnabled(control, index, isEnabled) }
     function isItemEnabled(index) { return _methods.isItemEnabled(control, index) }
 
-    function _modelHasChildren(values) {
-        var items = values === null || values === undefined ? [] : values
-        if (typeof items.length !== "number") return false
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i]
-            if (item && typeof item === "object"
-                    && item.children && typeof item.children.length === "number"
-                    && item.children.length > 0) return true
-        }
-        return false
-    }
-
-    function _syncCascadeMenu() {
-        if (!_cascadeMenu || !_modelHasChildren(_safeModel)
-                || _cascadeSyncedRevision === _cascadeModelRevision) return
-        if (_cascadeMenu.isOpen) _cascadeMenu.close()
-        _cascadeMenu.clear()
-        _cascadeMenu.addNodes(_safeModel, [])
-        _cascadeSyncedRevision = _cascadeModelRevision
-    }
-
-    function _menuIndexForPath(path) {
-        if (!path || path.length === 0) return -1
-        for (var i = 0; i < _safeModel.length; i++) {
-            if (_getItemText(i) === path[0]) return i
-        }
-        return -1
-    }
-
-    function openPopup() {
-        // Prevent duplicate open 防止重复打开
-        if (isOpen) return
-
-        // An attached menu owns the dropdown entirely; the built-in candidate list stays
-        // out of the way, exactly as Button hands its dropdown to an external menu.
-        // 挂载的外部菜单完全接管下拉; 内置候选列表让位, 与 Button 把下拉交给外部菜单一致。
-        if (_useExternalMenu()) {
-            menu.openAtControl(control)
-            isOpen = true
-            return
-        }
-
-        if (_modelHasChildren(_safeModel)) {
-            _syncCascadeMenu()
-            if (_cascadeMenu) {
-                _cascadeMenu.openAtControl(control)
-                isOpen = true
-                return
-            }
-        }
-
-        _popupContentRequested = true
-        // Calculate popup width: max(content width, control width) 弹出宽度：取内容宽度和控件宽度的最大值
-        var contentW = _calcContentWidth()
-        _popup.popupWidth = popupWidthOverride > 0
-            ? popupWidthOverride : Math.max(contentW, control.width)
-        // Let PopupWindowCore add its content padding exactly once.
-        // 由 PopupWindowCore 统一补入一次内容内边距。
-        // Reserve room for the candidates actually shown, which the type-to-search
-        // filter may have narrowed. 只为实际可见的候选预留高度, 输入即搜索可能已收窄候选。
-        var itemCount = _search.visibleModel.length
-        var maxContentHeight = maxVisibleItems > 0
-            ? maxVisibleItems * popupItemHeight
-            : Math.max(0, Enums.comboBoxMetrics.popupMaxHeight
-                - 2 * _popup.contentPadding)
-        _popup.implicitContentHeight = Math.min(
-            itemCount * popupItemHeight, maxContentHeight)
-        _popup.openAtControl(control)
-        isOpen = true
-    }
-
-    function closePopup() {
-        // The attached menu is closed through the same entry point that opened it, so a
-        // cascade level never outlives the dropdown that owns it.
-        // 挂载的菜单经开启它的同一入口关闭, 因此级联层绝不比拥有它的下拉存活更久。
-        if (_useExternalMenu()) {
-            if (typeof menu.close === "function") menu.close()
-            if (isOpen) isOpen = false
-            return
-        }
-        if (_modelHasChildren(_safeModel)) {
-            if (_cascadeMenu && _cascadeMenu.isOpen) _cascadeMenu.close()
-            if (isOpen) isOpen = false
-            return
-        }
-        if (!isOpen) return
-        // Close the candidate surface first: it publishes `isClosing` synchronously, so
-        // `popupVisible` never dips to false between these two writes. The open fill stays
-        // locked and the type-to-search query stays alive for the whole close animation.
-        // 先关闭候选表面: 它同步发布 isClosing, 因此 popupVisible 不会在这两次写入之间掉到
-        // false —— 展开底色与输入即搜索查询在整个关闭动画期间保持不变。
-        _popup.close()
-        isOpen = false
-    }
+    function _modelHasChildren(values) { return cascadeController.modelHasChildren(values) }
+    function _syncCascadeMenu() { cascadeController.sync() }
+    function _menuIndexForPath(path) { return cascadeController.menuIndexForPath(path) }
+    function openPopup() { cascadeController.openPopup() }
+    function closePopup() { cascadeController.closePopup() }
 
     function getCurrentIndex() { return currentIndex }
     function isEnabled() { return enabled }
@@ -254,20 +165,9 @@ Widget {
     // A menu commit becomes this control's selection: the menu reports its own id/path,
     // and the control keeps only what it can show in its field.
     // 菜单提交即成为本控件的选中: 菜单上报自己的 id/路径, 控件只保留能在字段中显示的部分。
-    function _onMenuAction(sourceMenu, actionId) {
-        var picked = sourceMenu && typeof sourceMenu.leafPath === "function"
-            ? sourceMenu.leafPath(actionId) : null
-        if (picked === null) return
-        currentText = picked.length > 0 ? picked[picked.length - 1] : ""
-        var selectedIndex = _menuIndexForPath(picked)
-        if (selectedIndex >= 0) currentIndex = selectedIndex
-        if (sourceMenu && typeof sourceMenu.close === "function") sourceMenu.close()
-        if (isOpen) isOpen = false
-        textActivated(currentText)
-    }
-
-    function _onExternalMenuAction(actionId) { _onMenuAction(menu, actionId) }
-    function _onCascadeMenuAction(actionId) { _onMenuAction(_cascadeMenu, actionId) }
+    function _onMenuAction(sourceMenu, actionId) { cascadeController.onMenuAction(sourceMenu, actionId) }
+    function _onExternalMenuAction(actionId) { cascadeController.onMenuAction(menu, actionId) }
+    function _onCascadeMenuAction(actionId) { cascadeController.onMenuAction(_cascadeMenu, actionId) }
 
     function _getItemText(index) { return _methods.getItemText(_safeModel || [], index) }
     function _syncCurrentTextFromSelection() {
@@ -331,6 +231,11 @@ Widget {
         comboControl: control
     }
 
+    ComboBoxCascade {
+        id: cascadeController
+        comboControl: control
+    }
+
     // Type-to-search state shared by the editable input, the candidate list and the
     // delegate's index mapping. Filtering runs only while the candidate row owns the
     // visible-row to source-index mapping: a custom popupDelegate keeps the full list,
@@ -369,29 +274,4 @@ Widget {
     // An attached menu reports the row the user committed; the control mirrors it in its
     // own field and lets the menu close itself.
     // 挂载的菜单上报用户提交的行; 控件把它映射到自身字段, 菜单自行收起。
-    Connections {
-        function onActionTriggered(actionId) { control._onExternalMenuAction(actionId) }
-        function onClosed() { if (control.isOpen) control.isOpen = false }
-
-        target: control.menu
-        ignoreUnknownSignals: true
-    }
-
-    Connections {
-        function onActionTriggered(actionId) { control._onCascadeMenuAction(actionId) }
-        function onClosed() { if (control.isOpen) control.isOpen = false }
-
-        target: control._cascadeMenu
-        ignoreUnknownSignals: true
-    }
-
-    Loader {
-        id: cascadeMenuLoader
-        active: control._modelHasChildren(control._safeModel)
-
-        sourceComponent: MenuCore {
-            useQtPopupWindow: true
-            closeOnClickOutside: control.popupCloseOnClickOutside
-        }
-    }
 }

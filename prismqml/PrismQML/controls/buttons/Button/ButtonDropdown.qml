@@ -45,7 +45,7 @@ Item {
     property int _cascadeSyncedRevision: -1
     property int _animationDuration
 
-    readonly property var _internalMenu: internalMenuLoader.item
+    readonly property var _internalMenu: menuHost.menu
     readonly property var _cascadeMenu: cascadeMenuLoader.item
     readonly property var _safeMenuItems:
         menuItems === null || menuItems === undefined ? []
@@ -130,7 +130,7 @@ Item {
     function _ensureInternalMenu() {
         if (_hasExternalMenu || _hasCascadeItems) return null
         if (!_internalMenuRequested) _internalMenuRequested = true
-        return internalMenuLoader.item
+        return menuHost.menu
     }
 
     function _itemsHaveChildren(items) {
@@ -303,108 +303,12 @@ Item {
     
     // Dropdown menu host is created on hover, focus, or direct open intent.
     // 下拉菜单宿主仅在悬浮、焦点或直接打开意图出现时创建。
-    Loader {
-        id: internalMenuLoader
-        active: dropdownFeature._internalMenuRequested
-
-        sourceComponent: PopupWindowCore {
-            id: dropDownMenu
-
-            // Calculate item height without the core-owned popup padding.
-            // 计算不含基类弹层内边距的项目高度。
-            readonly property int _itemsHeight: {
-                var h = 0
-                for (var i = 0; i < dropdownFeature._safeMenuItems.length; i++) {
-                    var item = dropdownFeature._safeMenuItems[i]
-                    var text = item && typeof item === "object" ? (item.text || item) : (item || "")
-                    h += (text === "-") ? skinContext.controlSize.menuSeparatorHeight : skinContext.comboBoxMetrics.itemHeight
-                }
-                return h
-            }
-            readonly property int _maxContentHeight: Math.max(
-                0, skinContext.comboBoxMetrics.popupMaxHeight - 2 * contentPadding)
-            readonly property bool _needsScroll: _itemsHeight > _maxContentHeight
-            readonly property var _textMeasure: menuContentLoader.item
-                ? menuContentLoader.item.textMeasure : null
-
-            skinContext: dropdownFeature.skinContext
-            implicitContentHeight: Math.min(_itemsHeight, _maxContentHeight)
-            closeOnClickOutside: true
-            // Keep button menus in a native popup so they may cross the owner boundary.
-            // 按钮菜单使用原生弹窗，以保持左侧锚定并允许跨越宿主窗口边界。
-            useQtPopupWindow: true
-
-            Loader {
-                id: menuContentLoader
-                anchors.fill: parent
-                active: dropdownFeature._menuContentRequested
-
-                sourceComponent: Item {
-                    readonly property alias textMeasure: textMeasure
-
-                    // TextMetrics to measure menu item text width 用TextMetrics测量菜单项文本宽度
-                    TextMetrics {
-                        id: textMeasure
-                        font.family: skinContext.fontFamily
-                        font.pixelSize: fontSize > 0 ? fontSize : skinContext.typography.body
-                    }
-
-                    Flickable {
-                        id: menuFlickable
-                        anchors.fill: parent
-                        anchors.rightMargin: dropDownMenu._needsScroll
-                                             ? skinContext.comboBoxMetrics.scrollBarRightMargin : 0
-                        contentWidth: width
-                        contentHeight: menuColumn.height
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
-                        interactive: false  // Disable native scroll, use smooth scroll 禁用原生滚动，使用平滑滚动
-
-                        // Smooth scroll 平滑滚动
-                        PopupSmoothScroll {
-                            flickable: menuFlickable
-                            enabled: dropDownMenu._needsScroll
-                        }
-
-                        Column {
-                            id: menuColumn
-                            width: parent.width
-
-                            Repeater {
-                                model: dropdownFeature._safeMenuItems
-
-                                MenuDelegate {
-                                    width: menuColumn.width
-                                    text: modelData && typeof modelData === "object"
-                                          ? (modelData.text || modelData) : (modelData || "")
-                                    icon: modelData && typeof modelData === "object"
-                                          ? (modelData.icon || "") : ""
-                                    isSeparator: text === "-"
-                                    onClicked: {
-                                        dropDownMenu.close()
-                                        dropdownFeature.menuItemClicked(index, text)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Scrollbar 滚动条
-                    Loader {
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        anchors.margins: skinContext.spacing.xxs
-                        width: skinContext.comboBoxMetrics.scrollBarWidth
-                        active: dropDownMenu._needsScroll
-                        sourceComponent: ScrollBarEntry {
-                            flickable: menuFlickable
-                            width: skinContext.comboBoxMetrics.scrollBarWidth
-                        }
-                    }
-                }
-            }
-        }
+    ButtonInternal.ButtonDropdownMenuHost {
+        id: menuHost
+        anchors.fill: parent
+        dropdownControl: dropdownFeature
+        skinContext: dropdownFeature.skinContext
+        fontSize: dropdownFeature.fontSize
     }
 
     Loader {

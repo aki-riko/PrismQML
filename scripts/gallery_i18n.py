@@ -15,6 +15,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+if __package__:
+    from ._qml_lint.qml_lexer import sanitize_qml
+else:
+    from _qml_lint.qml_lexer import sanitize_qml
+
 
 logger = logging.getLogger("prismqml.gallery_i18n")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -115,6 +120,10 @@ def _tr_expression(key: str) -> str:
 
 def _localize_content(content: str) -> tuple[str, list[GalleryString]]:
     strings: dict[str, GalleryString] = {}
+    code_mask = sanitize_qml(content, mask_strings=True, mark_values=True)
+
+    def is_code_match(match: re.Match[str]) -> bool:
+        return "v" in code_mask[match.start() : match.end()]
 
     def item(value: str) -> GalleryString:
         result = GalleryString(translation_key(value), value)
@@ -122,30 +131,41 @@ def _localize_content(content: str) -> tuple[str, list[GalleryString]]:
         return result
 
     def replace_property(match: re.Match[str]) -> str:
+        if not is_code_match(match):
+            return match.group(0)
         value = _decode_qml_string(match.group("value"))
         if not _is_user_visible(value):
             return match.group(0)
         return match.group("prefix") + _tr_expression(item(value).key)
 
     localized = PROPERTY_PATTERN.sub(replace_property, content)
+    code_mask = sanitize_qml(localized, mask_strings=True, mark_values=True)
 
     def replace_dynamic(match: re.Match[str]) -> str:
+        if not is_code_match(match):
+            return match.group(0)
         value = _decode_qml_string(match.group("value"))
         if not _is_user_visible(value):
             return match.group(0)
         return f'Fluent.Translator.tr("{item(value).key}") + {match.group("expression")}'
 
     localized = DYNAMIC_PATTERN.sub(replace_dynamic, localized)
+    code_mask = sanitize_qml(localized, mask_strings=True, mark_values=True)
 
     def replace_dynamic_suffix(match: re.Match[str]) -> str:
+        if not is_code_match(match):
+            return match.group(0)
         value = _decode_qml_string(match.group("value"))
         if not _is_user_visible(value):
             return match.group(0)
         return f'{match.group("expression")} + Fluent.Translator.tr("{item(value).key}")'
 
     localized = DYNAMIC_SUFFIX_PATTERN.sub(replace_dynamic_suffix, localized)
+    code_mask = sanitize_qml(localized, mask_strings=True, mark_values=True)
 
     def replace_cjk_literal(match: re.Match[str]) -> str:
+        if not is_code_match(match):
+            return match.group(0)
         value = _decode_qml_string(match.group("value"))
         if not re.search(r"[\u3400-\u9fff]", value):
             return match.group(0)

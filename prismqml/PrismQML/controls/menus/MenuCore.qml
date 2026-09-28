@@ -50,6 +50,7 @@ PopupWindowCore {
  property var _pendingSubmenuComponent: null
  property var _pendingSubmenuProperties: null
  property MenuItemRegistry _itemRegistry: MenuItemRegistry {}
+ property alias _actions: menuActions
  // The level component is loaded on demand rather than declared inline: a component that
  // instantiates MenuCore cannot live inside MenuCore itself, or every menu would recurse
  // into another menu while being built.
@@ -80,6 +81,10 @@ PopupWindowCore {
 
  function _menuItems() {
  return _itemRegistry.liveItems()
+ }
+
+ function _createDataSubmenuComponent() {
+ return Qt.createComponent(Qt.resolvedUrl("SystemTrayMenu.qml"))
  }
 
  function _calcWidth() {
@@ -233,32 +238,9 @@ PopupWindowCore {
  _openAtPosition(windowPos.x, windowPos.y, true)
  }
 
- // Add custom widget to menu 添加自定义组件
- // @param widget: Item - the widget to add
- // @param selectable: bool - whether clickable (default false)
- // @param onClick: function - click callback
- function addWidget(widget, selectable, onClick) {
- if (!widget) return
- widget.parent = menuContent.itemContainer
- _registerMenuItem(widget)
- widget.width = Qt.binding(function() { return menuContent.itemContainer.width })
+  function addWidget(widget, selectable, onClick) { return menuActions.addWidget(widget, selectable, onClick) }
  
- if (selectable && onClick) {
- // Create mouse area for selectable widgets 为可选组件创建鼠标区域
- var ma = mouseAreaComponent.createObject(widget, {
- "anchors.fill": widget,
- "onClicked": onClick
- })
- }
- Qt.callLater(_updateSize)
- }
- 
- // Add separator to menu 添加分隔线
- function addSeparator() {
- var separator = separatorComponent.createObject(menuContent.itemContainer)
- _registerMenuItem(separator)
- Qt.callLater(_updateSize)
- }
+  function addSeparator() { return menuActions.addSeparator() }
  
  // Add action to menu 添加动作
  // @param text: string - action text
@@ -288,147 +270,21 @@ PopupWindowCore {
  return action
  }
  
- // Add multiple actions 批量添加动作
- // @param actions: array of {text, icon, shortcut, ...options}
- function addActions(actionsArray) {
- var actions = actionsArray && typeof actionsArray.length === "number" ? actionsArray : []
- for (var i = 0; i < actions.length; i++) {
- var a = actions[i]
- if (!a) continue
- addAction(a.text, a.icon, a.shortcut, a)
- }
- }
+  function addActions(actionsArray) { return menuActions.addActions(actionsArray) }
  
- // Get action by ID 按ID获取动作
- // @param actionId: string
- // @returns Action item or null
- function getAction(actionId) {
- var items = _menuItems()
- for (var i = 0; i < items.length; i++) {
- var child = items[i]
- if (child && child.actionId === actionId) return child
- }
- return null
- }
+  function getAction(actionId) { return menuActions.getAction(actionId) }
  
- // Update action properties by ID 按ID更新动作属性
- // @param actionId: string
- // @param props: object - {text, icon, shortcut, checkable, checked, enabled, toolTip}
- function updateAction(actionId, props) {
- var action = getAction(actionId)
- if (!action) return false
- if (props.text !== undefined) action.text = props.text
- if (props.icon !== undefined) action.icon = props.icon
- if (props.shortcut !== undefined) action.shortcut = props.shortcut
- if (props.checkable !== undefined) action.checkable = props.checkable
- if (props.checked !== undefined) action.checked = props.checked
- if (props.enabled !== undefined) action.enabled = props.enabled
- if (props.toolTip !== undefined) action.toolTip = props.toolTip
- Qt.callLater(_updateSize)
- return true
- }
+  function updateAction(actionId, props) { return menuActions.updateAction(actionId, props) }
  
- // Remove action by ID 按ID删除动作
- // @param actionId: string
- function removeAction(actionId) {
- var action = getAction(actionId)
- if (action) {
- _unregisterMenuItem(action)
- action.destroy()
- Qt.callLater(_updateSize)
- return true
- }
- return false
- }
+  function removeAction(actionId) { return menuActions.removeAction(actionId) }
  
- // Add submenu 添加子菜单
- // @param text: string - parent action text
- // @param icon: string - icon name
- // @param submenuComponent: Component - the submenu component to show
- // @returns Action item
- function addSubmenu(text, icon, submenuComponent) {
- var action = addAction(text, icon, "", { hasSubmenu: true })
- return _bindSubmenuAction(action, submenuComponent, {})
- }
+  function addSubmenu(text, icon, submenuComponent) { return menuActions.addSubmenu(text, icon, submenuComponent) }
 
- // Add data-backed submenu 添加数据驱动子菜单
- function addSubmenuActions(text, icon, actionsArray) {
- var action = addAction(text, icon, "", {
- "actionId": "_submenu_" + text,
- "hasSubmenu": true
- })
- var submenuComponent = Qt.createComponent(Qt.resolvedUrl("SystemTrayMenu.qml"))
- return _bindSubmenuAction(action, submenuComponent, {
- "initialActions": actionsArray || []
- })
- }
+  function addSubmenuActions(text, icon, actionsArray) { return menuActions.addSubmenuActions(text, icon, actionsArray) }
  
- // Path carried by a leaf action id 叶子 action id 携带的路径
- // A data-built level addresses its leaves by a namespaced id, so a commit at any depth
- // can be resolved back to the path the user actually walked.
- // 数据构建的层级以带命名空间的 id 寻址其叶子, 因此任意深度的提交都能还原为用户实际走过的路径。
- // @param actionId: string - id reported by actionTriggered 动作上报的 id
- // @returns array, or null when the id addresses no leaf 叶子路径; 非叶子返回 null
- function leafPath(actionId) {
-  var id = String(actionId)
-  if (id.indexOf("leaf:") !== 0) return null
-  return id.slice(5).split("\u0001")
- }
+  function leafPath(actionId) { return menuActions.leafPath(actionId) }
 
- // Add a whole level from nested data 由嵌套数据添加一整层
- // A node carrying children becomes an owner row whose level is built by recursing into
- // the same children, so a caller feeds nested data straight into the menu stack and the
- // stack carries the cascade: anchored placement, hover opening and dismissal all come
- // from MenuCore rather than from the caller.
- // 带 children 的节点成为父行, 其层级由对同一批子节点的递归构建而来: 调用方把嵌套数据直接
- // 喂给菜单栈, 级联由栈承载 —— 锚定定位、悬停展开与收起都来自 MenuCore, 而非调用方。
- // @param nodes: array of string | { text, icon, enabled, children } 节点数组
- // @param basePath: array - path prefix of these nodes 这批节点的路径前缀
- // @returns array of created items 创建出的项
- function addNodes(nodes, basePath) {
-  var created = []
-  var list = nodes && typeof nodes.length === "number" ? nodes : []
-  var prefix = basePath || []
-  for (var i = 0; i < list.length; i++) {
-  var node = list[i]
-  if (node === null || node === undefined) continue
-  var isText = typeof node === "string"
-  var text = isText ? node : (node.text || "")
-  var icon = isText ? "" : (node.icon || "")
-  var enabled = isText ? true : (node.enabled === undefined ? true : !!node.enabled)
-  var path = prefix.concat([text])
-  var children = isText ? null : node.children
-
-  if (children && typeof children.length === "number" && children.length > 0) {
-  var owner = addAction(text, icon, "", {
-  "hasSubmenu": true,
-  "enabled": enabled
-  })
-  if (!owner) continue
-  // The row carries its own data; the level is built when it opens, so a level that was
-  // destroyed by a sibling branch is rebuilt instead of being reused as a dead object.
-  // 父行携带自身数据; 层级在打开时才构建, 因此被同级分支销毁过的层级会被重建, 而不是被当作
-  // 已死对象复用。
-  owner._submenuData = { "nodes": children, "basePath": path }
-  // Hover delay and the arrow request are the menu stack's job, so a data-built row gets
-  // the same wiring a hand-written Action gets; the component argument is unused because
-  // the level is rebuilt from the row's own data.
-  // 悬停延迟与箭头请求由菜单栈负责, 因此数据构建的父行获得与手写 Action 相同的接线; 组件参数
-  // 不会被用到, 因为层级是由父行自身数据重建的。
-  _bindSubmenuAction(owner, null, {})
-  created.push(owner)
-  continue
-  }
-
-  var leaf = addAction(text, icon, "", {
-  "actionId": "leaf:" + path.join("\u0001"),
-  "enabled": enabled
-  })
-  if (leaf) created.push(leaf)
-  }
-  Qt.callLater(_updateSize)
-  return created
- }
+  function addNodes(nodes, basePath) { return menuActions.addNodes(nodes, basePath) }
 
  // The level component is loaded on demand rather than declared inline: a component that
  // instantiates MenuCore cannot live inside MenuCore itself, or every menu would recurse
@@ -515,6 +371,14 @@ PopupWindowCore {
  id: submenuOpenTimer
  host: control
  }
+
+  MenuActions {
+  id: menuActions
+  host: control
+  itemContainer: menuContent.itemContainer
+  separatorFactory: separatorComponent
+  mouseAreaFactory: mouseAreaComponent
+  }
  
  MenuContent {
  id: menuContent

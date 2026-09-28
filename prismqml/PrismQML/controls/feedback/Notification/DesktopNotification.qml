@@ -225,11 +225,8 @@ Window {
             onClicked: control.hide()
         }
         
-        // Click area 点击区域
-        MouseArea {
-            anchors.fill: parent
-            z: Enums.zIndex.background
-            onClicked: control.clicked()
+        NotificationInternal.DesktopNotificationClickArea {
+            host: control
         }
     }
 }

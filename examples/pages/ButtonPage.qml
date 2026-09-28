@@ -15,20 +15,20 @@ Item {
     readonly property int _flowSpacing: Fluent.Enums.spacing.l
     readonly property var cascadeMenuItems: [
         {
-            text: "通知",
+            text: Fluent.Translator.tr("gallery_4b6ded8a7f181397", Fluent.Translator._v),
             children: [
-                { text: "窗口内部" },
-                { text: "窗口外部" }
+                { text: Fluent.Translator.tr("gallery_e70b45ef67e88235", Fluent.Translator._v) },
+                { text: Fluent.Translator.tr("gallery_a84df74251f7f8da", Fluent.Translator._v) }
             ]
         },
         {
-            text: "消息条",
+            text: Fluent.Translator.tr("gallery_8c2a398b8ff2e713", Fluent.Translator._v),
             children: [
-                { text: "左上位置" },
-                { text: "右上位置" }
+                { text: Fluent.Translator.tr("gallery_a59f733a80883766", Fluent.Translator._v) },
+                { text: Fluent.Translator.tr("gallery_37a1933200b062da", Fluent.Translator._v) }
             ]
         },
-        { text: "桌面" }
+        { text: Fluent.Translator.tr("gallery_f48d334495f6e4f4", Fluent.Translator._v) }
     ]
 
     MenuCore {

@@ -266,7 +266,10 @@ def _open(container: QQuickItem, menu: QQuickItem) -> QQuickItem:
 def _close(combo: QQuickItem, menu: QQuickItem) -> None:
     combo.closePopup()
     _wait_for(lambda: _read(menu, "isOpen") is False)
-    _pump(120)
+    assert _wait_for(lambda: _read(menu, "isClosing") is False)
+    native_window = _read(menu, "_popupWindow")
+    if native_window is not None:
+        assert _wait_for(lambda: not native_window.isVisible())
 
 
 def test_attached_menu_owns_the_dropdown(scene):

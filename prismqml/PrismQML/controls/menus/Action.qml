@@ -37,10 +37,10 @@ Rectangle {
     property var _submenuData: null
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool hovered: itemArea.containsMouse
+    readonly property bool hovered: actionInteraction.hoverArea.containsMouse
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
-    readonly property bool _touchActive: Touch.feedback(hovered, itemArea.pressed)
+    readonly property bool _touchActive: Touch.feedback(hovered, actionInteraction.hoverArea.pressed)
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
@@ -87,7 +87,7 @@ Rectangle {
     // 上视觉过弱 (#fafafa vs 白底, 仅 2% 差) 几乎看不到 hover 反馈。
     color: {
         if (!enabled) return Enums.transparent
-        if (itemArea.pressed) return _itemPressedColor
+        if (actionInteraction.hoverArea.pressed) return _itemPressedColor
         if (checkable && checked) return _itemPressedColor
         if (_touchActive) return _itemHoverColor
         return Enums.transparent
@@ -177,53 +177,8 @@ Rectangle {
         visible: control.hasSubmenu && !control._isBottomText
     }
     
-    // Load on first hover, then retain until text clears 首次悬停时加载，文本清空前保持复用
-    Loader {
-        id: tipLoader
-
-        objectName: "actionTooltipLoader"
-        active: control.toolTip !== ""
-                && (itemArea.containsMouse || item !== null)
-        sourceComponent: TooltipCore {
-            id: actionTooltip
-
-            text: control.toolTip
-            x: itemArea.mouseX + Enums.spacing.m
-            y: control.height + Enums.spacing.xxs
-
-            MenuInternal.ActionTooltipShowTimer {
-                id: tooltipShowTimer
-
-                actionControl: control
-                hoverArea: itemArea
-                tooltip: actionTooltip
-            }
-        }
-    }
-    
-    // Mouse area 鼠标区域
-    MouseArea {
-        id: itemArea
-        anchors.fill: parent
-        hoverEnabled: true
-        enabled: control.enabled
-        cursorShape: Qt.ArrowCursor
-        onPressed: {
-            control._stabilizePopupAncestor()
-            control.pressed()
-        }
-        onContainsMouseChanged: {
-            if (!containsMouse) {
-                if (tipLoader.item) tipLoader.item.hide()
-            }
-        }
-        onClicked: {
-            if (control.hasSubmenu) {
-                control.submenuRequested()
-                return
-            }
-            if (control.checkable) control.checked = !control.checked
-            control.triggered()
-        }
+    MenuInternal.ActionInteraction {
+        id: actionInteraction
+        actionControl: control
     }
 }
