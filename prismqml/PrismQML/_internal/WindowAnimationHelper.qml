@@ -27,6 +27,8 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     property real animScale: 0.95
     property real animOpacity: 0
+    property int minimizeDelayDuration: 0
+    property var outsideMinimizeDrawers: []
 
     // Expose startup animation state to the native presentation gate.
     // 向原生首帧门槛暴露启动动画状态。
@@ -53,9 +55,37 @@ Item {
     }
 
     // Minimize directly and let DWM own the transition. 直接最小化并由 DWM 接管过渡。
+    function deferMinimize(duration) {
+        if (duration > 0) {
+            minimizeDelayDuration = Math.max(minimizeDelayDuration, duration)
+        }
+    }
+
+    function registerOutsideDrawer(drawer) {
+        if (!drawer || outsideMinimizeDrawers.indexOf(drawer) >= 0) return
+        outsideMinimizeDrawers = outsideMinimizeDrawers.concat([drawer])
+    }
+
+    function unregisterOutsideDrawer(drawer) {
+        outsideMinimizeDrawers = outsideMinimizeDrawers.filter(
+            function(item) { return item !== drawer })
+    }
+
     function animatedMinimize() {
         if (!targetWindow) return
-        targetWindow.showMinimized()
+        for (var i = 0; i < outsideMinimizeDrawers.length; i++) {
+            var drawer = outsideMinimizeDrawers[i]
+            if (drawer && typeof drawer.animateOutsideMinimize === "function") {
+                drawer.animateOutsideMinimize(Enums.duration.slow)
+            }
+        }
+        if (minimizeDelayDuration <= 0) {
+            targetWindow.showMinimized()
+            return
+        }
+        minimizeDelay.interval = minimizeDelayDuration
+        minimizeDelayDuration = 0
+        minimizeDelay.start()
     }
 
     // Request the native maximize transition, then fall back to Qt.
@@ -82,6 +112,12 @@ Item {
     z: Enums.zIndex.overlay
 
     // ==================== Content 内容 ====================
+    Timer {
+        id: minimizeDelay
+
+        onTriggered: targetWindow.showMinimized()
+    }
+
     // Show animation. 显示动画。
     ParallelAnimation {
         id: showAnim

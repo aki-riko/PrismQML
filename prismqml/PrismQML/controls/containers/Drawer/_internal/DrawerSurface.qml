@@ -15,9 +15,58 @@ Item {
     // ==================== Required Props 必需属性 ====================
     required property var drawerControl
 
+    // ==================== Internal Props 内部属性 ====================
+    property bool outsideMinimized: false
+
     // ==================== Public Props 公开属性 ====================
     default property alias content: contentItem.data
     readonly property alias panel: drawer
+
+    // ==================== Internal Methods 内部方法 ====================
+    function registerOutsideMinimize() {
+        if (drawerControl._isOutside && drawerControl._hostWindow
+                && drawerControl._hostWindow._windowAnimationHelper) {
+            drawerControl._hostWindow._windowAnimationHelper.registerOutsideDrawer(surface)
+        }
+    }
+
+    function unregisterOutsideMinimize() {
+        if (drawerControl._hostWindow
+                && drawerControl._hostWindow._windowAnimationHelper) {
+            drawerControl._hostWindow._windowAnimationHelper.unregisterOutsideDrawer(surface)
+        }
+    }
+
+    function animateOutsideMinimize(duration) {
+        if (!drawerControl._outsideVisible || !drawerControl._outsidePrepared
+                || !drawerControl._isOpen) return
+        var animationDuration = Math.min(drawerControl.animationDuration, duration)
+        drawerControl._hostWindow._windowAnimationHelper.deferMinimize(animationDuration)
+        drawerControl._startOutsideAnimation(
+            drawerControl._outsideCollapsedExtent, animationDuration)
+    }
+
+    function handleHostVisibilityChanged() {
+        if (drawerControl._hostWindow.visibility === Window.Hidden) {
+            drawerControl._resetDrawerState()
+            return
+        }
+        if (drawerControl._hostWindow.visibility === Window.Minimized) {
+            outsideMinimized = true
+            if (drawerControl._isOpen) {
+                drawerControl._startOutsideAnimation(drawerControl._outsideCollapsedExtent)
+            }
+            return
+        }
+        if (!drawerControl._outsideVisible || !drawerControl._outsidePrepared) return
+        var wasMinimized = outsideMinimized
+        outsideMinimized = false
+        drawerControl._updateOutsideWindowGeometry()
+        drawerControl._registerOutsideWindow()
+        if (wasMinimized && drawerControl._isOpen) {
+            drawerControl._startOutsideAnimation(drawerControl._outsideFullExtent)
+        }
+    }
 
     anchors.fill: parent
 

@@ -284,10 +284,15 @@ def test_drawer_source_guards_native_window_during_destruction():
 
 def test_drawer_source_preserves_open_state_while_host_is_minimized():
     source = SOURCE_PATH.read_text(encoding="utf-8")
+    surface_source = (SOURCE_PATH.parent / "_internal" / "DrawerSurface.qml").read_text(
+        encoding="utf-8"
+    )
 
-    assert "control._hostWindow.visibility === Window.Hidden" in source
-    assert "|| control._hostWindow.visibility === Window.Minimized" not in source
-    assert "control._hostWindow.visibility !== Window.Minimized" in source
+    assert "drawerControl._hostWindow.visibility === Window.Hidden" in surface_source
+    assert "drawerControl._hostWindow.visibility === Window.Minimized" in surface_source
+    assert "property alias opened: control._isOpen" in source
+    assert "property bool outsideMinimized: false" in surface_source
+    assert "drawerControl._startOutsideAnimation(drawerControl._outsideFullExtent)" in surface_source
 
 
 def test_drawer_stages_host_signal_connections_until_component_completion():

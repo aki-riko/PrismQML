@@ -73,6 +73,7 @@ OverlayDialogCore {
                                                  ? Enums.stateColor.border : Enums.transparent
     readonly property var _outsideDrawerWindow: outsideDrawerWindowLoader.item
     readonly property var _outsideDrawerPanel: _outsideDrawerWindow ? _outsideDrawerWindow.panel : null
+    readonly property bool _outsideMinimized: drawerSurface.outsideMinimized
 
     // ==================== Public Methods 公开方法 ====================
     // Override open to use base class mechanism 重写open使用基类机制
@@ -100,6 +101,7 @@ OverlayDialogCore {
         if (control._isOutside) {
             if (control._isOpen) return
             if (control._outsideVisible && !control._outsidePrepared) return
+            drawerSurface.registerOutsideMinimize()
             _isClosing = false
             outsideGeometryAnimation.stop()
             if (!control._outsideVisible) {
@@ -140,6 +142,8 @@ OverlayDialogCore {
     // Reset both render paths when switching mode or closing the host window
     // 切换模式或宿主窗口关闭时重置两条渲染路径
     function _resetDrawerState() {
+        drawerSurface.unregisterOutsideMinimize()
+        drawerSurface.outsideMinimized = false
         outsideGeometryAnimation.stop()
         _clearOutsideNativeShadow()
         _unregisterOutsideWindow()
@@ -161,11 +165,13 @@ OverlayDialogCore {
 
     // Animate only the clip extent; the HWND and content keep their final geometry
     // 只动画裁剪范围,HWND 与内容始终保持最终几何
-    function _startOutsideAnimation(targetExtent) {
+    function _startOutsideAnimation(targetExtent, duration) {
         outsideGeometryAnimation.stop()
         outsideGeometryAnimation.from = control._outsideExtent
         outsideGeometryAnimation.to = targetExtent
-        if (control.animationDuration <= 0
+        outsideGeometryAnimation.duration = duration === undefined
+            ? control.animationDuration : duration
+        if (outsideGeometryAnimation.duration <= 0
                 || control._outsideExtent === targetExtent) {
             control._outsideExtent = targetExtent
             control._finishOutsideAnimation()
@@ -283,14 +289,17 @@ OverlayDialogCore {
     maskColor: !_isOutside && modal ? Enums.stateColor.dialogOverlay : Enums.transparent
     visible: !_isOutside && (_isOpen || _isClosing)
 
-    onModeChanged: _resetDrawerState()
+    onModeChanged: { drawerSurface.unregisterOutsideMinimize(); _resetDrawerState() }
     Component.onCompleted: {
         control._insideAnimationReady = true
         control._hostSignalTarget = Qt.binding(function() { return control._hostWindow })
+        drawerSurface.registerOutsideMinimize()
     }
+    Component.onDestruction: drawerSurface.unregisterOutsideMinimize()
     onOpenedChanged: {
         if (!control._isOutside || control._outsideResetting) return
         if (!control._isOpen && control._outsideVisible) {
+            drawerSurface.unregisterOutsideMinimize()
             control._clearOutsideNativeShadow()
             control._startOutsideAnimation(control._outsideCollapsedExtent)
         }
@@ -304,7 +313,6 @@ OverlayDialogCore {
             }
         }
     }
-
     // ==================== Content 内容 ====================
     // Native host for the outside mode 外侧模式的原生承载窗口
     Loader {
@@ -340,23 +348,15 @@ OverlayDialogCore {
     }
 
     Connections {
+        function onVisibilityChanged() {
+            drawerSurface.handleHostVisibilityChanged()
+        }
         function onClosing(close) { control._resetDrawerState() }
         function onXChanged() { control._scheduleOutsideHostSync() }
         function onYChanged() { control._scheduleOutsideHostSync() }
         function onWidthChanged() { control._scheduleOutsideHostSync() }
         function onHeightChanged() { control._scheduleOutsideHostSync() }
         function onActiveChanged() { control._scheduleOutsideHostSync() }
-        function onVisibilityChanged() {
-            if (control._isOutside && control._hostWindow
-                    && control._hostWindow.visibility === Window.Hidden) {
-                control._resetDrawerState()
-            } else if (control._isOutside && control._hostWindow
-                       && control._hostWindow.visibility !== Window.Minimized
-                       && control._outsideVisible && control._outsidePrepared) {
-                control._updateOutsideWindowGeometry()
-                control._registerOutsideWindow()
-            }
-        }
         function onVisibleChanged() {
             if (control._isOutside && control._hostWindow
                     && !control._hostWindow.visible) {

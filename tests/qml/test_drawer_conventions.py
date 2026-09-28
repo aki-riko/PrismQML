@@ -682,3 +682,43 @@ def test_drawer_outside_mode_closes_with_host_window(qapp):
         for candidate in QGuiApplication.topLevelWindows()
         if candidate.isVisible()
     ) == tuple(candidate for candidate in windows_before if candidate.isVisible())
+
+
+def test_windows_core_minimize_and_restore_animates_open_outside_drawer(qapp):
+    source = SCENE_SOURCE.replace(b"Window {", b"WindowsCore {", 1)
+    engine, component, window, drawer, _content_item, _panel, warnings = (
+        _create_scene(source=source)
+    )
+    try:
+        drawer.setProperty("mode", window.property("outsideMode"))
+        drawer.setProperty("animationDuration", 240)
+        drawer_window = _drawer_window()
+        assert isinstance(drawer_window, QQuickWindow)
+        assert QMetaObject.invokeMethod(drawer, "open")
+        assert _wait_for(lambda: drawer.property("opened"))
+        assert _wait_for(lambda: drawer.property("_outsideExtent") == 180)
+        assert QMetaObject.invokeMethod(window, "animatedMinimize")
+        assert window.visibility() != QQuickWindow.Visibility.Minimized
+        assert _wait_for(
+            lambda: drawer.property("_outsideCollapsedExtent")
+            < drawer.property("_outsideExtent")
+            < drawer.property("_outsideFullExtent")
+        )
+        assert _wait_for(
+            lambda: window.visibility() == QQuickWindow.Visibility.Minimized
+        )
+        assert drawer.property("opened") is True
+        assert drawer.property("_outsideExtent") == drawer.property(
+            "_outsideCollapsedExtent"
+        )
+        assert drawer.property("_outsideMinimized") is True
+
+        window.showNormal()
+        assert _wait_for(
+            lambda: window.visibility() != QQuickWindow.Visibility.Minimized
+        )
+        assert _wait_for(lambda: drawer.property("_outsideExtent") == 180)
+        assert drawer.property("opened") is True
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)

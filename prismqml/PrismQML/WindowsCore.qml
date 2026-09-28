@@ -60,6 +60,7 @@ Window {
         nativeWindowStartup.startupPresentationReady
     property alias _animScale: animHelper.animScale
     property alias _animOpacity: animHelper.animOpacity
+    readonly property alias _windowAnimationHelper: animHelper
     property bool _closeInProgress: false
     property bool _closeCompletionPending: false
     property bool _closeSourceWasVisible: true
@@ -299,7 +300,9 @@ Window {
         profileTime("ensureVisiblePaintState " + reason)
         animHelper.restoreVisibleState()
     }
-    function animatedMinimize() { animHelper.animatedMinimize() }
+    function animatedMinimize() {
+        animHelper.animatedMinimize()
+    }
     function animatedMaximize() { animHelper.animatedMaximize() }
     function animatedRestore() { animHelper.animatedRestore() }
 
