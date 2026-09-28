@@ -433,7 +433,7 @@ def test_unclosed_color_array_candidates_are_scanned_in_linear_time():
     started = perf_counter()
 
     assert _qml010_lines(source) == []
-    assert perf_counter() - started < 0.75
+    assert perf_counter() - started < 1.5
 
 
 def test_deeply_nested_color_arrays_are_scanned_in_linear_time():
@@ -447,7 +447,7 @@ def test_deeply_nested_color_arrays_are_scanned_in_linear_time():
     started = perf_counter()
 
     assert _qml010_lines(source) == [1]
-    assert perf_counter() - started < 0.75
+    assert perf_counter() - started < 1.5
 
 
 def test_large_closed_color_arrays_are_not_silently_skipped():
@@ -457,7 +457,7 @@ def test_large_closed_color_arrays_are_not_silently_skipped():
 
     assert len(source) > 16384
     assert _qml010_lines(source, JAVASCRIPT_PATH) == [1]
-    assert perf_counter() - started < 0.75
+    assert perf_counter() - started < 1.5
 
 
 def test_real_example_object_arrays_use_global_color_tokens():

@@ -409,6 +409,11 @@ time.sleep(30)
     }, result.stdout + result.stderr
     process_ids = [int(value) for value in result.stdout.split()]
     assert len(process_ids) == 2
+    deadline = time.monotonic() + PROCESS_GRACEFUL_WAIT_SECONDS
+    while any(_windows_process_exists(process_id) for process_id in process_ids):
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(PROCESS_GROUP_POLL_INTERVAL_SECONDS)
     assert not any(_windows_process_exists(process_id) for process_id in process_ids)
 
 

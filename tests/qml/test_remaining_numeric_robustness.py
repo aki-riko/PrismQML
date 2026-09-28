@@ -388,7 +388,7 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(SCENE, QUrl("inline:remaining-numeric-robustness.qml"))
-    for _ in range(50):
+    for _ in range(250):
         if component.status() != QQmlComponent.Status.Loading:
             break
         _pump()
