@@ -17,10 +17,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT_SECONDS = 1800
 LOGGER = logging.getLogger("prismqml.test_shards")
-SHARDS = (
-    ("python", ("tests", "--ignore=tests/qml", "--ignore=tests/tooling")),
-    ("qml", ("tests/qml",)),
-    ("tooling", ("tests/tooling",)),
+SHARD_LAYOUT = (
+    ("python", ROOT / "tests", 2),
+    ("qml", ROOT / "tests" / "qml", 4),
+    ("tooling", ROOT / "tests" / "tooling", 2),
 )
 
 
@@ -44,10 +44,46 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         default=DEFAULT_TIMEOUT_SECONDS,
         help="每个分片的保护运行超时（秒）",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="只输出稳定分片计划，不启动测试进程",
+    )
     args = parser.parse_args(argv)
     if not args.full_suite:
         parser.error("完整分片运行必须显式提供 --full-suite")
     return args
+
+
+def _test_files(root: Path) -> tuple[Path, ...]:
+    return tuple(sorted(root.glob("test_*.py")))
+
+
+def _partition_files(root: Path, count: int) -> tuple[tuple[str, ...], ...]:
+    buckets: list[list[Path]] = [[] for _ in range(count)]
+    weights = [0] * count
+    files = sorted(
+        _test_files(root),
+        key=lambda path: (path.stat().st_size, path.as_posix()),
+        reverse=True,
+    )
+    for path in files:
+        bucket = min(range(count), key=lambda index: (weights[index], index))
+        buckets[bucket].append(path)
+        weights[bucket] += path.stat().st_size
+    return tuple(
+        tuple(path.relative_to(ROOT).as_posix() for path in bucket)
+        for bucket in buckets
+        if bucket
+    )
+
+
+def _shards() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    result = []
+    for name, root, count in SHARD_LAYOUT:
+        for index, paths in enumerate(_partition_files(root, count), start=1):
+            result.append((f"{name}-{index}", paths))
+    return tuple(result)
 
 
 def _artifact_root() -> Path:
@@ -77,10 +113,10 @@ def _command(name: str, paths: tuple[str, ...], timeout: int) -> list[str]:
     ]
 
 
-def _start_shards(timeout: int):
+def _start_shards(shards: tuple[tuple[str, tuple[str, ...]], ...], timeout: int):
     log_root = _artifact_root() / "python" / "test-shards"
     processes = []
-    for name, paths in SHARDS:
+    for name, paths in shards:
         shard_root = log_root / name
         shard_root.mkdir(parents=True, exist_ok=True)
         log_path = shard_root / "pytest.log"
@@ -117,7 +153,13 @@ def _finish_shards(processes) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    return _finish_shards(_start_shards(args.timeout))
+    shards = _shards()
+    if args.dry_run:
+        for name, paths in shards:
+            LOGGER.info("%s: %s 个文件", name, len(paths))
+            LOGGER.info("命令: %s", _command(name, paths, args.timeout))
+        return 0
+    return _finish_shards(_start_shards(shards, args.timeout))
 
 
 if __name__ == "__main__":
