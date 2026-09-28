@@ -16,6 +16,7 @@ pyproject.toml 在加载第三方插件前执行边界引导；这里自定义�
 """
 
 import os
+from pathlib import Path
 
 from scripts.test_process import prepare_automated_test_process
 
@@ -26,6 +27,35 @@ prepare_automated_test_process(
 )
 
 import pytest
+
+
+def pytest_addoption(parser):
+    """Expose the explicit release gate without changing normal pytest usage.
+
+    日常开发默认走快速回归；发布和 CI 用 ``--full-suite`` 显式恢复完整门禁。
+    """
+    parser.addoption(
+        "--full-suite",
+        action="store_true",
+        default=False,
+        help="运行包含发布级高成本回归在内的完整测试套件",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Keep expensive release gates opt-in for local development."""
+    if config.getoption("--full-suite"):
+        return
+    skip_release = pytest.mark.skip(
+        reason="发布级门禁默认跳过；使用 pytest --full-suite 显式运行"
+    )
+    for item in items:
+        item_path = Path(str(item.fspath)).resolve()
+        is_qml_runtime = (
+            item_path.parent.name == "qml" and "qapp" in item.fixturenames
+        )
+        if "release" in item.keywords or is_qml_runtime:
+            item.add_marker(skip_release)
 
 
 @pytest.fixture(scope="session")

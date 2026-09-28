@@ -6,6 +6,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from scripts._qml_lint.qml_color_arrays import (
     color_array_literal_findings,
     color_array_literal_lines,
@@ -146,6 +148,7 @@ def test_overlapping_color_contexts_keep_one_narrowest_finding():
     )
 
 
+@pytest.mark.release
 def test_repository_line_wrappers_match_position_findings():
     for root in SOURCE_ROOTS:
         for path in sorted(item for item in root.rglob("*") if item.suffix in {".qml", ".js"}):

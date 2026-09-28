@@ -7,6 +7,8 @@
 from pathlib import Path, PurePosixPath
 import subprocess
 
+import pytest
+
 from scripts import qml_conventions as scanner
 
 
@@ -128,6 +130,7 @@ def test_changed_mode_maps_renamed_example_baselines(tmp_path):
     ]
 
 
+@pytest.mark.release
 def test_repository_examples_have_no_qml010_inventory():
     violations = [
         item

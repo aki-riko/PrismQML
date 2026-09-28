@@ -6,6 +6,8 @@
 
 from time import perf_counter
 
+import pytest
+
 import scripts._qml_lint.qml_color_dataflow as color_dataflow
 from scripts._qml_lint.qml_color_dataflow import propagated_color_findings
 
@@ -27,6 +29,7 @@ def test_non_candidate_source_skips_symbol_index(monkeypatch):
     ) == ()
 
 
+@pytest.mark.release
 def test_large_color_flow_stays_within_linear_budgets():
     color_source = "\n".join(
         f'const color{index} = "red";' for index in range(6000)

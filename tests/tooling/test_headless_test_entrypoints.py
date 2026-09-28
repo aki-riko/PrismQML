@@ -574,6 +574,7 @@ def test_runtime_matrix_covers_every_automated_qt_entrypoint():
     STANDALONE_QML_RUNTIME_CASES,
     ids=[path.stem for path, _timeout in STANDALONE_QML_RUNTIME_CASES],
 )
+@pytest.mark.release
 def test_standalone_qml_entrypoint_runtime(relative: Path, timeout: int):
     """入口必须覆盖无效平台哨兵，并在 offscreen 下按时通过。"""
     env = os.environ.copy()

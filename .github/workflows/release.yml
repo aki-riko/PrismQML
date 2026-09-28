@@ -50,7 +50,7 @@ jobs:
         run: >-
           python scripts/test_process.py --qt-platform offscreen
           --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
-          python -m pytest
+          python scripts/run_test_shards.py --full-suite --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:
           QT_QPA_PLATFORM: offscreen

@@ -163,6 +163,7 @@ def test_pytest_boundary_plugin_is_loaded(pytestconfig):
     assert pytestconfig.option.disable_plugin_autoload is True
 
 
+@pytest.mark.release
 def test_pytest_boundary_plugin_runs_before_explicit_plugins(tmp_path):
     sentinel = tmp_path / "qt-import-canary.json"
     environment = _without_boundary_marker()
@@ -193,6 +194,7 @@ def test_pytest_boundary_plugin_runs_before_explicit_plugins(tmp_path):
     }
 
 
+@pytest.mark.release
 def test_protected_pytest_still_runs():
     result = _run_runner(
         sys.executable,

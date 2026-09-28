@@ -7,6 +7,8 @@
 from pathlib import Path, PurePosixPath
 import subprocess
 
+import pytest
+
 from scripts import check_qml_conventions as scanner
 
 
@@ -480,6 +482,7 @@ def test_all_mode_is_enforcing_unless_report_only(tmp_path):
     ) == 0
 
 
+@pytest.mark.release
 def test_repository_theme_entrypoints_are_unified():
     violations = scanner.scan_repository(ROOT)
     theme_violations = [
