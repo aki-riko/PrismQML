@@ -16,6 +16,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import time
 from collections.abc import Sequence
@@ -398,15 +399,23 @@ def _resolve_executable(command: str) -> str:
     found = shutil.which(command)
     if found is not None:
         return found
-    interpreter_directory = os.path.dirname(sys.executable)
-    for suffix in (".exe", ".cmd", ".bat"):
-        candidate = os.path.join(interpreter_directory, command + suffix)
-        if os.path.isfile(candidate):
-            return candidate
-    for suffix in ("", ".exe", ".cmd", ".bat"):
-        candidate = os.path.join(interpreter_directory, command, suffix)
-        if os.path.isfile(candidate):
-            return candidate
+    script_directories = [os.path.dirname(sys.executable)]
+    configured_scripts = sysconfig.get_path("scripts")
+    if configured_scripts:
+        script_directories.append(configured_scripts)
+    user_scheme = "nt_user" if os.name == "nt" else "posix_user"
+    user_scripts = sysconfig.get_path("scripts", scheme=user_scheme)
+    if user_scripts:
+        script_directories.append(user_scripts)
+    for script_directory in dict.fromkeys(script_directories):
+        for suffix in (".exe", ".cmd", ".bat"):
+            candidate = os.path.join(script_directory, command + suffix)
+            if os.path.isfile(candidate):
+                return candidate
+        for suffix in ("", ".exe", ".cmd", ".bat"):
+            candidate = os.path.join(script_directory, command, suffix)
+            if os.path.isfile(candidate):
+                return candidate
     return command
 
 
