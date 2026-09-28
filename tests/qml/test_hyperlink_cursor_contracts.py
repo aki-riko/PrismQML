@@ -118,7 +118,9 @@ def _move_to_item(window: QQuickWindow, item: QQuickItem, local_point: QPointF) 
 
 
 def _assert_pointing_cursor(window: QQuickWindow) -> None:
-    assert window.cursor().shape() == Qt.CursorShape.PointingHandCursor
+    assert _wait_for(
+        lambda: window.cursor().shape() == Qt.CursorShape.PointingHandCursor
+    )
 
 
 def _link_at(item: QQuickItem, x: float, y: float) -> str:
