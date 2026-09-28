@@ -163,6 +163,12 @@ def _finish_shards(processes) -> int:
     if failures:
         for name, return_code, log_path in failures:
             LOGGER.error("分片失败: %s, exit=%s, 详见 %s", name, return_code, log_path)
+            try:
+                log_text = log_path.read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                LOGGER.exception("读取失败分片日志失败: %s: %s", log_path, exc)
+                continue
+            LOGGER.error("分片失败日志末尾 [%s]:\n%s", name, log_text[-12000:])
         return 1
     return 0
 
