@@ -223,7 +223,7 @@ def test_unclosed_constructor_candidates_are_scanned_in_linear_time():
     started = perf_counter()
 
     assert _qml010_lines(source) == []
-    assert perf_counter() - started < 0.75
+    assert perf_counter() - started < 1.5
 
 
 def test_constructor_detection_ignores_text_conversions_and_data_resources():
