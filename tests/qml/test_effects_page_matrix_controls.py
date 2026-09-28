@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -32,6 +33,14 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE_PATH = ROOT / "examples" / "pages" / "EffectsPage.qml"
+
+
+def _live_top_level_windows() -> tuple[QQuickWindow, ...]:
+    return tuple(
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if shiboken6.isValid(window)
+    )
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -109,7 +118,7 @@ def _window_point(
 
 def _create_scene():
     register_gallery_resources()
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    windows_before = _live_top_level_windows()
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -146,7 +155,7 @@ def _dispose_scene(windows_before, engine, component, window, page) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     _pump()
-    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+    assert _live_top_level_windows() == windows_before
 
 
 @pytest.fixture

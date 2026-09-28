@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -163,6 +164,14 @@ Window {
 """
 
 
+def _live_top_level_windows() -> tuple[QQuickWindow, ...]:
+    return tuple(
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if shiboken6.isValid(window)
+    )
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -217,7 +226,7 @@ def _owned(root: QObject, type_fragment: str) -> list[QObject]:
 @pytest.fixture
 def ticket_scene(qapp):
     previous_skin = getSkin()
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    windows_before = _live_top_level_windows()
     setSkin(Skin.VINTAGE_TICKET)
     engine, component, window, warnings = _create_scene()
     try:
@@ -226,7 +235,7 @@ def ticket_scene(qapp):
         _dispose_scene(engine, component, window)
         setSkin(previous_skin)
         _pump()
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _live_top_level_windows() == windows_before
 
 
 def test_ticket_extended_surfaces_use_square_ink_geometry(ticket_scene):
