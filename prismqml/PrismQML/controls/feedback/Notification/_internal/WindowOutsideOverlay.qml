@@ -48,6 +48,7 @@ Window {
             console.warn("WindowOutsideOverlay: posCenter has no outside edge")
             return
         }
+        if (_hostIsMinimized()) return
         if (!_syncAttachment()) return
         animator.show()
     }
@@ -91,6 +92,26 @@ Window {
         if (typeof WindowHelper !== "undefined" && WindowHelper)
             return WindowHelper.unregisterWindowAttachment(control)
         return false
+    }
+
+    function _hostIsMinimized() {
+        if (!hostWindow) return false
+        return hostWindow.visibility === Window.Minimized
+            || (hostWindow.windowState & Qt.WindowMinimized) !== 0
+    }
+
+    function _handleHostVisibilityChanged() {
+        if (!hostWindow || _closed) return
+        if (_hostIsMinimized()) {
+            _releaseAttachment()
+            visible = false
+            return
+        }
+        if (hostWindow.visibility === Window.Hidden || !hostWindow.visible) {
+            _finishClose()
+            return
+        }
+        if (!_attached && _syncAttachment()) animator.show()
     }
 
     function _finishClose() {
@@ -158,16 +179,8 @@ Window {
         function onWidthChanged() { if (control.visible) control.updatePosition() }
         function onHeightChanged() { if (control.visible) control.updatePosition() }
         function onClosing(close) { control._finishClose() }
-        function onVisibleChanged() {
-            if (control.hostWindow && !control.hostWindow.visible)
-                control._finishClose()
-        }
-        function onVisibilityChanged() {
-            if (!control.hostWindow) return
-            if (control.hostWindow.visibility === Window.Hidden
-                    || control.hostWindow.visibility === Window.Minimized)
-                control._finishClose()
-        }
+        function onVisibleChanged() { control._handleHostVisibilityChanged() }
+        function onVisibilityChanged() { control._handleHostVisibilityChanged() }
 
         target: control.hostWindow
         ignoreUnknownSignals: true

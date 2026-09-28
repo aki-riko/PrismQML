@@ -10,7 +10,7 @@ from pathlib import Path
 import time
 
 import pytest
-from PySide6.QtCore import QObject, QRect, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, QRect, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -221,6 +221,39 @@ def test_window_outside_notification_tracks_host_and_drawer_reservation(
         QTest.qWait(40)
         assert len(helper.unregister_calls) == 1
         assert not isValid(overlay)
+    finally:
+        _dispose(engine, component, root)
+
+
+@pytest.mark.parametrize("kind", ["toast", "infoBar"])
+def test_window_outside_notification_detaches_and_reattaches_after_minimize(
+    qapp, kind
+):
+    engine, component, root, helper = _create_scene()
+    try:
+        root.show()
+        getattr(root, f"create{kind[0].upper()}{kind[1:]}")(2)
+        notification = root.property("notification")
+        overlay = notification.window()
+        closed_spy = QSignalSpy(overlay.closed)
+        _wait_until(overlay.isVisible)
+
+        root.setWindowState(Qt.WindowState.WindowMinimized)
+        _wait_until(lambda: not overlay.isVisible())
+        assert closed_spy.count() == 0
+        assert overlay.property("_attached") is False
+        assert len(helper.unregister_calls) == 1
+        assert isValid(overlay)
+
+        root.setWindowState(Qt.WindowState.WindowNoState)
+        root.show()
+        _wait_until(overlay.isVisible)
+        assert closed_spy.count() == 0
+        assert overlay.property("_attached") is True
+        assert len([call for call in helper.register_calls if call[1] == overlay]) >= 2
+
+        root.closeOutside()
+        _wait_until(lambda: closed_spy.count() == 1)
     finally:
         _dispose(engine, component, root)
 
