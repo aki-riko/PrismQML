@@ -22,6 +22,16 @@ SHARD_LAYOUT = (
     ("qml", ROOT / "tests" / "qml", 4),
     ("tooling", ROOT / "tests" / "tooling", 2),
 )
+# Runtime hints keep known fixed-wait files from landing in the same QML bucket.
+# 运行时提示用于避免已知固定等待文件集中到同一个 QML 分片。
+RUNTIME_WEIGHT_HINTS = {
+    "tests/qml/test_stacked_widget_loader_lifecycle.py": 9_020,
+    "tests/qml/test_scroll_bar_conventions.py": 8_032,
+    "tests/qml/test_skin_scope_surfaces.py": 5_650,
+    "tests/qml/test_desktop_notification_banner_avoidance.py": 5_070,
+    "tests/qml/test_skin_scope.py": 5_000,
+    "tests/qml/test_desktop_notification_geometry.py": 4_180,
+}
 
 
 def _positive_timeout(value: str) -> int:
@@ -59,18 +69,23 @@ def _test_files(root: Path) -> tuple[Path, ...]:
     return tuple(sorted(root.glob("test_*.py")))
 
 
+def _file_weight(path: Path) -> int:
+    relative = path.relative_to(ROOT).as_posix()
+    return max(path.stat().st_size, RUNTIME_WEIGHT_HINTS.get(relative, 0) * 100)
+
+
 def _partition_files(root: Path, count: int) -> tuple[tuple[str, ...], ...]:
     buckets: list[list[Path]] = [[] for _ in range(count)]
     weights = [0] * count
     files = sorted(
         _test_files(root),
-        key=lambda path: (path.stat().st_size, path.as_posix()),
+        key=lambda path: (_file_weight(path), path.as_posix()),
         reverse=True,
     )
     for path in files:
         bucket = min(range(count), key=lambda index: (weights[index], index))
         buckets[bucket].append(path)
-        weights[bucket] += path.stat().st_size
+        weights[bucket] += _file_weight(path)
     return tuple(
         tuple(path.relative_to(ROOT).as_posix() for path in bucket)
         for bucket in buckets
@@ -107,6 +122,7 @@ def _command(name: str, paths: tuple[str, ...], timeout: int) -> list[str]:
         "-m",
         "pytest",
         "--full-suite",
+        "--durations=20",
         "-o",
         f"cache_dir={cache_dir}",
         *paths,
