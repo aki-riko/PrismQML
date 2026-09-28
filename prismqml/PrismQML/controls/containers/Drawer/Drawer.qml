@@ -363,7 +363,6 @@ OverlayDialogCore {
                 control._resetDrawerState()
             }
         }
-
         target: control._hostSignalTarget
         ignoreUnknownSignals: true
     }
