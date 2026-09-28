@@ -81,13 +81,18 @@ Window {
         width: 360
         height: parent.height
 
-        Drawer {
-            id: reparentDrawer
-
-            objectName: "reparentDrawer"
-            position: Enums.position.right
-            drawerWidth: 180
-            animationDuration: 240
+        Loader {
+            id: reparentDrawerLoader
+            width: 360
+            height: parent.height
+            sourceComponent: Component {
+                Drawer {
+                    objectName: "reparentDrawer"
+                    position: Enums.position.right
+                    drawerWidth: 180
+                    animationDuration: 240
+                }
+            }
         }
     }
 }
@@ -279,12 +284,15 @@ def test_drawer_first_inside_open_rebases_closed_edge_before_animation(
     reparent_panel = reparent_content.parentItem()
     final_x = window.width() - reparent_panel.width()
 
-    assert reparent_panel.x() == pytest.approx(360)
+    assert reparent_drawer.width() == pytest.approx(360)
     assert QMetaObject.invokeMethod(reparent_drawer, "open")
-    _pump(30)
+    assert _wait_for(lambda: reparent_drawer.property("opened"))
 
     assert reparent_drawer.parentItem() is window.contentItem()
-    assert reparent_panel.x() > final_x
+    assert (reparent_drawer.width(), reparent_drawer.height()) == pytest.approx(
+        (window.width(), window.height())
+    )
+    assert _wait_for(lambda: reparent_panel.x() == pytest.approx(final_x))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

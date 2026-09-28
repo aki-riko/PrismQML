@@ -91,6 +91,7 @@ OverlayDialogCore {
                 control._insideOpenPending = true
                 control._insideAnimationReady = false
                 control.parent = windowContent
+                control._fillOverlayHost()
                 Qt.callLater(control._completeInsideOpen)
                 return
             }
