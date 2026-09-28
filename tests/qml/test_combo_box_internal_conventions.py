@@ -101,6 +101,7 @@ import PrismQML
 Item {
     width: 320
     height: 180
+    readonly property string defaultPlaceholder: Translator.tr("placeholder_select")
     ComboBoxFont { objectName: "font"; width: 220 }
     ComboBox {
         objectName: "fontEntry"
@@ -192,7 +193,7 @@ def _font_control(entry):
     return matches[0]
 
 
-def _assert_default_font_state(font) -> None:
+def _assert_default_font_state(font, expected_placeholder: str) -> None:
     expected = [
         "Arial", "Segoe UI", "Microsoft YaHei", "SimSun", "SimHei",
         "KaiTi", "FangSong", "Consolas", "Courier New", "Times New Roman",
@@ -202,16 +203,18 @@ def _assert_default_font_state(font) -> None:
     assert font.property("currentIndex") == -1
     assert font.property("currentText") == ""
     assert font.property("currentFont") == ""
-    assert font.property("placeholderText") == "请选择"
+    assert font.property("placeholderText") == expected_placeholder
 
 
-def _assert_unselected_font_entry(entry, font) -> None:
+def _assert_unselected_font_entry(
+    entry, font, expected_placeholder: str
+) -> None:
     assert entry.property("currentIndex") == -1
     assert entry.property("currentText") == ""
     assert font.property("currentIndex") == -1
     assert font.property("currentText") == ""
     assert font.property("currentFont") == ""
-    assert font.property("placeholderText") == "请选择"
+    assert font.property("placeholderText") == expected_placeholder
     assert _variant(font.property("model")) == _variant(font.property("fonts"))
     assert len(_variant(font.property("model"))) > 0
 
@@ -447,7 +450,8 @@ def test_combo_box_font_runtime_contract(qapp):
     )
     try:
         font = root.findChild(QObject, "font")
-        _assert_default_font_state(font)
+        expected_placeholder = root.property("defaultPlaceholder")
+        _assert_default_font_state(font, expected_placeholder)
         assert font.property("width") == 220
         assert font.property("popupItemHeight") > 0
         font.setProperty("fonts", ["Prism Sans", "Prism Mono"])
@@ -476,7 +480,10 @@ def test_combo_box_font_entry_preserves_default_model(qapp):
         font_entry = root.findChild(QObject, "fontEntry")
         assert font_entry is not None
         font_control = _font_control(font_entry)
-        _assert_unselected_font_entry(font_entry, font_control)
+        expected_placeholder = root.property("defaultPlaceholder")
+        _assert_unselected_font_entry(
+            font_entry, font_control, expected_placeholder
+        )
         _exercise_font_entry_selection(font_entry, font_control)
         assert warnings == []
         assert _new_visible_windows(windows_before) == []
