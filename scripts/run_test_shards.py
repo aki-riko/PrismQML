@@ -16,11 +16,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT_SECONDS = 1800
+DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 2100
 LOGGER = logging.getLogger("prismqml.test_shards")
 SHARD_LAYOUT = (
     ("python", ROOT / "tests", 2),
     ("qml", ROOT / "tests" / "qml", 4),
     ("tooling", ROOT / "tests" / "tooling", 2),
+)
+SERIAL_RUNTIME_FILES = (
+    "tests/tooling/test_headless_test_entrypoints.py",
 )
 # Runtime hints keep known fixed-wait files from landing in the same QML bucket.
 # 运行时提示用于避免已知固定等待文件集中到同一个 QML 分片。
@@ -55,6 +59,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="每个分片的保护运行超时（秒）",
     )
     parser.add_argument(
+        "--supervisor-timeout",
+        type=_positive_timeout,
+        default=DEFAULT_SUPERVISOR_TIMEOUT_SECONDS,
+        help="外层 runner 的总超时，须留时间输出分片失败诊断",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="只输出稳定分片计划，不启动测试进程",
@@ -62,6 +72,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if not args.full_suite:
         parser.error("完整分片运行必须显式提供 --full-suite")
+    if args.supervisor_timeout <= args.timeout:
+        parser.error("外层 supervisor 超时必须大于分片超时")
     return args
 
 
@@ -78,7 +90,11 @@ def _partition_files(root: Path, count: int) -> tuple[tuple[str, ...], ...]:
     buckets: list[list[Path]] = [[] for _ in range(count)]
     weights = [0] * count
     files = sorted(
-        _test_files(root),
+        (
+            path
+            for path in _test_files(root)
+            if path.relative_to(ROOT).as_posix() not in SERIAL_RUNTIME_FILES
+        ),
         key=lambda path: (_file_weight(path), path.as_posix()),
         reverse=True,
     )
@@ -98,6 +114,8 @@ def _shards() -> tuple[tuple[str, tuple[str, ...]], ...]:
     for name, root, count in SHARD_LAYOUT:
         for index, paths in enumerate(_partition_files(root, count), start=1):
             result.append((f"{name}-{index}", paths))
+    for index, path in enumerate(SERIAL_RUNTIME_FILES, start=1):
+        result.append((f"serial-runtime-{index}", (path,)))
     return tuple(result)
 
 
@@ -177,11 +195,38 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     shards = _shards()
     if args.dry_run:
+        LOGGER.info(
+            "超时预算: shard=%ss / supervisor=%ss",
+            args.timeout,
+            args.supervisor_timeout,
+        )
         for name, paths in shards:
-            LOGGER.info("%s: %s 个文件", name, len(paths))
+            if name.startswith("serial-runtime-"):
+                phase = "串行收尾"
+            elif name.startswith("tooling-"):
+                phase = "tooling 阶段"
+            else:
+                phase = "Python/QML 并行阶段"
+            LOGGER.info("%s [%s]: %s 个文件", name, phase, len(paths))
             LOGGER.info("命令: %s", _command(name, paths, args.timeout))
         return 0
-    return _finish_shards(_start_shards(shards, args.timeout))
+    python_qml_shards = tuple(
+        shard
+        for shard in shards
+        if not shard[0].startswith(("tooling-", "serial-runtime-"))
+    )
+    tooling_shards = tuple(
+        shard for shard in shards if shard[0].startswith("tooling-")
+    )
+    serial_shards = tuple(
+        shard for shard in shards if shard[0].startswith("serial-runtime-")
+    )
+    python_qml_status = _finish_shards(
+        _start_shards(python_qml_shards, args.timeout)
+    )
+    tooling_status = _finish_shards(_start_shards(tooling_shards, args.timeout))
+    serial_status = _finish_shards(_start_shards(serial_shards, args.timeout))
+    return python_qml_status or tooling_status or serial_status
 
 
 if __name__ == "__main__":

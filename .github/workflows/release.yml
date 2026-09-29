@@ -14,6 +14,7 @@ env:
   # 托管 runner 跑完整受保护套件远超 20 分钟; 720 秒与 1200 秒均被 124 杀掉。
   # 与 build-all.yml 保持一致, 避免 tag 推送卡在 build-all 能过的门禁上。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "2400"
+  PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "2700"
 
 jobs:
   quality_gate:
@@ -49,8 +50,10 @@ jobs:
           QML_IMPORT_PATH: ""
         run: >-
           python scripts/test_process.py --qt-platform offscreen
-          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
-          python scripts/run_test_shards.py --full-suite --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
+          python scripts/run_test_shards.py --full-suite
+          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --supervisor-timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:
           QT_QPA_PLATFORM: offscreen

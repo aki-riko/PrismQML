@@ -114,6 +114,18 @@ def test_get_style_failure_does_not_commit(monkeypatch, hook_env):
     _assert_owner_state_empty(hook)
 
 
+def test_invalid_qt_native_handle_is_ignored_before_attach(monkeypatch, hook_env):
+    hook, last_error, messages = hook_env
+    fake = _install(monkeypatch, last_error, invalid_windows=[HWND])
+
+    assert hook.finalizeAttach(_FakeWindow()) is False
+
+    _assert_state(hook)
+    _assert_owner_counts(hook)
+    assert fake.calls == []
+    assert messages == []
+
+
 def test_set_style_failure_does_not_commit(monkeypatch, hook_env):
     hook, last_error, _messages = hook_env
     fake = _install(

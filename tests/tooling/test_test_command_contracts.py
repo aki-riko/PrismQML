@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts import run_test_shards
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MANUAL_VISIBLE_ENTRYPOINTS = {
@@ -244,30 +246,82 @@ def test_ci_automated_test_commands_use_process_runner():
 
 
 @pytest.mark.parametrize(
-    ("relative", "timeout_reference", "timeout_seconds"),
+    (
+        "relative",
+        "timeout_reference",
+        "supervisor_timeout_reference",
+        "timeout_seconds",
+        "supervisor_timeout_seconds",
+    ),
     (
         (
             Path(".github/workflows/build-all.yml"),
             "$env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS",
+            "$env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS",
             2400,
+            2700,
         ),
         (
             Path(".github/workflows/release.yml"),
             "$PRISM_FULL_PYTEST_TIMEOUT_SECONDS",
+            "$PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS",
             2400,
+            2700,
         ),
     ),
 )
 def test_ci_full_python_gates_have_current_timeout_budget(
     relative: Path,
     timeout_reference: str,
+    supervisor_timeout_reference: str,
     timeout_seconds: int,
+    supervisor_timeout_seconds: int,
 ):
-    """全量 Python CI 必须保留对应 runner 的时间余量。"""
+    """Shard timeouts must expire before the outer runner timeout."""
     source = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
 
     assert f'PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "{timeout_seconds}"' in source
-    assert f"--timeout {timeout_reference} --" in source
+    assert (
+        "PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "
+        f'"{supervisor_timeout_seconds}"'
+    ) in source
+    assert f"--timeout {supervisor_timeout_reference} --" in source
+    assert f"--timeout {timeout_reference}" in source
+    assert f"--supervisor-timeout {supervisor_timeout_reference}" in source
+
+
+def test_build_all_linux_gate_keeps_the_setup_python_interpreter():
+    source = (PROJECT_ROOT / ".github" / "workflows" / "build-all.yml").read_text(
+        encoding="utf-8"
+    )
+    linux_gate = source.split("python_quality_linux:", 1)[1].split(
+        "  # ==================== 桌面三平台", 1
+    )[0]
+
+    assert 'python-version: "3.12"' in linux_gate
+    assert "setup-python: false" in linux_gate
+
+
+def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
+    shards = run_test_shards._shards()
+    serial = [shard for shard in shards if shard[0].startswith("serial-runtime-")]
+    expected = {
+        path.relative_to(PROJECT_ROOT).as_posix()
+        for root in (
+            PROJECT_ROOT / "tests",
+            PROJECT_ROOT / "tests" / "qml",
+            PROJECT_ROOT / "tests" / "tooling",
+        )
+        for path in root.glob("test_*.py")
+    }
+    actual = [path for _name, paths in shards for path in paths]
+
+    assert len(actual) == len(set(actual))
+    assert set(actual) == expected
+    assert len([name for name, _paths in shards if name.startswith("qml-")]) == 4
+    assert serial == [
+        ("serial-runtime-1", ("tests/tooling/test_headless_test_entrypoints.py",))
+    ]
 
 
 def test_release_linux_wheel_probe_provisions_openssl3_runtime():

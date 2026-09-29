@@ -41,13 +41,21 @@ class _LastError:
 
 class _FakeUser32:
     def __init__(
-        self, last_error, *, gets=(), sets=(), positions=(), messages=()
+        self,
+        last_error,
+        *,
+        gets=(),
+        sets=(),
+        positions=(),
+        messages=(),
+        invalid_windows=(),
     ):
         self._last_error = last_error
         self._gets = list(gets)
         self._sets = list(sets)
         self._positions = list(positions)
         self._messages = list(messages)
+        self._invalid_windows = set(invalid_windows)
         self.calls = []
 
     def _next(self, outcomes, name):
@@ -59,6 +67,9 @@ class _FakeUser32:
         if outcome.error is not None:
             self._last_error.set_from_api(outcome.error)
         return outcome.value
+
+    def IsWindow(self, hwnd):
+        return hwnd not in self._invalid_windows
 
     def GetWindowLongPtrW(self, hwnd, index):
         self.calls.append(("get", hwnd, index))

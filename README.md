@@ -313,7 +313,7 @@ Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur
 ```bash
 python scripts/test_process.py --qt-platform offscreen --timeout 480 -- python -m pytest
 python scripts/test_process.py --qt-platform offscreen --timeout 1800 -- python -m pytest --full-suite
-python scripts/test_process.py --qt-platform offscreen --timeout 1800 -- python scripts/run_test_shards.py --full-suite --timeout 1800
+python scripts/test_process.py --qt-platform offscreen --timeout 2700 -- python scripts/run_test_shards.py --full-suite --timeout 2400 --supervisor-timeout 2700
 python scripts/test_process.py --qt-platform offscreen --timeout 180 -- python -X utf8 tests/qml/probe_all_components.py
 ```
 

@@ -76,6 +76,9 @@ if sys.platform == "win32":
     user32.GetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int]
     user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
 
+    user32.IsWindow.argtypes = [wintypes.HWND]
+    user32.IsWindow.restype = wintypes.BOOL
+
     bind_set_window_pos(user32)
 
     user32.IsZoomed.argtypes = [wintypes.HWND]
@@ -302,10 +305,13 @@ class NativeWindowHook(QObject):
 
     @staticmethod
     def _window_handle(window: QWindow) -> int:
-        """Return a validated native handle. 返回校验后的原生句柄。"""
+        """Return a live HWND and reject offscreen sentinel IDs. 校验真实 HWND。"""
         if not window:
             return 0
-        return int(window.winId())
+        hwnd = int(window.winId())
+        if not hwnd or not user32.IsWindow(hwnd):
+            return 0
+        return hwnd
 
     def _owner_identity(self, window: QWindow) -> int:
         """Return stable C++ QObject identity across wrappers. 返回稳定底层对象标识。"""

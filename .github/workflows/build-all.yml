@@ -23,6 +23,7 @@ env:
   # Windows 已超出此前 1200 秒上限并被 124 杀掉(run 33494107292, 2026-09-01)。
   # 与 release.yml 保持一致。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "2400"
+  PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "2700"
 
 jobs:
   qml_conventions:
@@ -81,8 +82,10 @@ jobs:
           QML_IMPORT_PATH: ""
         run: >-
           python scripts/test_process.py --qt-platform offscreen
-          --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
-          python scripts/run_test_shards.py --full-suite --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --timeout $env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
+          python scripts/run_test_shards.py --full-suite
+          --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --supervisor-timeout $env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:
           QT_PLUGIN_PATH: ""
@@ -112,6 +115,8 @@ jobs:
         with:
           version: "6.10.3"
           modules: qtshadertools
+          # Keep setup-python's selected 3.12 interpreter on PATH, matching release.yml.
+          setup-python: false
       - name: Install source test dependencies
         run: >-
           python -m pip install --disable-pip-version-check -e ".[dev]"
@@ -125,8 +130,10 @@ jobs:
           QML_IMPORT_PATH: ""
         run: >-
           python scripts/test_process.py --qt-platform offscreen
-          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS --
-          python scripts/run_test_shards.py --full-suite --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
+          python scripts/run_test_shards.py --full-suite
+          --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --supervisor-timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:
           QT_QPA_PLATFORM: offscreen
