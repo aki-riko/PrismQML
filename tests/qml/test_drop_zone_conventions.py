@@ -7,6 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -102,6 +103,14 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _live_top_level_windows():
+    return tuple(
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if shiboken6.isValid(window)
+    )
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -135,13 +144,13 @@ def _dispose_scene(engine, component, window) -> None:
 
 @pytest.fixture
 def drop_zone_scene(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    windows_before = _live_top_level_windows()
     engine, component, window, zone, warnings = _create_scene()
     try:
         yield window, zone, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _live_top_level_windows() == windows_before
 
 
 def _drop_files(window, paths):

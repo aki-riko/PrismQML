@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+import shiboken6
 from PySide6.QtCore import (
     QCoreApplication,
     QDir,
@@ -109,6 +110,14 @@ def _new_visible_windows(windows_before, *allowed):
     ]
 
 
+def _live_top_level_windows():
+    return tuple(
+        window
+        for window in QGuiApplication.topLevelWindows()
+        if shiboken6.isValid(window)
+    )
+
+
 def _create_scene(window_helper=None):
     engine = QQmlApplicationEngine()
     warnings = []
@@ -156,13 +165,13 @@ def _dispose_scene(engine, component, window) -> None:
 
 @pytest.fixture
 def folder_drop_scene(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    windows_before = _live_top_level_windows()
     engine, component, window, controls, warnings = _create_scene()
     try:
         yield window, controls, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _live_top_level_windows() == windows_before
 
 
 def _drop_mime(urls: list[QUrl]) -> QMimeData:
