@@ -11,7 +11,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
-from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
+from prismqml import Skin, Theme, getSkin, getTheme, setSkin, setTheme
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -307,26 +307,22 @@ def _pump(milliseconds: int = 10) -> None:
     loop.exec()
 
 
-def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
-    return _create_scene_from_source(QML_SOURCE, "inline:neumorphism-skin.qml")
+def _create_scene(
+    engine: QQmlApplicationEngine,
+) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str], object]:
+    return _create_scene_from_source(
+        engine, QML_SOURCE, "inline:neumorphism-skin.qml"
+    )
 
 
 def _create_scene_from_source(
-    source: bytes, source_url: str
-) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
-    requested_skin = getSkin()
-    requested_theme = getTheme()
-    engine = QQmlApplicationEngine()
-    register_types(engine)
-    # register_types may bind the process-local test config after callers have
-    # selected a skin. Reapply the requested runtime state after registration.
-    # register_types 可能在调用方选定皮肤后绑定进程内测试配置；注册完成后重新应用请求状态。
-    setTheme(requested_theme)
-    setSkin(requested_skin)
+    engine: QQmlApplicationEngine, source: bytes, source_url: str
+) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str], object]:
     warnings: list[str] = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
+    warning_handler = lambda errors: warnings.extend(
+        error.toString() for error in errors
     )
+    engine.warnings.connect(warning_handler)
     component = QQmlComponent(engine)
     component.setData(source, QUrl(source_url))
     if component.status() == QQmlComponent.Status.Loading:
@@ -346,7 +342,14 @@ def _create_scene_from_source(
     ]
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
-    return engine, component, root, warnings
+    return engine, component, root, warnings, warning_handler
+
+
+def _dispose_scene(engine, component, root, warning_handler) -> None:
+    root.deleteLater()
+    component.deleteLater()
+    engine.warnings.disconnect(warning_handler)
+    _pump()
 
 
 def _assert_color(root: QObject, name: str, expected: str) -> None:
@@ -375,12 +378,12 @@ def _owned(root: QObject, type_fragment: str) -> list[QObject]:
     return owned
 
 
-def test_neumorphism_runtime_tokens_and_surfaces(qapp):
+def test_neumorphism_runtime_tokens_and_surfaces(qapp, qml_engine):
     previous_skin = getSkin()
     previous_theme = getTheme()
     setTheme(Theme.LIGHT)
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene()
+    engine, component, root, warnings, warning_handler = _create_scene(qml_engine)
     try:
         assert root.property("skinName") == "neumorphism"
         assert root.property("neumorphismActive") is True
@@ -467,18 +470,16 @@ def test_neumorphism_runtime_tokens_and_surfaces(qapp):
     finally:
         setTheme(previous_theme)
         setSkin(previous_skin)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
-def test_neumorphism_settings_surfaces_share_color_and_radius(qapp):
+def test_neumorphism_settings_surfaces_share_color_and_radius(qapp, qml_engine):
     previous_skin = getSkin()
     previous_theme = getTheme()
     setTheme(Theme.LIGHT)
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene_from_source(
+    engine, component, root, warnings, warning_handler = _create_scene_from_source(
+        qml_engine,
         SETTINGS_SURFACE_SOURCE, "inline:neumorphism-settings-surfaces.qml"
     )
     try:
@@ -504,16 +505,14 @@ def test_neumorphism_settings_surfaces_share_color_and_radius(qapp):
     finally:
         setSkin(previous_skin)
         setTheme(previous_theme)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
-def test_neumorphic_shadow_maps_nested_target_geometry(qapp):
+def test_neumorphic_shadow_maps_nested_target_geometry(qapp, qml_engine):
     previous_skin = getSkin()
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene_from_source(
+    engine, component, root, warnings, warning_handler = _create_scene_from_source(
+        qml_engine,
         NESTED_TARGET_SOURCE, "inline:neumorphism-nested-target.qml"
     )
     try:
@@ -539,16 +538,14 @@ def test_neumorphic_shadow_maps_nested_target_geometry(qapp):
         assert warnings == []
     finally:
         setSkin(previous_skin)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
-def test_neumorphic_shadow_loads_only_the_active_state(qapp):
+def test_neumorphic_shadow_loads_only_the_active_state(qapp, qml_engine):
     previous_skin = getSkin()
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene_from_source(
+    engine, component, root, warnings, warning_handler = _create_scene_from_source(
+        qml_engine,
         NESTED_TARGET_SOURCE, "inline:neumorphism-shadow-lifecycle.qml"
     )
     try:
@@ -585,16 +582,14 @@ def test_neumorphic_shadow_loads_only_the_active_state(qapp):
         assert warnings == []
     finally:
         setSkin(previous_skin)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
-def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
+def test_neumorphism_extended_surfaces_use_engine_shadow(qapp, qml_engine):
     previous_skin = getSkin()
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene_from_source(
+    engine, component, root, warnings, warning_handler = _create_scene_from_source(
+        qml_engine,
         EXTENDED_SURFACES_SOURCE, "inline:neumorphism-extended-surfaces.qml"
     )
     try:
@@ -626,16 +621,14 @@ def test_neumorphism_extended_surfaces_use_engine_shadow(qapp):
         assert warnings == []
     finally:
         setSkin(previous_skin)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
-def test_neumorphic_toggle_uses_recessed_track_and_raised_thumb(qapp):
+def test_neumorphic_toggle_uses_recessed_track_and_raised_thumb(qapp, qml_engine):
     previous_skin = getSkin()
     setSkin(Skin.NEUMORPHISM)
-    engine, component, root, warnings = _create_scene_from_source(
+    engine, component, root, warnings, warning_handler = _create_scene_from_source(
+        qml_engine,
         TOGGLE_SURFACE_SOURCE, "inline:neumorphism-toggle-surface.qml"
     )
     try:
@@ -668,10 +661,7 @@ def test_neumorphic_toggle_uses_recessed_track_and_raised_thumb(qapp):
         assert warnings == []
     finally:
         setSkin(previous_skin)
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        _pump()
+        _dispose_scene(engine, component, root, warning_handler)
 
 
 def test_neumorphism_python_skin_round_trip():

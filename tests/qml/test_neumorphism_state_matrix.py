@@ -10,7 +10,7 @@ from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
-from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
+from prismqml import Skin, Theme, getSkin, getTheme, setSkin, setTheme
 
 
 QML_SOURCE = b"""
@@ -102,13 +102,14 @@ def _pump(milliseconds: int = 10) -> None:
     loop.exec()
 
 
-def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str]]:
-    engine = QQmlApplicationEngine()
-    register_types(engine)
+def _create_scene(
+    engine: QQmlApplicationEngine,
+) -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list[str], object]:
     warnings: list[str] = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
+    warning_handler = lambda errors: warnings.extend(
+        error.toString() for error in errors
     )
+    engine.warnings.connect(warning_handler)
     component = QQmlComponent(engine)
     component.setData(QML_SOURCE, QUrl("inline:neumorphism-state-matrix.qml"))
     for _ in range(50):
@@ -120,7 +121,7 @@ def _create_scene() -> tuple[QQmlApplicationEngine, QQmlComponent, QObject, list
     ]
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
-    return engine, component, root, warnings
+    return engine, component, root, warnings, warning_handler
 
 
 def _alpha(color) -> int:
@@ -132,14 +133,16 @@ def _values(root: QObject, name: str) -> list:
     return value.toVariant() if hasattr(value, "toVariant") else list(value)
 
 
-def test_neumorphism_neutral_state_matrix_and_shared_geometry(qapp):
+def test_neumorphism_neutral_state_matrix_and_shared_geometry(qapp, qml_engine):
     previous_theme = getTheme()
     previous_skin = getSkin()
     try:
         for theme in (Theme.LIGHT, Theme.DARK):
             setTheme(theme)
             setSkin(Skin.NEUMORPHISM)
-            engine, component, root, warnings = _create_scene()
+            engine, component, root, warnings, warning_handler = _create_scene(
+                qml_engine
+            )
             try:
                 assert root.property("backgroundToken") == root.property("surfaceToken")
                 assert root.property("backgroundToken") == root.property("tableBgToken")
@@ -193,7 +196,7 @@ def test_neumorphism_neutral_state_matrix_and_shared_geometry(qapp):
             finally:
                 root.deleteLater()
                 component.deleteLater()
-                engine.deleteLater()
+                engine.warnings.disconnect(warning_handler)
                 _pump()
     finally:
         setTheme(previous_theme)

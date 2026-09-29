@@ -116,14 +116,17 @@ def _animated_canvases(root: QObject) -> list[QObject]:
     ]
 
 
-def _create_chart():
-    engine = QQmlApplicationEngine()
+def _create_chart(engine=None):
+    owns_engine = engine is None
+    if engine is None:
+        engine = QQmlApplicationEngine()
+        engine.addImportPath(str(ROOT / "prismqml"))
+        register_types(engine)
     warnings = []
-    engine.warnings.connect(
-        lambda errors: warnings.extend(error.toString() for error in errors)
+    warning_handler = lambda errors: warnings.extend(
+        error.toString() for error in errors
     )
-    engine.addImportPath(str(ROOT / "prismqml"))
-    register_types(engine)
+    engine.warnings.connect(warning_handler)
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     assert component.status() == QQmlComponent.Status.Ready, [
@@ -132,31 +135,40 @@ def _create_chart():
     chart = component.create(engine.rootContext())
     assert chart is not None, [error.toString() for error in component.errors()]
     _pump(10)
-    return engine, component, chart, warnings
+    return engine, component, chart, warnings, warning_handler, owns_engine
 
 
-def _dispose_chart(engine, component, chart) -> None:
+def _dispose_chart(
+    engine,
+    component,
+    chart,
+    warning_handler=None,
+    owns_engine=True,
+) -> None:
     chart.deleteLater()
     component.deleteLater()
     engine.collectGarbage()
-    engine.clearComponentCache()
-    engine.deleteLater()
+    if warning_handler is not None:
+        engine.warnings.disconnect(warning_handler)
+    if owns_engine:
+        engine.clearComponentCache()
+        engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
 
 
 @pytest.fixture
-def chart_scene(qapp):
-    scene = _create_chart()
+def chart_scene(qapp, qml_engine):
+    scene = _create_chart(qml_engine)
     try:
         yield scene[2], scene[3]
     finally:
-        _dispose_chart(scene[0], scene[1], scene[2])
+        _dispose_chart(scene[0], scene[1], scene[2], scene[4], scene[5])
 
 
 @pytest.fixture
-def windowed_chart_scene(qapp):
-    scene = _create_chart()
+def windowed_chart_scene(qapp, qml_engine):
+    scene = _create_chart(qml_engine)
     window = QQuickWindow()
     window.resize(640, 360)
     scene[2].setParentItem(window.contentItem())
@@ -168,4 +180,4 @@ def windowed_chart_scene(qapp):
         scene[2].setParentItem(None)
         window.close()
         window.deleteLater()
-        _dispose_chart(scene[0], scene[1], scene[2])
+        _dispose_chart(scene[0], scene[1], scene[2], scene[4], scene[5])

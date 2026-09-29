@@ -24,11 +24,11 @@ from PySide6.QtCore import (
     QtMsgType,
     qInstallMessageHandler,
 )
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
-from prismqml import Skin, configure_qml_environment, getSkin, register_types, setSkin
+from prismqml import Skin, configure_qml_environment, getSkin, setSkin
 
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -233,7 +233,9 @@ def test_gallery_navigation_page_documents_vertical_panels():
     assert "onIsExpandedChanged: if (isExpanded) showcase.capturePaneAcrylic()" in source
 
 
-def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp):
+def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(
+    qapp, qml_engine
+):
     """The real Gallery page must instantiate every vertical panel with geometry.
 
     真实画廊页面必须无 QML 错误地实例化每个垂直面板, 并拿到非零几何。
@@ -243,11 +245,10 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp)
     previous = qInstallMessageHandler(
         lambda mode, context, message: messages.append((mode, message))
     )
-    engine = QQmlApplicationEngine()
+    engine = qml_engine
     component = None
     page = None
     try:
-        register_types(engine)
         component = QQmlComponent(engine, QUrl.fromLocalFile(str(_PAGE)))
         assert _wait_until(
             lambda: component.status() != QQmlComponent.Status.Loading
@@ -281,7 +282,7 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp)
             assert vertical[0].height() > 0, f"{name} vertical height collapsed"
     finally:
         qInstallMessageHandler(previous)
-        _release(qapp, page, component, engine)
+        _release(qapp, page, component)
 
     failures = [
         message
@@ -293,10 +294,7 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(qapp)
     assert failures == []
 
 
-def _create_host_scene(qapp):
-    configure_qml_environment()
-    engine = QQmlApplicationEngine()
-    register_types(engine)
+def _create_host_scene(qapp, engine):
     component = QQmlComponent(engine)
     component.setData(
         _GALLERY_HOST_SCENE.format(
@@ -322,10 +320,7 @@ def _create_host_scene(qapp):
     return engine, component, window, loader.property("item")
 
 
-def _create_window_stack_scene(qapp):
-    configure_qml_environment()
-    engine = QQmlApplicationEngine()
-    register_types(engine)
+def _create_window_stack_scene(qapp, engine):
     component = QQmlComponent(engine)
     component.setData(
         _WINDOW_STACK_SCENE.replace(
@@ -438,7 +433,7 @@ def _click_item(window, panel, item):
     )
 
 
-def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
+def test_gallery_vertical_panels_switch_selection_on_real_click(qapp, qml_engine):
     """Clicking a Gallery panel item must really move its selection.
 
     点击画廊面板条目必须真的改变选中项。
@@ -448,7 +443,7 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     """
     engine = component = window = page = None
     try:
-        engine, component, window, page = _create_host_scene(qapp)
+        engine, component, window, page = _create_host_scene(qapp, qml_engine)
         pane = _pane(page)
         assert pane.property("paneDisplayMode") == window.property("expandedPaneMode")
         assert pane.property("isExpanded") is True
@@ -476,17 +471,19 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, page, component)
 
 
-def test_gallery_navigation_indicator_recovers_after_page_stack_switch(qapp):
+def test_gallery_navigation_indicator_recovers_after_page_stack_switch(
+    qapp, qml_engine
+):
     """A page-stack activation must reinitialize its hidden navigation panels.
 
     页面栈从其它页面切入导航页后, 隐藏期间创建的导航委托仍必须恢复选中指示器。
     """
     engine = component = window = None
     try:
-        engine, component, window = _create_window_stack_scene(qapp)
+        engine, component, window = _create_window_stack_scene(qapp, qml_engine)
         initial_panels = {
             name: [
                 panel for panel in _panels_of(window, name)
@@ -523,10 +520,10 @@ def test_gallery_navigation_indicator_recovers_after_page_stack_switch(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, window, component, engine)
+        _release(qapp, window, component)
 
 
-def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):
+def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp, qml_engine):
     """Fluent Gallery panels must render the selected vertical indicator.
 
     Fluent 画廊面板必须绘制选中项的竖向指示器。
@@ -535,7 +532,7 @@ def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):
     setSkin(Skin.FLUENT)
     engine = component = window = page = None
     try:
-        engine, component, window, page = _create_host_scene(qapp)
+        engine, component, window, page = _create_host_scene(qapp, qml_engine)
         pane = _pane(page)
         assert _wait_until(lambda: len(_nav_items(pane)) == 5)
 
@@ -552,7 +549,7 @@ def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, page, component)
         setSkin(previous_skin)
 
 
@@ -611,14 +608,14 @@ def _click_selector_cell(window, bar, index):
     )
 
 
-def test_gallery_navigation_pane_collapse_is_animated(qapp):
+def test_gallery_navigation_pane_collapse_is_animated(qapp, qml_engine):
     """Collapsing must glide the frame, not teleport it.
 
     折叠必须是滑行而不是瞬跳, 且亚克力层与窗口外壳用同一组输入驱动。
     """
     engine = component = window = page = None
     try:
-        engine, component, window, page = _create_host_scene(qapp)
+        engine, component, window, page = _create_host_scene(qapp, qml_engine)
         pane = _pane(page)
         frame = page.findChild(QQuickItem, "galleryNavPaneFrame")
         assert frame is not None, "the demo has no animated frame"
@@ -671,17 +668,17 @@ def test_gallery_navigation_pane_collapse_is_animated(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, page, component)
 
 
-def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
+def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp, qml_engine):
     """The single pane must really expand and collapse, not be cloned per mode.
 
     单个面板必须真的展开与折叠, 而不是按模式克隆实例。
     """
     engine = component = window = page = None
     try:
-        engine, component, window, page = _create_host_scene(qapp)
+        engine, component, window, page = _create_host_scene(qapp, qml_engine)
         pane = _pane(page)
         expanded_width = pane.property("implicitWidth")
         # Left mode shows the design width; the slider only drives pane_auto
@@ -740,4 +737,4 @@ def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, page, component)
