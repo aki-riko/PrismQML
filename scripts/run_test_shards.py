@@ -20,7 +20,7 @@ DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 1500
 LOGGER = logging.getLogger("prismqml.test_shards")
 SHARD_LAYOUT = (
     ("python", ROOT / "tests", 2),
-    ("qml", ROOT / "tests" / "qml", 4),
+    ("qml", ROOT / "tests" / "qml", 5),
     ("tooling", ROOT / "tests" / "tooling", 2),
 )
 SERIAL_RUNTIME_FILES = (
