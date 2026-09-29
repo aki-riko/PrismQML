@@ -15,6 +15,7 @@ from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, se
 
 
 ROOT = Path(__file__).resolve().parents[2]
+COMPONENT_READY_TIMEOUT_MS = 10_000
 INSET_LAYER_PATH = (
     ROOT
     / "prismqml"
@@ -328,10 +329,18 @@ def _create_scene_from_source(
     )
     component = QQmlComponent(engine)
     component.setData(source, QUrl(source_url))
-    for _ in range(50):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump()
+    if component.status() == QQmlComponent.Status.Loading:
+        loop = QEventLoop()
+        component.statusChanged.connect(
+            lambda status: loop.quit()
+            if status != QQmlComponent.Status.Loading
+            else None
+        )
+        QTimer.singleShot(COMPONENT_READY_TIMEOUT_MS, loop.quit)
+        loop.exec()
+    assert component.status() != QQmlComponent.Status.Loading, (
+        f"QML component remained Loading after {COMPONENT_READY_TIMEOUT_MS}ms"
+    )
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
