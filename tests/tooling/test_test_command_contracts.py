@@ -334,6 +334,14 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
         ),
         (
             "serial-runtime-6",
+            ("tests/qml/test_effects_page_matrix_controls.py",),
+        ),
+        (
+            "serial-runtime-7",
+            ("tests/qml/test_hyperlink_cursor_contracts.py",),
+        ),
+        (
+            "serial-runtime-8",
             ("tests/tooling/test_headless_test_entrypoints.py",),
         ),
     ]
