@@ -304,7 +304,7 @@ def test_build_all_linux_gate_keeps_the_setup_python_interpreter():
 
 def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
     shards = run_test_shards._shards()
-    python_qml, post_qml = run_test_shards._execution_phases(shards)
+    python_qml, tooling, serial_phase = run_test_shards._execution_phases(shards)
     serial = [shard for shard in shards if shard[0].startswith("serial-runtime-")]
     expected = {
         path.relative_to(PROJECT_ROOT).as_posix()
@@ -330,15 +330,19 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
         ),
         (
             "serial-runtime-5",
+            ("tests/qml/test_timeline_conventions.py",),
+        ),
+        (
+            "serial-runtime-6",
             ("tests/tooling/test_headless_test_entrypoints.py",),
         ),
     ]
     assert all(
         name.startswith(("python-", "qml-")) for name, _paths in python_qml
     )
+    assert all(name.startswith("tooling-") for name, _paths in tooling)
     assert all(
-        name.startswith(("tooling-", "serial-runtime-"))
-        for name, _paths in post_qml
+        name.startswith("serial-runtime-") for name, _paths in serial_phase
     )
 
 

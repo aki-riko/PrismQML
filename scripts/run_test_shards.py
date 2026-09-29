@@ -28,6 +28,7 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_icon_renderer_layer_lifecycle.py",
     "tests/qml/test_layout_container_conventions.py",
     "tests/qml/test_vintage_ticket_component_state_matrix.py",
+    "tests/qml/test_timeline_conventions.py",
     "tests/tooling/test_headless_test_entrypoints.py",
 )
 # Runtime hints keep known fixed-wait files from landing in the same QML bucket.
@@ -123,19 +124,22 @@ def _shards() -> tuple[tuple[str, tuple[str, ...]], ...]:
     return tuple(result)
 
 
-def _execution_phases(shards: tuple[tuple[str, tuple[str, ...]], ...]):
+def _execution_phases(
+    shards: tuple[tuple[str, tuple[str, ...]], ...]
+):
     """Keep QML engines clear of the nested entrypoint subprocess matrix."""
     python_qml = tuple(
         shard
         for shard in shards
         if not shard[0].startswith(("tooling-", "serial-runtime-"))
     )
-    post_qml = tuple(
-        shard
-        for shard in shards
-        if shard[0].startswith(("tooling-", "serial-runtime-"))
+    tooling = tuple(
+        shard for shard in shards if shard[0].startswith("tooling-")
     )
-    return python_qml, post_qml
+    serial = tuple(
+        shard for shard in shards if shard[0].startswith("serial-runtime-")
+    )
+    return python_qml, tooling, serial
 
 
 def _artifact_root() -> Path:
@@ -220,20 +224,27 @@ def main(argv: list[str] | None = None) -> int:
             args.supervisor_timeout,
         )
         for name, paths in shards:
-            phase = (
-                "QML 后并行阶段"
-                if name.startswith(("tooling-", "serial-runtime-"))
-                else "Python/QML 并行阶段"
-            )
+            if name.startswith("serial-runtime-"):
+                phase = "串行隔离收尾"
+            elif name.startswith("tooling-"):
+                phase = "QML 后并行阶段"
+            else:
+                phase = "Python/QML 并行阶段"
             LOGGER.info("%s [%s]: %s 个文件", name, phase, len(paths))
             LOGGER.info("命令: %s", _command(name, paths, args.timeout))
         return 0
-    python_qml_shards, post_qml_shards = _execution_phases(shards)
+    python_qml_shards, tooling_shards, serial_shards = _execution_phases(shards)
     python_qml_status = _finish_shards(
         _start_shards(python_qml_shards, args.timeout)
     )
-    post_qml_status = _finish_shards(_start_shards(post_qml_shards, args.timeout))
-    return python_qml_status or post_qml_status
+    tooling_status = _finish_shards(_start_shards(tooling_shards, args.timeout))
+    serial_status = 0
+    for shard in serial_shards:
+        status = _finish_shards(_start_shards((shard,), args.timeout))
+        serial_status = serial_status or status
+        if status:
+            break
+    return python_qml_status or tooling_status or serial_status
 
 
 if __name__ == "__main__":
