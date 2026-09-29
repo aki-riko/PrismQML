@@ -304,6 +304,7 @@ def test_build_all_linux_gate_keeps_the_setup_python_interpreter():
 
 def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
     shards = run_test_shards._shards()
+    python_qml, post_qml = run_test_shards._execution_phases(shards)
     serial = [shard for shard in shards if shard[0].startswith("serial-runtime-")]
     expected = {
         path.relative_to(PROJECT_ROOT).as_posix()
@@ -322,6 +323,13 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
     assert serial == [
         ("serial-runtime-1", ("tests/tooling/test_headless_test_entrypoints.py",))
     ]
+    assert all(
+        name.startswith(("python-", "qml-")) for name, _paths in python_qml
+    )
+    assert all(
+        name.startswith(("tooling-", "serial-runtime-"))
+        for name, _paths in post_qml
+    )
 
 
 def test_release_linux_wheel_probe_provisions_openssl3_runtime():
