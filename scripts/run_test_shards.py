@@ -17,6 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT_SECONDS = 1200
 DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 1500
+DEFAULT_SERIAL_TIMEOUT_SECONDS = 180
 LOGGER = logging.getLogger("prismqml.test_shards")
 SHARD_LAYOUT = (
     ("python", ROOT / "tests", 2),
@@ -74,6 +75,17 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         type=_positive_timeout,
         default=DEFAULT_SUPERVISOR_TIMEOUT_SECONDS,
         help="外层 runner 的总超时，须留时间输出分片失败诊断",
+    )
+    parser.add_argument(
+        "--serial-timeout",
+        type=_positive_timeout,
+        default=int(
+            os.environ.get(
+                "PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS",
+                DEFAULT_SERIAL_TIMEOUT_SECONDS,
+            )
+        ),
+        help="串行隔离测试的单进程保护超时（秒）",
     )
     parser.add_argument(
         "--dry-run",
@@ -225,13 +237,14 @@ def main(argv: list[str] | None = None) -> int:
     shards = _shards()
     if args.dry_run:
         LOGGER.info(
-            "超时预算: shard=%ss / supervisor=%ss",
+            "超时预算: shard=%ss / serial=%ss / supervisor=%ss",
             args.timeout,
+            args.serial_timeout,
             args.supervisor_timeout,
         )
         for name, paths in shards:
             if name.startswith("serial-runtime-"):
-                phase = "串行隔离收尾"
+                phase = "隔离收尾并行阶段"
             elif name.startswith("tooling-"):
                 phase = "QML 后并行阶段"
             else:
@@ -244,12 +257,9 @@ def main(argv: list[str] | None = None) -> int:
         _start_shards(python_qml_shards, args.timeout)
     )
     tooling_status = _finish_shards(_start_shards(tooling_shards, args.timeout))
-    serial_status = 0
-    for shard in serial_shards:
-        status = _finish_shards(_start_shards((shard,), args.timeout))
-        serial_status = serial_status or status
-        if status:
-            break
+    serial_status = _finish_shards(
+        _start_shards(serial_shards, args.serial_timeout)
+    )
     return python_qml_status or tooling_status or serial_status
 
 

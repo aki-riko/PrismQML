@@ -13,6 +13,7 @@ env:
   # 完整套件已拆成隔离分片；每片 20 分钟，外层再留 5 分钟清理诊断余量。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
   PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "1500"
+  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "180"
 
 jobs:
   quality_gate:
@@ -55,6 +56,7 @@ jobs:
           --timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
           python scripts/run_test_shards.py --full-suite
           --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --serial-timeout $PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS
           --supervisor-timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:

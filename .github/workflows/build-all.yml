@@ -23,6 +23,7 @@ env:
   # 分片通常数分钟完成；每片保留 20 分钟，外层再留 5 分钟做清理诊断。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
   PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "1500"
+  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "180"
 
 jobs:
   qml_conventions:
@@ -92,6 +93,7 @@ jobs:
           --timeout $env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
           python scripts/run_test_shards.py --full-suite
           --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --serial-timeout $env:PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS
           --supervisor-timeout $env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:
@@ -144,6 +146,7 @@ jobs:
           --timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS --
           python scripts/run_test_shards.py --full-suite
           --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
+          --serial-timeout $PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS
           --supervisor-timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
       - name: Probe source QML components
         env:

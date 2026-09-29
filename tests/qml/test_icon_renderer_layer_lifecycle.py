@@ -84,7 +84,7 @@ class _BlockingIconProvider(QQuickImageProvider):
     """Hold asynchronous icon requests at Loading. 异步图标请求保持在加载态。"""
 
     def __init__(self):
-        self.block_requests = os.name == "nt"
+        self.block_requests = _uses_blocking_async_provider()
         if self.block_requests:
             super().__init__(
                 QQuickImageProvider.ImageType.Image,
@@ -108,6 +108,17 @@ class _BlockingIconProvider(QQuickImageProvider):
         size.setWidth(image.width())
         size.setHeight(image.height())
         return image
+
+
+def _uses_blocking_async_provider() -> bool:
+    """Use blocking workers only with a render-capable Qt platform.
+
+    仅在支持渲染抓帧的 Qt 平台使用阻塞图片工作线程。
+    """
+    return (
+        os.name == "nt"
+        and os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen"
+    )
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -273,7 +284,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
         previous_handler,
     ) = scene
     try:
-        capture_pixels = os.name == "nt"
+        capture_pixels = _uses_blocking_async_provider()
         empty_image = (
             _stable_window_image(window) if capture_pixels else QImage()
         )
