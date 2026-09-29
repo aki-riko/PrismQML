@@ -167,8 +167,8 @@ def chart_scene(qapp, qml_engine):
 
 
 @pytest.fixture
-def windowed_chart_scene(qapp, qml_engine):
-    scene = _create_chart(qml_engine)
+def windowed_chart_scene(qapp):
+    scene = _create_chart()
     window = QQuickWindow()
     window.resize(640, 360)
     scene[2].setParentItem(window.contentItem())

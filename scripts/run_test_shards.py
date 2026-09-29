@@ -32,6 +32,8 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_effects_page_matrix_controls.py",
     "tests/qml/test_hyperlink_cursor_contracts.py",
     "tests/qml/test_navigation_icon_layer_lifecycle.py",
+    "tests/qml/test_drop_zone_conventions.py",
+    "tests/qml/test_input_folder_drop.py",
     "tests/tooling/test_headless_test_entrypoints.py",
 )
 # Runtime hints keep known fixed-wait files from landing in the same QML bucket.
