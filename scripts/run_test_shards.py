@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         for name, paths in shards:
             if name.startswith("serial-runtime-"):
-                phase = "隔离收尾并行阶段"
+                phase = "隔离收尾阶段"
             elif name.startswith("tooling-"):
                 phase = "QML 后并行阶段"
             else:
@@ -257,9 +257,14 @@ def main(argv: list[str] | None = None) -> int:
         _start_shards(python_qml_shards, args.timeout)
     )
     tooling_status = _finish_shards(_start_shards(tooling_shards, args.timeout))
-    serial_status = _finish_shards(
-        _start_shards(serial_shards, args.serial_timeout)
-    )
+    serial_status = 0
+    for shard in serial_shards:
+        status = _finish_shards(
+            _start_shards((shard,), args.serial_timeout)
+        )
+        serial_status = serial_status or status
+        if status:
+            break
     return python_qml_status or tooling_status or serial_status
 
 

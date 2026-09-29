@@ -291,7 +291,8 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
 
         svg_icon.setProperty("icon", "image://iconprobe/icon.svg")
         avatar_icon.setProperty("icon", "image://iconprobe/avatar.png")
-        assert _wait_for(provider.request_started.is_set)
+        if capture_pixels:
+            assert _wait_for(provider.request_started.is_set)
         assert _wait_for(
             lambda: len(_visual_descendants(svg_icon)) > 1
             and len(_visual_descendants(avatar_icon)) > 1

@@ -115,7 +115,7 @@ class _BlockingNavigationIconProvider(QQuickImageProvider):
     """Hold navigation image requests at Loading. 导航图片请求保持在加载态。"""
 
     def __init__(self):
-        self.block_requests = os.name == "nt"
+        self.block_requests = _uses_blocking_async_provider()
         if self.block_requests:
             super().__init__(
                 QQuickImageProvider.ImageType.Image,
@@ -139,6 +139,17 @@ class _BlockingNavigationIconProvider(QQuickImageProvider):
         size.setWidth(image.width())
         size.setHeight(image.height())
         return image
+
+
+def _uses_blocking_async_provider() -> bool:
+    """Use blocking workers only with a render-capable Qt platform.
+
+    仅在支持渲染抓帧的 Qt 平台使用阻塞图片工作线程。
+    """
+    return (
+        os.name == "nt"
+        and os.environ.get("QT_QPA_PLATFORM", "").lower() != "offscreen"
+    )
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -337,7 +348,8 @@ def test_navigation_icon_layers_preserve_first_ready_frame(qapp):
         )
         for item, (_object_name, source) in zip(items, ITEM_SOURCES, strict=True):
             assert item.setProperty("icon", source)
-        assert _wait_for(provider.request_started.is_set)
+        if capture_pixels:
+            assert _wait_for(provider.request_started.is_set)
         if capture_pixels:
             assert _wait_for(lambda: _all_status(images, "Loading"))
             loading_image = _stable_window_image(window)
