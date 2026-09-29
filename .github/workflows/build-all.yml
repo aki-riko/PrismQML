@@ -18,12 +18,11 @@ on:
       - ".github/workflows/**"
 
 env:
-  # Windows exceeded the previous 1200s ceiling and was killed with exit 124
-  # (run 33494107292, 2026-09-01). Keep this aligned with release.yml.
-  # Windows 已超出此前 1200 秒上限并被 124 杀掉(run 33494107292, 2026-09-01)。
-  # 与 release.yml 保持一致。
-  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "2400"
-  PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "2700"
+  # Shards normally finish in a few minutes; retain 20 minutes per shard and
+  # a five-minute supervisor margin for cleanup diagnostics.
+  # 分片通常数分钟完成；每片保留 20 分钟，外层再留 5 分钟做清理诊断。
+  PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
+  PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "1500"
 
 jobs:
   qml_conventions:

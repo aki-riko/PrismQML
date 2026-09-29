@@ -15,8 +15,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TIMEOUT_SECONDS = 1800
-DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 2100
+DEFAULT_TIMEOUT_SECONDS = 1200
+DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 1500
 LOGGER = logging.getLogger("prismqml.test_shards")
 SHARD_LAYOUT = (
     ("python", ROOT / "tests", 2),
