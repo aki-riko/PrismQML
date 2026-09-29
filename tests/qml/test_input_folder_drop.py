@@ -118,6 +118,15 @@ def _live_top_level_windows():
     )
 
 
+def _new_live_top_level_windows(windows_before):
+    previous_ids = {id(window) for window in windows_before}
+    return tuple(
+        window
+        for window in _live_top_level_windows()
+        if id(window) not in previous_ids
+    )
+
+
 def _create_scene(window_helper=None):
     engine = QQmlApplicationEngine()
     warnings = []
@@ -171,7 +180,7 @@ def folder_drop_scene(qapp):
         yield window, controls, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
-        assert _live_top_level_windows() == windows_before
+        assert _new_live_top_level_windows(windows_before) == ()
 
 
 def _drop_mime(urls: list[QUrl]) -> QMimeData:

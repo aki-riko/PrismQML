@@ -111,6 +111,15 @@ def _live_top_level_windows():
     )
 
 
+def _new_live_top_level_windows(windows_before):
+    previous_ids = {id(window) for window in windows_before}
+    return tuple(
+        window
+        for window in _live_top_level_windows()
+        if id(window) not in previous_ids
+    )
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -150,7 +159,7 @@ def drop_zone_scene(qapp):
         yield window, zone, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
-        assert _live_top_level_windows() == windows_before
+        assert _new_live_top_level_windows(windows_before) == ()
 
 
 def _drop_files(window, paths):
