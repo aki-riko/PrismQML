@@ -354,6 +354,10 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
         ),
         (
             "serial-runtime-11",
+            ("tests/qml/test_vintage_ticket_extended_surfaces.py",),
+        ),
+        (
+            "serial-runtime-12",
             ("tests/tooling/test_headless_test_entrypoints.py",),
         ),
     ]

@@ -172,6 +172,15 @@ def _live_top_level_windows() -> tuple[QQuickWindow, ...]:
     )
 
 
+def _new_live_top_level_windows(windows_before) -> tuple[QQuickWindow, ...]:
+    previous_ids = {id(window) for window in windows_before}
+    return tuple(
+        window
+        for window in _live_top_level_windows()
+        if id(window) not in previous_ids
+    )
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
@@ -186,6 +195,7 @@ def _create_scene():
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    setSkin(Skin.VINTAGE_TICKET)
     component = QQmlComponent(engine)
     component.setData(SCENE_SOURCE, SCENE_URL)
     for _ in range(50):
@@ -227,7 +237,6 @@ def _owned(root: QObject, type_fragment: str) -> list[QObject]:
 def ticket_scene(qapp):
     previous_skin = getSkin()
     windows_before = _live_top_level_windows()
-    setSkin(Skin.VINTAGE_TICKET)
     engine, component, window, warnings = _create_scene()
     try:
         yield window, warnings
@@ -235,7 +244,7 @@ def ticket_scene(qapp):
         _dispose_scene(engine, component, window)
         setSkin(previous_skin)
         _pump()
-        assert _live_top_level_windows() == windows_before
+        assert _new_live_top_level_windows(windows_before) == ()
 
 
 def test_ticket_extended_surfaces_use_square_ink_geometry(ticket_scene):
