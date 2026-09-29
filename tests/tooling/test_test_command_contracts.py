@@ -321,7 +321,12 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
     assert set(actual) == expected
     assert len([name for name, _paths in shards if name.startswith("qml-")]) == 4
     assert serial == [
-        ("serial-runtime-1", ("tests/tooling/test_headless_test_entrypoints.py",))
+        ("serial-runtime-1", ("tests/test_task_runner.py",)),
+        ("serial-runtime-2", ("tests/qml/test_icon_renderer_layer_lifecycle.py",)),
+        (
+            "serial-runtime-3",
+            ("tests/tooling/test_headless_test_entrypoints.py",),
+        ),
     ]
     assert all(
         name.startswith(("python-", "qml-")) for name, _paths in python_qml
