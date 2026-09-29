@@ -12,6 +12,7 @@ from PySide6.QtGui import QColor, QGuiApplication
 from PySide6.QtQml import QJSValue, QQmlApplicationEngine, QQmlComponent
 
 from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
+from prismqml.python.core import shutdown_tasks
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -286,13 +287,15 @@ def ticket_scene(qapp):
         yield root, warnings
         assert warnings == []
     finally:
+        setTheme(previous_theme)
+        setSkin(previous_skin)
+        task_shutdown = shutdown_tasks(3_000)
+        assert task_shutdown.complete, task_shutdown
         root.deleteLater()
         component.deleteLater()
         engine.collectGarbage()
         engine.clearComponentCache()
         engine.deleteLater()
-        setTheme(previous_theme)
-        setSkin(previous_skin)
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump()
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
