@@ -183,6 +183,11 @@ ExampleCard {
                                 // frame; every other mode keeps the design width and is
                                 // clipped by the frame. pane_auto 读取自身宽度, 因此 auto
                                 // 跟随外框; 其它模式保持设计宽度, 由外框裁剪。
+                                // Do not bind this width to navPaneFrame.width for the
+                                // animated left/compact modes: that scales/reflows the
+                                // frozen pane instead of revealing it through the frame.
+                                // left/compact 模式禁止把这里绑定到 navPaneFrame.width:
+                                // 那会缩放/重排冻结面板, 而不是通过外框揭示它。
                                 width: navPaneModeBar.currentIndex === 3
                                     ? navPaneFrame.width
                                     : Fluent.Enums.controlSize.navPanelExpandWidth

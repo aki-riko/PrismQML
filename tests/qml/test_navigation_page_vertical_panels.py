@@ -629,11 +629,18 @@ def test_gallery_navigation_pane_collapse_is_animated(qapp):
         compact = float(window.property("paneCompactWidth"))
         expanded = float(window.property("paneExpandWidth"))
         assert frame.width() == pytest.approx(expanded)
+        pane_design_width = pane.width()
+        assert pane_design_width == pytest.approx(expanded), (
+            f"the pane must keep its design width: {pane_design_width}"
+        )
 
         # Sample while the 200ms transition is still running 在 200ms 过渡尚未结束时采样
         _click_pane_toggle(window, pane)
         _pump(40)
         mid = frame.width()
+        assert pane.width() == pytest.approx(pane_design_width), (
+            f"the pane width changed during collapse: {pane.width()}"
+        )
         assert _wait_until(lambda: abs(frame.width() - compact) < 0.5), (
             f"the frame never reached the compact width: {frame.width()}"
         )
@@ -646,6 +653,9 @@ def test_gallery_navigation_pane_collapse_is_animated(qapp):
         _click_pane_toggle(window, pane)
         _pump(40)
         mid_back = frame.width()
+        assert pane.width() == pytest.approx(pane_design_width), (
+            f"the pane width changed during expand: {pane.width()}"
+        )
         assert _wait_until(lambda: abs(frame.width() - expanded) < 0.5), (
             f"the frame never returned to the design width: {frame.width()}"
         )
