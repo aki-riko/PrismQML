@@ -26,6 +26,8 @@ SHARD_LAYOUT = (
 SERIAL_RUNTIME_FILES = (
     "tests/test_task_runner.py",
     "tests/qml/test_icon_renderer_layer_lifecycle.py",
+    "tests/qml/test_layout_container_conventions.py",
+    "tests/qml/test_vintage_ticket_component_state_matrix.py",
     "tests/tooling/test_headless_test_entrypoints.py",
 )
 # Runtime hints keep known fixed-wait files from landing in the same QML bucket.

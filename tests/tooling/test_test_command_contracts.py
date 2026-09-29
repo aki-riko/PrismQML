@@ -323,8 +323,13 @@ def test_nested_qt_runtime_matrix_is_serialized_after_parallel_shards():
     assert serial == [
         ("serial-runtime-1", ("tests/test_task_runner.py",)),
         ("serial-runtime-2", ("tests/qml/test_icon_renderer_layer_lifecycle.py",)),
+        ("serial-runtime-3", ("tests/qml/test_layout_container_conventions.py",)),
         (
-            "serial-runtime-3",
+            "serial-runtime-4",
+            ("tests/qml/test_vintage_ticket_component_state_matrix.py",),
+        ),
+        (
+            "serial-runtime-5",
             ("tests/tooling/test_headless_test_entrypoints.py",),
         ),
     ]
