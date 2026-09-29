@@ -289,8 +289,6 @@ def ticket_scene(qapp):
     finally:
         setTheme(previous_theme)
         setSkin(previous_skin)
-        task_shutdown = shutdown_tasks(3_000)
-        assert task_shutdown.complete, task_shutdown
         root.deleteLater()
         component.deleteLater()
         engine.collectGarbage()
@@ -298,4 +296,6 @@ def ticket_scene(qapp):
         engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump()
+        task_shutdown = shutdown_tasks(3_000)
+        assert task_shutdown.complete, task_shutdown
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
