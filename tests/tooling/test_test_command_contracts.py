@@ -321,6 +321,7 @@ def test_build_all_source_gates_skip_editable_package_build():
     )
     assert source.count("scripts/install_source_test_dependencies.py") == 2
     assert 'pip install --disable-pip-version-check -e ".[dev]"' not in source
+    assert source.count("PYTHONPATH: ${{ github.workspace }}") == 2
 
 
 def test_nested_qt_runtime_matrix_is_isolated_after_parallel_shards():

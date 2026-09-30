@@ -69,6 +69,8 @@ jobs:
   python_quality:
     name: Python/QML zero-interaction gate (Windows)
     runs-on: windows-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -121,6 +123,8 @@ jobs:
   python_quality_linux:
     name: Python/QML zero-interaction gate (Linux)
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
