@@ -30,7 +30,7 @@ import QtQuick
 //       onContentChanged: deferred.call(syncLayout)                // dedupe by function
 //       onFilterChanged: deferred.coalesce("reload", loadLatest)   // latest snapshot only
 //   }
-Timer {
+Item {
     id: control
 
     // ==================== Internal Props 内部属性 ====================
@@ -55,7 +55,7 @@ Timer {
         // Reassign instead of push: a var property only notifies on assignment, and
         // pendingCount must stay observable. 必须整体赋值，就地 push 不会触发属性通知。
         _entries = _entries.concat([{ key: "", action: action }])
-        restart()
+        tick.restart()
     }
 
     // Keep only the latest action of one key. Use it when the action closure captures
@@ -74,7 +74,7 @@ Timer {
         var next = _withoutKey(name)
         next.push({ key: name, action: action })
         _entries = next
-        restart()
+        tick.restart()
     }
 
     // Drop the pending action of one key. 丢弃某个 key 的待执行动作。
@@ -82,13 +82,13 @@ Timer {
         var name = _keyName(key)
         if (_indexOfKey(name) < 0) return
         _entries = _withoutKey(name)
-        if (_entries.length === 0) stop()
+        if (_entries.length === 0) tick.stop()
     }
 
     // Drop every pending action. 丢弃全部待执行动作。
     function cancelAll() {
         _entries = []
-        stop()
+        tick.stop()
     }
 
     // ==================== Internal Methods 内部方法 ====================
@@ -137,8 +137,12 @@ Timer {
 
     // Deferred tick contract: one run on the next event-loop iteration
     // 延迟节奏契约：下一帧执行一次
-    interval: 0
-    repeat: false
+    Timer {
+        id: tick
 
-    onTriggered: control._drain()
+        interval: 0
+        repeat: false
+
+        onTriggered: control._drain()
+    }
 }
