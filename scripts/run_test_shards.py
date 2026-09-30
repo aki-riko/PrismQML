@@ -37,6 +37,8 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_drop_zone_conventions.py",
     "tests/qml/test_input_folder_drop.py",
     "tests/qml/test_vintage_ticket_extended_surfaces.py",
+)
+NESTED_ENTRYPOINT_FILES = (
     "tests/tooling/test_headless_test_entrypoints.py",
 )
 # Runtime hints keep known fixed-wait files from landing in the same QML bucket.
@@ -113,11 +115,12 @@ def _file_weight(path: Path) -> int:
 def _partition_files(root: Path, count: int) -> tuple[tuple[str, ...], ...]:
     buckets: list[list[Path]] = [[] for _ in range(count)]
     weights = [0] * count
+    excluded_files = set(SERIAL_RUNTIME_FILES) | set(NESTED_ENTRYPOINT_FILES)
     files = sorted(
         (
             path
             for path in _test_files(root)
-            if path.relative_to(ROOT).as_posix() not in SERIAL_RUNTIME_FILES
+            if path.relative_to(ROOT).as_posix() not in excluded_files
         ),
         key=lambda path: (_file_weight(path), path.as_posix()),
         reverse=True,
@@ -140,6 +143,8 @@ def _shards() -> tuple[tuple[str, tuple[str, ...]], ...]:
             result.append((f"{name}-{index}", paths))
     for index, path in enumerate(SERIAL_RUNTIME_FILES, start=1):
         result.append((f"serial-runtime-{index}", (path,)))
+    for index, path in enumerate(NESTED_ENTRYPOINT_FILES, start=1):
+        result.append((f"nested-entrypoint-{index}", (path,)))
     return tuple(result)
 
 
@@ -150,7 +155,9 @@ def _execution_phases(
     python_qml = tuple(
         shard
         for shard in shards
-        if not shard[0].startswith(("tooling-", "serial-runtime-"))
+        if not shard[0].startswith(
+            ("tooling-", "serial-runtime-", "nested-entrypoint-")
+        )
     )
     tooling = tuple(
         shard for shard in shards if shard[0].startswith("tooling-")
@@ -158,7 +165,12 @@ def _execution_phases(
     serial = tuple(
         shard for shard in shards if shard[0].startswith("serial-runtime-")
     )
-    return python_qml, tooling, serial
+    nested_entrypoints = tuple(
+        shard
+        for shard in shards
+        if shard[0].startswith("nested-entrypoint-")
+    )
+    return python_qml, tooling, serial, nested_entrypoints
 
 
 def _artifact_root() -> Path:
@@ -246,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
         for name, paths in shards:
             if name.startswith("serial-runtime-"):
                 phase = "隔离收尾阶段"
+            elif name.startswith("nested-entrypoint-"):
+                phase = "嵌套入口阶段"
             elif name.startswith("tooling-"):
                 phase = "QML 后并行阶段"
             else:
@@ -253,7 +267,12 @@ def main(argv: list[str] | None = None) -> int:
             LOGGER.info("%s [%s]: %s 个文件", name, phase, len(paths))
             LOGGER.info("命令: %s", _command(name, paths, args.timeout))
         return 0
-    python_qml_shards, tooling_shards, serial_shards = _execution_phases(shards)
+    (
+        python_qml_shards,
+        tooling_shards,
+        serial_shards,
+        nested_entrypoint_shards,
+    ) = _execution_phases(shards)
     python_qml_status = _finish_shards(
         _start_shards(python_qml_shards, args.timeout)
     )
@@ -262,6 +281,9 @@ def main(argv: list[str] | None = None) -> int:
     # ordering strict. 工具合同与运行时隔离测试不共享 QML 对象，主分片结束后
     # 允许两阶段重叠，但隔离测试内部仍保持严格顺序。
     tooling_processes = _start_shards(tooling_shards, args.timeout)
+    nested_entrypoint_processes = _start_shards(
+        nested_entrypoint_shards, args.serial_timeout
+    )
     serial_status = 0
     for shard in serial_shards:
         status = _finish_shards(
@@ -271,7 +293,13 @@ def main(argv: list[str] | None = None) -> int:
         if status:
             break
     tooling_status = _finish_shards(tooling_processes)
-    return python_qml_status or tooling_status or serial_status
+    nested_entrypoint_status = _finish_shards(nested_entrypoint_processes)
+    return (
+        python_qml_status
+        or tooling_status
+        or serial_status
+        or nested_entrypoint_status
+    )
 
 
 if __name__ == "__main__":
