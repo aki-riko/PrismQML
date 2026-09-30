@@ -1,6 +1,6 @@
 # Component Cheat Sheet
 
-A quick index of all 194 QML types (including 6 singletons: `Enums`, `Translator`, `DpiManager`, `IconRendererResources`, `NotificationManager`, `PopupUtils`), grouped by category. See the [component overview](index.md) and the category pages for detailed usage.
+A quick index of every QML type registered by the root module (including 6 singletons: `Enums`, `Translator`, `DpiManager`, `IconRendererResources`, `NotificationManager`, `PopupUtils`), grouped by category. See the [component overview](index.md) and the category pages for detailed usage.
 
 ## Core
 
@@ -60,4 +60,4 @@ A quick index of all 194 QML types (including 6 singletons: `Enums`, `Translator
 
 ## Utils
 
-`HorizontalScrollMixin` · `PopupUtils` · `PopupWindowCore` · `ViewportCulling` · `ViewportMixin` · `WindowDragHandle`
+`DeferredCall` · `HorizontalScrollMixin` · `PopupUtils` · `PopupWindowCore` · `ViewportCulling` · `ViewportMixin` · `WindowDragHandle`

@@ -1,6 +1,6 @@
 # 组件速查表
 
-全部 194 个 QML 类型（含 6 个 singleton：`Enums`、`Translator`、`DpiManager`、`IconRendererResources`、`NotificationManager`、`PopupUtils`）的快速索引，按分类分组；详细用法见[控件总览](index.md)与各分类页。
+根模块注册的全部 QML 类型（含 6 个 singleton：`Enums`、`Translator`、`DpiManager`、`IconRendererResources`、`NotificationManager`、`PopupUtils`）的快速索引，按分类分组；详细用法见[控件总览](index.md)与各分类页。
 
 ## 核心
 
@@ -60,4 +60,4 @@
 
 ## 工具
 
-`HorizontalScrollMixin` · `PopupUtils` · `PopupWindowCore` · `ViewportCulling` · `ViewportMixin` · `WindowDragHandle`
+`DeferredCall` · `HorizontalScrollMixin` · `PopupUtils` · `PopupWindowCore` · `ViewportCulling` · `ViewportMixin` · `WindowDragHandle`

@@ -252,3 +252,4 @@ ViewportMixin controls/utils/ViewportMixin.qml
 ViewportCulling controls/utils/ViewportCulling.qml
 HorizontalScrollMixin controls/utils/HorizontalScrollMixin.qml
 WindowDragHandle controls/utils/WindowDragHandle.qml
+DeferredCall controls/utils/DeferredCall.qml

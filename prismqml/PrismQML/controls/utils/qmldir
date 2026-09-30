@@ -5,3 +5,4 @@ ViewportMixin ViewportMixin.qml
 ViewportCulling ViewportCulling.qml
 HorizontalScrollMixin HorizontalScrollMixin.qml
 WindowDragHandle WindowDragHandle.qml
+DeferredCall DeferredCall.qml
