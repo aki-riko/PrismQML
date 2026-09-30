@@ -155,6 +155,8 @@ def _create_scene():
             "scrollBar",
             "scrollBarEntry",
             "defaultArea",
+            "stopFlick",
+            "stopContent",
             "listArea",
             "gridArea",
             "nestedTarget",

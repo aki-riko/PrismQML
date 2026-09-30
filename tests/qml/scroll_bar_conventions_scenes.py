@@ -192,6 +192,37 @@ Window {
         }
     }
 
+    // A view that refuses overshoot must keep the strict revoke semantics, so the
+    // guard's lenient path (for views that declare overscroll support) stays covered
+    // by its own target.
+    Flickable {
+        id: stopFlick
+        objectName: "stopFlick"
+        x: 300
+        y: 330
+        width: 180
+        height: 120
+        clip: true
+        contentWidth: width
+        contentHeight: stopContent.height
+        boundsBehavior: Flickable.StopAtBounds
+
+        Rectangle {
+            id: stopContent
+            objectName: "stopContent"
+            width: 180
+            height: 420
+        }
+
+        Internal.SmoothScrollHelper {
+            id: stopHelper
+            target: stopFlick
+            orientation: Qt.Vertical
+            handleWheel: true
+            bounceEnabled: true
+        }
+    }
+
     Internal.ScrollAreaList {
         id: listArea
         objectName: "listArea"

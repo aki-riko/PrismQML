@@ -56,6 +56,19 @@ QtObject {
         return revokedBoundary === (atStartBoundary ? -1 : 1)
     }
 
+    // True when the view declares it accepts going out of bounds. Such a target
+    // re-measures its own content (async delegates, recycled rows) and writes the axis
+    // back inside the bounds to keep its position; treating that write as a rejection
+    // permanently cancels the bounce for the rest of the input burst.
+    // 视图声明允许越界时返回真。这类目标会自行重测内容（异步委托、回收行）并把轴写回
+    // 合法区间以维持位置；把该写入当成拒绝，会在整个输入串内永久取消回弹。
+    function allowsOvershoot() {
+        if (!scrollHelper.target
+                || scrollHelper.target.boundsBehavior === undefined) return false
+        return (scrollHelper.target.boundsBehavior & Flickable.DragAndOvershootBounds)
+            === Flickable.DragAndOvershootBounds
+    }
+
     // True when this frame belongs to the guard instead of the publisher: either
     // the view clamped the axis back inside its bounds, or the whole outward
     // window elapsed without a frame and the catch-up peak must not be published.
@@ -64,7 +77,8 @@ QtObject {
     function consumesFrame(current, lastPublished, minimum, maximum,
                            overshot, outward, lastFrameTimestamp) {
         if (overshot && isRevoked(current, lastPublished, minimum, maximum)) {
-            interruptOutwardLeg(current, true)
+            if (allowsOvershoot()) adoptOvershootFrame(current)
+            else interruptOutwardLeg(current, true)
             return true
         }
         if (outward && lastFrameTimestamp > 0
@@ -73,6 +87,22 @@ QtObject {
             return true
         }
         return false
+    }
+
+    // A view that supports overshoot is not rejecting our excursion by re-laying out;
+    // it is only keeping its own position. Take its write as this frame's value, keep
+    // the boundary armed for the burst, and let the next frame publish the excursion
+    // again. A view that stops at bounds keeps the strict revoke above.
+    // 支持越界的视图重新布局并不是在拒绝我们的位移，只是在维持自身位置。把它的写入当成本帧
+    // 取值，本输入串内继续保持边界武装，下一帧重新发布该位移。禁止越界的视图仍走上面的严格撤销。
+    function adoptOvershootFrame(current) {
+        if (verticalAxis) {
+            scrollHelper._lastPublishedY = current
+            scrollHelper._lastBounceFrameTimestampV = Date.now()
+        } else {
+            scrollHelper._lastPublishedX = current
+            scrollHelper._lastBounceFrameTimestampH = Date.now()
+        }
     }
 
     // Cut the outward leg short at position, then run the normal return from
