@@ -315,6 +315,15 @@ def test_build_all_linux_gate_keeps_the_setup_python_interpreter():
     assert "setup-python: false" in linux_gate
 
 
+def test_build_all_python_gates_cache_pip_wheels():
+    source = (PROJECT_ROOT / ".github" / "workflows" / "build-all.yml").read_text(
+        encoding="utf-8"
+    )
+    assert source.count("name: Cache Python wheels") == 2
+    assert source.count("~/.cache/pip") == 2
+    assert source.count("prismqml-pip-wheels-v1-") == 4
+
+
 def test_build_all_source_gates_keep_the_source_install_contract():
     source = (PROJECT_ROOT / ".github" / "workflows" / "build-all.yml").read_text(
         encoding="utf-8"

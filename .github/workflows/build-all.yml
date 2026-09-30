@@ -80,6 +80,15 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             cpp/tests/requirements.txt
+      - name: Cache Python wheels
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/AppData/Local/pip/Cache
+          key: ${{ runner.os }}-prismqml-pip-wheels-v1-${{ hashFiles('pyproject.toml', 'cpp/tests/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-prismqml-pip-wheels-v1-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Cache Rust build
@@ -135,6 +144,15 @@ jobs:
           cache-dependency-path: |
             pyproject.toml
             cpp/tests/requirements.txt
+      - name: Cache Python wheels
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/AppData/Local/pip/Cache
+          key: ${{ runner.os }}-prismqml-pip-wheels-v1-${{ hashFiles('pyproject.toml', 'cpp/tests/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-prismqml-pip-wheels-v1-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Cache Rust build
