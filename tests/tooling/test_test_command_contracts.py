@@ -315,12 +315,11 @@ def test_build_all_linux_gate_keeps_the_setup_python_interpreter():
     assert "setup-python: false" in linux_gate
 
 
-def test_build_all_source_gates_skip_editable_package_build():
+def test_build_all_source_gates_keep_the_source_install_contract():
     source = (PROJECT_ROOT / ".github" / "workflows" / "build-all.yml").read_text(
         encoding="utf-8"
     )
-    assert source.count("scripts/install_source_test_dependencies.py") == 2
-    assert 'pip install --disable-pip-version-check -e ".[dev]"' not in source
+    assert source.count('python -m pip install --disable-pip-version-check -e ".[dev]"') == 2
     assert source.count("PYTHONPATH: ${{ github.workspace }}") == 2
 
 

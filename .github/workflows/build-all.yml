@@ -93,7 +93,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-prismqml-rust-
       - name: Install source test dependencies
-        run: python scripts/install_source_test_dependencies.py
+        run: >-
+          python -m pip install --disable-pip-version-check -e ".[dev]"
       - name: Run protected Python tests
         env:
           QT_PLUGIN_PATH: ""
@@ -155,8 +156,8 @@ jobs:
           setup-python: false
       - name: Install source test dependencies
         run: >-
-          python scripts/install_source_test_dependencies.py
-          --cpp-requirements cpp/tests/requirements.txt
+          python -m pip install --disable-pip-version-check -e ".[dev]"
+          -r cpp/tests/requirements.txt
       - name: Run protected Python tests
         env:
           QT_QPA_PLATFORM: offscreen
