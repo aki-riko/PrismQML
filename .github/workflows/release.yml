@@ -32,6 +32,16 @@ jobs:
             cpp/tests/requirements.txt
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-prismqml-rust-${{ hashFiles('rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-prismqml-rust-
       - name: Install Qt (desktop)
         uses: jurplel/install-qt-action@v4
         with:

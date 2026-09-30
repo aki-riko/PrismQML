@@ -257,7 +257,11 @@ def main(argv: list[str] | None = None) -> int:
     python_qml_status = _finish_shards(
         _start_shards(python_qml_shards, args.timeout)
     )
-    tooling_status = _finish_shards(_start_shards(tooling_shards, args.timeout))
+    # Tooling tests do not share QML runtime objects with the isolated runtime
+    # phase, so start both after the main shards and keep only serial-runtime
+    # ordering strict. 工具合同与运行时隔离测试不共享 QML 对象，主分片结束后
+    # 允许两阶段重叠，但隔离测试内部仍保持严格顺序。
+    tooling_processes = _start_shards(tooling_shards, args.timeout)
     serial_status = 0
     for shard in serial_shards:
         status = _finish_shards(
@@ -266,6 +270,7 @@ def main(argv: list[str] | None = None) -> int:
         serial_status = serial_status or status
         if status:
             break
+    tooling_status = _finish_shards(tooling_processes)
     return python_qml_status or tooling_status or serial_status
 
 
