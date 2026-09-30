@@ -243,6 +243,7 @@ def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
     assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
     assert os.environ["QML_DISABLE_DISK_CACHE"] == "1"
     assert "QML_FORCE_DISK_CACHE" not in os.environ
+    assert os.environ["QSG_RENDER_LOOP"] == "basic"
     assert Path(os.environ[PYTHON_CACHE_PREFIX_ENV]) == (
         REPO_ROOT / ".artifacts" / "python" / "pycache"
     )
@@ -250,6 +251,18 @@ def test_configure_automated_process_overrides_visible_qt_platform(monkeypatch):
     assert automated_test_process_is_noninteractive()
     if sys.platform == "win32":
         assert _windows_ucrt_error_mode() == UCRT_OUT_TO_STDERR
+
+
+def test_configure_automated_process_preserves_explicit_render_loop(monkeypatch):
+    monkeypatch.setenv("QSG_RENDER_LOOP", "threaded")
+    configure_automated_test_process()
+    assert os.environ["QSG_RENDER_LOOP"] == "threaded"
+
+
+def test_configure_automated_process_does_not_change_visible_render_loop(monkeypatch):
+    monkeypatch.delenv("QSG_RENDER_LOOP", raising=False)
+    configure_automated_test_process("windows")
+    assert "QSG_RENDER_LOOP" not in os.environ
 
 
 def test_python_cache_is_configured_before_repository_helpers_import():
@@ -282,7 +295,8 @@ def test_runner_forces_headless_environment_in_child():
         "import json, os, sys; sys.stdout.write(json.dumps({"
         "'platform': os.environ['QT_QPA_PLATFORM'], "
         "'cache_disabled': os.environ['QML_DISABLE_DISK_CACHE'], "
-        "'cache_forced': os.environ.get('QML_FORCE_DISK_CACHE')}))"
+        "'cache_forced': os.environ.get('QML_FORCE_DISK_CACHE'), "
+        "'render_loop': os.environ['QSG_RENDER_LOOP']}))"
     )
     result = _run_runner(
         "--qt-platform",
@@ -299,6 +313,7 @@ def test_runner_forces_headless_environment_in_child():
         "platform": "offscreen",
         "cache_disabled": "1",
         "cache_forced": None,
+        "render_loop": "basic",
     }
 
 

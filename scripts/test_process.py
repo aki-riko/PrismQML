@@ -197,12 +197,21 @@ def _configure_qml_disk_cache() -> None:
     os.environ.pop("QML_FORCE_DISK_CACHE", None)
 
 
+def _configure_qml_render_loop(qt_platform: str | None) -> None:
+    """Use the single-threaded scene graph loop for headless QML tests."""
+    if qt_platform == "offscreen" or (
+        qt_platform is None and os.environ.get("QT_QPA_PLATFORM") == "offscreen"
+    ):
+        os.environ.setdefault("QSG_RENDER_LOOP", "basic")
+
+
 def configure_automated_test_process(qt_platform: str | None = "offscreen") -> None:
     """Force non-interactive Qt and Windows crash handling before Qt is imported."""
     if qt_platform is not None:
         os.environ["QT_QPA_PLATFORM"] = qt_platform
     _configure_python_cache()
     _configure_qml_disk_cache()
+    _configure_qml_render_loop(qt_platform)
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
@@ -218,6 +227,7 @@ def configure_test_launcher(qt_platform: str | None = "offscreen") -> None:
     _configure_python_cache()
     _configure_temp_directory()
     _configure_qml_disk_cache()
+    _configure_qml_render_loop(qt_platform)
     os.environ["PYTHONFAULTHANDLER"] = "1"
     os.environ["PYTHONIOENCODING"] = "utf-8"
     os.environ["PYTHONUTF8"] = "1"
