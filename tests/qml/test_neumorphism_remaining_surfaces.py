@@ -133,6 +133,8 @@ def _create_scene():
     )
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
+    setTheme(Theme.LIGHT)
+    setSkin(Skin.NEUMORPHISM)
     component = QQmlComponent(engine)
     component.setData(
         SCENE_SOURCE.encode("utf-8"),
@@ -169,8 +171,6 @@ def test_remaining_surfaces_follow_neumorphic_tokens(qapp):
     previous_skin = getSkin()
     previous_theme = getTheme()
     windows_before = tuple(QGuiApplication.topLevelWindows())
-    setTheme(Theme.LIGHT)
-    setSkin(Skin.NEUMORPHISM)
     engine, component, window, warnings = _create_scene()
     try:
         expected_radius = window.property("expectedRadius")
@@ -229,8 +229,6 @@ def test_remaining_surfaces_follow_neumorphic_tokens(qapp):
 def test_tip_popup_arrow_reuses_surface_border_contract(qapp):
     previous_skin = getSkin()
     previous_theme = getTheme()
-    setTheme(Theme.LIGHT)
-    setSkin(Skin.NEUMORPHISM)
     engine, component, window, warnings = _create_scene()
     try:
         tip = window.findChild(QObject, "remainingTipPopup")

@@ -29,6 +29,7 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_icon_renderer_layer_lifecycle.py",
     "tests/qml/test_layout_container_conventions.py",
     "tests/qml/test_vintage_ticket_component_state_matrix.py",
+    "tests/qml/test_neumorphism_remaining_surfaces.py",
     "tests/qml/test_timeline_conventions.py",
     "tests/qml/test_effects_page_matrix_controls.py",
     "tests/qml/test_hyperlink_cursor_contracts.py",

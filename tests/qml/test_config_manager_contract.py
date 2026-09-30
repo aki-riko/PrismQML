@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 
 from prismqml.python.config.config_manager import ConfigManager
@@ -54,7 +54,10 @@ def qml_config_bridge(qapp, tmp_path):
     finally:
         if bridge is not None:
             bridge.deleteLater()
+        assert manager.waitForPersistence(5000)
+        engine.clearComponentCache()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
         ConfigManager._instance = original
 

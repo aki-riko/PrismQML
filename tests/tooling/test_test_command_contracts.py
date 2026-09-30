@@ -353,34 +353,38 @@ def test_nested_qt_runtime_matrix_is_isolated_after_parallel_shards():
         ),
         (
             "serial-runtime-5",
-            ("tests/qml/test_timeline_conventions.py",),
+            ("tests/qml/test_neumorphism_remaining_surfaces.py",),
         ),
         (
             "serial-runtime-6",
-            ("tests/qml/test_effects_page_matrix_controls.py",),
+            ("tests/qml/test_timeline_conventions.py",),
         ),
         (
             "serial-runtime-7",
-            ("tests/qml/test_hyperlink_cursor_contracts.py",),
+            ("tests/qml/test_effects_page_matrix_controls.py",),
         ),
         (
             "serial-runtime-8",
-            ("tests/qml/test_navigation_icon_layer_lifecycle.py",),
+            ("tests/qml/test_hyperlink_cursor_contracts.py",),
         ),
         (
             "serial-runtime-9",
-            ("tests/qml/test_window_icon_provider_paths.py",),
+            ("tests/qml/test_navigation_icon_layer_lifecycle.py",),
         ),
         (
             "serial-runtime-10",
-            ("tests/qml/test_drop_zone_conventions.py",),
+            ("tests/qml/test_window_icon_provider_paths.py",),
         ),
         (
             "serial-runtime-11",
-            ("tests/qml/test_input_folder_drop.py",),
+            ("tests/qml/test_drop_zone_conventions.py",),
         ),
         (
             "serial-runtime-12",
+            ("tests/qml/test_input_folder_drop.py",),
+        ),
+        (
+            "serial-runtime-13",
             ("tests/qml/test_vintage_ticket_extended_surfaces.py",),
         ),
     ]
