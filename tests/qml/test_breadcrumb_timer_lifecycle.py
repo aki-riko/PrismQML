@@ -237,6 +237,10 @@ def test_breadcrumb_timer_animation_and_pixel_lifecycle(qapp):
         assert window.property("shiftRightActive")
         assert _wait_for(lambda: window.property("breadcrumbCount") == 3)
         assert _wait_for(lambda: not window.property("shiftRightActive"))
+        assert _wait_for(
+            lambda: len(breadcrumb.findChildren(QObject)) == 10,
+            timeout_ms=1_500,
+        )
         settled_timers = _root_timers(breadcrumb)
         settled_objects = len(breadcrumb.findChildren(QObject))
         settled_hash = _stable_hash(window)
