@@ -306,7 +306,7 @@ Item {
             _targetY = _minY
             _isOvershotV = true
             _isOutwardBounceV = true
-            verticalOvershootGuard.outwardBoundary = -1
+            verticalOvershootGuard.beginOutwardLeg(-1, _minY)
             _lastPublishedY = target.contentY
             _lastBounceFrameTimestampV = Date.now()
             var overshootDelta = _minY - newTarget
@@ -319,7 +319,7 @@ Item {
             _targetY = _maxY
             _isOvershotV = true
             _isOutwardBounceV = true
-            verticalOvershootGuard.outwardBoundary = 1
+            verticalOvershootGuard.beginOutwardLeg(1, _maxY)
             _lastPublishedY = target.contentY
             _lastBounceFrameTimestampV = Date.now()
             var overshootDeltaBottom = newTarget - _maxY
@@ -381,7 +381,7 @@ Item {
             _targetX = _minX
             _isOvershotH = true
             _isOutwardBounceH = true
-            horizontalOvershootGuard.outwardBoundary = -1
+            horizontalOvershootGuard.beginOutwardLeg(-1, _minX)
             _lastPublishedX = target.contentX
             _lastBounceFrameTimestampH = Date.now()
             var overshootDelta = _minX - newTarget
@@ -394,7 +394,7 @@ Item {
             _targetX = _maxX
             _isOvershotH = true
             _isOutwardBounceH = true
-            horizontalOvershootGuard.outwardBoundary = 1
+            horizontalOvershootGuard.beginOutwardLeg(1, _maxX)
             _lastPublishedX = target.contentX
             _lastBounceFrameTimestampH = Date.now()
             var overshootDeltaRight = newTarget - _maxX

@@ -51,7 +51,22 @@ QtObject {
         var guard = verticalAxis
             ? owner.verticalOvershootGuard : owner.horizontalOvershootGuard
         if (verticalAxis ? owner._isOutwardBounceV : owner._isOutwardBounceH) {
-            _setTarget(verticalAxis, guard.outwardBoundary < 0 ? minimum : maximum)
+            var edge = guard.outwardBoundary < 0 ? minimum : maximum
+            _setTarget(verticalAxis, edge)
+            guard.rebaseOutwardFrame(
+                verticalAxis ? owner.target.contentY : owner.target.contentX,
+                minimum, maximum, false
+            )
+            return
+        }
+
+        if (overshot) {
+            var returnEdge = guard.outwardBoundary < 0 ? minimum : maximum
+            _setTarget(verticalAxis, returnEdge)
+            guard.rebaseReturnFrame(
+                verticalAxis ? owner.target.contentY : owner.target.contentX,
+                minimum, maximum, returnEdge
+            )
             return
         }
 

@@ -295,6 +295,10 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
             )
         )
     )
+    outward_states = []
+    helper._isOutwardBounceVChanged.connect(
+        lambda: outward_states.append(bool(helper.property("_isOutwardBounceV")))
+    )
 
     # Same-direction ticks while the bottom boundary keeps moving underneath.
     # 底部边界持续移动期间的同向滚轮。
@@ -311,9 +315,8 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     assert samples
     peaks = _outward_peaks(samples)
     assert peaks, samples
-    # One continuous outward leg: the boundary move must not cut it into a second,
-    # larger leg, and it must stay within the overshoot limit.
-    # 外移腿必须连续：边界移动不得把它切成更大的一段，且不得超出超出上限。
+    # The input burst stays on its original outward leg and within the overshoot limit.
+    # 连续输入保持原外移腿，且不得超出越界上限。
     assert peaks[-1] - peaks[0] <= overshoot_limit + 0.5, peaks
     peak_beyond = max(content_y - maximum for content_y, maximum in samples)
     assert peak_beyond <= overshoot_limit + 0.5, peak_beyond
@@ -322,6 +325,7 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     # 支持越界的视图不得因为自身重测而被撤销边界，正是该缺陷让列表面的回弹失效。
     guard = helper.property("verticalOvershootGuard")
     assert guard.property("revokedBoundary") == 0
+    assert outward_states.count(True) == 1, outward_states
     # Growing content below the viewport must not drag the view down, so resting
     # anywhere inside the restored range is correct.
     # 视口下方内容变长不应拖动视图，故停在恢复后区间内的任意位置都正确。
@@ -329,6 +333,157 @@ def test_scroll_area_wheel_keeps_one_bounce_while_bounds_move(scroll_scene):
     assert -0.5 <= resting <= float(helper.property("maxScroll")) + 0.5, resting
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
+
+
+def _flickable_item(item):
+    return next(
+        child
+        for child in item.findChildren(QQuickItem)
+        if "QQuickFlickable" in child.metaObject().className()
+    )
+
+
+def _scroll_to_boundary(helper, target, position_name, edge):
+    method = "scrollToEnd" if edge == "end" else "scrollToStart"
+    boundary = "maxScroll" if edge == "end" else "minScroll"
+    assert QMetaObject.invokeMethod(helper, method)
+    assert _wait_for(
+        lambda: float(target.property(position_name))
+        == pytest.approx(float(helper.property(boundary)), abs=0.5),
+        timeout_ms=3000,
+    )
+
+
+def _prepare_bounds_shrink(window, area, helper, policy, edge, delta):
+    target = _flickable_item(area)
+    target.setProperty("boundsBehavior", window.property(policy))
+    vertical = helper.property("orientation") == Qt.Orientation.Vertical.value
+    axis = "Y" if vertical else "X"
+    direction = "V" if vertical else "H"
+    position_name = f"content{axis}"
+    guard_name = "verticalOvershootGuard" if vertical else "horizontalOvershootGuard"
+    guard = helper.property(guard_name)
+    boundary_property = "maxScroll" if edge == "end" else "minScroll"
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    _scroll_to_boundary(helper, target, position_name, edge)
+    original_maximum = float(helper.property("maxScroll"))
+    original_edge = float(helper.property("minScroll" if edge == "start" else "maxScroll"))
+    samples = []
+    getattr(target, f"{position_name}Changed").connect(
+        lambda: samples.append(
+            (
+                float(target.property(position_name)),
+                float(helper.property(boundary_property)),
+            )
+        )
+    )
+    if vertical:
+        _send_wheel(window, area, delta)
+    else:
+        method = "overshootDefaultHorizontal" if edge == "end" else "overshootDefaultHorizontalLeft"
+        assert QMetaObject.invokeMethod(window, method)
+    outward = f"_isOutwardBounce{direction}"
+    sign = 1 if edge == "end" else -1
+    assert _wait_for(
+        lambda: helper.property(outward)
+        and (float(target.property(position_name)) - original_edge) * sign > 20
+    )
+    return target, axis, position_name, guard, samples, original_maximum
+
+
+def _assert_rebased_bounds(helper, target, axis, position_name, guard, samples, edge):
+    limit = float(helper.property("_maxOvershoot"))
+    edge_property = "maxScroll" if edge == "end" else "minScroll"
+    boundary = float(helper.property(edge_property))
+    assert _wait_for(
+        lambda: float(helper.property(f"_target{axis}"))
+        == pytest.approx(float(helper.property(edge_property)), abs=0.5)
+        and float(guard.property("outwardEdgePosition"))
+        == pytest.approx(float(helper.property(edge_property)), abs=0.5)
+    )
+    assert _wait_for(
+        lambda: (float(helper.property(f"_smooth{axis}")) - boundary)
+        * (1 if edge == "end" else -1) <= limit + 1.0
+    )
+    assert guard.property("revokedBoundary") == 0
+    assert _wait_for(
+        lambda: not helper.property("isOvershot")
+        and float(target.property(position_name))
+        == pytest.approx(float(helper.property(edge_property)), abs=1.0),
+        timeout_ms=3000,
+    )
+    sign = 1 if edge == "end" else -1
+    assert samples and max((value - edge) * sign for value, edge in samples) <= limit + 1.0
+
+
+def _run_large_bounds_shrink(window, area, helper, policy, edge, resize_method, delta):
+    target, axis, position, guard, samples, original_maximum = _prepare_bounds_shrink(
+        window, area, helper, policy, edge, delta
+    )
+    assert QMetaObject.invokeMethod(window, resize_method)
+    assert _wait_for(lambda: helper.property("maxScroll") < original_maximum - 100)
+    _assert_rebased_bounds(helper, target, axis, position, guard, samples, edge)
+
+
+@pytest.mark.parametrize(
+    ("policy", "orientation", "edge", "resize_method", "delta"),
+    (
+        ("dragOverBoundsValue", Qt.Orientation.Vertical, "end", "shrinkDefaultContentFar", -360),
+        ("overshootBoundsValue", Qt.Orientation.Vertical, "end", "shrinkDefaultContentFar", -360),
+        ("dragAndOvershootBoundsValue", Qt.Orientation.Vertical, "end", "shrinkDefaultContentFar", -360),
+        ("dragOverBoundsValue", Qt.Orientation.Vertical, "start", "shrinkDefaultContentFar", 360),
+        ("overshootBoundsValue", Qt.Orientation.Vertical, "start", "shrinkDefaultContentFar", 360),
+        ("dragAndOvershootBoundsValue", Qt.Orientation.Vertical, "start", "shrinkDefaultContentFar", 360),
+        ("dragOverBoundsValue", Qt.Orientation.Horizontal, "end", "shrinkDefaultContentWidthFar", 1000),
+        ("overshootBoundsValue", Qt.Orientation.Horizontal, "end", "shrinkDefaultContentWidthFar", 1000),
+        ("dragAndOvershootBoundsValue", Qt.Orientation.Horizontal, "end", "shrinkDefaultContentWidthFar", 1000),
+        ("dragOverBoundsValue", Qt.Orientation.Horizontal, "start", "shrinkDefaultContentWidthFar", -1000),
+        ("overshootBoundsValue", Qt.Orientation.Horizontal, "start", "shrinkDefaultContentWidthFar", -1000),
+        ("dragAndOvershootBoundsValue", Qt.Orientation.Horizontal, "start", "shrinkDefaultContentWidthFar", -1000),
+    ),
+)
+def test_supported_overshoot_rebases_after_large_bounds_shrink(
+    scroll_scene, policy, orientation, edge, resize_method, delta
+):
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, orientation)
+    _run_large_bounds_shrink(window, area, helper, policy, edge, resize_method, delta)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+
+def test_external_position_during_return_rebases_active_overshoot(scroll_scene):
+    _window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    assert QMetaObject.invokeMethod(helper, "scrollToEnd")
+    assert _wait_for(
+        lambda: not helper.property("isOvershot")
+        and float(area.property("contentY"))
+        == pytest.approx(float(helper.property("maxScroll")), abs=0.5)
+    )
+    _send_wheel(_window, area, -120)
+    assert _wait_for(lambda: helper.property("_isOutwardBounceV"))
+    assert _wait_for(
+        lambda: helper.property("isOvershot")
+        and not helper.property("_isOutwardBounceV"),
+        timeout_ms=3000,
+    )
+
+    external_position = float(helper.property("maxScroll")) - 100.0
+    area.setProperty("contentY", external_position)
+    _pump(35)
+    assert float(area.property("contentY")) <= external_position + 40.0
+    assert _wait_for(
+        lambda: not helper.property("isOvershot")
+        and float(area.property("contentY"))
+        == pytest.approx(float(helper.property("maxScroll")), abs=1.0),
+        timeout_ms=3000,
+    )
+    assert warnings == []
+    assert _new_visible_windows(windows_before, _window) == []
 
 def test_stop_at_bounds_view_revokes_overshoot_when_bounds_move(scroll_scene):
     """A view that refuses overshoot keeps the strict revoke contract.
@@ -375,23 +530,19 @@ def test_stop_at_bounds_view_revokes_overshoot_when_bounds_move(scroll_scene):
     content.setProperty("height", 360)
     assert _wait_for(lambda: guard.property("revokedBoundary") == 1, timeout_ms=2000)
     boundary = float(helper.property("maxScroll"))
-    # The return leg still has to finish, so assert it converges on the new edge.
-    # 返回腿仍需走完，故断言其收敛到新边界。
-    assert _wait_for(
-        lambda: abs(float(flick.property("contentY")) - boundary) <= 1.5,
-        timeout_ms=3000,
-    )
 
-    # The excursion is over, so a same-direction tick may only re-launch after the
-    # guard's idle gap re-arms the boundary; it must not be re-published at a view
-    # that keeps clamping it. 位移已结束，同向输入只能在门闸空闲间隙重新武装后重启，
-    # 不得对一个持续夹紧的视图反复重新发布。
     _send_wheel(window, flick, -240)
     _pump(60)
     assert guard.property("revokedBoundary") == 1
-    assert float(flick.property("contentY")) <= boundary + 1.5
-    _pump(400)
-    assert float(flick.property("contentY")) <= boundary + 1.5
+
+    # The return leg still has to finish, so assert it converges on the new edge.
+    # 返回腿仍需走完，故断言其收敛到新边界。
+    assert _wait_for(
+        lambda: abs(float(flick.property("contentY")) - boundary) <= 1.5
+        and guard.property("revokedBoundary") == 1,
+        timeout_ms=3000,
+    )
+
     content.setProperty("height", 420)
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []

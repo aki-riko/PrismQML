@@ -86,10 +86,11 @@ Connections {
         )
         var progress = _elapsedMilliseconds / _durationMilliseconds
         var easedProgress = _easedProgress(progress)
-        scrollHelper._setSmoothPosition(
-            verticalAxis,
-            _fromValue + (_toValue - _fromValue) * easedProgress
-        )
+        var value = _fromValue + (_toValue - _fromValue) * easedProgress
+        var guard = verticalAxis
+            ? scrollHelper.verticalOvershootGuard : scrollHelper.horizontalOvershootGuard
+        value = guard.constrainOutwardValue(value)
+        scrollHelper._setSmoothPosition(verticalAxis, value)
         if (progress >= 1) {
             running = false
             scrollHelper._onFrameDriverSettled(verticalAxis)

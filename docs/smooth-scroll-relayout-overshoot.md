@@ -36,16 +36,16 @@ Qt 也确实不夹紧程序化写入（`StopAtBounds` / `DragAndOvershootBounds`
 function allowsOvershoot() {
     if (!scrollHelper.target
             || scrollHelper.target.boundsBehavior === undefined) return false
-    return (scrollHelper.target.boundsBehavior & Flickable.DragAndOvershootBounds)
-        === Flickable.DragAndOvershootBounds
+    return scrollHelper.target.boundsBehavior !== Flickable.StopAtBounds
 }
 ```
 
-* **`DragAndOvershootBounds`（声明允许越界）**：视图重测时写回轴内不是拒绝，只是维持自身
-  位置。`adoptOvershootFrame(current)` 接管该写入作为本帧取值、保持边界武装，下一帧继续
-  发布位移。位移仍受 `_maxOvershoot` 上限约束，且同一输入串内不会重启新的外移腿。
+* **非 `StopAtBounds` 策略（声明允许某类越界）**：视图重测写回对应边界时重锚当前外移腿，
+  把动画起点和目标一起相对新边界调整，并逐帧限制在 `_maxOvershoot` 范围内；连续输入仍由原
+  bounce timer 管理，不会重开一条外移腿。
 * **`StopAtBounds`（禁止越界）**：写入被夹掉就是拒绝，**保留原严格撤销语义**。
-  `TextEditCore`、`Flickable`、`TreeWidget`、`SelectorBar`、`TabBar` 等不受影响。
+  `TextEditCore`、基础 `Flickable`、`TreeWidget`、`SelectorBar`、`TabBar` 和
+  `ChatMessageList` 等不受影响。
 
 这个分界不是启发式猜测：`boundsBehavior` 是视图对越界的显式声明，`HorizontalScrollMixin`
 本来就会为了越界把 `StopAtBounds` 主动改成 `DragAndOvershootBounds`，本规则与该既有设计一致。
@@ -59,13 +59,16 @@ function allowsOvershoot() {
 | 组件 | 目标 boundsBehavior | 结果 |
 |------|--------------------|------|
 | `Fluent.ListView` → `DataWidgetContent` | DragAndOvershootBounds | 受益 |
-| `Fluent.ChatMessageList` → `ChatMessageViewport` | DragAndOvershootBounds | 受益 |
+| `Fluent.ChatMessageList` → `ChatMessageViewport` | StopAtBounds | 严格撤销，不变 |
 | `Fluent.ScrollArea`（Default/List/Grid） | 继承 Qt 默认（DragAndOvershoot） | 受益 |
 | `Fluent.ListWidget` | DragAndOvershootBounds | 受益 |
 | `TimelineCore` | DragAndOvershootBounds + 视觉超出层 | 受益（原本已免疫） |
 | `HorizontalScrollMixin`（横向轴） | 强制 DragAndOvershootBounds | 受益 |
 | `containers/Flickable` | StopAtBounds | 严格撤销，不变 |
 | `TextEditCore` / `TreeWidget` / `SelectorBar` / `TabBar` | StopAtBounds | 严格撤销，不变 |
+
+Kaleidos `ChatPanel` 使用 `Fluent.ListView`（`DataWidgetContent`），不使用 PrismQML 的
+`ChatMessageList`；其 91px 真实滚轮结果验证的是 `DataWidgetContent` 的允许越界路径。
 
 ---
 
@@ -75,11 +78,11 @@ function allowsOvershoot() {
 
 ```powershell
 cd D:\PrismQML\PrismQML
-.\.venv\Scripts\python.exe scripts/test_process.py --qt-platform offscreen --timeout 2400 -- `
-  .\.venv\Scripts\python.exe -m pytest -q -rx --full-suite tests/qml -p no:cacheprovider
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 1800 -- `
+  .\.venv\Scripts\python.exe scripts\run_test_shards.py --full-suite --timeout 1200 --supervisor-timeout 1500
 ```
 
-结果：**1347 passed, 1 skipped, 0 failed**（修复前基线为 1345 passed + 1 failed）。
+结果：完整分片 **4223 passed, 2 skipped, 0 failed**（22 个分片）；QML probe **194 OK / 0 错误 / 7 required 跳过**；headless CTest **10/10**。
 
 ### 4.2 测试判据修正（重要）
 
@@ -90,17 +93,20 @@ cd D:\PrismQML\PrismQML
 
 现判据改为直接度量契约本身：
 
-* 外移腿必须连续：`peaks[-1] - peaks[0] <= _maxOvershoot`（不被边界移动切成更大的一段）；
+* 连续垂直滚轮期间 `_isOutwardBounceV` 只从 `false` 进入 `true` 一次；
+* 垂直顶部/底部与水平左侧/右侧目标在 `DragOverBounds`、`OvershootBounds`、`DragAndOvershootBounds` 下，边界大幅缩短后重锚值及后续每帧仍不超过新边界加 `_maxOvershoot`；
 * 峰值不超过 `_maxOvershoot`；
 * 支持越界的目标 `revokedBoundary == 0`（不得因自身重测被撤销边界）；
 * 滚轮停止后收敛回边界。
+
+列表插入导致 `originY/originX` 变化的专项场景尚未加入这组边界缩短测试。
 
 新增 `test_stop_at_bounds_view_revokes_overshoot_when_bounds_move`：在真正的
 `StopAtBounds` 目标上锁死严格撤销契约（边界内移后必须撤销，同向输入不得重新发布）。
 
 ### 4.3 下游实测
 
-Kaleidos `ChatPanel` 真实组件（真滚轮事件）：越界峰值 91px、63 帧平滑回弹、`revoked = 0`
+Kaleidos `ChatPanel` 的 `Fluent.ListView` 真实组件（真滚轮事件）：越界峰值 91px、63 帧平滑回弹、`revoked = 0`
 （修复前：峰值 7px、直接钉回边界）。
 
 Kaleidos 客户端 `tests/client/im` + `tests/client/ui`：**1521 passed, 2 failed**，

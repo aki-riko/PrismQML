@@ -26,11 +26,14 @@ QtObject {
     property int revokedBoundary: 0
     // Boundary the in-flight outward bounce belongs to 进行中外移回弹所属边界
     property int outwardBoundary: 0
+    property real outwardEdgePosition: 0
     property double lastRelativeScrollTimestamp: 0
 
     // ==================== Public Methods 公开方法 ====================
     function reset() {
         revokedBoundary = 0
+        outwardBoundary = 0
+        outwardEdgePosition = 0
     }
 
     // True when someone else moved the view back inside its own bounds.
@@ -56,6 +59,24 @@ QtObject {
         return revokedBoundary === (atStartBoundary ? -1 : 1)
     }
 
+    function beginOutwardLeg(boundary, edge) {
+        outwardBoundary = boundary
+        outwardEdgePosition = edge
+    }
+
+    function constrainOutwardValue(value) {
+        var outward = verticalAxis
+            ? scrollHelper._isOutwardBounceV : scrollHelper._isOutwardBounceH
+        if (!outward) return value
+        var minimum = verticalAxis ? scrollHelper._minY : scrollHelper._minX
+        var maximum = verticalAxis ? scrollHelper._maxY : scrollHelper._maxX
+        return scrollHelper._clamp(
+            value,
+            minimum - scrollHelper._maxOvershoot,
+            maximum + scrollHelper._maxOvershoot
+        )
+    }
+
     // True when the view declares it accepts going out of bounds. Such a target
     // re-measures its own content (async delegates, recycled rows) and writes the axis
     // back inside the bounds to keep its position; treating that write as a rejection
@@ -65,8 +86,7 @@ QtObject {
     function allowsOvershoot() {
         if (!scrollHelper.target
                 || scrollHelper.target.boundsBehavior === undefined) return false
-        return (scrollHelper.target.boundsBehavior & Flickable.DragAndOvershootBounds)
-            === Flickable.DragAndOvershootBounds
+        return scrollHelper.target.boundsBehavior !== Flickable.StopAtBounds
     }
 
     // True when this frame belongs to the guard instead of the publisher: either
@@ -77,8 +97,12 @@ QtObject {
     function consumesFrame(current, lastPublished, minimum, maximum,
                            overshot, outward, lastFrameTimestamp) {
         if (overshot && isRevoked(current, lastPublished, minimum, maximum)) {
-            if (allowsOvershoot()) adoptOvershootFrame(current)
-            else interruptOutwardLeg(current, true)
+            if (allowsOvershoot() && outward
+                    && isAtOutwardBoundary(current, minimum, maximum)) {
+                rebaseOutwardFrame(current, minimum, maximum, true)
+            } else {
+                interruptOutwardLeg(current, !allowsOvershoot())
+            }
             return true
         }
         if (outward && lastFrameTimestamp > 0
@@ -89,20 +113,63 @@ QtObject {
         return false
     }
 
-    // A view that supports overshoot is not rejecting our excursion by re-laying out;
-    // it is only keeping its own position. Take its write as this frame's value, keep
-    // the boundary armed for the burst, and let the next frame publish the excursion
-    // again. A view that stops at bounds keeps the strict revoke above.
-    // 支持越界的视图重新布局并不是在拒绝我们的位移，只是在维持自身位置。把它的写入当成本帧
-    // 取值，本输入串内继续保持边界武装，下一帧重新发布该位移。禁止越界的视图仍走上面的严格撤销。
-    function adoptOvershootFrame(current) {
+    function isAtOutwardBoundary(current, minimum, maximum) {
+        var boundary = outwardBoundary < 0 ? minimum : maximum
+        return Math.abs(current - boundary) <= Enums.scroll.revocation_epsilon
+    }
+
+    // A supported view may re-anchor an outward leg when its bounds move. Preserve
+    // the requested overshoot relative to the new edge and cap it to the configured limit.
+    // 允许越界的视图移动边界时可重锚外移腿；相对新边缘保留原越界意图并限制在配置上限内。
+    function rebaseOutwardFrame(current, minimum, maximum, force) {
+        var edge = outwardBoundary < 0 ? minimum : maximum
+        if (outwardBoundary === 0 || (!force && edge === outwardEdgePosition)) return
+        var driver = verticalAxis
+            ? scrollHelper.verticalFrameDriver : scrollHelper.horizontalFrameDriver
+        var previousTarget = driver._toValue
+        var previousOvershoot = Math.max(
+            0, outwardBoundary * (previousTarget - outwardEdgePosition)
+        )
+        var nextTarget = edge + outwardBoundary
+            * Math.min(previousOvershoot, scrollHelper._maxOvershoot)
+        var position = scrollHelper._clamp(
+            current,
+            minimum - scrollHelper._maxOvershoot,
+            maximum + scrollHelper._maxOvershoot
+        )
+        outwardEdgePosition = edge
+        _applyPositionRebase(position, nextTarget)
+    }
+
+    function rebaseReturnFrame(current, minimum, maximum, returnEdge) {
+        var position = scrollHelper._clamp(
+            current,
+            minimum - scrollHelper._maxOvershoot,
+            maximum + scrollHelper._maxOvershoot
+        )
+        _applyPositionRebase(position, returnEdge)
+    }
+
+    function _applyPositionRebase(position, nextTarget) {
+        var driver = verticalAxis
+            ? scrollHelper.verticalFrameDriver : scrollHelper.horizontalFrameDriver
         if (verticalAxis) {
-            scrollHelper._lastPublishedY = current
-            scrollHelper._lastBounceFrameTimestampV = Date.now()
+            scrollHelper._discardingStaleFrameV = true
+            scrollHelper._lastPublishedY = position
         } else {
-            scrollHelper._lastPublishedX = current
-            scrollHelper._lastBounceFrameTimestampH = Date.now()
+            scrollHelper._discardingStaleFrameH = true
+            scrollHelper._lastPublishedX = position
         }
+        driver.setImmediate(position)
+        if (scrollHelper.target) {
+            if (verticalAxis && scrollHelper.target.contentY !== position)
+                scrollHelper.target.contentY = position
+            else if (!verticalAxis && scrollHelper.target.contentX !== position)
+                scrollHelper.target.contentX = position
+        }
+        if (verticalAxis) scrollHelper._discardingStaleFrameV = false
+        else scrollHelper._discardingStaleFrameH = false
+        driver.moveTo(nextTarget)
     }
 
     // Cut the outward leg short at position, then run the normal return from

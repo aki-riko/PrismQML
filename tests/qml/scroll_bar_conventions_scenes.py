@@ -25,6 +25,9 @@ Window {
     readonly property real defaultY: defaultArea.contentY
     readonly property real defaultContentWidth: defaultArea.contentWidth
     readonly property real defaultContentHeight: defaultArea.contentHeight
+    readonly property int dragOverBoundsValue: Flickable.DragOverBounds
+    readonly property int overshootBoundsValue: Flickable.OvershootBounds
+    readonly property int dragAndOvershootBoundsValue: Flickable.DragAndOvershootBounds
     readonly property real listY: listArea.contentY
     readonly property real listContentHeight: listArea.contentHeight
     readonly property int listCount: listArea.count
@@ -55,8 +58,12 @@ Window {
         defaultArea.smoothScrollTo(160)
         defaultArea.smoothScrollToX(120)
     }
+    function overshootDefaultHorizontal() { defaultArea.smoothScrollByX(1000) }
+    function overshootDefaultHorizontalLeft() { defaultArea.smoothScrollByX(-1000) }
     // Move the scroll bounds while the axis is overshooting.
     function shrinkDefaultContent() { defaultContent.height = 390 }
+    function shrinkDefaultContentFar() { defaultContent.height = 200 }
+    function shrinkDefaultContentWidthFar() { defaultContent.width = 230 }
     function restoreDefaultContent() { defaultContent.height = 420 }
     function scrollList() { listArea.scrollToIndex(10) }
     function scrollGrid() { gridArea.scrollToBottom() }
