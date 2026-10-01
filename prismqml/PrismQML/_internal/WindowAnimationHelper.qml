@@ -28,6 +28,17 @@ Item {
     property real animScale: 0.95
     property real animOpacity: 0
     property int minimizeDelayDuration: 0
+    // Outside drawers register themselves by writing this property (see DrawerSurface).
+    // 外侧抽屉通过写这个属性完成登记 (见 DrawerSurface)。
+    //
+    // The registry is intentionally a plain property and not a pair of helper methods.
+    // While the host window is flagged for deletion, QQmlContextData::isValid() fails for
+    // every context whose context object is that window, so a QML method dispatched into
+    // this helper from a destruction handler warns "attempted to evaluate a function in an
+    // invalid context" and then throws "is not a function"; property access still resolves.
+    // 注册表刻意是普通属性而非一对助手方法。宿主窗口进入删除标记期间, 凡是以该窗口为
+    // 上下文对象的上下文都会让 QQmlContextData::isValid() 失败, 于是拆卸处理器向本助手
+    // 派发 QML 方法会先报「invalid context」再抛「is not a function」, 而属性访问仍然有效。
     property var outsideMinimizeDrawers: []
 
     // Expose startup animation state to the native presentation gate.
@@ -59,16 +70,6 @@ Item {
         if (duration > 0) {
             minimizeDelayDuration = Math.max(minimizeDelayDuration, duration)
         }
-    }
-
-    function registerOutsideDrawer(drawer) {
-        if (!drawer || outsideMinimizeDrawers.indexOf(drawer) >= 0) return
-        outsideMinimizeDrawers = outsideMinimizeDrawers.concat([drawer])
-    }
-
-    function unregisterOutsideDrawer(drawer) {
-        outsideMinimizeDrawers = outsideMinimizeDrawers.filter(
-            function(item) { return item !== drawer })
     }
 
     function animatedMinimize() {

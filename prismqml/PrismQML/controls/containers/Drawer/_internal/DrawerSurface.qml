@@ -23,18 +23,32 @@ Item {
     readonly property alias panel: drawer
 
     // ==================== Internal Methods 内部方法 ====================
+    // Outside drawers register themselves on the host window's animation helper through its
+    // registry property, never through a helper method: while the host window is flagged for
+    // deletion every context whose context object is that window is already invalid, so a
+    // dispatched QML method warns "attempted to evaluate a function in an invalid context"
+    // and then throws "is not a function", while a property read/write still resolves.
+    // 外侧抽屉通过宿主窗口动画助手的注册表属性登记自己, 不走助手方法: 宿主窗口进入删除
+    // 标记期间, 以该窗口为上下文对象的上下文都已失效, 此时派发 QML 方法会先报
+    // 「invalid context」再抛「is not a function」, 而属性读写仍然有效。
+    function outsideMinimizeHelper() {
+        return drawerControl._hostWindow
+            ? drawerControl._hostWindow._windowAnimationHelper : null
+    }
+
     function registerOutsideMinimize() {
-        if (drawerControl._isOutside && drawerControl._hostWindow
-                && drawerControl._hostWindow._windowAnimationHelper) {
-            drawerControl._hostWindow._windowAnimationHelper.registerOutsideDrawer(surface)
-        }
+        var helper = surface.outsideMinimizeHelper()
+        if (!drawerControl._isOutside || !helper
+                || helper.outsideMinimizeDrawers.indexOf(surface) >= 0) return
+        helper.outsideMinimizeDrawers =
+            helper.outsideMinimizeDrawers.concat([surface])
     }
 
     function unregisterOutsideMinimize() {
-        if (drawerControl._hostWindow
-                && drawerControl._hostWindow._windowAnimationHelper) {
-            drawerControl._hostWindow._windowAnimationHelper.unregisterOutsideDrawer(surface)
-        }
+        var helper = surface.outsideMinimizeHelper()
+        if (!helper) return
+        helper.outsideMinimizeDrawers = helper.outsideMinimizeDrawers.filter(
+            function(item) { return item !== surface })
     }
 
     function animateOutsideMinimize(duration) {

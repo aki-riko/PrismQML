@@ -6,6 +6,10 @@
 
 from pathlib import Path, PurePosixPath
 
+import shiboken6
+from PySide6.QtCore import QMetaObject
+from PySide6.QtQuick import QQuickItem
+
 from scripts.qml_conventions import scan_source_text
 
 from prismqml.python.core._window_follower import (
@@ -31,6 +35,10 @@ SOURCE_PATH = (
     / "Drawer.qml"
 )
 OUTSIDE_WINDOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideWindow.qml"
+SURFACE_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerSurface.qml"
+ANIMATION_HELPER_SOURCE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
+)
 
 
 def _lines(source: str) -> list[str]:
@@ -284,15 +292,101 @@ def test_drawer_source_guards_native_window_during_destruction():
 
 def test_drawer_source_preserves_open_state_while_host_is_minimized():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    surface_source = (SOURCE_PATH.parent / "_internal" / "DrawerSurface.qml").read_text(
-        encoding="utf-8"
-    )
+    surface_source = SURFACE_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "drawerControl._hostWindow.visibility === Window.Hidden" in surface_source
     assert "drawerControl._hostWindow.visibility === Window.Minimized" in surface_source
     assert "property alias opened: control._isOpen" in source
     assert "property bool outsideMinimized: false" in surface_source
     assert "drawerControl._startOutsideAnimation(drawerControl._outsideFullExtent)" in surface_source
+
+
+def test_outside_drawer_registry_survives_host_window_teardown():
+    """注册表必须是宿主助手的普通属性, 不能是助手方法。
+
+    ``QQmlContextData::isValid()`` 会在上下文对象被标记删除后返回 false, 而宿主窗口对象
+    的删除标记恰好早于其 QML 子对象销毁置位。因此拆卸处理器向助手派发 QML 方法会先报
+    ``attempted to evaluate a function in an invalid context`` 再抛 ``is not a function``
+    —— 真实 Gallery 关窗时每个抽屉各报一对; 属性读写不经过该检查, 因此注册表由
+    DrawerSurface 直接读写该属性。
+    """
+    helper_source = ANIMATION_HELPER_SOURCE_PATH.read_text(encoding="utf-8")
+    surface_source = SURFACE_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "property var outsideMinimizeDrawers: []" in helper_source
+    assert "function registerOutsideDrawer" not in helper_source
+    assert "function unregisterOutsideDrawer" not in helper_source
+    assert "helper.outsideMinimizeDrawers =" in surface_source
+    assert "registerOutsideDrawer(" not in surface_source
+    assert "unregisterOutsideDrawer(" not in surface_source
+
+
+def _animation_helper(window):
+    # QML-defined types arrive in Python as their nearest C++ class, so the helper is
+    # identified through its generated meta object name.
+    # QML 定义的类型在 Python 侧只暴露最近的 C++ 类, 因此按生成的元对象名识别助手。
+    for child in window.findChildren(QQuickItem):
+        if child.metaObject().className().startswith("WindowAnimationHelper"):
+            return child
+    return None
+
+
+def _drawer_surface(drawer):
+    for child in drawer.findChildren(QQuickItem):
+        if child.metaObject().className().startswith("DrawerSurface"):
+            return child
+    return None
+
+
+def _registered_drawers(helper):
+    value = helper.property("outsideMinimizeDrawers")
+    to_variant = getattr(value, "toVariant", None)
+    entries = to_variant() if callable(to_variant) else value
+    return list(entries or [])
+
+
+def _address(obj):
+    return shiboken6.getCppPointer(obj)[0]
+
+
+def test_outside_drawer_registry_tracks_open_state_on_the_host_helper(qapp):
+    """打开/关闭外侧抽屉时, 宿主助手的注册表属性必须同步增减。"""
+    from tests.qml.test_drawer_conventions import (
+        SCENE_SOURCE,
+        _create_scene,
+        _dispose_scene,
+        _wait_for,
+    )
+
+    source = SCENE_SOURCE.replace(b"Window {", b"WindowsCore {", 1)
+    engine, component, window, drawer, _content_item, _panel, warnings = _create_scene(
+        source=source
+    )
+    try:
+        helper = _animation_helper(window)
+        assert isinstance(helper, QQuickItem)
+        # No registry method may exist at runtime either: a QML method dispatched from a
+        # destruction handler is exactly what fails while the host window is being deleted.
+        # 运行时也不得存在注册表方法: 宿主窗口被删除期间, 正是从拆卸处理器派发的 QML 方法失败。
+        assert helper.metaObject().indexOfMethod("registerOutsideDrawer(QVariant)") == -1
+        assert helper.metaObject().indexOfMethod("unregisterOutsideDrawer(QVariant)") == -1
+        assert _registered_drawers(helper) == []
+
+        drawer.setProperty("mode", window.property("outsideMode"))
+        assert QMetaObject.invokeMethod(drawer, "open")
+        assert _wait_for(lambda: drawer.property("opened"))
+        surface = _drawer_surface(drawer)
+        assert isinstance(surface, QQuickItem)
+        assert [_address(item) for item in _registered_drawers(helper)] == [
+            _address(surface)
+        ]
+
+        assert QMetaObject.invokeMethod(drawer, "close")
+        assert _wait_for(lambda: not drawer.property("opened"))
+        assert _registered_drawers(helper) == []
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
 
 
 def test_drawer_stages_host_signal_connections_until_component_completion():
