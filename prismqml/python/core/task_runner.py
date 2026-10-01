@@ -41,6 +41,7 @@ from ._task_types import (
     TaskShutdownTimeoutError,
     TaskState,
 )
+from ._weak_relay import WeakMethodRelay
 
 
 _BACKEND_RELEASE_RETRY_MS = 1
@@ -149,10 +150,12 @@ class TaskHandle(QObject):
 
     def _connect_events(self) -> None:
         queued = Qt.ConnectionType.QueuedConnection
-        self._events.started.connect(self._relay_started, queued)
-        self._events.progress.connect(self._relay_progress, queued)
-        self._events.settled.connect(self._relay_settled, queued)
-        self._events.backend_stopped.connect(self._relay_backend_stopped, queued)
+        # 槽必须是不持有宿主的弱引用中继（信号名与 _relay_* 方法一一对应）：
+        # Qt 会强引用已连接的 Python 可调用对象，直接连接 bound method 会让
+        # TaskHandle 在 Nuitka 产物中永远无法回收，详见 _weak_relay 的说明。
+        for signal_name in ("started", "progress", "settled", "backend_stopped"):
+            signal = getattr(self._events, signal_name)
+            signal.connect(WeakMethodRelay(self, f"_relay_{signal_name}"), queued)
 
     @Slot()
     def _relay_started(self) -> None:
@@ -192,7 +195,7 @@ class TaskHandle(QObject):
         terminal = self._state in TaskState.terminal_states()
         if self._backend_stopped and terminal and not self._backend_release_scheduled:
             self._backend_release_scheduled = True
-            QTimer.singleShot(0, self._release_backend)
+            QTimer.singleShot(0, WeakMethodRelay(self, "_release_backend"))
 
     def _release_backend(self) -> None:
         with self._backend_lock:
@@ -202,7 +205,7 @@ class TaskHandle(QObject):
             if not backend.wait(0):
                 QTimer.singleShot(
                     _BACKEND_RELEASE_RETRY_MS,
-                    self._release_backend,
+                    WeakMethodRelay(self, "_release_backend"),
                 )
                 return
             backend.release()
