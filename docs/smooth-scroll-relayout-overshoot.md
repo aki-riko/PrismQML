@@ -167,8 +167,7 @@ Kaleidos 客户端 `tests/client/im` + `tests/client/ui`：**1521 passed, 2 fail
 
 ```powershell
 cd D:\PrismQML\PrismQML
-.\.venv\Scripts\python.exe scripts/test_process.py --qt-platform offscreen --timeout 2400 -- `
-  .\.venv\Scripts\python.exe -m pytest -q -rx --full-suite tests/qml -p no:cacheprovider
+.\.venv\Scripts\python.exe scripts/test_process.py --qt-platform offscreen --timeout 2400 -- .\.venv\Scripts\python.exe -m pytest -q -rx --full-suite tests/qml -p no:cacheprovider
 ```
 
 **1361 passed, 1 skipped, 0 failed**（含时间线 17 项与滚动条 28 项）。

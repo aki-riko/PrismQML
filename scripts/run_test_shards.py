@@ -38,6 +38,7 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_drop_zone_conventions.py",
     "tests/qml/test_input_folder_drop.py",
     "tests/qml/test_vintage_ticket_extended_surfaces.py",
+    "tests/qml/test_timeline_overshoot_relayout.py",
 )
 NESTED_ENTRYPOINT_FILES = (
     "tests/tooling/test_headless_test_entrypoints.py",

@@ -387,6 +387,10 @@ def test_nested_qt_runtime_matrix_is_isolated_after_parallel_shards():
             "serial-runtime-13",
             ("tests/qml/test_vintage_ticket_extended_surfaces.py",),
         ),
+        (
+            "serial-runtime-14",
+            ("tests/qml/test_timeline_overshoot_relayout.py",),
+        ),
     ]
     assert nested_entrypoints == (
         (

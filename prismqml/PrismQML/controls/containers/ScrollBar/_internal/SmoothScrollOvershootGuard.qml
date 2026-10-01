@@ -161,18 +161,23 @@ QtObject {
             minimum - scrollHelper._maxOvershoot,
             maximum + scrollHelper._maxOvershoot
         )
+        // Rebase publication follows the same pixel and visual-layer rules as a frame.
+        // 重锚发布必须遵循与逐帧发布相同的像素对齐和视觉位移层规则。
+        var published = scrollHelper._publishedPosition(live, minimum, maximum)
+        var contentPosition = scrollHelper._visualOvershootEnabled
+            ? scrollHelper._clamp(published, minimum, maximum) : published
         if (verticalAxis) {
             scrollHelper._discardingStaleFrameV = true
-            scrollHelper._lastPublishedY = live
+            scrollHelper._lastPublishedY = contentPosition
         } else {
             scrollHelper._discardingStaleFrameH = true
-            scrollHelper._lastPublishedX = live
+            scrollHelper._lastPublishedX = contentPosition
         }
         if (scrollHelper.target) {
-            if (verticalAxis && scrollHelper.target.contentY !== live)
-                scrollHelper.target.contentY = live
-            else if (!verticalAxis && scrollHelper.target.contentX !== live)
-                scrollHelper.target.contentX = live
+            if (verticalAxis && scrollHelper.target.contentY !== contentPosition)
+                scrollHelper.target.contentY = contentPosition
+            else if (!verticalAxis && scrollHelper.target.contentX !== contentPosition)
+                scrollHelper.target.contentX = contentPosition
         }
         if (verticalAxis) scrollHelper._discardingStaleFrameV = false
         else scrollHelper._discardingStaleFrameH = false
