@@ -205,6 +205,7 @@ def test_pool_completion_survives_public_handle_destruction() -> None:
     assert completed.returncode == 0, output
     assert "TASK_DESTROYED_HANDLE_OK" in output
     assert "Signal source has been deleted" not in output
+    assert "Traceback (most recent call last)" not in output
     if sys.platform == "win32":
         assert "visible_windows=0 / job_active_processes=0" in output
 

@@ -7,6 +7,9 @@
 import weakref
 from typing import Any
 
+import shiboken6
+from PySide6.QtCore import QObject
+
 __all__ = ["WeakMethodRelay"]
 
 
@@ -50,6 +53,9 @@ class WeakMethodRelay:
         """Invoke the host method if the host is still alive. 宿主仍存活时调用其方法。"""
         host = self._host_ref()
         if host is None:
+            return
+        # A Python wrapper can outlive its deleted Qt object. Python 包装可晚于 Qt 对象销毁。
+        if isinstance(host, QObject) and not shiboken6.isValid(host):
             return
         target = getattr(host, self._method_name, None)
         if target is not None:
