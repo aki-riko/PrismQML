@@ -121,6 +121,12 @@ QtObject {
     // A supported view may re-anchor an outward leg when its bounds move. Preserve
     // the requested overshoot relative to the new edge and cap it to the configured limit.
     // 允许越界的视图移动边界时可重锚外移腿；相对新边缘保留原越界意图并限制在配置上限内。
+    // The axis is always re-anchored on the live animation value: a view that writes
+    // the outward edge back is restoring its own position, not rejecting our
+    // overshoot, and adopting that edge would restart the leg from zero every layout
+    // pass. See _rebaseLiveOutwardLeg.
+    // 轴一律重锚到实时动画值：把外移边缘写回来的视图只是在恢复自身位置，并不是拒绝我们的
+    // 超出；采纳该边缘会让外移腿每次布局都从零重启。详见 _rebaseLiveOutwardLeg。
     function rebaseOutwardFrame(current, minimum, maximum, force) {
         var edge = outwardBoundary < 0 ? minimum : maximum
         if (outwardBoundary === 0 || (!force && edge === outwardEdgePosition)) return
@@ -132,13 +138,48 @@ QtObject {
         )
         var nextTarget = edge + outwardBoundary
             * Math.min(previousOvershoot, scrollHelper._maxOvershoot)
-        var position = scrollHelper._clamp(
-            current,
+        outwardEdgePosition = edge
+        _rebaseLiveOutwardLeg(nextTarget)
+    }
+
+    // Re-anchor the axis on the live animation value rather than on the value the
+    // view wrote. A re-measuring view only restores its own position; the excursion
+    // is still in flight, so adopting the view's edge restarts the leg from zero on
+    // every layout pass and the bounce never develops (measured 7px of a requested
+    // 72px on a real chat list). Re-publishing the live value in this same turn keeps
+    // the view's write from rendering, and the leg keeps its progress.
+    // 把轴重锚到实时动画值，而不是视图写入的值。重测中的视图只是在恢复自身位置，位移仍在进行；
+    // 采纳视图的边缘值会让外移腿每次布局都从零重启，回弹永远长不出来（真实聊天列表实测只有
+    // 请求 72px 中的 7px）。在同一轮内重新发布实时值可让视图的写入不被渲染，外移腿保住进度。
+    function _rebaseLiveOutwardLeg(nextTarget) {
+        var driver = verticalAxis
+            ? scrollHelper.verticalFrameDriver : scrollHelper.horizontalFrameDriver
+        var minimum = verticalAxis ? scrollHelper._minY : scrollHelper._minX
+        var maximum = verticalAxis ? scrollHelper._maxY : scrollHelper._maxX
+        var live = scrollHelper._clamp(
+            verticalAxis ? scrollHelper._smoothY : scrollHelper._smoothX,
             minimum - scrollHelper._maxOvershoot,
             maximum + scrollHelper._maxOvershoot
         )
-        outwardEdgePosition = edge
-        _applyPositionRebase(position, nextTarget)
+        if (verticalAxis) {
+            scrollHelper._discardingStaleFrameV = true
+            scrollHelper._lastPublishedY = live
+        } else {
+            scrollHelper._discardingStaleFrameH = true
+            scrollHelper._lastPublishedX = live
+        }
+        if (scrollHelper.target) {
+            if (verticalAxis && scrollHelper.target.contentY !== live)
+                scrollHelper.target.contentY = live
+            else if (!verticalAxis && scrollHelper.target.contentX !== live)
+                scrollHelper.target.contentX = live
+        }
+        if (verticalAxis) scrollHelper._discardingStaleFrameV = false
+        else scrollHelper._discardingStaleFrameH = false
+        // Only re-aim when the edge actually moved; otherwise the running animation
+        // is already heading for the right target and must not be restarted.
+        // 仅当边缘真的移动时才重新瞄准；否则进行中的动画已朝正确目标前进，不得重启。
+        if (driver._toValue !== nextTarget) driver.moveTo(nextTarget)
     }
 
     function rebaseReturnFrame(current, minimum, maximum, returnEdge) {

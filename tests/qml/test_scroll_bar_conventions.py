@@ -454,6 +454,59 @@ def test_supported_overshoot_rebases_after_large_bounds_shrink(
 
 
 
+def test_supported_overshoot_keeps_excursion_across_repeated_view_rewrites(scroll_scene):
+    """A view that keeps re-measuring must not reset the live excursion every frame.
+
+    持续重测的视图不得逐帧重置进行中的位移。
+
+    A re-measuring list writes the edge back on every layout pass. Each of those
+    writes is a rebase, not a rejection: the animation value still carries the
+    excursion, so re-anchoring the animation on the edge makes the leg restart from
+    zero over and over and the user never sees a bounce (measured 7px instead of the
+    requested 72px on a real chat list).
+    重测中的列表每次布局都会把边缘写回来。这些写入都是重锚而非拒绝：动画值仍持有位移，
+    因此把动画重新锚到边缘会让外移腿反复从零重启，用户永远看不到回弹
+    （真实聊天列表实测只有 7px，而请求的是 72px）。
+    """
+    window, items, warnings, windows_before = scroll_scene
+    area = items["defaultArea"]
+    helper = _smooth_scroll_helper(area, Qt.Orientation.Vertical)
+    target = _flickable_item(area)
+    target.setProperty("boundsBehavior", window.property("dragAndOvershootBoundsValue"))
+    assert _wait_for_stable(lambda: helper.property("maxScroll") > 0)
+    _scroll_to_boundary(helper, target, "contentY", "end")
+
+    edge = float(helper.property("maxScroll"))
+    limit = float(helper.property("_maxOvershoot"))
+    step = float(helper.property("step"))
+    assert 0 < step <= limit
+
+    _send_wheel(window, area, -120)
+    assert _wait_for(lambda: helper.property("_isOutwardBounceV"))
+
+    # Simulate the layout passes of a re-measuring list: every write lands the axis
+    # back on the edge while our outward leg is still live.
+    # 模拟重测列表的布局过程：外移腿仍在进行时，每次写入都把轴放回边缘。
+    peak = 0.0
+    for _ in range(10):
+        if not helper.property("_isOutwardBounceV"):
+            break
+        target.setProperty("contentY", edge)
+        _pump(15)
+        excursion = float(target.property("contentY")) - edge
+        peak = max(peak, excursion)
+        # A live outward leg must never fall back to the edge once it has carried
+        # the axis out; that is the signature of the leg restarting from zero.
+        # 外移腿一旦把轴带出，就不得在存活期间回落到边缘；回落即是从零重启的形态。
+        assert excursion >= peak - 2.0, (excursion, peak, step)
+
+    assert peak > step * 0.3, (peak, step, limit)
+    assert peak <= limit + 1.0, (peak, limit)
+    assert helper.property("verticalOvershootGuard").property("revokedBoundary") == 0
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
 def test_external_position_during_return_rebases_active_overshoot(scroll_scene):
     _window, items, warnings, windows_before = scroll_scene
     area = items["defaultArea"]

@@ -106,8 +106,15 @@ cd D:\PrismQML\PrismQML
 
 ### 4.3 下游实测
 
-Kaleidos `ChatPanel` 的 `Fluent.ListView` 真实组件（真滚轮事件）：越界峰值 91px、63 帧平滑回弹、`revoked = 0`
-（修复前：峰值 7px、直接钉回边界）。
+Kaleidos `ChatPanel` 的 `Fluent.ListView` 真实组件（真滚轮事件、真 delegate 回收抖动）：
+
+| 引擎状态 | 越界峰值 | 形态 | `revokedBoundary` |
+|---------|---------|------|-------------------|
+| `0.5.0.32` | 4px / 2 帧 | 直接钉在边界 | `-1` |
+| `0.5.0.34`（发布版） | 7px / 19 帧 | 锯齿：涨到 7px 就被下一次重测重置回边界 | `0` |
+| `0.5.0.35`（本次修复） | **64px / 53 帧** | 连续外移后平滑返回边缘 | `0` |
+
+即 `0.5.0.34` 只修掉了「边界被永久撤销」，位移仍长不出来；根因见第 6 节。
 
 Kaleidos 客户端 `tests/client/im` + `tests/client/ui`：**1521 passed, 2 failed**，
 两处失败在未改引擎时同样失败（`test_card_padding_contract`、
@@ -118,7 +125,50 @@ Kaleidos 客户端 `tests/client/im` + `tests/client/ui`：**1521 passed, 2 fail
 ## 5. 残留与后续
 
 * 视图重测写回边界的那一帧仍会短暂显示视图自己的取值（下一帧恢复位移）。
-  在真实聊天列表上该差异 < 8px，不可见；在极端边界连续增减场景下可达数十像素。
-  彻底消除需要让列表面也走 `Timeline` 的视觉超出层（`_visualOvershootEnabled` +
-  `_visualOvershootOffset`），属于独立议题，不在本次范围内。
+  真实聊天列表上该写入出现在位移还很小的时候，差异只有几像素；位移长大后再发生重测时，
+  该帧仍可能显示数十像素的跳变。彻底消除需要让列表面也走 `Timeline` 的视觉超出层
+  （`_visualOvershootEnabled` + `_visualOvershootOffset`），属于独立议题。
 * 引擎发布不会自动更新下游 venv，Kaleidos 需显式升 `prismqml` 并重新打包。
+
+---
+
+## 6. `0.5.0.35`：重测改写不得重置进行中的位移
+
+### 6.1 缺陷
+
+`0.5.0.34` 的 `rebaseOutwardFrame()` 最终调用 `_applyPositionRebase()`，后者
+`driver.setImmediate(position)` 把**动画位置吸附回视图写回的边缘值**，再 `moveTo(nextTarget)`
+重新起跑。重测频繁时（真实聊天列表每 2~6 帧抖一次 `contentHeight`）动画每次都被拉回起点，
+外移腿永远长不过几像素 —— 用户看到的就是「滚到顶直接弹回」。
+
+### 6.2 修复
+
+外移腿的重锚改为锚定**实时动画值**（`_rebaseLiveOutwardLeg`）：
+
+* 保留 `_smoothY`，在同一轮内把它重新发布回 `contentY`，使视图的写入不被渲染；
+* 目标未变时不调用 `moveTo`，进行中的动画不重启、进度不丢；
+* 目标真的变了（边界移动）才重新瞄准，且发布值仍夹在 `[edge ± _maxOvershoot]` 内；
+* 返回腿仍走原来的 `_applyPositionRebase`（采纳外部位置），语义不变。
+
+净改动只有 `_internal/SmoothScrollOvershootGuard.qml` 一个源文件：
+`rebaseOutwardFrame()` 不再采纳视图写回值，新增 `_rebaseLiveOutwardLeg()`。
+
+### 6.3 回归门禁
+
+新增 `test_supported_overshoot_keeps_excursion_across_repeated_view_rewrites`：
+在允许越界的目标上发起外移腿，并像重测中的列表那样反复把轴写回边缘，断言
+
+* 外移腿存活期间位移**不得回落到边缘**（回落即是从零重启的形态）；
+* 峰值必须超过一次滚轮步长的 30%。
+
+实测：修复前 2/2 失败（位移从 5 回落到 2），修复后 3/3 通过。
+
+### 6.4 门禁结果
+
+```powershell
+cd D:\PrismQML\PrismQML
+.\.venv\Scripts\python.exe scripts/test_process.py --qt-platform offscreen --timeout 2400 -- `
+  .\.venv\Scripts\python.exe -m pytest -q -rx --full-suite tests/qml -p no:cacheprovider
+```
+
+**1361 passed, 1 skipped, 0 failed**（含时间线 17 项与滚动条 28 项）。
