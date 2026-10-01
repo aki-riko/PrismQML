@@ -487,11 +487,21 @@ def test_supported_overshoot_keeps_excursion_across_repeated_view_rewrites(scrol
     # Simulate the layout passes of a re-measuring list: every write lands the axis
     # back on the edge while our outward leg is still live.
     # 模拟重测列表的布局过程：外移腿仍在进行时，每次写入都把轴放回边缘。
+    assert _wait_for(
+        lambda: float(target.property("contentY")) - edge > 10.0
+    ), "the leg never carried the axis out"
     peak = 0.0
     for _ in range(10):
         if not helper.property("_isOutwardBounceV"):
             break
         target.setProperty("contentY", edge)
+        # The write must not survive even one turn: a frame rendered at the edge is a
+        # visible jump (measured 66px at the deepest point of a real chat bounce).
+        # 该写入连一轮都不许存活：渲染一帧边缘就是可见跳变（真实聊天回弹最深处实测 66px）。
+        restored = float(target.property("contentY"))
+        assert abs(restored - float(helper.property("_smoothY"))) <= 1.5, (
+            restored, float(helper.property("_smoothY")), edge
+        )
         _pump(15)
         excursion = float(target.property("contentY")) - edge
         peak = max(peak, excursion)

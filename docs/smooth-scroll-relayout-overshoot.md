@@ -129,6 +129,8 @@ Kaleidos 客户端 `tests/client/im` + `tests/client/ui`：**1521 passed, 2 fail
   该帧仍可能显示数十像素的跳变。彻底消除需要让列表面也走 `Timeline` 的视觉超出层
   （`_visualOvershootEnabled` + `_visualOvershootOffset`），属于独立议题。
 * 引擎发布不会自动更新下游 venv，Kaleidos 需显式升 `prismqml` 并重新打包。
+* `Fluent.ChatMessageList` 的视口是 `StopAtBounds`，走严格撤销路径。实测它**没有**该缺陷
+  （见第 7 节），因此不改其边界策略。
 
 ---
 
@@ -171,3 +173,63 @@ cd D:\PrismQML\PrismQML
 ```
 
 **1361 passed, 1 skipped, 0 failed**（含时间线 17 项与滚动条 28 项）。
+
+---
+
+## 7. `0.5.0.36`：视图改写不得上屏一帧
+
+### 7.1 缺陷
+
+第 6 节的修复让位移能长出来，但视图写回边缘的那一帧仍然会被渲染：重锚发生在下一个动画帧
+（`_publishSmoothY` 由帧驱动器触发），所以从视图写入到我们写回之间隔了整整一帧。
+
+真实 Kaleidos `ChatPanel` 实测（真滚轮、真 delegate 回收抖动）：外移腿存活 38 帧中有 3 帧
+显示的是视图的写入值，**最深处跳变 66px** —— 位移已经到 66px 时整屏内容闪回边缘一帧。
+
+### 7.2 修复
+
+不再等下一个动画帧，直接响应 `contentX/Y` 的属性变化，在**同一轮事件循环内**把实时值写回去，
+使该写入永远不上屏。实现在门闸内：
+
+* `restoreLiveExcursion(current)`：位移进行中、视图允许越界、且写入落在当前外移边缘时，
+  用实时动画值重新发布（外移腿继续瞄准自己的目标，返回腿继续瞄准返回边界）；
+* `property Connections viewWriteSync`：监听目标的 `contentX/YChanged`，命中即恢复；
+* 我们自己的发布必然等于目标值，因此该回调对自身写入是空操作，不会递归。
+
+### 7.3 实测
+
+| 指标 | 修复前 | 修复后 |
+|------|-------|-------|
+| 存活帧中显示视图写入的帧数 | 3 | **0** |
+| 最深处跳变 | 66px | **0** |
+| 动画最深处位移 | 66px | 92px |
+
+### 7.4 回归门禁
+
+`test_supported_overshoot_keeps_excursion_across_repeated_view_rewrites` 增加断言：模拟写入后
+**立即**读取 `contentY`，必须已经等于实时动画值（±1.5px），即写入连一轮都不许存活。
+
+实测：修复前 2/2 失败（写入停在边缘 312、动画在 324.97），修复后 3/3 通过。
+
+门闸计数同步：门闸新增的 `Connections` 是常驻子对象，`test_smooth_scroll_timer_lifecycle`
+的常驻对象数 `(10, 10)` → `(12, 12)`，`test_table_row_component_lifecycle` 的
+`EXPECTED_NORMAL_OBJECTS` `964` → `966`（两者仍断言 `settled == initial`，无泄漏）。
+
+---
+
+## 8. 为什么 `ChatMessageList` 不需要改边界策略
+
+`Fluent.ChatMessageList` 的视口（`ChatMessageViewport`）声明 `Flickable.StopAtBounds`，
+按第 3 节的规则走严格撤销路径。曾据此推断它有同一类症状，**实测不成立**：
+
+| 场景（真实 `ChatMessageList`） | 越界峰值 | `revokedBoundary` |
+|------------------------------|---------|-------------------|
+| `StopAtBounds`，纯滚轮 | 91px | 0 |
+| `DragAndOvershootBounds`，纯滚轮 | 91px | 0 |
+| `StopAtBounds`，滚轮 + 流式输出让气泡变高（`contentHeight` 变化 32px） | 38px | 0 |
+
+原因是该视口是**普通 `Flickable` + `Column`**，`contentY` 由我们自己与用户驱动，Qt 的布局
+不会改写它；重测只改 `contentHeight`，`isRevoked()` 因此从不成立。IM 聊天用的是真 `ListView`
+（`DataWidgetContent`），Qt 会在重排时改写 `contentY`，才会踩到该缺陷。
+
+结论：边界策略按视图是否真的会自行改写轴向来决定，而不是按「是不是列表」决定。

@@ -118,6 +118,46 @@ QtObject {
         return Math.abs(current - boundary) <= Enums.scroll.revocation_epsilon
     }
 
+    // The view rewrote the axis in the middle of a live excursion. Waiting for the
+    // next animation frame to re-anchor leaves that write on screen for one frame —
+    // measured as a 66px jump at the deepest point of a real chat bounce — so put the
+    // live value back in this same turn instead. The leg keeps its progress.
+    // 视图在一次进行中的位移中途改写了轴向。等到下一个动画帧再重锚会让该写入上屏一帧
+    // ——真实聊天回弹最深处实测 66px 跳变——因此改为在同一轮内把实时值写回去，腿保住进度。
+    function restoreLiveExcursion(current) {
+        var overshot = verticalAxis ? scrollHelper._isOvershotV : scrollHelper._isOvershotH
+        if (!overshot || !allowsOvershoot()) return false
+        var minimum = verticalAxis ? scrollHelper._minY : scrollHelper._minX
+        var maximum = verticalAxis ? scrollHelper._maxY : scrollHelper._maxX
+        if (!isAtOutwardBoundary(current, minimum, maximum)) return false
+        var driver = verticalAxis
+            ? scrollHelper.verticalFrameDriver : scrollHelper.horizontalFrameDriver
+        var outward = verticalAxis
+            ? scrollHelper._isOutwardBounceV : scrollHelper._isOutwardBounceH
+        // Outward leg: keep aiming at its own target. Return leg: keep aiming at the
+        // boundary the return is already heading for.
+        // 外移腿：继续瞄准它自己的目标。返回腿：继续瞄准返回已在前往的边界。
+        var nextTarget = outward
+            ? driver._toValue
+            : scrollHelper._clamp(
+                verticalAxis ? scrollHelper._targetY : scrollHelper._targetX,
+                minimum, maximum)
+        _rebaseLiveOutwardLeg(nextTarget)
+        return true
+    }
+
+    // Our own publish always matches the intended value, so this is a no-op then.
+    // 我们自己的发布必然等于目标值，此时该函数不做任何事。
+    function _restoreAfterViewWrite() {
+        var helper = scrollHelper
+        if (!helper || !helper.target) return
+        var current = verticalAxis ? helper.target.contentY : helper.target.contentX
+        var lastPublished = verticalAxis
+            ? helper._lastPublishedY : helper._lastPublishedX
+        if (Math.abs(current - lastPublished) <= Enums.scroll.revocation_epsilon) return
+        restoreLiveExcursion(current)
+    }
+
     // A supported view may re-anchor an outward leg when its bounds move. Preserve
     // the requested overshoot relative to the new edge and cap it to the configured limit.
     // 允许越界的视图移动边界时可重锚外移腿；相对新边缘保留原越界意图并限制在配置上限内。
@@ -238,6 +278,21 @@ QtObject {
             scrollHelper._lastPublishedX = position
             scrollHelper._discardingStaleFrameH = false
             scrollHelper._bounceBackH()
+        }
+    }
+
+    // The view writes the axis itself whenever it re-measures its content, so react to
+    // the property change directly instead of waiting for the next animation frame.
+    // 视图每次重测内容都会自行改写轴向，因此直接响应属性变化，而不是等下一个动画帧。
+    property Connections viewWriteSync: Connections {
+        target: guard.scrollHelper ? guard.scrollHelper.target : null
+
+        function onContentYChanged() {
+            if (guard.verticalAxis) guard._restoreAfterViewWrite()
+        }
+
+        function onContentXChanged() {
+            if (!guard.verticalAxis) guard._restoreAfterViewWrite()
         }
     }
 
