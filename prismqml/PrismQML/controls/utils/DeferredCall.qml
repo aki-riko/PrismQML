@@ -36,6 +36,8 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     // Pending entries, each one shaped as a key plus an action 待执行项：key + action
     property var _entries: []
+    // Shared with an active drain after QML object teardown. 销毁后仍供当前 drain 读取。
+    property var _lifetime: ({ alive: true })
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int pendingCount: _entries.length
@@ -125,8 +127,12 @@ Item {
     function _drain() {
         if (_entries.length === 0) return
         var pending = _entries
+        var lifetime = _lifetime
         _entries = []
         for (var index = 0; index < pending.length; index++) {
+            // An earlier action may synchronously destroy the host.
+            // 前一个动作可能同步销毁宿主，此时不得调用后续闭包。
+            if (!lifetime.alive) return
             try {
                 pending[index].action()
             } catch (error) {
@@ -134,6 +140,8 @@ Item {
             }
         }
     }
+
+    Component.onDestruction: _lifetime.alive = false
 
     // Deferred tick contract: one run on the next event-loop iteration
     // 延迟节奏契约：下一帧执行一次

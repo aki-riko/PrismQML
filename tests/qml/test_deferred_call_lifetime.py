@@ -24,7 +24,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl, Slot, qInstallMessageHandler
+import pytest
+from PySide6.QtCore import (
+    QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl, Slot,
+    qInstallMessageHandler,
+)
 from PySide6.QtQml import QQmlComponent
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +41,8 @@ Item {
     id: root
 
     property var sink: null
+    property bool resetDuringDrain: false
+    property bool detachedAction: false
 
     function makeHost() {
         return hostComponent.createObject(root, { sink: root.sink })
@@ -70,7 +76,13 @@ Item {
 
             Component.onCompleted: {
                 sink.delegateCreated()
-                deferred.call(sink.delegateBump)
+                if (root.resetDuringDrain) {
+                    deferred.call(root.clearDelegates)
+                    if (root.detachedAction) deferred.call(sink.delegateBump)
+                    else deferred.call(function() { sink.delegateBump() })
+                } else {
+                    deferred.call(sink.delegateBump)
+                }
             }
 
             Component.onDestruction: sink.delegateDestroyed()
@@ -190,6 +202,12 @@ def _create_scene(qml_engine, sink: _Sink):
     return component, root
 
 
+def _dispose_scene(root, qapp):
+    root.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    qapp.processEvents()
+
+
 def test_call_defers_to_next_tick_and_collapses_identical_functions(qml_engine, qapp):
     sink = _Sink()
     component, root = _create_scene(qml_engine, sink)
@@ -211,8 +229,7 @@ def test_call_defers_to_next_tick_and_collapses_identical_functions(qml_engine, 
         _pump(qapp)
         assert sink.count == 4, "不同闭包必须各自执行"
     finally:
-        root.deleteLater()
-        qapp.processEvents()
+        _dispose_scene(root, qapp)
         del component
 
 
@@ -228,8 +245,7 @@ def test_coalesce_keeps_latest_action_per_key(qml_engine, qapp):
         _pump(qapp)
         assert sink.values == [2]
     finally:
-        root.deleteLater()
-        qapp.processEvents()
+        _dispose_scene(root, qapp)
         del component
 
 
@@ -249,8 +265,7 @@ def test_cancel_and_cancel_all_drop_pending_actions(qml_engine, qapp):
         _pump(qapp)
         assert sink.values == []
     finally:
-        root.deleteLater()
-        qapp.processEvents()
+        _dispose_scene(root, qapp)
         del component
 
 
@@ -286,6 +301,28 @@ def test_repeater_delegate_teardown_drops_pending_actions(qml_engine, qapp):
         ]
         assert not noisy, noisy
     finally:
-        root.deleteLater()
-        qapp.processEvents()
+        _dispose_scene(root, qapp)
+        del component
+
+
+@pytest.mark.parametrize("detached_action", (False, True))
+def test_delegate_destroyed_by_first_action_drops_remaining_actions(
+    qml_engine, qapp, detached_action
+):
+    """The first action can reset its own model. 首个动作可重置自身模型。"""
+    sink = _Sink()
+    component, root = _create_scene(qml_engine, sink)
+    root.setProperty("resetDuringDrain", True)
+    root.setProperty("detachedAction", detached_action)
+    try:
+        with _capture_qt_messages() as messages:
+            root.addDelegate()
+            assert sink.delegate_created == 1
+            _pump(qapp, 60)
+
+        assert sink.delegate_destroyed == 1
+        assert sink.delegate_bumps == 0
+        assert not messages, messages
+    finally:
+        _dispose_scene(root, qapp)
         del component
