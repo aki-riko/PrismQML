@@ -29,6 +29,21 @@ QtObject {
     property real outwardEdgePosition: 0
     property double lastRelativeScrollTimestamp: 0
 
+    // The view writes the axis itself whenever it re-measures its content, so react to
+    // the property change directly instead of waiting for the next animation frame.
+    // 视图每次重测内容都会自行改写轴向，因此直接响应属性变化，而不是等下一个动画帧。
+    property Connections viewWriteSync: Connections {
+        target: guard.scrollHelper ? guard.scrollHelper.target : null
+
+        function onContentYChanged() {
+            if (guard.verticalAxis) guard._restoreAfterViewWrite()
+        }
+
+        function onContentXChanged() {
+            if (!guard.verticalAxis) guard._restoreAfterViewWrite()
+        }
+    }
+
     // ==================== Public Methods 公开方法 ====================
     function reset() {
         revokedBoundary = 0
@@ -278,21 +293,6 @@ QtObject {
             scrollHelper._lastPublishedX = position
             scrollHelper._discardingStaleFrameH = false
             scrollHelper._bounceBackH()
-        }
-    }
-
-    // The view writes the axis itself whenever it re-measures its content, so react to
-    // the property change directly instead of waiting for the next animation frame.
-    // 视图每次重测内容都会自行改写轴向，因此直接响应属性变化，而不是等下一个动画帧。
-    property Connections viewWriteSync: Connections {
-        target: guard.scrollHelper ? guard.scrollHelper.target : null
-
-        function onContentYChanged() {
-            if (guard.verticalAxis) guard._restoreAfterViewWrite()
-        }
-
-        function onContentXChanged() {
-            if (!guard.verticalAxis) guard._restoreAfterViewWrite()
         }
     }
 
