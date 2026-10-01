@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import logging
+import os
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler
@@ -87,7 +88,16 @@ if "logging.handlers" not in sys.modules:
     raise SystemExit(3)
 """
     result = subprocess.run(
-        [sys.executable, "-I", "-c", code, str(SOURCE_PATH), str(log_file)],
+        [
+            sys.executable,
+            "-I",
+            "-X",
+            f"pycache_prefix={os.environ['PYTHONPYCACHEPREFIX']}",
+            "-c",
+            code,
+            str(SOURCE_PATH),
+            str(log_file),
+        ],
         check=False,
         capture_output=True,
         text=True,
