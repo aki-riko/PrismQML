@@ -33,11 +33,19 @@ Item {
     property bool _toolTipSupportTracksHover: true
     
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool hovered: mouseArea.containsMouse
+    // Tooltip support owns the hover lifecycle while active
+    // Tooltip 支持层激活期间负责维护悬停生命周期
+    readonly property bool _toolTipHovered:
+        !!(_toolTipLoader.item && _toolTipLoader.item.toolTipHovering)
+    readonly property bool _effectiveHovered:
+        _toolTipLoader.item ? _toolTipHovered : mouseArea.containsMouse
+    readonly property bool hovered: _effectiveHovered
     readonly property bool pressed: mouseArea.pressed
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
-    readonly property bool _touchActive: Touch.feedback(control.hovered, control.pressed)
+    readonly property bool _touchActive: Touch.feedback(
+        control._effectiveHovered,
+        mouseArea.pressed)
     readonly property color accentColor: Enums.accentColor
     readonly property int _navItemRadius: Enums.radius.card
     readonly property color _navItemBackground: {

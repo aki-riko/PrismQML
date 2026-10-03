@@ -16,6 +16,11 @@ MouseArea {
     property bool _showScheduled: false
     property double _showRequestedAt: 0
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property bool toolTipVisible:
+        !!(_popupLoader.item && _popupLoader.item.visible)
+    readonly property bool toolTipHovering: _showScheduled || toolTipVisible
+
     // ==================== Public Methods 公开方法 ====================
     function _prewarm() {
         if (!widget || widget.toolTipText === "") return
@@ -110,6 +115,14 @@ MouseArea {
             else if (support._showScheduled) {
                 item.startShowTimer(Math.max(0, Date.now() - support._showRequestedAt))
             }
+        }
+    }
+
+    Connections {
+        target: _popupLoader.item
+
+        function onVisibleChanged() {
+            if (target && !target.visible) support._showScheduled = false
         }
     }
 

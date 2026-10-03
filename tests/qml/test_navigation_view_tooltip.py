@@ -47,6 +47,7 @@ Window {
     id: host
     objectName: "host"
     readonly property real tooltipGap: Enums.spacing.xs
+    readonly property color hoverColor: Enums.stateColor.hover
     width: 640
     height: 260
     visible: true
@@ -149,14 +150,16 @@ def test_navigation_view_compact_item_tooltip_is_right_aligned_and_clickable(
 ):
     window, warnings, windows_before = navigation_tooltip_scene
     view = window.findChild(QQuickItem, "navigationView")
-    item = _navigation_item(view, "Home")
+    item = _navigation_item(view, "Settings")
     assert view.property("isCompact") is True
-    assert item.property("toolTipText") == "Home"
+    assert item.property("toolTipText") == "Settings"
 
     clicked = []
     view.itemClicked.connect(clicked.append)
     point = item.mapToScene(QPointF(item.width() / 2, item.height() / 2)).toPoint()
     QTest.mouseMove(window, point)
+    assert _wait_until(lambda: item.property("hovered") is True)
+    assert item.property("pressed") is False
 
     def visible_tooltip():
         tooltip = item.findChild(QObject, "_toolTip")
@@ -165,15 +168,20 @@ def test_navigation_view_compact_item_tooltip_is_right_aligned_and_clickable(
     assert _wait_until(visible_tooltip)
     tooltip = visible_tooltip()
     assert tooltip is not None
+    assert item.property("hovered") is True
     content_item = tooltip.property("contentItem")
-    assert content_item.property("text") == "Home"
+    assert content_item.property("text") == "Settings"
+    assert item.property("_touchActive") is True
+    assert item.property("_navItemBackground") == window.property("hoverColor")
     assert tooltip.property("x") >= item.width() + window.property("tooltipGap") - 0.5
 
     QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
-    assert _wait_until(lambda: clicked == [0])
+    assert _wait_until(lambda: clicked == [1])
     assert warnings == []
     QTest.mouseMove(window, QPoint(window.width() - 1, window.height() - 1))
     assert _wait_until(lambda: not tooltip.property("visible"))
+    assert item.property("_toolTipHovered") is False
+    assert _wait_until(lambda: item.property("hovered") is False)
     assert [
         candidate
         for candidate in QGuiApplication.topLevelWindows()
