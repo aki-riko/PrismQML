@@ -20,7 +20,16 @@ ANIMATION_DURATION_MS = 160
 ANIMATION_TIMEOUT_MS = 2_000
 COMPONENT_READY_TIMEOUT_MS = 2_000
 POLL_INTERVAL_MS = 5
-MODE_NAMES = ("opacity", "popup", "popdown", "slide", "card", "zoom")
+MODE_NAMES = (
+    "opacity",
+    "popup",
+    "popdown",
+    "slide",
+    "slide_horizontal",
+    "slide_vertical",
+    "card",
+    "zoom",
+)
 
 
 def _wait_until(predicate: Callable[[], bool], timeout_ms: int) -> bool:
@@ -51,6 +60,7 @@ Item {{
     height: 200
     readonly property int popupMode: Enums.animation.popup
     readonly property int popdownMode: Enums.animation.popdown
+    readonly property int verticalSlideMode: Enums.animation.slide_vertical
 
     StackedWidget {{
         id: stack
@@ -115,6 +125,7 @@ def _assert_transition_start(
     mode_name: str, stack: QObject, old_page: QObject, new_page: QObject, is_back: bool
 ) -> None:
     width = _number(stack, "width")
+    height = _number(stack, "height")
     offset = _number(stack, "popUpOffset")
     assert bool(new_page.property("visible")) or mode_name == "zoom"
     if mode_name == "opacity":
@@ -124,9 +135,12 @@ def _assert_transition_start(
         assert not bool(old_page.property("visible"))
         _assert_close(_number(new_page, "y"), offset if mode_name == "popup" else -offset)
         _assert_close(_number(new_page, "opacity"), 0)
-    elif mode_name == "slide":
+    elif mode_name in {"slide", "slide_horizontal"}:
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "x"), -width if is_back else width)
+    elif mode_name == "slide_vertical":
+        assert bool(old_page.property("visible"))
+        _assert_close(_number(new_page, "y"), -height if is_back else height)
     elif mode_name == "card":
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "x"), 0 if is_back else width)
@@ -236,5 +250,24 @@ def test_switching_between_pop_modes_reconfigures_shared_backend(qapp):
         _assert_transition_start("popdown", stack, page1, page0, True)
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_resting_state(page0, page1)
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_switching_slide_axis_does_not_retarget_running_transition(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(engine, "slide")
+    try:
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        QTest.qWait(ANIMATION_DURATION_MS // 4)
+        x_during_transition = _number(page1, "x")
+        assert 0 < x_during_transition < _number(stack, "width")
+
+        assert stack.setProperty("animationType", root.property("verticalSlideMode"))
+        assert _number(page1, "y") == pytest.approx(0, abs=0.001)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        _assert_resting_state(page1, page0)
     finally:
         _dispose(engine, component, root)

@@ -13,6 +13,8 @@ QtObject {
     property Item _oldWidget: null
     property Item _newWidget: null
     property bool _enterOnly: false
+    property bool _vertical: false
+    readonly property string _positionProperty: _vertical ? "y" : "x"
     readonly property QtObject zOrderGuard: NavigationInternal.StackedZOrderGuard {}
     readonly property bool running: transitionGroup.running || enterAnimation.running
 
@@ -20,18 +22,18 @@ QtObject {
         onFinished: {
             if (backend._oldWidget) {
                 backend._oldWidget.visible = false
-                backend._oldWidget.x = 0
+                backend._resetPosition(backend._oldWidget)
             }
             backend.zOrderGuard.restore()
             backend.finished()
         }
 
-        NumberAnimation { id: slideOut; target: backend._oldWidget; property: "x"; from: 0; duration: backend.host.animationDuration; easing.type: Easing.OutCubic }
-        NumberAnimation { id: slideIn; target: backend._newWidget; property: "x"; to: 0; duration: backend.host.animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: slideOut; target: backend._oldWidget; property: backend._positionProperty; from: 0; duration: backend.host.animationDuration; easing.type: Easing.OutCubic }
+        NumberAnimation { id: slideIn; target: backend._newWidget; property: backend._positionProperty; to: 0; duration: backend.host.animationDuration; easing.type: Easing.OutCubic }
     }
     readonly property NumberAnimation enterAnimation: NumberAnimation {
         target: backend._newWidget
-        property: "x"
+        property: backend._positionProperty
         to: 0
         duration: backend.host.animationDuration
         easing.type: Easing.OutCubic
@@ -41,18 +43,33 @@ QtObject {
     signal finished()
 
     function widget(index) { return host.widget(index) }
+    function _resetPosition(widget) {
+        if (!widget) return
+        widget.x = 0
+        widget.y = 0
+    }
+    function _setPosition(widget, value) {
+        if (!widget) return
+        if (_vertical) widget.y = value
+        else widget.x = value
+    }
+    function _axisLength() {
+        return _vertical ? host.control.height : host.control.width
+    }
+
     function stopAllAnimations() {
         transitionGroup.stop()
         enterAnimation.stop()
         zOrderGuard.restore()
         if (_oldWidget) {
-            _oldWidget.x = 0
+            _resetPosition(_oldWidget)
             _oldWidget.visible = false
         }
-        if (_enterOnly && _newWidget) _newWidget.x = 0
+        if (_enterOnly && _newWidget) _resetPosition(_newWidget)
     }
-    function transition(oldIndex, newIndex, isBack) {
+    function transition(oldIndex, newIndex, isBack, vertical) {
         stopAllAnimations()
+        _vertical = Boolean(vertical)
         _enterOnly = false
         _oldWidget = widget(oldIndex)
         _newWidget = widget(newIndex)
@@ -60,21 +77,24 @@ QtObject {
         zOrderGuard.capture(_oldWidget, _newWidget)
         _oldWidget.visible = true
         _oldWidget.opacity = 1
-        _oldWidget.x = 0
+        _resetPosition(_oldWidget)
         var direction = isBack ? -1 : 1
-        _newWidget.x = host.control.width * direction
+        var distance = _axisLength() * direction
+        _setPosition(_newWidget, distance)
         _newWidget.opacity = 1
         _newWidget.visible = true
-        slideOut.to = -host.control.width * direction
-        slideIn.from = host.control.width * direction
+        slideOut.to = -distance
+        slideIn.from = distance
         transitionGroup.start()
     }
-    function enterOnly(newIndex) {
+    function enterOnly(newIndex, vertical) {
         stopAllAnimations()
+        _vertical = Boolean(vertical)
         _enterOnly = true
         _oldWidget = null
         _newWidget = widget(newIndex)
         if (!_newWidget) return
+        _setPosition(_newWidget, _axisLength())
         enterAnimation.start()
     }
 }

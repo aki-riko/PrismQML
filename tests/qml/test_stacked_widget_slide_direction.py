@@ -103,6 +103,83 @@ def test_slide_direction_follows_index_order(qapp):
     qapp.processEvents()
 
 
+def test_slide_horizontal_direction_follows_index_order(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root = _build_slide_stack(engine, "slide_horizontal")
+    stack = root.findChild(QObject, "slideStack")
+    page0 = root.findChild(QObject, "page0")
+    page1 = root.findChild(QObject, "page1")
+
+    assert stack is not None
+    assert page0 is not None
+    assert page1 is not None
+    stack_width = float(stack.property("width"))
+
+    try:
+        forward_start_x = _switch_and_capture(stack, 1, page1)
+        backward_start_x = _switch_and_capture(stack, 0, page0)
+
+        assert forward_start_x == stack_width
+        assert backward_start_x == -stack_width
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        qapp.processEvents()
+
+
+def test_slide_vertical_direction_follows_index_order(qapp):
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root = _build_slide_stack(engine, "slide_vertical")
+    stack = root.findChild(QObject, "slideStack")
+    page0 = root.findChild(QObject, "page0")
+    page1 = root.findChild(QObject, "page1")
+
+    assert stack is not None
+    assert page0 is not None
+    assert page1 is not None
+    stack_height = float(stack.property("height"))
+
+    try:
+        forward_start_y = []
+        finished = QSignalSpy(stack.animationFinished)
+
+        def capture_forward_start():
+            forward_start_y.append(float(page1.property("y")))
+
+        stack.animationStarted.connect(capture_forward_start)
+        try:
+            assert stack.setProperty("currentIndex", 1)
+            assert forward_start_y
+            assert finished.wait(ANIMATION_TIMEOUT_MS)
+        finally:
+            stack.animationStarted.disconnect(capture_forward_start)
+
+        backward_start_y = []
+        finished = QSignalSpy(stack.animationFinished)
+
+        def capture_backward_start():
+            backward_start_y.append(float(page0.property("y")))
+
+        stack.animationStarted.connect(capture_backward_start)
+        try:
+            assert stack.setProperty("currentIndex", 0)
+            assert backward_start_y
+            assert finished.wait(ANIMATION_TIMEOUT_MS)
+        finally:
+            stack.animationStarted.disconnect(capture_backward_start)
+
+        assert forward_start_y[0] == stack_height
+        assert backward_start_y[0] == -stack_height
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        qapp.processEvents()
+
+
 @pytest.mark.parametrize("animation_type", ("slide", "slide_fade"))
 def test_slide_variants_put_incoming_page_above_outgoing_on_back(
     qapp, animation_type

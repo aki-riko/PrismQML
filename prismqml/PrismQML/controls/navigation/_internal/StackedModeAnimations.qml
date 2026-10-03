@@ -48,7 +48,13 @@ Item {
                 newWidget.scale = 0
                 newWidget.opacity = 1
                 break
+            case Enums.animation.slide_vertical:
+                newWidget.x = 0
+                newWidget.y = control.height
+                newWidget.opacity = 1
+                break
             case Enums.animation.slide:
+            case Enums.animation.slide_horizontal:
             case Enums.animation.card:
             case Enums.animation.slide_fade:
                 newWidget.x = control.width
@@ -74,7 +80,9 @@ Item {
     }
     function slideTransition(oldIndex, newIndex, isBack) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide))
-        if (backend) backend.transition(oldIndex, newIndex, isBack)
+        if (backend) backend.transition(
+                    oldIndex, newIndex, isBack,
+                    control.animationType === Enums.animation.slide_vertical)
     }
     function slideFadeTransition(oldIndex, newIndex, isBack) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
@@ -84,7 +92,8 @@ Item {
         var backend = _ensureBackend(
                     _sourceForType(control.animationType === Enums.animation.card ?
                                        Enums.animation.card : Enums.animation.slide))
-        if (backend) backend.enterOnly(newIndex)
+        if (backend) backend.enterOnly(
+                    newIndex, control.animationType === Enums.animation.slide_vertical)
     }
     function enterSlideFadeOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
@@ -141,6 +150,8 @@ Item {
             case Enums.animation.popdown:
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.slide:
+            case Enums.animation.slide_horizontal:
+            case Enums.animation.slide_vertical:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
             case Enums.animation.slide_fade:
                 return Qt.resolvedUrl("StackedSlideFadeAnimations.qml")

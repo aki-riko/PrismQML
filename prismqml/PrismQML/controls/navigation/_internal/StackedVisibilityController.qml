@@ -37,6 +37,8 @@ Item {
             animations.popDownTransition(oldIndex, newIndex)
             break
         case Enums.animation.slide:
+        case Enums.animation.slide_horizontal:
+        case Enums.animation.slide_vertical:
             animations.slideTransition(oldIndex, newIndex, isBack)
             break
         case Enums.animation.slide_fade:
@@ -78,6 +80,8 @@ Item {
             animations.enterZoomOnly(newIndex)
             break
         case Enums.animation.slide:
+        case Enums.animation.slide_horizontal:
+        case Enums.animation.slide_vertical:
         case Enums.animation.card:
             animations.enterSlideOnly(newIndex)
             break

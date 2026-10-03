@@ -309,6 +309,40 @@ Item {
                         }
                     }
                     ComponentCard {
+                        label: "slide_horizontal"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: slideHorizontalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.slide_horizontal
+                                Rectangle { color: Fluent.Enums.demoPalette.cyan; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: slideHorizontalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: slideHorizontalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "slide_vertical"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: slideVerticalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.slide_vertical
+                                Rectangle { color: Fluent.Enums.demoPalette.sky; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.lime; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: slideVerticalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: slideVerticalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
                         label: "card"
                         Column {
                             spacing: Fluent.Enums.spacing.xs

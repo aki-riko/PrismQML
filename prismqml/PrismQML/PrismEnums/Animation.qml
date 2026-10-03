@@ -14,4 +14,6 @@ QtObject {
     readonly property int card: 5
     readonly property int zoom: 6
     readonly property int slide_fade: 7
+    readonly property int slide_horizontal: 8
+    readonly property int slide_vertical: 9
 }
