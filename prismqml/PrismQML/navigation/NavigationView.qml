@@ -32,6 +32,10 @@ NavigationPanelCore {
     property bool scrollRailEnabled: true
     // Let touch and mouse drag scroll the list 允许触摸与鼠标拖拽滚动列表
     property bool dragScrollEnabled: true
+    // Show item names beside the compact pane on hover 紧凑面板悬停时在右侧显示导航项名称
+    property bool showCompactItemToolTips: true
+    // Delay before a compact item tooltip appears 紧凑项提示显示前的延迟
+    property int compactItemToolTipShowDelay: Enums.duration.tooltipShowDelay
 
     // ==================== Internal Props 内部属性 ====================
     // Maps key to page index for bottom page items
@@ -299,6 +303,10 @@ NavigationPanelCore {
                         Enums.controlSize.navItemSpacing)
                     text: modelData ? (modelData.text || "") : ""
                     icon: modelData ? (modelData.icon || "") : ""
+                    toolTipText: control.showCompactItemToolTips && control.isCompact
+                        ? text : ""
+                    toolTipShowDelay: control.compactItemToolTipShowDelay
+                    toolTipPosition: Enums.position.right
                     selected: itemVisible && index === control.currentIndex
                     compact: control.isCompact
                     opacity: scrollFade.opacityAt(y, height)
@@ -361,6 +369,10 @@ NavigationPanelCore {
                     Enums.controlSize.navItemSpacing)
                 text: modelData ? (modelData.text || "") : ""
                 icon: modelData ? (modelData.icon || "") : ""
+                toolTipText: control.showCompactItemToolTips && control.isCompact
+                    ? text : ""
+                toolTipShowDelay: control.compactItemToolTipShowDelay
+                toolTipPosition: Enums.position.right
                 // Bottom page items use key to find page index 底部页面项通过 key 查找页面索引来判断渲染状态
                 selected: {
                     if (!itemVisible) return false

@@ -19,6 +19,18 @@ Item {
     property bool selected: false
     property bool compact: false  // Compact mode (icon only) 紧凑模式
     property bool selectable: true  // Whether item can be selected 是否可选中
+
+    // Tooltip support 工具提示支持
+    property string toolTipText: ""
+    property int toolTipDuration: Enums.duration.persistent
+    property int toolTipShowDelay: Enums.duration.tooltipShowDelay
+    property int toolTipHideDelay: Enums.duration.none
+    property int toolTipPosition: Enums.position.top
+    property int toolTipTextAlignment: Text.AlignLeft
+
+    // ==================== Internal Props 内部属性 ====================
+    property bool _toolTipShowPending: false
+    property bool _toolTipSupportTracksHover: true
     
     // ==================== Readonly State 只读状态 ====================
     readonly property bool hovered: mouseArea.containsMouse
@@ -39,6 +51,44 @@ Item {
 
     // ==================== Signals 信号 ====================
     signal clicked()
+    signal _toolTipTimersCanceled()
+
+    // ==================== Public Methods 公开方法 ====================
+    function showToolTip() {
+        if (toolTipText === "") return
+        _toolTipShowPending = true
+        if (_toolTipLoader.item) _toolTipLoader.item.showToolTip()
+    }
+
+    function hideToolTip() {
+        _cancelToolTipTimers()
+        if (_toolTipLoader.item) _toolTipLoader.item.hideToolTip()
+        else _toolTipShowPending = false
+    }
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _cancelToolTipTimers() {
+        if (_toolTipLoader.item) _toolTipLoader.item.cancelTimers()
+        _toolTipTimersCanceled()
+    }
+
+    function _startToolTipShowTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.startShowTimer()
+    }
+
+    function _stopToolTipShowTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.stopShowTimer()
+    }
+
+    function _startToolTipHideTimer() {
+        if (_toolTipLoader.item) _toolTipLoader.item.startHideTimer()
+    }
+
+    function _dismissToolTip() {
+        _cancelToolTipTimers()
+        if (_toolTipLoader.item) _toolTipLoader.item.dismissToolTip()
+        else _toolTipShowPending = false
+    }
     
     // ==================== Size 尺寸 ====================
     implicitWidth: parent ? parent.width : Enums.controlSize.navPanelExpandWidth
@@ -185,5 +235,19 @@ Item {
         enabled: control.enabled
         hoverEnabled: true
         onClicked: control.clicked()
+    }
+
+    Loader {
+        id: _toolTipLoader
+        objectName: "_toolTipLoader"
+        anchors.fill: parent
+        active: control.toolTipText !== ""
+        source: "../controls/containers/_internal/WidgetToolTipSupport.qml"
+
+        onLoaded: {
+            if (!item) return
+            item.widget = control
+            if (control._toolTipShowPending) item.showToolTip()
+        }
     }
 }
