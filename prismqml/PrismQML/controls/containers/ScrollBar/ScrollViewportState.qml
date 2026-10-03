@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "_internal" as ScrollBarInternal
+import "_internal/ScrollViewportConclusion.js" as ScrollViewportConclusion
 
 // ScrollViewportState - Stable scrollbar viewport state 稳定的滚动条视口状态
 // Measures overflow without gutters first, then adds only cross-axis overflow.
@@ -91,7 +92,8 @@ Item {
                 _clearPending()
                 break
             case _phaseContentUpdate:
-                scheduleUpdate()
+                // Content-range conclusion gate 内容范围结论门
+                if (!ScrollViewportConclusion.keepsConclusion(control)) scheduleUpdate()
                 break
             case _phaseSuppressionClear:
                 _clearPending()
