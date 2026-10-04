@@ -7,9 +7,7 @@ import "../../.."
 import "_internal" as ScrollBarInternal
 
 // SmoothScrollHelper - Reusable smooth scroll logic 可复用平滑滚动逻辑
-// Usage 用法:
-//   SmoothScrollHelper { target: listView; handleWheel: true }  // Auto handle wheel 自动处理滚轮
-//   SmoothScrollHelper { target: listView }  // Manual: scrollHelper.scrollBy(...) 手动调用
+// Usage 用法: { target: listView; handleWheel: true } 自动处理滚轮 / { target: listView } 手动调用
 Item {
     id: helper
     
@@ -24,7 +22,6 @@ Item {
     property bool bounceEnabled: true  // Enable overshoot bounce 启用边界回弹
     property bool handleWheel: false  // Auto handle mouse wheel 自动处理鼠标滚轮
     // ==================== Internal Props 内部属性 ====================
-    // Timeline enables the visual overshoot layer; other Flickables keep native overshoot.
     // Timeline 启用视觉超出位移层；其他 Flickable 保持原生超出路径。
     property bool _visualOvershootEnabled: false
     // Vertical state 垂直状态
@@ -50,23 +47,17 @@ Item {
     property QtObject _bounceTimerH: null
     property real _devicePixelRatio: 1.0
 
-    // The guards and the reconciler reach the drivers through scrollHelper, and an
-    // id is not visible outside this component, so each child is also exposed as a
-    // property here. 门闸与校正器经 scrollHelper 访问驱动器，而 id 在组件外不可见，
-    // 故每个子对象在此另以属性暴露。
+    // The guards and the reconciler reach the drivers through scrollHelper, and an id is
+    // not visible outside this component. 门闸与校正器经 scrollHelper 访问驱动器，id 在组件外不可见。
     readonly property QtObject verticalFrameDriver: verticalFrameDriverObject
     readonly property QtObject horizontalFrameDriver: horizontalFrameDriverObject
     readonly property QtObject verticalOvershootGuard: verticalOvershootGuardObject
     readonly property QtObject horizontalOvershootGuard: horizontalOvershootGuardObject
     readonly property QtObject boundsReconciler: boundsReconcilerObject
-    readonly property QtObject anchorKeeper: anchorKeeperObject
-    // Virtual item views refine their height estimates while scrolling, which moves
-    // every item above the viewport; the keeper puts that movement back so the visible
-    // content stays still. 虚拟项视图滚动时会修正高度估算，视口上方每条都被移动；
-    // 锚定器把这段位移补回去，让可见内容停在原地。
+    // Virtual item views refine their height estimates while scrolling, which moves every
+    // item above the viewport. 虚拟项视图滚动时修正高度估算，视口上方每条都被移动。
     property bool anchoringEnabled: true
-    // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
-    // 不被 Behavior 平滑过渡反向拖拽.
+    // _syncing = true 时禁用动画：ScrollBar 拖拽时 contentX/Y 立即跟随 handle，不被平滑过渡反向拖拽。
     property bool _syncing: false
 
     // ==================== Readonly State 只读状态 ====================
@@ -299,8 +290,7 @@ Item {
         }
 
         // A boundary whose overshoot the view already clamped away must not launch
-        // another outward leg, otherwise it is clamped again and the axis jitters.
-        // 视图已夹掉超出的边界不得再次外移，否则会被再次夹紧并造成轴向抖动。
+        // another outward leg. 视图已夹掉超出的边界不得再次外移。
         if (verticalOvershootGuard.blocksBoundary(newTarget < _minY)) {
             _targetY = newTarget < _minY ? _minY : _maxY
             verticalFrameDriver.moveTo(_targetY)
@@ -421,10 +411,9 @@ Item {
     // Bindings 绑定
     on_SmoothYChanged: _publishSmoothY()
     on_SmoothXChanged: _publishSmoothX()
-    // ListView can update contentHeight while contentY is changing. Reconcile
-    // on the next turn so bound evaluation cannot synchronously write contentY
-    // and re-enter the same _maxY binding. ListView 可能在 contentY 变化时更新
-    // contentHeight；下一事件循环再校正，避免写回 contentY 时重入 _maxY 绑定。
+    // ListView can update contentHeight while contentY is changing; reconcile on the next
+    // turn so bound evaluation cannot re-enter the same _maxY binding. contentY 变化时
+    // ListView 可能更新 contentHeight，下一事件循环再校正以免重入 _maxY 绑定。
     on_MinYChanged: verticalReconcileTimer.restart()
     on_MaxYChanged: verticalReconcileTimer.restart()
     on_MinXChanged: horizontalReconcileTimer.restart()
@@ -476,7 +465,6 @@ Item {
         scrollHelper: helper
     }
 
-    // Content reflow anchoring 内容重排锚定
     ScrollBarInternal.SmoothScrollAnchorKeeper {
         id: anchorKeeperObject
         scrollHelper: helper
@@ -486,7 +474,6 @@ Item {
     // On-demand bounce timer 按需回弹计时器
     Component {
         id: bounceTimerComponent
-
         ScrollBarInternal.SmoothScrollBounceTimer {
             scrollHelper: helper
         }

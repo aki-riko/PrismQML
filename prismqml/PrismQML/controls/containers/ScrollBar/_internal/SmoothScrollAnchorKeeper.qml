@@ -145,7 +145,11 @@ QtObject {
         // un-anchored position straight back.
         // 进行中的动画每帧都按自己的端点重算实时值；端点必须跟着平移，否则下一帧会把
         // 未锚定的位置原样写回来。
-        helper.verticalFrameDriver.rebaseBy(applied)
+        var driver = helper.verticalFrameDriver
+        if (driver.running) {
+            driver._fromValue += applied
+            driver._toValue += applied
+        }
         helper._discardingStaleFrameV = true
         helper._lastPublishedY = nextSmooth
         helper._smoothY = nextSmooth
@@ -161,7 +165,11 @@ QtObject {
         var applied = nextSmooth - currentSmooth
         compensatedDistance += applied
         helper._targetX = helper._clamp(helper._targetX + applied, helper._minX, helper._maxX)
-        helper.horizontalFrameDriver.rebaseBy(applied)
+        var driver = helper.horizontalFrameDriver
+        if (driver.running) {
+            driver._fromValue += applied
+            driver._toValue += applied
+        }
         helper._discardingStaleFrameH = true
         helper._lastPublishedX = nextSmooth
         helper._smoothX = nextSmooth

@@ -60,19 +60,6 @@ Connections {
         scrollHelper._onFrameDriverSettled(verticalAxis)
     }
 
-    // Shift an in-flight animation by delta. An external re-anchor (content reflow
-    // compensation) must move the animation's endpoints too: every frame recomputes the
-    // live value from `_fromValue`/`_toValue`, so leaving them behind writes the
-    // un-anchored position straight back on the next frame.
-    // 把进行中的动画整体平移 delta。外部重锚（内容重排补偿）必须同时平移动画端点：
-    // 每帧的实时值都由 `_fromValue`/`_toValue` 重算，端点不动就会在下一帧把未补偿的
-    // 位置原样写回去。
-    function rebaseBy(delta) {
-        if (!running || delta === 0) return
-        _fromValue += delta
-        _toValue += delta
-    }
-
     // ==================== Internal Methods 内部方法 ====================
     function _easedProgress(progress) {
         if (typeof WindowHelper !== "undefined" && WindowHelper
