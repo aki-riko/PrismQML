@@ -133,6 +133,45 @@ def test_assistant_demo_reports_unavailable_instead_of_raising(qapp):
         demo.stop()
 
 
+def test_gallery_entry_point_wires_the_assistant_demo_to_a_qobject_parent(qapp):
+    """端到端接线：`examples/main.py` 的装配函数必须能真的跑起来。
+
+    🔴 这条是启动崩溃的回归护栏：装配曾把 `prismqml.App` 当 QObject parent 传进去——App 只是
+    持有 QApplication 与 QML 引擎的 Python 包装、并不是 QObject，于是 `python examples/main.py`
+    启动即 TypeError。冷启动 bench 只 `import examples.main`（模块级不执行 main()），漏掉了它。
+    """
+    from examples.main import wire_assistant_demo
+
+    # 调用点也要钉住：真正崩的是 main() 里那一行，而不是装配函数本身。
+    entry_source = (ROOT / "examples" / "main.py").read_text(encoding="utf-8")
+    assert "wire_assistant_demo(engine)" in entry_source
+    assert "start_assistant_demo(app)" not in entry_source
+
+    engine = QQmlEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    demo = wire_assistant_demo(engine)
+    try:
+        assert demo.available, demo.errorText
+        assert engine.rootContext().contextProperty("aiAssistantDemo") is demo
+        assert demo.parent() is engine, "演示后端必须挂在 QObject（引擎）上，随引擎释放"
+        # 页面对上下文属性的依赖是运行期解析的，顺带确认 QML 真的能读到它。
+        component = QQmlComponent(engine)
+        component.setData(
+            b"import QtQuick\nQtObject { property bool ready: aiAssistantDemo.available }",
+            QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "gallery-assistant-binding.qml")),
+        )
+        assert component.status() == QQmlComponent.Status.Ready, [
+            error.toString() for error in component.errors()
+        ]
+        holder = component.create()
+        assert holder is not None and holder.property("ready") is True
+        holder.deleteLater()
+    finally:
+        demo.stop()
+        engine.collectGarbage()
+
+
 def test_gallery_assistant_page_streams_into_the_message_list(qapp):
     """QML 端到端：开始流之后，增量要逐块进 ChatMessageList，而不是最后一次性写入。
 

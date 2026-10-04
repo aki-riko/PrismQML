@@ -58,6 +58,26 @@ if not register_gallery_resources():
 
 log_time("全部模块导入完成")
 
+def wire_assistant_demo(engine):
+    """Register the AI assistant page backend. 注册 AI 助手页的演示后端。
+
+    仅回环地址的固定话术 SSE 服务 + QML 侧流式桥；起不来时页面显示降级提示，不影响其它页面。
+
+    ⚠️ parent 必须是 QObject：`prismqml.App` 只是持有 QApplication 与 QML 引擎的 Python
+    包装，**不是 QObject**，拿它当 parent 会直接 TypeError（2026-10-04 启动即崩实测）。
+    这里挂到 engine 上，随引擎一起释放。
+    """
+    from examples.ai_demo import start_assistant_demo
+
+    demo = start_assistant_demo(engine)
+    engine.rootContext().setContextProperty("aiAssistantDemo", demo)
+    if demo.available:
+        log_time(f"AI 助手演示后端就绪: {demo.stream.streamUrl}")
+    else:
+        print(f"警告: AI 助手演示后端未能启动 {demo.errorText}")
+    return demo
+
+
 def main():
     log_time("main()开始")
     # App owns QApplication, the QML engine, and the early fast splash.
@@ -105,16 +125,8 @@ def main():
     engine.rootContext().setContextProperty("appUpdater", gallery_updater)
     log_time("上下文属性注册完成")
 
-    # AI assistant page backend 助手页演示后端：仅回环地址的固定话术 SSE 服务 + QML 侧流式桥。
-    # 起不来时页面显示降级提示，不影响 Gallery 其它页面。
-    from examples.ai_demo import start_assistant_demo
-
-    assistant_demo = start_assistant_demo(app)
-    engine.rootContext().setContextProperty("aiAssistantDemo", assistant_demo)
-    if assistant_demo.available:
-        log_time(f"AI 助手演示后端就绪: {assistant_demo.stream.streamUrl}")
-    else:
-        print(f"警告: AI 助手演示后端未能启动 {assistant_demo.errorText}")
+    # AI assistant page backend 助手页演示后端
+    assistant_demo = wire_assistant_demo(engine)
     app.aboutToQuit.connect(assistant_demo.stop)
     
     # 添加QML导入路径
