@@ -77,17 +77,43 @@ Item {
     readonly property int _avatarGap: Enums.spacing.m
     readonly property int _sideMargin: Enums.spacing.xl
     readonly property int _pad: Enums.spacing.l
+    // 时间戳**绝不能压在正文上**。此前它直接锚在气泡内右下角，正文又铺满整个气泡，于是每一
+    // 条带时间戳的消息最后一行都被盖住（实测：单字消息里 "2" 与 "04:26" 直接叠在一起）。
+    // 现在的规则是「放得下就内联在末行右侧，放不下才在气泡内另起一行」：
+    readonly property bool _hasTimestamp: control.timestamp !== ""
+    readonly property real _timestampGap: Enums.spacing.s
+    // 🔴 判据必须**只看字体度量**，绝不能读渲染后的正文高度：正文高度取决于它拿到的宽度，
+    //    而宽度又取决于这里的判据——一读就成环（实测 MarkdownView 刷 "polish() loop"、
+    //    正文高度飙到 882px）。所以用 TextMetrics 按最大可用宽度量一次换行结果。
+    readonly property real _capWidth: Math.min(control.maxBubbleWidth, _availWidth)
+    readonly property real _contentMaxWidth: Math.max(0, _capWidth - _pad * 2)
+    // 会不会换行只看度量：有显式换行，或单行自然宽度超过正文最大宽度。
+    readonly property bool _contentSingleLine: control.content.indexOf("\n") < 0
+        && _metrics.advanceWidth <= _contentMaxWidth + 0.5
+    readonly property bool _timestampInline: _hasTimestamp && _contentSingleLine
+        && (_metrics.advanceWidth + _timestampGap + _timestampMetrics.advanceWidth
+            + _pad * 2 + 4) <= _capWidth
+    // 内联时正文右侧必须**留出时间戳那一条**：只把气泡加宽是不够的——正文条目仍占满整宽，
+    // 结构上依旧重叠（实测条目矩形相交）。留出条带后两种模式都互斥，且不依赖度量完全准确。
+    readonly property real _contentRightInset: _timestampInline
+        ? _pad + _timestampMetrics.advanceWidth + _timestampGap : _pad
+    // 另起一行时给时间戳预留的带状高度（含与正文的间距）。
+    readonly property real _footerHeight: _hasTimestamp && !_timestampInline
+        ? _timestampMetrics.height + _timestampGap * 0.5 : 0
     // Available width after side margins and avatar space 扣除左右边距和头像占位后的可用宽度
     readonly property real _availWidth: {
         var w = control.width - _sideMargin * 2
         if (_hasAvatar) w -= (_avatarSize + _avatarGap)
         return Math.max(0, w)
     }
+    // 最小宽度还要容得下时间戳：否则短消息的气泡会被时间戳挤变形（实测单字消息只有 48px）。
+    readonly property real _minBubbleWidth: Math.max(48, _hasTimestamp
+        ? _pad * 2 + _timestampMetrics.advanceWidth : 0)
     // Target bubble width based on natural text width 气泡基于文本自然宽度的目标宽度
     readonly property real _bubbleWidth: {
         var natural = _metrics.advanceWidth + _pad * 2 + 4
-        var cap = Math.min(control.maxBubbleWidth, _availWidth)
-        return Math.max(48, Math.min(natural, cap))
+        if (_timestampInline) natural += _timestampGap + _timestampMetrics.advanceWidth
+        return Math.max(_minBubbleWidth, Math.min(natural, _capWidth))
     }
 
     // ==================== Size 尺寸 ====================
@@ -106,6 +132,14 @@ Item {
         font.pixelSize: Enums.typography.body
         // Strip common Markdown markers approximately 粗略剥离常见 Markdown 记号
         text: control.content.replace(/[#*`>\-]/g, "")
+    }
+
+    // 时间戳宽度/高度：内联条带与另起一行的高度都靠它。
+    TextMetrics {
+        id: _timestampMetrics
+        font.family: Enums.fontFamily
+        font.pixelSize: Enums.typography.tiny + 1
+        text: control.timestamp
     }
 
     // ==================== Content 内容 ====================
@@ -203,7 +237,8 @@ Item {
         // Natural content width capped by maxBubbleWidth and available width
         // 内容自然宽度受 maxBubbleWidth 和可用宽度限制
         width: control._bubbleWidth
-        height: content_.implicitHeight + control._pad * 2
+        // 另起一行放时间戳时，底部留出带状高度；内联时不额外增高。
+        height: content_.implicitHeight + control._pad * 2 + control._footerHeight
 
         anchors.top: reasoningBlock.bottom
         anchors.topMargin: Enums.spacing.m
@@ -219,10 +254,18 @@ Item {
         anchors.horizontalCenter: control._isSystem ? parent.horizontalCenter : undefined
 
         // Markdown content Markdown 内容
+        // 底部反缩进 `_footerHeight`：时间戳另起一行时正文让出那一条带，两者不再重叠。
         MarkdownView {
             id: content_
-            anchors.fill: parent
-            anchors.margins: control._pad
+            objectName: "chatBubbleContent"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: control._pad
+            anchors.rightMargin: control._contentRightInset
+            anchors.topMargin: control._pad
+            anchors.bottomMargin: control._pad + control._footerHeight
 
             markdown: control.content
             textColor: control._contentTextColor
@@ -230,15 +273,20 @@ Item {
         }
 
         // Optional timestamp 可选时间戳
+        // 内联：与单行正文同一行右侧；另起一行：落进正文让出的底部带状区。两种都不会压住正文。
         Text {
-            visible: control.timestamp !== ""
+            id: timestamp_
+            objectName: "chatBubbleTimestamp"
+            visible: control._hasTimestamp
             text: control.timestamp
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: Enums.spacing.s
             font.pixelSize: Enums.typography.tiny + 1
             font.family: Enums.fontFamily
             color: control._timestampColor
+            anchors.right: parent.right
+            anchors.rightMargin: control._pad
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: control._timestampInline
+                ? control._pad : control._pad * 0.5
         }
     }
 }
