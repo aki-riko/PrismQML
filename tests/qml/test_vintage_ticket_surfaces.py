@@ -272,9 +272,14 @@ def test_ticket_core_surfaces_use_square_ink_geometry(ticket_scene):
     assert popup.property("_popupBorderWidth") == 1
     assert window.property("ticketGradientFactor") == pytest.approx(1.0)
     assert warnings == []
-    assert [item for item in QGuiApplication.topLevelWindows() if item.isVisible()] == [
-        window
+    # 只约束本用例：更早的用例可能留下可见窗口，全局「只能有我一个」会把别人的泄漏算到我们头上
+    # （分片组成一变就红——2026-10-04 实测 qml-2 分片里另外三个 320x320 可见窗口）。
+    leaked = [
+        item
+        for item in QGuiApplication.topLevelWindows()
+        if item.isVisible() and item is not window and item not in windows_before
     ]
+    assert leaked == [], leaked
 
 
 def test_navigation_repaints_when_switching_square_ticket_geometry(ticket_scene):

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
@@ -32,7 +32,9 @@ import PrismQML as Fluent
 Window {
     width: 620
     height: 760
-    visible: true
+    // 不显示：本用例只验几何，不需要真渲染；显示窗口会污染同进程后续用例的顶层窗口集合
+    // （0.5.0.51 的 release 门禁就红在 test_navigation_view_tooltip 的那条窗口集合断言）。
+    visible: false
 
     Column {
         Repeater {
@@ -134,7 +136,6 @@ def _build_scene(engine, cases) -> tuple[object, QQuickWindow]:
     ]
     window = component.create()
     assert isinstance(window, QQuickWindow)
-    window.show()
     _pump(400)
     return component, window
 
@@ -171,13 +172,18 @@ def test_timestamp_never_overlaps_content(qapp):
         # 绑定环会让 MarkdownView 反复 polish 并刷告警，这里顺带守住。
         assert warnings == [], warnings
     finally:
+        # 与 test_chat_bubble_shadow_lifecycle 同一套清理：不排空引擎缓存与延迟删除，场景里的
+        # Window 会以"已删除的 Python 包装"留在后续用例的顶层窗口快照里（0.5.0.51 门禁红在这）。
         if window is not None:
             window.close()
             window.deleteLater()
-            QEventLoop().processEvents()
         if component is not None:
             component.deleteLater()
         engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
 
 def test_short_message_bubble_is_wide_enough_for_the_timestamp(qapp):
@@ -207,10 +213,15 @@ def test_short_message_bubble_is_wide_enough_for_the_timestamp(qapp):
         stamp_item = _find(multiline, "chatBubbleTimestamp")
         assert float(stamp_item.property("y")) > 0.0
     finally:
+        # 与 test_chat_bubble_shadow_lifecycle 同一套清理：不排空引擎缓存与延迟删除，场景里的
+        # Window 会以"已删除的 Python 包装"留在后续用例的顶层窗口快照里（0.5.0.51 门禁红在这）。
         if window is not None:
             window.close()
             window.deleteLater()
-            QEventLoop().processEvents()
         if component is not None:
             component.deleteLater()
         engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
