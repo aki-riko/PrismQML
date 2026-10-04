@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine, QQmlExpression
 from PySide6.QtQuick import QQuickItem, QQuickWindow
@@ -140,8 +141,26 @@ def _build_scene(engine, cases) -> tuple[object, QQuickWindow]:
     return component, window
 
 
-def test_timestamp_never_overlaps_content(qapp):
-    """五组场景：正文与时间戳的条目矩形一律不得相交。"""
+def _dispose(engine, component, window) -> None:
+    """与 test_chat_bubble_shadow_lifecycle 同一套清理。"""
+    if window is not None:
+        window.close()
+        window.deleteLater()
+    if component is not None:
+        component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+
+
+def test_timestamp_lives_outside_the_bubble(qapp):
+    """时间戳必须挂在气泡**外侧**，且与正文、气泡都不相交。
+
+    曾经它锚在气泡内右下角、正文又铺满整宽，于是每条带时间戳的消息最后一行都被盖住
+    （实测单字消息里 "2" 与 "04:26" 直接叠在一起）。现在外面就没有争位的可能。
+    """
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -163,31 +182,31 @@ def test_timestamp_never_overlaps_content(qapp):
                 assert stamp_item.property("visible") is False, index
                 continue
             assert stamp_item.property("visible") is True, index
+
+            # 与正文、与气泡本体都不得相交。
             assert not _intersects(content_item, stamp_item), (
-                f"第 {index} 组时间戳压住了正文：{content}={_rect(content_item)} "
-                f"stamp={_rect(stamp_item)}"
+                f"第 {index} 组时间戳压住了正文：{_rect(content_item)} {_rect(stamp_item)}"
             )
-            # 时间戳必须留在气泡里，不许溢出。
-            assert _rect(stamp_item)[0] + _rect(stamp_item)[2] <= surface.width() + 0.5, index
-        # 绑定环会让 MarkdownView 反复 polish 并刷告警，这里顺带守住。
+            assert not _intersects(surface, stamp_item), (
+                f"第 {index} 组时间戳压在气泡上：气泡 {_rect(surface)} 时间戳 {_rect(stamp_item)}"
+            )
+
+            # 站位：自己消息在气泡左侧，对方消息在气泡右侧。
+            stamp_x, _, stamp_w, _ = _rect(stamp_item)
+            surface_x, _, surface_w, _ = _rect(surface)
+            if role == "user":
+                assert stamp_x + stamp_w <= surface_x + 0.5, (index, _rect(stamp_item), _rect(surface))
+            else:
+                assert stamp_x >= surface_x + surface_w - 0.5, (index, _rect(stamp_item), _rect(surface))
+            # 必须留在这一行的宽度里，不许溢出。
+            assert stamp_x >= -0.5 and stamp_x + stamp_w <= bubble.width() + 0.5, index
         assert warnings == [], warnings
     finally:
-        # 与 test_chat_bubble_shadow_lifecycle 同一套清理：不排空引擎缓存与延迟删除，场景里的
-        # Window 会以"已删除的 Python 包装"留在后续用例的顶层窗口快照里（0.5.0.51 门禁红在这）。
-        if window is not None:
-            window.close()
-            window.deleteLater()
-        if component is not None:
-            component.deleteLater()
-        engine.collectGarbage()
-        engine.clearComponentCache()
-        engine.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-        QCoreApplication.processEvents()
+        _dispose(engine, component, window)
 
 
-def test_short_message_bubble_is_wide_enough_for_the_timestamp(qapp):
-    """单字消息的气泡必须容得下时间戳（此前固定 48px，时间戳被挤到字上）。"""
+def test_short_message_bubble_keeps_its_own_width(qapp):
+    """单字消息的气泡仍按内容定宽（不再被时间戳撑宽），并把时间戳条带让出来。"""
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
@@ -195,33 +214,22 @@ def test_short_message_bubble_is_wide_enough_for_the_timestamp(qapp):
     window = None
     try:
         component, window = _build_scene(engine, CASES)
-        short_cases = (0, 1)  # "2" / "在"，均为单字 + 时间戳
-        for index in short_cases:
+        for index in (0, 1):  # "2" / "在"，单字 + 时间戳
             bubble = _find(window.contentItem(), "bubble" + str(index))
             surface = _surface(bubble)
             stamp_item = _find(bubble, "chatBubbleTimestamp")
-            pad = float(_evaluate(bubble, "_pad"))
-            assert bool(_evaluate(bubble, "_timestampInline")) is True, index
-            assert float(_evaluate(bubble, "_footerHeight")) == 0.0, index
-            assert surface.width() >= float(stamp_item.property("width")) + pad * 2 - 0.5, index
-            assert surface.width() > 48.0, f"单字气泡仍是 48px 地板宽：{surface.width()}"
+            width = float(_evaluate(bubble, "_bubbleWidth"))
+            assert float(surface.width()) == pytest.approx(width), index
+            # 时间戳在气泡外面，所以气泡不再需要为它加宽。
+            assert float(surface.width()) < 80.0, (index, surface.width())
+            assert float(stamp_item.property("width")) > 0.0, index
 
-        # 多行消息走另一条路：底部留出条带，时间戳落进那条带里，而不是压字。
-        multiline = _find(window.contentItem(), "bubble3")
-        assert bool(_evaluate(multiline, "_timestampInline")) is False
-        assert float(_evaluate(multiline, "_footerHeight")) > 0.0
-        stamp_item = _find(multiline, "chatBubbleTimestamp")
-        assert float(stamp_item.property("y")) > 0.0
+        # 气泡宽度上限必须给时间戳条带留出空间，否则贴边的气泡会把时间戳挤出可视区。
+        band = float(_evaluate(_find(window.contentItem(), "bubble0"), "_timestampBand"))
+        assert band > 0.0
+        cap = float(_evaluate(_find(window.contentItem(), "bubble4"), "_capWidth"))
+        avail = float(_evaluate(_find(window.contentItem(), "bubble4"), "_availWidth"))
+        assert cap <= avail + 0.5
+        assert avail <= 596.0 - band + 0.5
     finally:
-        # 与 test_chat_bubble_shadow_lifecycle 同一套清理：不排空引擎缓存与延迟删除，场景里的
-        # Window 会以"已删除的 Python 包装"留在后续用例的顶层窗口快照里（0.5.0.51 门禁红在这）。
-        if window is not None:
-            window.close()
-            window.deleteLater()
-        if component is not None:
-            component.deleteLater()
-        engine.collectGarbage()
-        engine.clearComponentCache()
-        engine.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-        QCoreApplication.processEvents()
+        _dispose(engine, component, window)
