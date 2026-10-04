@@ -45,6 +45,22 @@ SOURCE_TOKEN_REFERENCES = {
         "Enums.typography.body",
     },
     CHAT_ROOT / "ChatBubble.qml": {"Enums.controlSize.chatContentMaxWidth"},
+    CHAT_ROOT / "ChatBubbleSurface.qml": {
+        "Enums.surfaceRadius",
+        "Enums.radius.large",
+        "Enums.radius.small",
+        "Enums.accentColor",
+        "Enums.cardColor",
+        "Enums.hoverColor",
+        "Enums.shadow.level2",
+        "Enums.hasOutlinedSurfaces",
+        "Enums.surfaceBorderWidth",
+        "Enums.border.thin",
+        "Enums.borderColor",
+        "Enums.usesSoftElevation",
+        "Enums.isNeumorphism",
+        "Enums.isNeobrutalism",
+    },
     CHAT_ROOT / "ChatMessageList.qml": {"Enums.controlSize.chatContentMaxWidth"},
 }
 COMPACT_CAPTION_CONSUMERS = (
@@ -525,5 +541,165 @@ def test_chat_style_tokens_render_in_hidden_window_and_remain_fixed(qapp):
         if window is not None:
             window.deleteLater()
         del component
+        engine.deleteLater()
+        _pump(1)
+
+
+# ==================== ChatBubbleSurface 共用气泡壳 ====================
+SURFACE_SCENE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    width: 320
+    height: 320
+    visible: true
+
+    Column {
+        spacing: 8
+        ChatBubbleSurface { objectName: "userSurface"; width: 200; height: 40; role: "user" }
+        ChatBubbleSurface { objectName: "assistantSurface"; width: 200; height: 40; role: "assistant" }
+        ChatBubbleSurface { objectName: "systemSurface"; width: 200; height: 40; role: "system" }
+        ChatBubbleSurface { objectName: "chromelessSurface"; width: 200; height: 40; chromeless: true }
+        ChatBubbleSurface { objectName: "flatSurface"; width: 200; height: 40; tail: false }
+    }
+}
+"""
+
+
+def _surface_corners(item) -> dict:
+    names = (
+        "topLeftRadius",
+        "topRightRadius",
+        "bottomLeftRadius",
+        "bottomRightRadius",
+    )
+    return {
+        name: float(_evaluate(item, f"contentItem.{name}")) for name in names
+    }
+
+
+def _token_radius(item, token: str) -> float:
+    return float(_evaluate(item, f"Enums.surfaceRadius(Enums.radius.{token})"))
+
+
+def test_chat_bubble_surface_tail_follows_the_role(qapp):
+    """自己右下尖角、对方左上尖角、系统与无壳不参与。
+
+    尖角靠 `contentItem` 的分角圆角收紧（零额外绘制对象），半径必须现算——QML 的变更处理
+    函数先于依赖绑定重算执行，先做成 readonly 中间属性再读会拿到旧值、尖角永远不生效。
+    """
+    setSkin(Skin.FLUENT)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = None
+    try:
+        component, window = _create(engine, SURFACE_SCENE, "p6c-chat-bubble-surface.qml")
+        _pump(30)
+        user = window.findChild(QQuickItem, "userSurface")
+        assistant = window.findChild(QQuickItem, "assistantSurface")
+        system = window.findChild(QQuickItem, "systemSurface")
+        chromeless = window.findChild(QQuickItem, "chromelessSurface")
+        flat = window.findChild(QQuickItem, "flatSurface")
+        assert all((user, assistant, system, chromeless, flat))
+
+        large = _token_radius(assistant, "large")
+        small = _token_radius(assistant, "small")
+        assert small < large
+
+        user_corners = _surface_corners(user)
+        assert user_corners["bottomRightRadius"] == small
+        assert user_corners["topLeftRadius"] == large
+
+        assistant_corners = _surface_corners(assistant)
+        assert assistant_corners["topLeftRadius"] == small
+        assert assistant_corners["bottomRightRadius"] == large
+
+        for item in (system, flat):
+            corners = _surface_corners(item)
+            assert len(set(corners.values())) == 1, corners
+            assert corners["topLeftRadius"] == large
+
+        # 无壳：四角切平，表面透明、不描边、不投影。
+        assert set(_surface_corners(chromeless).values()) == {0.0}
+        assert _evaluate(chromeless, "shadowVisible") is False
+        assert _evaluate(chromeless, "border.width") == 0
+        assert QColor(_evaluate(chromeless, "color")).alphaF() == 0.0
+    finally:
+        setSkin(Skin.FLUENT)
+        if component is not None:
+            component.deleteLater()
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_chat_bubble_surface_shadow_policy_per_role(qapp):
+    """系统消息与无壳用法不投影；两侧消息默认都有，`elevationOnUser` 可把用户侧收掉。"""
+    setSkin(Skin.FLUENT)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = None
+    try:
+        component, window = _create(engine, SURFACE_SCENE, "p6c-chat-bubble-surface.qml")
+        _pump(30)
+        user = window.findChild(QQuickItem, "userSurface")
+        assistant = window.findChild(QQuickItem, "assistantSurface")
+        system = window.findChild(QQuickItem, "systemSurface")
+        chromeless = window.findChild(QQuickItem, "chromelessSurface")
+        assert all((user, assistant, system, chromeless))
+
+        assert _evaluate(user, "shadowVisible") is True
+        assert _evaluate(assistant, "shadowVisible") is True
+        assert _evaluate(system, "shadowVisible") is False
+        assert _evaluate(chromeless, "shadowVisible") is False
+        # 描边：Fluent 只描对方那一侧。
+        assert _evaluate(user, "border.width") == 0
+        assert _evaluate(assistant, "border.width") >= 1
+
+        # Copilot 卡片流把用户侧的浮起收掉。
+        user.setProperty("elevationOnUser", False)
+        _pump(20)
+        assert _evaluate(user, "shadowVisible") is False
+        assert _evaluate(assistant, "shadowVisible") is True
+    finally:
+        setSkin(Skin.FLUENT)
+        if component is not None:
+            component.deleteLater()
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_chat_bubble_surface_tail_survives_a_skin_switch(qapp):
+    """换皮肤后尖角必须跟着新皮肤的圆角令牌走。
+
+    皮肤切换只会改 `surfaceRadius(...)` 的返回值，`radius` 本身未必变化——只挂
+    `onRadiusChanged` 会漏掉这种情形，尖角留在旧皮肤半径上（实测在阴影生命周期往返里
+    留下 33px 像素残差）。
+    """
+    setSkin(Skin.FLUENT)
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component = None
+    try:
+        component, window = _create(engine, SURFACE_SCENE, "p6c-chat-bubble-surface.qml")
+        _pump(30)
+        user = window.findChild(QQuickItem, "userSurface")
+        assistant = window.findChild(QQuickItem, "assistantSurface")
+        assert user is not None and assistant is not None
+
+        for skin in (Skin.NEOBRUTALISM, Skin.VINTAGE_TICKET, Skin.NEUMORPHISM, Skin.FLUENT):
+            setSkin(skin)
+            _pump(30)
+            large = _token_radius(assistant, "large")
+            small = _token_radius(assistant, "small")
+            corners = _surface_corners(user)
+            assert corners["bottomRightRadius"] == small, (skin, corners)
+            assert corners["topLeftRadius"] == large, (skin, corners)
+            assert _surface_corners(assistant)["topLeftRadius"] == small, skin
+    finally:
+        setSkin(Skin.FLUENT)
+        if component is not None:
+            component.deleteLater()
         engine.deleteLater()
         _pump(1)

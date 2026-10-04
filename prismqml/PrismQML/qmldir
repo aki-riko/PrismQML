@@ -241,6 +241,7 @@ LoginWindow controls/auth/LoginWindow.qml
 
 # ==================== Chat 聊天 ====================
 ChatBubble controls/chat/ChatBubble.qml
+ChatBubbleSurface controls/chat/ChatBubbleSurface.qml
 ChatMessageList controls/chat/ChatMessageList.qml
 CodeBlock controls/chat/CodeBlock.qml
 MarkdownView controls/chat/MarkdownView.qml

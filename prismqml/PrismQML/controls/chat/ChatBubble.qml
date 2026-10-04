@@ -188,35 +188,18 @@ Item {
         anchors.topMargin: Enums.spacing.m
     }
 
-    // Assistant card shadow: blurred in Fluent, hard-edged in Neo
-    // 助手卡片阴影：Fluent 使用模糊阴影，Neo 使用硬阴影
-    RectangularShadow {
-        visible: !control._isUser && !control._isSystem && Enums.usesSoftElevation && !Enums.isNeumorphism
-        anchors.fill: bubble
-        radius: control._bubbleRadius
-        color: control._assistantShadowColor
-        blur: control._assistantShadowBlur
-        offset.x: 0
-        offset.y: control._assistantShadowOffset
-    }
-
-    NeumorphicShadow {
-        target: bubble
-        visible: !control._isSystem && Enums.isNeumorphism
-        accent: control._isUser
-        z: bubble.z - 1
-    }
-
-    NeoShadow {
-        target: bubble
-        visible: !control._isUser && !control._isSystem && Enums.isNeobrutalism
-        radius: control._bubbleRadius
-        z: bubble.z - 1
-    }
-
     // Message bubble 消息气泡
-    Rectangle {
+    // The shell (color / radius / tail / border / elevation across all four skins) comes from
+    // ChatBubbleSurface, shared with downstream chat surfaces. 外壳（配色 / 圆角 / 尖角 /
+    // 描边 / 四种皮肤下的阴影）统一由 ChatBubbleSurface 提供，与下游聊天界面共用。
+    ChatBubbleSurface {
         id: bubble
+        role: control.role
+        // Copilot card flow keeps blurred / hard elevation on assistant messages only.
+        // 卡片流只给助手消息留模糊与硬阴影（新拟态按皮肤语义两侧都留）。
+        elevationOnUser: false
+        neumorphicAccent: control._isUser
+
         // Natural content width capped by maxBubbleWidth and available width
         // 内容自然宽度受 maxBubbleWidth 和可用宽度限制
         width: control._bubbleWidth
@@ -234,20 +217,6 @@ Item {
         anchors.right: control._isUser ? parent.right : undefined
         anchors.rightMargin: control._sideMargin
         anchors.horizontalCenter: control._isSystem ? parent.horizontalCenter : undefined
-
-        // Asymmetric tails for user and assistant; system stays fully rounded
-        // 用户和助手使用非对称尖角，系统消息保持全圆角
-        radius: control._bubbleRadius
-        topLeftRadius: control._isUser ? control._bubbleRadius : control._bubbleTailRadius
-        topRightRadius: control._bubbleRadius
-        bottomLeftRadius: control._bubbleRadius
-        bottomRightRadius: control._isUser ? control._bubbleTailRadius : control._bubbleRadius
-
-        color: control._bubbleBackground
-        // Neo uses a strong border for all bubbles; Fluent only borders assistant bubbles
-        // Neo 为所有气泡使用粗边框，Fluent 仅为助手气泡使用细边框
-        border.width: control._bubbleBorderWidth
-        border.color: control._bubbleBorderColor
 
         // Markdown content Markdown 内容
         MarkdownView {
