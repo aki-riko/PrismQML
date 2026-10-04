@@ -6,232 +6,210 @@ import QtQuick
 import QtQuick.Layouts
 import PrismQML as Fluent
 
-// AIAssistantPage - AI assistant and chat bubble gallery page AI 助手与聊天气泡展示页
+// AIAssistantPage - AI assistant chat surface AI 助手对话页
 //
-// 三块内容：
-//   1. 聊天气泡：ChatMessageList + ChatBubble，覆盖 markdown、行内代码、围栏代码块与推理折叠；
-//   2. 气泡壳：ChatBubbleSurface 的 role / tail / elevationOnUser 取舍矩阵，并可直接切皮肤看它跟随；
-//   3. SSE 流式输出：真实 `text/event-stream` 传输（固定话术的本地演示后端）驱动增量渲染。
+// 一整页就是一个对话框：顶部身份条、中间消息区、底部输入条。用户发出问题后，助手气泡按
+// **真实 SSE** 增量吐出内容（固定话术的本地演示后端，见 examples/ai_demo）。
 //
-// 🔴 演示话术一律来自 `aiAssistantDemo`（Python 侧），不写进本文件：Gallery 的 i18n 门禁会把
-//    QML 里的中文与面向用户的英文串登记成待翻译项，演示内容不该逼着 20 份语言目录各翻一遍。
+// 这里刻意不做成"组件卡片陈列"：Gallery 的其它页面已经逐个展示过组件，这一页要看的是它们
+// 组合起来像一个真东西时是什么样——消息列表撑满、输入条常驻、空态给建议、流式中可中断。
+//
+// 🔴 演示话术与建议问题一律来自 `aiAssistantDemo`（Python 侧），不写进本文件：Gallery 的
+//    i18n 门禁会把 QML 里的中文与面向用户的英文串登记成待翻译项，演示内容不该逼着 20 份
+//    语言目录各翻一遍。
 Item {
     id: root
 
     // 演示后端由 Gallery 宿主注入；单独加载本页（测试）时允许缺席。
     readonly property var demo: typeof aiAssistantDemo !== "undefined" ? aiAssistantDemo : null
     readonly property var stream: root.demo ? root.demo.stream : null
-    readonly property bool demoAvailable: root.demo ? root.demo.available : false
     readonly property bool streaming: root.stream ? root.stream.streaming : false
-    readonly property int streamFrameCount: root.stream ? root.stream.frameCount : 0
+    readonly property bool backendReady: root.demo ? root.demo.available : false
+    readonly property bool canSend: root.backendReady && !root.streaming
+    readonly property bool canStop: root.streaming
+    property bool hasConversation: false
 
-    function iconPath(name) {
-        return Fluent.Enums.iconPath + name + ".svg"
+    function clockText() {
+        var now = new Date()
+        var hours = String(now.getHours())
+        var minutes = String(now.getMinutes())
+        if (hours.length < 2) hours = "0" + hours
+        if (minutes.length < 2) minutes = "0" + minutes
+        return hours + ":" + minutes
     }
 
-    // 静态会话：逐条追加，带推理的那条紧跟其后补推理文本（appendReasoningToLast 作用于最后一条）。
-    function loadPreviewMessages() {
-        if (!root.demo || !previewList) return
-        previewList.clear()
-        var messages = root.demo.previewMessages
-        for (var i = 0; i < messages.length; i++) {
-            var message = messages[i]
-            previewList.appendMessage(message.role, message.content, message.timestamp)
-            if (message.reasoning) previewList.appendReasoningToLast(message.reasoning)
-        }
-    }
-
-    function startStream() {
-        if (!root.demoAvailable || root.streaming || !streamList) return
-        streamList.clear()
-        streamList.appendMessage("assistant", "", "")
+    // 发送：先把用户这句落进列表，再补一条空的助手消息，然后开流（增量都追加到它身上）。
+    function sendPrompt(rawText) {
+        var prompt = String(rawText === undefined || rawText === null ? "" : rawText).trim()
+        if (prompt.length === 0 || !root.canSend) return
+        composer.text = ""
+        chatList.appendMessage("user", prompt, root.clockText())
+        chatList.appendMessage("assistant", "", root.clockText())
+        root.hasConversation = true
         root.stream.start()
     }
 
-    function streamStatusText() {
-        if (!root.demoAvailable) return root.demo ? root.demo.errorText : "demo backend unavailable"
-        if (root.streaming) return "streaming · frames: " + root.streamFrameCount
-        return root.streamFrameCount > 0 ? "finished · frames: " + root.streamFrameCount : "idle"
+    function stopStream() {
+        if (root.stream) root.stream.cancel()
     }
 
-    function skinLabel(skin) {
-        switch (skin) {
-        case "fluent":
-            return Fluent.Translator.tr("skin_fluent_design", Fluent.Translator._v)
-        case "neobrutalism":
-            return Fluent.Translator.tr("skin_neobrutalism", Fluent.Translator._v)
-        case "vintage_ticket":
-            return Fluent.Translator.tr("skin_vintage_ticket", Fluent.Translator._v)
-        case "neumorphism":
-            return Fluent.Translator.tr("skin_neumorphism", Fluent.Translator._v)
-        default:
-            return skin
-        }
+    function clearConversation() {
+        if (root.streaming) root.stopStream()
+        chatList.clear()
+        root.hasConversation = false
     }
 
-    // 流式增量：推理走 appendReasoningToLast，正文走 appendToLast；
-    // 两条都只追加文本，列表自己负责滚动跟随。
+    // 状态文案保持技术口径（英文），不占用目录条目：idle / streaming · frames: N / finished · frames: N
+    function statusText() {
+        if (!root.backendReady) return root.demo ? root.demo.errorText : "demo backend unavailable"
+        var prefix = Fluent.Translator.tr("gallery_56062030e374faf2", Fluent.Translator._v)
+        if (root.streaming) return prefix + " · streaming · frames: " + (root.stream ? root.stream.frameCount : 0)
+        var frames = root.stream ? root.stream.frameCount : 0
+        return frames > 0 ? prefix + " · finished · frames: " + frames : prefix + " · idle"
+    }
+
+    // 流式增量：推理走 appendReasoningToLast，正文走 appendToLast；失败就把原因写进气泡，
+    // 让用户看见"这一条没跑完"，而不是静默停在半截。
     Connections {
         target: root.stream
 
         function onReasoningChunk(text) {
-            if (streamList) streamList.appendReasoningToLast(text)
+            chatList.appendReasoningToLast(text)
         }
 
         function onDeltaChunk(text) {
-            if (streamList) streamList.appendToLast(text)
+            chatList.appendToLast(text)
         }
 
         function onFailed(message) {
-            console.log("GALLERY_ASSISTANT_STREAM_FAILED", message)
+            chatList.appendToLast("\n\n" + message)
         }
     }
 
-    Component.onCompleted: root.loadPreviewMessages()
-
-    Fluent.ScrollArea {
+    ColumnLayout {
         anchors.fill: parent
+        spacing: 0
 
-        Column {
-            width: parent ? parent.width : 0
-            spacing: Fluent.Enums.spacing.xxl
+        // ==================== 身份条 ====================
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: Fluent.Enums.spacing.l
+            Layout.rightMargin: Fluent.Enums.spacing.l
+            Layout.topMargin: Fluent.Enums.spacing.m
+            Layout.bottomMargin: Fluent.Enums.spacing.m
+            spacing: Fluent.Enums.spacing.m
 
-            // Page title 页面标题
-            Column {
-                width: parent ? parent.width : 0
-                spacing: Fluent.Enums.spacing.xs
+            Rectangle {
+                Layout.alignment: Qt.AlignVCenter
+                implicitWidth: Fluent.Enums.controlSize.inputHeight
+                implicitHeight: Fluent.Enums.controlSize.inputHeight
+                radius: width / 2
+                color: Fluent.Enums.accentColor
+
+                Fluent.Icon {
+                    anchors.centerIn: parent
+                    icon: Fluent.Enums.icon.bot_sparkle
+                    iconSize: Fluent.Enums.iconSize.small
+                    color: Fluent.Enums.accentForeground
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 0
 
                 Fluent.Label {
-                    type: Fluent.Enums.label.type_title
+                    objectName: "galleryAssistantTitle"
+                    type: Fluent.Enums.label.type_subtitle
                     text: Fluent.Translator.tr("gallery_1b0049fcfd4163fe", Fluent.Translator._v)
                 }
-            }
 
-            // Chat bubbles 聊天气泡
-            Fluent.ExampleCard {
-                title: Fluent.Translator.tr("gallery_3b83a72ced370e25", Fluent.Translator._v)
-                description: "ChatMessageList / ChatBubble / MarkdownView / CodeBlock"
-
-                Fluent.ChatMessageList {
-                    id: previewList
-                    objectName: "galleryPreviewMessageList"
-                    width: parent ? parent.width : 0
-                    height: 420
-                    assistantAvatarText: "P"
+                Fluent.Label {
+                    objectName: "galleryAssistantStatus"
+                    type: Fluent.Enums.label.type_caption
+                    color: Fluent.Enums.textColor.secondary
+                    text: root.statusText()
                 }
             }
 
-            // Bubble shell 气泡壳
-            Fluent.ExampleCard {
-                title: Fluent.Translator.tr("gallery_92ee8f68a7ea40ae", Fluent.Translator._v)
-                description: "ChatBubbleSurface / role / tail / elevationOnUser"
+            Fluent.Button {
+                objectName: "galleryAssistantClearButton"
+                Layout.alignment: Qt.AlignVCenter
+                icon: Fluent.Enums.icon.broom_sparkle
+                enabled: root.hasConversation
+                onClicked: root.clearConversation()
+            }
+        }
 
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+        // ==================== 消息区 ====================
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
-                    // 换皮肤：外壳的配色、描边与阴影层级全部来自令牌，切一下就能看见它跟随。
-                    Row {
-                        spacing: Fluent.Enums.spacing.s
+            Fluent.ChatMessageList {
+                id: chatList
+                objectName: "galleryAssistantChatList"
+                anchors.fill: parent
+                assistantAvatarText: "P"
+            }
 
-                        Repeater {
-                            model: (typeof ConfigManager !== "undefined" && ConfigManager)
-                                   ? ConfigManager.skinOptions : []
+            // 空态：一句引导 + 可以点的建议问题（文案来自 Python）。发过消息就不再出现。
+            ColumnLayout {
+                objectName: "galleryAssistantEmptyState"
+                anchors.centerIn: parent
+                width: Math.min(parent.width - Fluent.Enums.spacing.xxl * 2,
+                                Fluent.Enums.controlSize.chatContentMaxWidth)
+                spacing: Fluent.Enums.spacing.m
+                visible: !root.hasConversation
 
-                            Fluent.Button {
-                                text: root.skinLabel(modelData)
-                                style: (ConfigManager && ConfigManager.skin === modelData)
-                                       ? Fluent.Enums.button.style_primary
-                                       : Fluent.Enums.button.style_default
-                                onClicked: ConfigManager.setSkin(modelData)
-                            }
-                        }
-                    }
+                Fluent.Icon {
+                    Layout.alignment: Qt.AlignHCenter
+                    icon: Fluent.Enums.icon.bot_sparkle
+                    iconSize: Fluent.Enums.iconSize.xxxl
+                    color: Fluent.Enums.textColor.tertiary
+                }
 
-                    Flow {
-                        width: parent ? parent.width : 0
-                        spacing: Fluent.Enums.spacing.l
+                Repeater {
+                    model: root.demo ? root.demo.suggestions : []
 
-                        Repeater {
-                            model: root.demo ? root.demo.surfaceShowcase : []
-
-                            Column {
-                                spacing: Fluent.Enums.spacing.xs
-
-                                Fluent.ChatBubbleSurface {
-                                    width: 240
-                                    height: 44
-                                    role: modelData.role
-                                    tail: modelData.tail
-                                    elevationOnUser: modelData.elevationOnUser
-                                    chromeless: modelData.label === "chromeless: true"
-
-                                    Fluent.Label {
-                                        anchors.centerIn: parent
-                                        type: Fluent.Enums.label.type_caption
-                                        text: modelData.label
-                                        color: modelData.role === "user"
-                                               ? Fluent.Enums.accentForeground
-                                               : Fluent.Enums.textColor.primary
-                                    }
-                                }
-
-                                Fluent.Label {
-                                    type: Fluent.Enums.label.type_caption
-                                    text: modelData.label
-                                    color: Fluent.Enums.textColor.secondary
-                                }
-                            }
-                        }
+                    Fluent.Button {
+                        objectName: "galleryAssistantSuggestion" + index
+                        Layout.fillWidth: true
+                        style: Fluent.Enums.button.style_default
+                        text: modelData
+                        enabled: root.canSend
+                        onClicked: root.sendPrompt(modelData)
                     }
                 }
             }
+        }
 
-            // SSE streaming SSE 流式输出
-            Fluent.ExampleCard {
-                title: Fluent.Translator.tr("gallery_56062030e374faf2", Fluent.Translator._v)
-                description: "text/event-stream · reasoning / delta / done"
+        // ==================== 输入条 ====================
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.leftMargin: Fluent.Enums.spacing.l
+            Layout.rightMargin: Fluent.Enums.spacing.l
+            Layout.topMargin: Fluent.Enums.spacing.m
+            Layout.bottomMargin: Fluent.Enums.spacing.l
+            spacing: Fluent.Enums.spacing.s
 
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.m
+            Fluent.LineEdit {
+                id: composer
+                objectName: "galleryAssistantComposer"
+                Layout.fillWidth: true
+                placeholderText: Fluent.Translator.tr("placeholder_input", Fluent.Translator._v)
+                clearButtonEnabled: false
+                enabled: root.canSend
+                onAccepted: root.sendPrompt(text)
+            }
 
-                    Row {
-                        spacing: Fluent.Enums.spacing.s
-
-                        Fluent.Button {
-                            objectName: "galleryAssistantStartButton"
-                            text: Fluent.Translator.tr("gallery_d2bb025a2e51c410", Fluent.Translator._v)
-                            enabled: root.demoAvailable && !root.streaming
-                            onClicked: root.startStream()
-                        }
-
-                        Fluent.Button {
-                            objectName: "galleryAssistantCancelButton"
-                            text: Fluent.Translator.tr("gallery_f9d19345a067cbe1", Fluent.Translator._v)
-                            enabled: root.streaming
-                            onClicked: {
-                                if (root.stream) root.stream.cancel()
-                            }
-                        }
-
-                        Fluent.Label {
-                            objectName: "galleryAssistantStreamStatus"
-                            anchors.verticalCenter: parent.verticalCenter
-                            type: Fluent.Enums.label.type_caption
-                            text: root.streamStatusText()
-                            color: Fluent.Enums.textColor.secondary
-                        }
-                    }
-
-                    Fluent.ChatMessageList {
-                        id: streamList
-                        objectName: "galleryStreamMessageList"
-                        width: parent ? parent.width : 0
-                        height: 320
-                        assistantAvatarText: "P"
-                    }
-                }
+            Fluent.Button {
+                objectName: "galleryAssistantSendButton"
+                Layout.alignment: Qt.AlignVCenter
+                style: Fluent.Enums.button.style_primary
+                icon: root.canStop ? Fluent.Enums.icon.stop : Fluent.Enums.icon.send
+                enabled: root.canStop || (root.canSend && composer.text.trim().length > 0)
+                onClicked: root.canStop ? root.stopStream() : root.sendPrompt(composer.text)
             }
         }
     }

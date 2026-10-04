@@ -22,7 +22,7 @@ from typing import Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from examples.ai_demo.demo_script import PREVIEW_MESSAGES, SURFACE_SHOWCASE
+from examples.ai_demo.demo_script import PREVIEW_MESSAGES, SUGGESTIONS, SURFACE_SHOWCASE
 from examples.ai_demo.sse_demo_server import AssistantStreamServer
 from examples.ai_demo.sse_stream_bridge import AssistantStreamBridge
 
@@ -56,6 +56,10 @@ class AssistantDemo(QObject):
     @Property("QVariantList", constant=True)
     def previewMessages(self) -> list:
         return [dict(message) for message in PREVIEW_MESSAGES]
+
+    @Property("QVariantList", constant=True)
+    def suggestions(self) -> list:
+        return list(SUGGESTIONS)
 
     @Property("QVariantList", constant=True)
     def surfaceShowcase(self) -> list:

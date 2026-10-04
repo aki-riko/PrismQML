@@ -172,11 +172,12 @@ def test_gallery_entry_point_wires_the_assistant_demo_to_a_qobject_parent(qapp):
         engine.collectGarbage()
 
 
-def test_gallery_assistant_page_streams_into_the_message_list(qapp):
-    """QML 端到端：开始流之后，增量要逐块进 ChatMessageList，而不是最后一次性写入。
+def test_gallery_assistant_page_sends_a_prompt_and_streams_the_answer(qapp):
+    """QML 端到端：用户在输入条里提问 → 助手气泡按增量吐答案。
 
     ⚠️ 离屏环境不孵化气泡委托（ChatMessageList 只在真正渲染视口附近才把轻量占位换成 ChatBubble），
-    所以这里断言可观测链路：帧序、累积正文、列表条数与零告警；气泡渲染本身由聊天组件用例覆盖。
+    所以这里断言可观测链路：空态 → 发送后列表条数、帧序、累积正文、视口高度与零告警；
+    气泡渲染本身由聊天组件用例覆盖。
     """
     engine = QQmlEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
@@ -204,8 +205,7 @@ def test_gallery_assistant_page_streams_into_the_message_list(qapp):
     engine.rootContext().setContextProperty("aiAssistantDemo", demo)
 
     window = QQuickWindow()
-    # 页面比窗口高得多：三个 ExampleCard 都要落在视口内，滚动区域才会真正布局。
-    window.resize(1000, 2600)
+    window.resize(1000, 760)
     component = QQmlComponent(engine, QUrl.fromLocalFile(str(PAGE_PATH)))
     if component.isLoading():
         _pump()
@@ -216,33 +216,45 @@ def test_gallery_assistant_page_streams_into_the_message_list(qapp):
     assert isinstance(page, QQuickItem)
     page.setParentItem(window.contentItem())
     page.setWidth(1000)
-    page.setHeight(2600)
+    page.setHeight(760)
     # 不 show()：本用例只验可观测链路（帧序 / 累积文本 / 列表布局），不需要真渲染；
     # 一旦显示窗口，就会污染同进程后续用例的 topLevelWindows 快照。
     _pump(200)
 
     try:
-        stream_list = page.findChild(QObject, "galleryStreamMessageList")
-        preview_list = page.findChild(QObject, "galleryPreviewMessageList")
-        start_button = page.findChild(QObject, "galleryAssistantStartButton")
-        assert stream_list is not None and preview_list is not None and start_button is not None
-        # 静态会话按演示稿逐条铺开（含推理那条）。
-        assert preview_list.property("messageCount") == len(demo.previewMessages)
+        chat_list = page.findChild(QObject, "galleryAssistantChatList")
+        composer = page.findChild(QObject, "galleryAssistantComposer")
+        send_button = page.findChild(QObject, "galleryAssistantSendButton")
+        empty_state = page.findChild(QObject, "galleryAssistantEmptyState")
+        assert None not in (chat_list, composer, send_button, empty_state)
 
-        page.metaObject().invokeMethod(page, "startStream")
+        # 初始是空对话：只有引导与建议，没有消息。
+        assert chat_list.property("messageCount") == 0
+        assert empty_state.property("visible") is True
+        assert len(demo.suggestions) >= 1
+
+        # 用户在输入条里提问（走页面的发送入口，和按钮点击同一条路径）。
+        prompt = "气泡的外壳到底是谁画的？"
+        composer.setProperty("text", prompt)
+        assert _wait_for(lambda: send_button.property("enabled") is True), "有内容后发送键应当可用"
+        # 经 QML 表达式调用：QML 函数的形参是 QVariant，用 Q_ARG 直传字符串会静默不匹配。
+        _evaluate(page, "sendPrompt(composer.text)")
+
+        # 用户那句 + 空的助手气泡，随后增量往上长。
+        assert _wait_for(lambda: chat_list.property("messageCount") == 2), "发送后应当是两条消息"
         assert _wait_for(lambda: demo.stream.streaming), "流没有开始"
-        # 流式期间就应当已经落进列表：不是等结束后再一次性写入。
-        assert _wait_for(lambda: stream_list.property("messageCount") == 1)
         assert _wait_for(lambda: len(delta_chunks) >= 4), "增量没有逐块到达"
         assert _wait_for(lambda: bool(finished)), "流没有结束"
         assert _wait_for(lambda: not demo.stream.streaming)
+        # 发过消息之后空态退场。
+        assert empty_state.property("visible") is False
 
         assert demo.stream.frameCount == EXPECTED_FRAMES
         assert frame_snapshots == sorted(frame_snapshots), "帧计数必须单调递增"
         assert "".join(reasoning_chunks) == "".join(REASONING_CHUNKS)
         assert "".join(delta_chunks) == "".join(DELTA_CHUNKS)
         # 内容真的进了布局：列表视口因这条流式消息长高了（内容被吞掉时这里会是 0）。
-        content_height = _evaluate(stream_list, "messageViewport.contentHeight")
+        content_height = _evaluate(chat_list, "messageViewport.contentHeight")
         assert float(content_height) > 40.0, content_height
         assert warnings == [], warnings
     finally:

@@ -45,6 +45,13 @@ PREVIEW_MESSAGES: tuple[dict[str, str], ...] = (
     },
 )
 
+# 空态建议：点一下就把这句话发出去（同样留在这里，避免变成 20 份语言目录的待翻译项）。
+SUGGESTIONS: tuple[str, ...] = (
+    "气泡的外壳是谁画的？",
+    "换皮肤之后气泡会跟着变吗？",
+    "流式输出会改动布局吗？",
+)
+
 # 气泡壳矩阵：role × 尖角 × 用户侧浮起，三列各自展示一种取舍。
 SURFACE_SHOWCASE: tuple[dict[str, object], ...] = (
     {"role": "user", "tail": True, "elevationOnUser": True, "label": "role: user · tail"},
