@@ -59,6 +59,12 @@ Item {
     readonly property QtObject verticalOvershootGuard: verticalOvershootGuardObject
     readonly property QtObject horizontalOvershootGuard: horizontalOvershootGuardObject
     readonly property QtObject boundsReconciler: boundsReconcilerObject
+    readonly property QtObject anchorKeeper: anchorKeeperObject
+    // Virtual item views refine their height estimates while scrolling, which moves
+    // every item above the viewport; the keeper puts that movement back so the visible
+    // content stays still. 虚拟项视图滚动时会修正高度估算，视口上方每条都被移动；
+    // 锚定器把这段位移补回去，让可见内容停在原地。
+    property bool anchoringEnabled: true
     // _syncing = true 时禁用动画, 让 ScrollBar 拖拽场景下 contentX/Y 立即跟随 handle,
     // 不被 Behavior 平滑过渡反向拖拽.
     property bool _syncing: false
@@ -468,6 +474,13 @@ Item {
     ScrollBarInternal.SmoothScrollBoundsReconciler {
         id: boundsReconcilerObject
         scrollHelper: helper
+    }
+
+    // Content reflow anchoring 内容重排锚定
+    ScrollBarInternal.SmoothScrollAnchorKeeper {
+        id: anchorKeeperObject
+        scrollHelper: helper
+        enabled: helper.anchoringEnabled
     }
 
     // On-demand bounce timer 按需回弹计时器
