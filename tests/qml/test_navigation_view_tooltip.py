@@ -8,6 +8,7 @@ from pathlib import Path
 from pathlib import PurePosixPath
 
 import pytest
+import shiboken6
 
 from PySide6.QtCore import (
     QCoreApplication,
@@ -123,6 +124,18 @@ def _create_scene():
     return engine, component, window, warnings
 
 
+def _live_top_level_windows() -> tuple:
+    """顶层窗口快照，跳过已销毁的僵尸包装。
+
+    Qt 的窗口表不是销毁即刻剪掉的：更早的用例删掉窗口后，紧接着运行的用例会快照到
+    「Internal C++ object already deleted」的条目，于是集合断言红在一个根本不存在的东西上
+    （CI 实测多次）。已销毁的对象按定义不构成泄漏，过滤掉它不会掩盖真实泄漏。
+    """
+    return tuple(
+        item for item in QGuiApplication.topLevelWindows() if shiboken6.isValid(item)
+    )
+
+
 def _dispose_scene(engine, component, window):
     window.close()
     window.deleteLater()
@@ -136,13 +149,13 @@ def _dispose_scene(engine, component, window):
 
 @pytest.fixture
 def navigation_tooltip_scene(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    windows_before = _live_top_level_windows()
     engine, component, window, warnings = _create_scene()
     try:
         yield window, warnings, windows_before
     finally:
         _dispose_scene(engine, component, window)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        assert _live_top_level_windows() == windows_before
 
 
 def test_navigation_view_compact_item_tooltip_is_right_aligned_and_clickable(
