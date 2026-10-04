@@ -56,7 +56,8 @@ def _catalog(language: str) -> dict[str, str]:
 
 def test_gallery_catalogs_cover_every_supported_language():
     assert {path.stem for path in I18N_ROOT.glob("*.json")} == EXPECTED_LANGUAGES
-    assert gallery_i18n.validate_catalogs() == 690
+    # 696 = 690 + AI 助手页新增的 6 条（AI 助手 / 聊天气泡 / 气泡壳 / SSE 流式输出 / 开始 / 中断）。
+    assert gallery_i18n.validate_catalogs() == 696
 
 
 def test_gallery_notification_menu_uses_reviewed_chinese_terminology():

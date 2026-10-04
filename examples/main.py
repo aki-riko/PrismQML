@@ -104,6 +104,18 @@ def main():
     gallery_updater.set_require_artifact_digest(True)
     engine.rootContext().setContextProperty("appUpdater", gallery_updater)
     log_time("上下文属性注册完成")
+
+    # AI assistant page backend 助手页演示后端：仅回环地址的固定话术 SSE 服务 + QML 侧流式桥。
+    # 起不来时页面显示降级提示，不影响 Gallery 其它页面。
+    from examples.ai_demo import start_assistant_demo
+
+    assistant_demo = start_assistant_demo(app)
+    engine.rootContext().setContextProperty("aiAssistantDemo", assistant_demo)
+    if assistant_demo.available:
+        log_time(f"AI 助手演示后端就绪: {assistant_demo.stream.streamUrl}")
+    else:
+        print(f"警告: AI 助手演示后端未能启动 {assistant_demo.errorText}")
+    app.aboutToQuit.connect(assistant_demo.stop)
     
     # 添加QML导入路径
     # importPath 指向 prismqml/ 父级，Qt 会扫描其中的 PrismQML/qmldir
