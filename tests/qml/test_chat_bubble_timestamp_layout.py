@@ -51,7 +51,7 @@ Window {
 }
 """
 
-LONG_MULTILINE = (
+LONG_TEXT = (
     "这条够长，气泡宽度受上限约束，正文会折成两行以上，于是时间戳必须让到下面单独一行，"
     "绝不允许压住最后一行文字。"
 )
@@ -60,7 +60,11 @@ CASES = (
     ("user", "2", "04:26"),
     ("assistant", "在", "04:26"),
     ("user", "这是一条正常长度的消息", "04:26"),
-    ("assistant", LONG_MULTILINE, "04:26"),
+    # 🔴 判定「多行」只能用显式换行，不能用长文本：长文本量出来的宽度受字体回退影响
+    #    （Linux CI 上没有中文字体时明显更窄），同一段文字在 Windows 上算多行、在 Linux 上
+    #    可能算单行——0.5.0.50 的 release 门禁就红在这里。
+    ("assistant", "第一行\\n第二行", "04:26"),
+    ("assistant", LONG_TEXT, "04:26"),
     ("user", "2", ""),
 )
 
@@ -196,7 +200,7 @@ def test_short_message_bubble_is_wide_enough_for_the_timestamp(qapp):
             assert surface.width() >= float(stamp_item.property("width")) + pad * 2 - 0.5, index
             assert surface.width() > 48.0, f"单字气泡仍是 48px 地板宽：{surface.width()}"
 
-        # 多行消息走另一条路：底部留出条带，气泡因此比无时间戳时更高，而不是压字。
+        # 多行消息走另一条路：底部留出条带，时间戳落进那条带里，而不是压字。
         multiline = _find(window.contentItem(), "bubble3")
         assert bool(_evaluate(multiline, "_timestampInline")) is False
         assert float(_evaluate(multiline, "_footerHeight")) > 0.0
