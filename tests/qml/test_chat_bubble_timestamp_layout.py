@@ -153,6 +153,9 @@ def _dispose(engine, component, window) -> None:
     engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+    # 再多跑一会儿事件循环：窗口销毁后 Qt 的顶层窗口表不是立刻剪掉的，太快返回会让**下一个**
+    # 用例快照到一个「已删除的僵尸窗口」，把窗口集合断言弄红（CI 实测，0.5.0.51/0.53 两次）。
+    _pump(60)
 
 
 def test_timestamp_lives_outside_the_bubble(qapp):

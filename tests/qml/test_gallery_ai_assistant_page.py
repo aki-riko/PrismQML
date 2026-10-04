@@ -266,3 +266,6 @@ def test_gallery_assistant_page_sends_a_prompt_and_streams_the_answer(qapp):
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
         engine.collectGarbage()
+        # 再多跑一会儿事件循环：窗口销毁后 Qt 的顶层窗口表不是立刻剪掉的，太快返回会让**下一个**
+        # 用例快照到一个「已删除的僵尸窗口」（CI 实测：0.5.0.51/0.53 的窗口集合断言因此变红）。
+        _pump(60)
