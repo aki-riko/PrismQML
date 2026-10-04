@@ -503,6 +503,11 @@ def test_supported_overshoot_keeps_excursion_across_repeated_view_rewrites(scrol
             restored, float(helper.property("_smoothY")), edge
         )
         _pump(15)
+        # ⚠️ 这一轮 pump 期间外移腿可能已经合法走完并转入回弹段，位移下降是正常收敛；先在取数
+        #    之前重新确认腿仍是外移的，否则会在负载高的 CI 上把「回弹开始」误判成「从零重启」
+        #    （实测 Linux runner 上出现过 33.0 vs peak 36.0 的假红；本地连跑 5 次全绿）。
+        if not helper.property("_isOutwardBounceV"):
+            break
         excursion = float(target.property("contentY")) - edge
         peak = max(peak, excursion)
         # A live outward leg must never fall back to the edge once it has carried
