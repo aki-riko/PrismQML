@@ -616,6 +616,21 @@ def test_chat_bubble_surface_tail_follows_the_role(qapp):
         assert assistant_corners["topLeftRadius"] == small
         assert assistant_corners["bottomRightRadius"] == large
 
+        # 运行期改 role / tail 必须立刻换角：变更处理函数先于依赖绑定重算执行，若在
+        # applyTail() 里读 `_isUser` 这类中间属性，拿到的还是旧值，尖角会被写回原样、永远不动。
+        user.setProperty("role", "assistant")
+        _pump(20)
+        assert _surface_corners(user)["topLeftRadius"] == small, "运行期改 role 后尖角没跟着换"
+        user.setProperty("role", "user")
+        _pump(20)
+        assert _surface_corners(user)["bottomRightRadius"] == small
+        assistant.setProperty("tail", False)
+        _pump(20)
+        assert len(set(_surface_corners(assistant).values())) == 1, "关掉尖角后四角必须同半径"
+        assistant.setProperty("tail", True)
+        _pump(20)
+        assert _surface_corners(assistant)["topLeftRadius"] == small
+
         for item in (system, flat):
             corners = _surface_corners(item)
             assert len(set(corners.values())) == 1, corners
