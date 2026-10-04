@@ -88,6 +88,11 @@ ShadowedRectangle {
         content.bottomRightRadius = (hasTail && isUser) ? small : large
     }
 
+    // Defer the corner writes by one event-loop turn. 把分角圆角的写入延后一轮事件循环。
+    function requestTail() {
+        tailTimer.restart()
+    }
+
     // Shell 外壳: surface color / radius / border / elevation token policy.
     // 表面色 / 圆角 / 描边 / 阴影层级全部走 Enums 令牌。
     color: chromeless ? Enums.transparent
@@ -104,11 +109,25 @@ ShadowedRectangle {
         : (Enums.hasOutlinedSurfaces ? Enums.borderColor
                                      : (_isUser ? Enums.transparent : Enums.borderColor))
 
-    Component.onCompleted: applyTail()
-    onRoleChanged: applyTail()
-    onTailChanged: applyTail()
-    onChromelessChanged: applyTail()
-    onRadiusChanged: applyTail()
+    Component.onCompleted: requestTail()
+    onRoleChanged: requestTail()
+    onTailChanged: requestTail()
+    onChromelessChanged: requestTail()
+    onRadiusChanged: requestTail()
+
+    // The corner writes must land **after** the change notification has fully settled: writing
+    // `contentItem.topLeftRadius` synchronously from a change handler gets swallowed by the
+    // binding re-evaluation that follows it (measured: changing `role` at runtime left the tail on
+    // the old corner, while calling the very same `applyTail()` from outside worked). The timer only
+    // runs when restarted, so a resting surface costs nothing.
+    // 分角圆角必须在变更通知完全落定之后再写：从变更处理函数里同步写 contentItem.topLeftRadius
+    // 会被紧随其后的绑定重算吞掉（实测：运行期改 role 时尖角留在旧的一角，而从外部调用同一个
+    // applyTail() 却生效）。该计时器只在 restart 时运行，静止的气泡零开销。
+    Timer {
+        id: tailTimer
+        interval: 0
+        onTriggered: root.applyTail()
+    }
 
     // A skin switch changes what `surfaceRadius(...)` returns while `radius` itself may stay the
     // same — then `onRadiusChanged` never fires and the tail corner keeps the previous skin's
