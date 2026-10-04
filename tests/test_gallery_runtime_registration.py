@@ -148,6 +148,7 @@ def test_gallery_navigation_order_matches_page_sources():
             ("gallery_8cb443ab83797881", "ChartPage.qml"),
             ("gallery_8b2106ca13719cb2", "FeedbackPage.qml"),
         ("gallery_8829dbcbcfce6e54", "EffectsPage.qml"),
+        ("gallery_1b0049fcfd4163fe", "AIAssistantPage.qml"),
         ("gallery_736cff237d7d9255", "AutoUpdatePage.qml"),
     ]
 
