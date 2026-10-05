@@ -20,7 +20,6 @@ from PySide6.QtQml import (
     QQmlExpression,
 )
 from PySide6.QtQuick import QQuickItem, QQuickWindow
-from PySide6.QtTest import QSignalSpy
 
 from prismqml import register_types
 
@@ -103,22 +102,16 @@ def _visual_descendants(root: QQuickItem) -> list[QQuickItem]:
     return descendants
 
 
-def _renderer_items(avatar: QQuickItem) -> tuple[list[QQuickItem], list[QQuickItem]]:
+def _renderer_items(avatar: QQuickItem) -> list[QQuickItem]:
+    """Return the bitmap renderer images of one avatar. 返回头像的位图渲染器图片。"""
     descendants = _visual_descendants(avatar)
     avatar_source = str(avatar.property("source"))
-    images = [
+    return [
         item
         for item in descendants
         if item.metaObject().indexOfProperty("fillMode") >= 0
         and item.property("source").toString() == avatar_source
     ]
-    canvases = [
-        item
-        for item in descendants
-        if item.metaObject().indexOfProperty("renderTarget") >= 0
-        and item.metaObject().indexOfProperty("renderStrategy") >= 0
-    ]
-    return images, canvases
 
 
 def _image_ready(image: QQuickItem) -> bool:
@@ -133,9 +126,8 @@ def _image_ready(image: QQuickItem) -> bool:
     return bool(result)
 
 
-def _renderer_counts(avatar: QQuickItem) -> tuple[int, int]:
-    images, canvases = _renderer_items(avatar)
-    return len(images), len(canvases)
+def _renderer_counts(avatar: QQuickItem) -> int:
+    return len(_renderer_items(avatar))
 
 
 def _placeholder_renderer_count(avatar: QQuickItem) -> int:
@@ -207,15 +199,12 @@ def test_avatar_preserves_first_and_repeated_image_frames(qapp):
         text_renderers = _renderer_counts(avatar)
         text_placeholder_renderers = _placeholder_renderer_count(avatar)
         text_objects = len(window.findChildren(QObject))
-        source_images, avatar_canvases = _renderer_items(avatar)
-        assert len(source_images) == len(avatar_canvases) == 1
+        source_images = _renderer_items(avatar)
+        assert len(source_images) == 1
         source_image = source_images[0]
-        canvas_painted = QSignalSpy(avatar_canvases[0].painted)
 
         assert avatar.setProperty("source", AVATAR_SOURCE)
-        assert _wait_for(
-            lambda: _renderer_counts(avatar) == (1, 1)
-        ), (
+        assert _wait_for(lambda: _renderer_counts(avatar) == 1), (
             text_renderers,
             _renderer_counts(avatar),
             [
@@ -224,7 +213,6 @@ def test_avatar_preserves_first_and_repeated_image_frames(qapp):
             ],
         )
         assert _wait_for(lambda: _image_ready(source_image))
-        assert _wait_for(lambda: canvas_painted.count() >= 1)
         first_ready_image = _stable_window_image(window)
         ready_image = _stable_window_image(window)
         ready_renderers = _renderer_counts(avatar)
@@ -237,10 +225,8 @@ def test_avatar_preserves_first_and_repeated_image_frames(qapp):
         cleared_placeholder_renderers = _placeholder_renderer_count(avatar)
         cleared_objects = len(window.findChildren(QObject))
 
-        painted_count = canvas_painted.count()
         assert avatar.setProperty("source", AVATAR_SOURCE)
         assert _wait_for(lambda: _image_ready(source_image))
-        assert _wait_for(lambda: canvas_painted.count() > painted_count)
         first_restored_image = _stable_window_image(window)
         restored_ready_image = _stable_window_image(window)
         restored_renderers = _renderer_counts(avatar)

@@ -67,6 +67,12 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # observe. 观测真实窗口四角并抓取屏幕像素, 需要上屏桌面与在运行的 DWM 合成;
     # offscreen 下没有可观测的绘制。
     Path("scripts/manual/window_corner_probe.py"),
+    # Measures the avatar circle mask on a real window: the offscreen platform
+    # falls back to the Software scene graph, which executes no shader effects,
+    # so the layer mask cannot be observed there at all. 在真实窗口上测量头像
+    # 圆形遮罩: offscreen 平台回退到 Software 场景图, 不执行着色器效果,
+    # 层遮罩在该后端完全无法观测。
+    Path("scripts/manual/avatar_circle_mask_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
