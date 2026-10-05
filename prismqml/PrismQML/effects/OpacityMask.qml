@@ -24,7 +24,22 @@ import QtQuick.Effects
 // layer.enabled(不可见则层纹理不会烘焙, 遮罩被静默忽略), 可以停在窗口之外避免被绘制。
 // 渐变(连续 alpha)遮罩不会产生按比例的淡出: 遮罩是阈值门, 不是 alpha 乘法器。
 //
-// Usage 1 - as layer.effect 作为layer.effect使用: **NOT SUPPORTED** in Qt 6.11 (see above)
+// ⚠️ 2026-10-05 范围修正：上面这条限制的适用范围比原文更窄。它测的是「把**本包装组件**当作
+// layer.effect 安装」以及「**Software 场景图**」——offscreen 自动门禁走的正是后者，着色器效果
+// 在那里整块光栅化为 0 像素。同日对**真实 D3D11 + 150% 缩放**实测：把**裸 MultiEffect +
+// maskSource** 经 layer.effect 安装**可以正常裁剪**，且边缘带抗锯齿（圆形遮罩四角=背景色、
+// 边缘混合比 0.441；同一接线已用于 data/Avatar/Avatar.qml 与 data/Label/ImageWidget.qml）。
+// 两次实测结论不一致，因此：禁止的仍然只是把**本包装组件**装到 layer.effect 上（由
+// tests/tooling/test_opacity_mask_contract.py 钉住）；裸 MultiEffect + maskSource 走
+// layer.effect 可用，但换渲染后端或换 Qt 版本前必须重新实测。
+// Scope note (2026-10-05): the no-op above covers installing THIS wrapper through layer.effect
+// and the Software scene graph that offscreen gates run on. A bare MultiEffect with maskSource
+// installed through layer.effect was measured to clip correctly (antialiased rim, corner =
+// background, rim blend 0.441) on real D3D11 at 150% scaling. The two measurements disagree —
+// re-measure on the backend you actually ship.
+//
+// Usage 1 - as layer.effect 作为layer.effect使用: **NOT SUPPORTED** for this wrapper 本包装组件不支持
+//           (a bare MultiEffect + maskSource does work on D3D11 — see the scope note above)
 // Usage 2 - as standalone component 作为独立组件使用: works with a binary mask 二值遮罩可用
 
 MultiEffect {
