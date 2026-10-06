@@ -71,7 +71,14 @@ Item {
                                 content.menu.actionTriggered(
                                     child.actionId || child.text || ""
                                 )
-                                content.menu.close()
+                                // The action may destroy its own menu within this same call
+                                // stack (a delegate-owned menu rebuilt by a synchronous model
+                                // reset), in which case the menu is already gone and calling
+                                // close() on it only yields "invalid context" noise.
+                                // 动作可能在同一个调用栈内销毁自己所属的菜单（delegate 菜单遇到
+                                // 同步模型重置），此时菜单已经不存在，再调 close() 只会产生
+                                // “invalid context” 噪声。
+                                if (!content.menu._isDestroyed) content.menu.close()
                             }
                         })(c))
                     }
