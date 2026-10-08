@@ -102,9 +102,9 @@ Item {
             }
         }
 
-        // Spacer 弹性空间: 宿主宽度扣掉标题列与右侧固定控件后剩下的空间
+        // Spacer 弹性空间: 宿主宽度扣掉标题列与右侧全部固定占用后剩下的间隙
         Item {
-            width: Math.max(1, headerRoot.width - titleCol.width - _metrics.trailingWidth)
+            width: _metrics.spacerWidth
             height: Enums.border.thin
         }
 

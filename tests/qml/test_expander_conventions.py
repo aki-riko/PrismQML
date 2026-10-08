@@ -437,6 +437,115 @@ def test_expander_long_header_text_is_clamped_and_can_wrap():
     assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
+HEADER_CONTENT_SLOT_WIDTH = 42
+SCENE_HEADER_CONTENT_SOURCE = (
+    """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+    objectName: "headerContentWindow"
+
+    width: 720
+    height: 260
+    visible: true
+
+    Expander {
+        id: withHeaderContent
+        objectName: "withHeaderContent"
+        x: 20
+        y: 20
+        width: 320
+        icon: "Highlight"
+        title: "主题色"
+        content: "调整你的应用组件的主题色"
+
+        headerContent: Component {
+            Rectangle {
+                objectName: "headerSlot"
+                width: __SLOT_WIDTH__
+                height: 20
+                color: "transparent"
+            }
+        }
+    }
+}
+"""
+    .replace("__SLOT_WIDTH__", str(HEADER_CONTENT_SLOT_WIDTH))
+    .encode("utf-8")
+)
+
+
+def test_expander_header_content_never_pushes_the_expand_button_out(qapp):
+    """头部右侧内容(如"自定义")不得把展开按钮挤出卡片右边缘。"""
+
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        SCENE_HEADER_CONTENT_SOURCE,
+        QUrl.fromLocalFile(
+            str(ROOT / "tests" / "qml" / "expander-header-content.qml")
+        ),
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow)
+    _pump()
+
+    expander = window.findChild(QQuickItem, "withHeaderContent")
+    slot = window.findChild(QQuickItem, "headerSlot")
+    title = expander.findChild(QQuickItem, "expanderHeaderTitle")
+    assert expander is not None and slot is not None and title is not None
+    assert slot.width() == HEADER_CONTENT_SLOT_WIDTH
+
+    row = title.parentItem().parentItem()
+    content_item = window.contentItem()
+    row_right = row.mapToItem(content_item, QPointF(row.width(), 0)).x()
+    expander_right = expander.mapToItem(
+        content_item, QPointF(expander.width(), 0)
+    ).x()
+
+    # 行内每一项都必须留在头部行内, 且整行不得超出自身宽度
+    total_width = 0.0
+    for child in row.childItems():
+        total_width += child.width()
+        child_right = child.mapToItem(
+            content_item, QPointF(child.width(), 0)
+        ).x()
+        assert child_right <= row_right + 0.5
+    assert total_width <= row.width() + 0.5
+
+    # 展开按钮(行内最后一个子项)必须完整留在卡片内
+    expand_button = row.childItems()[-1]
+    assert expand_button.width() == 32
+    button_right = expand_button.mapToItem(
+        content_item, QPointF(expand_button.width(), 0)
+    ).x()
+    assert button_right <= expander_right + 0.5
+
+    assert warnings == []
+    window.close()
+    window.deleteLater()
+    component.deleteLater()
+    engine.collectGarbage()
+    engine.clearComponentCache()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+
+
 def test_expander_sources_follow_conventions():
     violations = []
     for source_path in SOURCE_PATHS:
