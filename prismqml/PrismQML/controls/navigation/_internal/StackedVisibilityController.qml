@@ -30,11 +30,8 @@ Item {
         case Enums.animation.opacity:
             animations.fadeTransition(oldIndex, newIndex)
             break
-        case Enums.animation.popup:
-            animations.popUpTransition(oldIndex, newIndex)
-            break
-        case Enums.animation.popdown:
-            animations.popDownTransition(oldIndex, newIndex)
+        case Enums.animation.pop:
+            animations.popTransition(oldIndex, newIndex, isBack)
             break
         case Enums.animation.slide:
             animations.slideTransition(oldIndex, newIndex, isBack)
@@ -68,11 +65,8 @@ Item {
         case Enums.animation.opacity:
             animations.enterFadeOnly(newIndex)
             break
-        case Enums.animation.popup:
-            animations.enterPopUpOnly(newIndex)
-            break
-        case Enums.animation.popdown:
-            animations.enterPopDownOnly(newIndex)
+        case Enums.animation.pop:
+            animations.enterPopOnly(newIndex)
             break
         case Enums.animation.zoom:
             animations.enterZoomOnly(newIndex)

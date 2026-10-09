@@ -36,13 +36,11 @@ Item {
             case Enums.animation.opacity:
                 newWidget.opacity = 0
                 break
-            case Enums.animation.popup:
+            case Enums.animation.pop:
+                newWidget.x = 0
+                newWidget.y = 0
+                _setEntryPosition(newWidget, _popVerticalAxis(), _popEntrySign(false))
                 newWidget.opacity = 0
-                newWidget.y = control.popUpOffset
-                break
-            case Enums.animation.popdown:
-                newWidget.opacity = 0
-                newWidget.y = -control.popUpOffset
                 break
             case Enums.animation.zoom:
                 newWidget.scale = 0
@@ -99,33 +97,16 @@ Item {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
         if (backend) backend.enterOnly(newIndex, _isVerticalAxis())
     }
-    function popUpTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
-        if (backend) {
-            backend.configure(false)
-            backend.transition(oldIndex, newIndex)
-        }
+    function popTransition(oldIndex, newIndex, isBack) {
+        var backend = _ensureBackend(_sourceForType(Enums.animation.pop))
+        if (backend) backend.transition(
+                    oldIndex, newIndex,
+                    _popVerticalAxis(), _popEntrySign(isBack))
     }
-    function enterPopUpOnly(newIndex) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
-        if (backend) {
-            backend.configure(false)
-            backend.enterOnly(newIndex)
-        }
-    }
-    function popDownTransition(oldIndex, newIndex) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
-        if (backend) {
-            backend.configure(true)
-            backend.transition(oldIndex, newIndex)
-        }
-    }
-    function enterPopDownOnly(newIndex) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.popdown))
-        if (backend) {
-            backend.configure(true)
-            backend.enterOnly(newIndex)
-        }
+    function enterPopOnly(newIndex) {
+        var backend = _ensureBackend(_sourceForType(Enums.animation.pop))
+        if (backend) backend.enterOnly(
+                    newIndex, _popVerticalAxis(), _popEntrySign(false))
     }
     function zoomTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.zoom))
@@ -141,20 +122,52 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Axis of the currently configured mode: slide, slide_fade and card all run
-    // on the axis selected by control.animationOrientation.
-    // 当前模式的轴向：slide、slide_fade 与 card 都跑在 animationOrientation 选定的轴上。
+    // Axis of slide / slide_fade / card; pop follows it only while origin is auto.
+    // slide / slide_fade / card 的轴向；pop 仅在 origin 为 auto 时跟随它。
     function _isVerticalAxis() {
         return control.animationOrientation === Qt.Vertical
+    }
+
+    // Pop entry edge: a pinned origin wins; origin_auto keeps the axis from
+    // animationOrientation and takes the edge from the switch direction.
+    // pop 进入边：钉住的 origin 优先；origin_auto 时轴取 animationOrientation，边取切换方向。
+    function _popVerticalAxis() {
+        switch (control.animationOrigin) {
+            case Enums.animation.origin_top:
+            case Enums.animation.origin_bottom:
+                return true
+            case Enums.animation.origin_left:
+            case Enums.animation.origin_right:
+                return false
+            default:
+                return _isVerticalAxis()
+        }
+    }
+
+    function _popEntrySign(isBack) {
+        switch (control.animationOrigin) {
+            case Enums.animation.origin_top:
+            case Enums.animation.origin_left:
+                return -1
+            case Enums.animation.origin_bottom:
+            case Enums.animation.origin_right:
+                return 1
+            default:
+                return isBack ? -1 : 1
+        }
+    }
+
+    function _setEntryPosition(widget, vertical, entrySign) {
+        var offset = entrySign >= 0 ? control.popUpOffset : -control.popUpOffset
+        if (vertical) widget.y = offset
+        else widget.x = offset
     }
 
     function _sourceForType(type) {
         switch (type) {
             case Enums.animation.opacity:
                 return Qt.resolvedUrl("StackedFadeAnimations.qml")
-            case Enums.animation.popup:
-                return Qt.resolvedUrl("StackedPopAnimations.qml")
-            case Enums.animation.popdown:
+            case Enums.animation.pop:
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.slide:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")

@@ -205,7 +205,7 @@ def test_stacked_widget_page_components_mode_is_removed():
 
 
 def test_stacked_widget_animation_uses_base_modes_with_orientation():
-    """动画枚举只保留基础模式；轴向经 animationOrientation 表达，不再枚举 *_horizontal/*_vertical。"""
+    """动画枚举只保留基础模式；轴向经 animationOrientation、pop 进入边经 animationOrigin 表达。"""
     animation_source = _read("prismqml/PrismQML/PrismEnums/Animation.qml")
 
     for removed in (
@@ -213,17 +213,28 @@ def test_stacked_widget_animation_uses_base_modes_with_orientation():
         "readonly property int slide_vertical:",
         "readonly property int card_horizontal:",
         "readonly property int card_vertical:",
+        "readonly property int popup:",
+        "readonly property int popdown:",
     ):
         assert removed not in animation_source, removed
     for required in (
+        "readonly property int pop:",
         "readonly property int slide:",
         "readonly property int slide_fade:",
         "readonly property int card:",
+        "readonly property int origin_auto:",
+        "readonly property int origin_top:",
+        "readonly property int origin_bottom:",
+        "readonly property int origin_left:",
+        "readonly property int origin_right:",
     ):
         assert required in animation_source, required
 
     stacked_source = _read("prismqml/PrismQML/controls/navigation/StackedWidget.qml")
     assert "property int animationOrientation: Qt.Horizontal" in stacked_source
+    assert (
+        "property int animationOrigin: Enums.animation.origin_auto" in stacked_source
+    )
 
     for relative in (
         "prismqml/PrismQML/controls/navigation/_internal/"
@@ -238,6 +249,8 @@ def test_stacked_widget_animation_uses_base_modes_with_orientation():
             "slide_vertical",
             "card_horizontal",
             "card_vertical",
+            "Enums.animation.popup",
+            "Enums.animation.popdown",
         ):
             assert stale not in source, (relative, stale)
 
@@ -245,6 +258,17 @@ def test_stacked_widget_animation_uses_base_modes_with_orientation():
         "prismqml/PrismQML/controls/navigation/_internal/StackedModeAnimations.qml"
     )
     assert "control.animationOrientation === Qt.Vertical" in dispatcher_source
+    assert "control.animationOrigin" in dispatcher_source
+
+
+def test_window_page_stack_pins_pop_entry_to_the_bottom():
+    """窗口外壳的页面栈钉住 origin_bottom：收敛后两个方向仍都从下方弹入，观感不变。"""
+    page_stack_source = _read("prismqml/PrismQML/_internal/WindowsPageStack.qml")
+
+    assert "animationType: Enums.animation.pop" in page_stack_source
+    assert (
+        "animationOrigin: Enums.animation.origin_bottom" in page_stack_source
+    )
 
 
 def test_direct_children_do_not_enter_removed_lazy_loader_mode(qapp):

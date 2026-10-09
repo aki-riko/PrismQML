@@ -258,36 +258,56 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "popup"
+                        label: "pop (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
-                                id: popupStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.popup
+                                id: popHorizontalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.pop
+                                animationOrientation: Qt.Horizontal
                                 Rectangle { color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.red; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: popupStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: popupStack.currentIndex = 1 }
+                                Button { text: "1"; width: 26; onClicked: popHorizontalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: popHorizontalStack.currentIndex = 1 }
                             }
                         }
                     }
                     ComponentCard {
-                        label: "popdown"
+                        label: "pop (vertical)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
-                                id: popdownStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.popdown
+                                id: popVerticalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.pop
+                                animationOrientation: Qt.Vertical
+                                Rectangle { color: Fluent.Enums.demoPalette.cyan; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: popVerticalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: popVerticalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "pop (top edge)"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: popTopStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.pop
+                                animationOrigin: Fluent.Enums.animation.origin_top
                                 Rectangle { color: Fluent.Enums.demoPalette.sky; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.lime; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: popdownStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: popdownStack.currentIndex = 1 }
+                                Button { text: "1"; width: 26; onClicked: popTopStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: popTopStack.currentIndex = 1 }
                             }
                         }
                     }

@@ -20,13 +20,13 @@ ANIMATION_DURATION_MS = 160
 ANIMATION_TIMEOUT_MS = 2_000
 COMPONENT_READY_TIMEOUT_MS = 2_000
 POLL_INTERVAL_MS = 5
-# (base animation, orientation) pairs; slide / slide_fade / card are shown on
-# both axes because they follow animationOrientation.
-# (基础动画, 轴向) 组合；slide / slide_fade / card 遵循 animationOrientation，两个轴都覆盖。
+# (base animation, orientation) pairs; slide / slide_fade / card / pop are shown
+# on both axes because they follow animationOrientation.
+# (基础动画, 轴向) 组合；slide / slide_fade / card / pop 遵循 animationOrientation，两个轴都覆盖。
 MODE_CASES = (
     ("opacity", "horizontal"),
-    ("popup", "horizontal"),
-    ("popdown", "horizontal"),
+    ("pop", "horizontal"),
+    ("pop", "vertical"),
     ("slide", "horizontal"),
     ("slide", "vertical"),
     ("slide_fade", "horizontal"),
@@ -45,6 +45,7 @@ AXIS_CASES = (
     ("card", "vertical", "y", "height"),
 )
 AXIS_IDS = tuple(f"{mode}-{orientation}" for mode, orientation, _a, _l in AXIS_CASES)
+POP_ORIGINS = ("auto", "top", "bottom")
 
 
 def _wait_until(predicate: Callable[[], bool], timeout_ms: int) -> bool:
@@ -62,10 +63,18 @@ def _evaluate(root: QObject, expression: str):
     return value[0] if isinstance(value, tuple) else value
 
 
+def _origin_value(origin_name: str) -> str:
+    return {
+        "top": "Enums.animation.origin_top",
+        "bottom": "Enums.animation.origin_bottom",
+    }.get(origin_name, "Enums.animation.origin_auto")
+
+
 def _build_stack(
     engine: QQmlApplicationEngine,
     mode_name: str,
     orientation_name: str = "horizontal",
+    origin_name: str = "auto",
     *,
     lazy_loading: bool = False,
 ):
@@ -78,8 +87,9 @@ import PrismQML
 Item {{
     width: 320
     height: 200
-    readonly property int popupMode: Enums.animation.popup
-    readonly property int popdownMode: Enums.animation.popdown
+    readonly property int popMode: Enums.animation.pop
+    readonly property int topOrigin: Enums.animation.origin_top
+    readonly property int bottomOrigin: Enums.animation.origin_bottom
     readonly property int verticalOrientation: Qt.Vertical
 
     StackedWidget {{
@@ -89,6 +99,7 @@ Item {{
         lazyLoading: {str(lazy_loading).lower()}
         animationType: Enums.animation.{mode_name}
         animationOrientation: {orientation}
+        animationOrigin: {_origin_value(origin_name)}
         animationDuration: {ANIMATION_DURATION_MS}
 
         Item {{ objectName: "page0" }}
@@ -98,7 +109,10 @@ Item {{
 """.encode("utf-8")
     component.setData(
         source,
-        QUrl(f"inline:stacked-widget-{mode_name}-{orientation_name}-animations"),
+        QUrl(
+            f"inline:stacked-widget-{mode_name}-{orientation_name}"
+            f"-{origin_name}-animations"
+        ),
     )
     assert _wait_until(
         lambda: component.status() != QQmlComponent.Status.Loading,
@@ -145,6 +159,14 @@ def _assert_enter_resting_state(current: QObject, previous: QObject) -> None:
     _assert_close(_number(previous, "opacity"), 0)
 
 
+def _pop_entry_sign(origin_name: str, is_back: bool) -> int:
+    if origin_name == "top":
+        return -1
+    if origin_name == "bottom":
+        return 1
+    return -1 if is_back else 1
+
+
 def _assert_transition_start(
     mode_name: str,
     orientation_name: str,
@@ -152,6 +174,7 @@ def _assert_transition_start(
     old_page: QObject,
     new_page: QObject,
     is_back: bool,
+    origin_name: str = "auto",
 ) -> None:
     width = _number(stack, "width")
     height = _number(stack, "height")
@@ -164,9 +187,12 @@ def _assert_transition_start(
     if mode_name == "opacity":
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "opacity"), 0)
-    elif mode_name in {"popup", "popdown"}:
+    elif mode_name == "pop":
         assert not bool(old_page.property("visible"))
-        _assert_close(_number(new_page, "y"), offset if mode_name == "popup" else -offset)
+        _assert_close(
+            _number(new_page, axis), offset * _pop_entry_sign(origin_name, is_back)
+        )
+        _assert_close(_number(new_page, other_axis), 0)
         _assert_close(_number(new_page, "opacity"), 0)
     elif mode_name == "slide":
         assert bool(old_page.property("visible"))
@@ -228,6 +254,52 @@ def test_all_modes_preserve_forward_and_backward_states(
     try:
         _switch_and_verify(stack, page0, page1, mode_name, orientation_name, 1, 1)
         _switch_and_verify(stack, page1, page0, mode_name, orientation_name, 0, 1)
+    finally:
+        _dispose(engine, component, root)
+
+
+@pytest.mark.parametrize("origin_name", POP_ORIGINS)
+def test_pop_entry_edge_follows_origin(qapp, origin_name):
+    """pop 进入边：auto 跟随切换方向，钉住 top/bottom 时两个方向都固定在该边。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(
+        engine, "pop", "vertical", origin_name
+    )
+    try:
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        _assert_transition_start(
+            "pop", "vertical", stack, page0, page1, False, origin_name
+        )
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 0)
+        _assert_transition_start(
+            "pop", "vertical", stack, page1, page0, True, origin_name
+        )
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        _assert_resting_state(page0, page1)
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_pinned_pop_origin_overrides_orientation(qapp):
+    """钉住进入边时忽略 animationOrientation：水平轴向 + origin_top 仍从上方进入。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(
+        engine, "pop", "horizontal", "top"
+    )
+    try:
+        offset = _number(stack, "popUpOffset")
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        _assert_close(_number(page1, "y"), -offset)
+        _assert_close(_number(page1, "x"), 0)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        _assert_resting_state(page1, page0)
     finally:
         _dispose(engine, component, root)
 
@@ -303,30 +375,32 @@ def test_switching_mode_interrupts_old_backend_without_extra_completion(qapp):
         assert stack.setProperty("currentIndex", 1)
         QTest.qWait(ANIMATION_DURATION_MS // 4)
         assert finished.count() == 0
-        assert stack.setProperty("animationType", root.property("popupMode"))
+        assert stack.setProperty("animationType", root.property("popMode"))
         assert stack.setProperty("currentIndex", 0)
-        _assert_transition_start("popup", "horizontal", stack, page1, page0, True)
+        _assert_transition_start("pop", "horizontal", stack, page1, page0, True)
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_current_resting_state(page0, page1)
     finally:
         _dispose(engine, component, root)
 
 
-def test_switching_between_pop_modes_reconfigures_shared_backend(qapp):
-    """同一 Loader source 在 PopUp/PopDown 间切换时仍更新方向与 easing。"""
+def test_switching_pop_origin_reconfigures_shared_backend(qapp):
+    """同一 pop 后端在 auto 与钉住边之间切换时仍更新进入边。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root, stack, page0, page1 = _build_stack(engine, "popup", "horizontal")
+    component, root, stack, page0, page1 = _build_stack(
+        engine, "pop", "vertical", "auto"
+    )
     try:
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 1)
-        _assert_transition_start("popup", "horizontal", stack, page0, page1, False)
+        _assert_transition_start("pop", "vertical", stack, page0, page1, False, "auto")
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
 
-        assert stack.setProperty("animationType", root.property("popdownMode"))
+        assert stack.setProperty("animationOrigin", root.property("topOrigin"))
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 0)
-        _assert_transition_start("popdown", "horizontal", stack, page1, page0, True)
+        _assert_transition_start("pop", "vertical", stack, page1, page0, True, "top")
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_resting_state(page0, page1)
     finally:

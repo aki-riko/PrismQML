@@ -374,11 +374,13 @@ Item {
             if (loadingAnimationOrientation === Qt.Vertical) loadingOverlay.y = height
             else loadingOverlay.x = width
             break
-        case Enums.animation.popup:
-            loadingOverlay.y = Enums.controlSize.popUpOffset
-            break
-        case Enums.animation.popdown:
-            loadingOverlay.y = -Enums.controlSize.popUpOffset
+        // The loading overlay always enters from the positive edge of the
+        // configured axis; StackedWidget.animationOrigin is a page-switch
+        // concern and is deliberately not mirrored here.
+        // 加载覆盖层固定从配置轴的正侧入场；animationOrigin 属于切页语义，此处不镜像。
+        case Enums.animation.pop:
+            if (loadingAnimationOrientation === Qt.Vertical) loadingOverlay.y = Enums.controlSize.popUpOffset
+            else loadingOverlay.x = Enums.controlSize.popUpOffset
             break
         case Enums.animation.zoom:
             loadingOverlay.scale = Enums.opacityLevel.invisible

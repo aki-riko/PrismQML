@@ -57,7 +57,8 @@ Item {{
         objectName: "stack"
         anchors.fill: parent
         lazyLoading: true
-        animationType: Enums.animation.popup
+        animationType: Enums.animation.pop
+        animationOrigin: Enums.animation.origin_bottom
         animationDuration: Enums.duration.slow
         pageSources: [{quoted_urls}]
     }}

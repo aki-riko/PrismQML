@@ -46,7 +46,11 @@ Item {
         id: stack
 
         anchors.fill: parent
-        animationType: Enums.animation.popup
+        // Window shells keep their original page-stack feel: the incoming page
+        // always pops in from the bottom, in both switch directions.
+        // 窗口外壳保持原有页面栈观感：新页在两个方向上都从下方弹入。
+        animationType: Enums.animation.pop
+        animationOrigin: Enums.animation.origin_bottom
         // Budget measured from collapse start; the helper subtracts the elapsed
         // collapse to get the remaining indicator time. Derived from
         // coverDuration so tuning the collapse cannot starve the indicator.
