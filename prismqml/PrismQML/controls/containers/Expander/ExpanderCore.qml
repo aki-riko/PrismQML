@@ -3,9 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
-import QtQuick.Effects
 import "../../.."
-import "../Card"
 import "../../../effects"
 import ".."
 import "_internal" as ExpanderInternal
@@ -94,31 +92,6 @@ Widget {
     implicitHeight: mainContainer.height + Enums.spacing.xs
     
     // ==================== Content 内容 ====================
-    // Shadow layer 阴影层
-    // Fluent: 模糊阴影; Neobrutalism: 硬阴影(NeoShadow)。
-    RectangularShadow {
-        anchors.fill: mainContainer
-        radius: control._radius
-        color: Enums.shadow.level2.color
-        blur: Enums.shadow.level2.blur
-        offset.x: 0
-        offset.y: Enums.shadow.level2.offset
-        visible: Enums.usesSoftElevation && !Enums.isNeumorphism
-    }
-
-    NeumorphicShadow {
-        target: mainContainer
-        visible: Enums.isNeumorphism
-        z: mainContainer.z - 1
-    }
-
-    NeoShadow {
-        target: mainContainer
-        visible: Enums.isNeobrutalism
-        radius: control._radius
-        z: mainContainer.z - 1
-    }
-    
     // Main container without border; clips content 主容器无边框，仅裁剪内容
     Item {
         id: mainContainer
@@ -143,7 +116,7 @@ Widget {
             anchors.fill: parent
             radius: control._radius
             color: Enums.stateColor.controlBg
-            // neo: 粗黑边(Fluent 无边靠阴影区分; neo 需黑边)
+            // Outlined skins retain the background edge 描边皮肤保留背景边线
             border.width: Enums.hasOutlinedSurfaces
                 ? control.borderWidth : Enums.border.none
             border.color: Enums.hasOutlinedSurfaces

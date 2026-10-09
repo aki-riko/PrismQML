@@ -608,7 +608,7 @@ def test_neumorphism_extended_surfaces_use_engine_shadow(qapp, qml_engine):
         ):
             surface = root.findChild(QObject, object_name)
             assert surface is not None, object_name
-            assert _owned(surface, "NeumorphicShadow"), object_name
+            assert bool(_owned(surface, "NeumorphicShadow")) == (object_name != "expander"), object_name
             assert all(
                 not bool(shadow.property("visible"))
                 for shadow in _owned(surface, "NeoShadow")
