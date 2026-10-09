@@ -59,7 +59,7 @@ Window {
     readonly property bool coreExpanded: core.expanded
     readonly property real coreHeight: core.implicitHeight
     readonly property color expectedSettingsCardBorder:
-        Enums.surfaceBorderColor(Enums.stateColor.border, Enums.stateColor.controlBg)
+        Enums.surfaceBorderColor(Enums.stateColor.borderLight, Enums.stateColor.controlBg)
 
     property var addedGroupCard: null
 

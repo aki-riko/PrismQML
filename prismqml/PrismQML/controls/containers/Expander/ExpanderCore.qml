@@ -24,7 +24,7 @@ Widget {
     // 设 0 退回旧行为 (业务自管 padding, 仅在已知内容自带 verticalCenter padding 时使用).
     property int contentPadding: Enums.spacing.l
     property real borderWidth: Enums.surfaceBorderWidth(Enums.border.thin) // Surface border width 表面边线宽度
-    property color borderColor: Enums.stateColor.borderStrong // Surface border color 表面边线颜色
+    property color borderColor: Enums.stateColor.borderLight // Surface border color 表面边线颜色
     default property alias expandContent: contentArea.data
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
@@ -37,6 +37,7 @@ Widget {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property int _radius: Enums.surfaceRadius(Enums.radius.card)
+    readonly property color _surfaceBorderColor: Enums.surfaceBorderColor(borderColor, bgRect.color)
     readonly property bool hovered: headerView.hovered
     readonly property bool pressed: headerView.pressed
     
@@ -120,7 +121,7 @@ Widget {
             border.width: Enums.hasOutlinedSurfaces
                 ? control.borderWidth : Enums.border.none
             border.color: Enums.hasOutlinedSurfaces
-                ? control.borderColor : Enums.transparent
+                ? control._surfaceBorderColor : Enums.transparent
 
             TicketPaper {
                 anchors.fill: parent
@@ -200,9 +201,9 @@ Widget {
         radius: control._radius
         color: Enums.transparent
         border.width: control.borderWidth
-        // Standalone expanders default to a strong edge; embedded surfaces may inject their own token.
-        // 独立展开器默认使用强边线；嵌入式表面可注入自己的令牌。
-        border.color: control.borderColor
+        // Composite the default or injected stroke against the card surface.
+        // 将默认或注入的描边色与卡片表面合成。
+        border.color: control._surfaceBorderColor
         z: Enums.zIndex.controlsAbove
     }
 }

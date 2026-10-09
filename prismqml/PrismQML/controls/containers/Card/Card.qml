@@ -199,7 +199,7 @@ Widget {
  
     // Border 边框
     border.width: _skin.surfaceBorderWidth(_skin.border.thin)
-    border.color: _skin.stateColor.borderLight// neo 黑边由 token 自动返回
+    border.color: _skin.surfaceBorderColor(_skin.stateColor.borderLight, card.color)
 
     HoverBehavior on color {
         active: control._touchActive && !control.pressed

@@ -182,8 +182,7 @@ Item {
  radius: card.radius
  color: Enums.transparent
  border.width: Enums.surfaceBorderWidth(Enums.border.thin)
- border.color: Enums.hasOutlinedSurfaces ? Enums.borderColor
- : ((Enums.isDark ? Enums.exampleCardColors.borderDark : Enums.stateColor.borderSubtle))
+ border.color: Enums.surfaceBorderColor(Enums.stateColor.borderLight, card.color)
  }
  }
  }
