@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""StackedWidget 左右滑动方向运行时回归测试。"""
+"""StackedWidget 滑动方向运行时回归测试。"""
 
 import pytest
 from PySide6.QtCore import QElapsedTimer, QObject, QUrl
@@ -17,7 +17,7 @@ COMPONENT_READY_TIMEOUT_MS = 2_000
 COMPONENT_READY_POLL_MS = 10
 
 
-def _build_slide_stack(engine: QQmlApplicationEngine, animation_type: str = "slide"):
+def _build_slide_stack(engine: QQmlApplicationEngine, animation_type: str = "slide_horizontal"):
     component = QQmlComponent(engine)
     component.setData(
         b"""
@@ -76,31 +76,6 @@ def _switch_and_capture(stack, target_index: int, incoming_page):
     finally:
         stack.animationStarted.disconnect(capture_start_position)
     return start_positions[0]
-
-
-def test_slide_direction_follows_index_order(qapp):
-    engine = QQmlApplicationEngine()
-    register_types(engine)
-    component, root = _build_slide_stack(engine)
-    stack = root.findChild(QObject, "slideStack")
-    page0 = root.findChild(QObject, "page0")
-    page1 = root.findChild(QObject, "page1")
-
-    assert stack is not None
-    assert page0 is not None
-    assert page1 is not None
-    stack_width = float(stack.property("width"))
-
-    forward_start_x = _switch_and_capture(stack, 1, page1)
-    backward_start_x = _switch_and_capture(stack, 0, page0)
-
-    assert forward_start_x == stack_width
-    assert backward_start_x == -stack_width
-
-    root.deleteLater()
-    component.deleteLater()
-    engine.deleteLater()
-    qapp.processEvents()
 
 
 def test_slide_horizontal_direction_follows_index_order(qapp):
@@ -180,11 +155,13 @@ def test_slide_vertical_direction_follows_index_order(qapp):
         qapp.processEvents()
 
 
-@pytest.mark.parametrize("animation_type", ("slide", "slide_fade"))
+@pytest.mark.parametrize(
+    "animation_type", ("slide_horizontal", "slide_vertical", "slide_fade")
+)
 def test_slide_variants_put_incoming_page_above_outgoing_on_back(
     qapp, animation_type
 ):
-    """两种滑动动画返回时都必须让目标页盖在旧页上。"""
+    """三种滑动动画返回时都必须让目标页盖在旧页上。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
     component, root = _build_slide_stack(engine, animation_type)

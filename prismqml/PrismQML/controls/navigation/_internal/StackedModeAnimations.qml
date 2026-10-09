@@ -49,13 +49,13 @@ Item {
                 newWidget.opacity = 1
                 break
             case Enums.animation.slide_vertical:
+            case Enums.animation.card_vertical:
                 newWidget.x = 0
                 newWidget.y = control.height
                 newWidget.opacity = 1
                 break
-            case Enums.animation.slide:
             case Enums.animation.slide_horizontal:
-            case Enums.animation.card:
+            case Enums.animation.card_horizontal:
             case Enums.animation.slide_fade:
                 newWidget.x = control.width
                 newWidget.opacity = 1
@@ -79,21 +79,19 @@ Item {
         if (backend) backend.enterOnly(newIndex)
     }
     function slideTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.slide))
-        if (backend) backend.transition(
-                    oldIndex, newIndex, isBack,
-                    control.animationType === Enums.animation.slide_vertical)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.slide_horizontal))
+        if (backend) backend.transition(oldIndex, newIndex, isBack, _isVerticalAxis())
     }
     function slideFadeTransition(oldIndex, newIndex, isBack) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
         if (backend) backend.transition(oldIndex, newIndex, isBack)
     }
     function enterSlideOnly(newIndex) {
-        var backend = _ensureBackend(
-                    _sourceForType(control.animationType === Enums.animation.card ?
-                                       Enums.animation.card : Enums.animation.slide))
-        if (backend) backend.enterOnly(
-                    newIndex, control.animationType === Enums.animation.slide_vertical)
+        var isCardAxis = control.animationType === Enums.animation.card_horizontal
+                || control.animationType === Enums.animation.card_vertical
+        var backend = _ensureBackend(_sourceForType(isCardAxis ?
+                    Enums.animation.card_horizontal : Enums.animation.slide_horizontal))
+        if (backend) backend.enterOnly(newIndex, _isVerticalAxis())
     }
     function enterSlideFadeOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
@@ -136,11 +134,19 @@ Item {
         if (backend) backend.enterOnly(newIndex)
     }
     function cardTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.card))
-        if (backend) backend.transition(oldIndex, newIndex, isBack)
+        var backend = _ensureBackend(_sourceForType(Enums.animation.card_horizontal))
+        if (backend) backend.transition(oldIndex, newIndex, isBack, _isVerticalAxis())
     }
 
     // ==================== Internal Methods 内部方法 ====================
+    // Axis of the currently configured mode: slide and card both exist in a
+    // horizontal and a vertical variant.
+    // 当前模式的轴向：slide 与 card 都只有水平、垂直两个变体。
+    function _isVerticalAxis() {
+        return control.animationType === Enums.animation.slide_vertical
+                || control.animationType === Enums.animation.card_vertical
+    }
+
     function _sourceForType(type) {
         switch (type) {
             case Enums.animation.opacity:
@@ -149,13 +155,13 @@ Item {
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.popdown:
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
-            case Enums.animation.slide:
             case Enums.animation.slide_horizontal:
             case Enums.animation.slide_vertical:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
             case Enums.animation.slide_fade:
                 return Qt.resolvedUrl("StackedSlideFadeAnimations.qml")
-            case Enums.animation.card:
+            case Enums.animation.card_horizontal:
+            case Enums.animation.card_vertical:
                 return Qt.resolvedUrl("StackedCardAnimations.qml")
             case Enums.animation.zoom:
                 return Qt.resolvedUrl("StackedZoomAnimations.qml")

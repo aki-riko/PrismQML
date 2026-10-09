@@ -24,10 +24,10 @@ MODE_NAMES = (
     "opacity",
     "popup",
     "popdown",
-    "slide",
     "slide_horizontal",
     "slide_vertical",
-    "card",
+    "card_horizontal",
+    "card_vertical",
     "zoom",
 )
 
@@ -135,15 +135,19 @@ def _assert_transition_start(
         assert not bool(old_page.property("visible"))
         _assert_close(_number(new_page, "y"), offset if mode_name == "popup" else -offset)
         _assert_close(_number(new_page, "opacity"), 0)
-    elif mode_name in {"slide", "slide_horizontal"}:
+    elif mode_name == "slide_horizontal":
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "x"), -width if is_back else width)
     elif mode_name == "slide_vertical":
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "y"), -height if is_back else height)
-    elif mode_name == "card":
+    elif mode_name in {"card_horizontal", "card_vertical"}:
         assert bool(old_page.property("visible"))
-        _assert_close(_number(new_page, "x"), 0 if is_back else width)
+        axis = "y" if mode_name == "card_vertical" else "x"
+        other_axis = "x" if mode_name == "card_vertical" else "y"
+        length = height if mode_name == "card_vertical" else width
+        _assert_close(_number(new_page, axis), 0 if is_back else length)
+        _assert_close(_number(new_page, other_axis), 0)
         expected_scale = _number(stack, "cardScale") if is_back else 1
         expected_opacity = _number(stack, "cardOpacity") if is_back else 1
         _assert_close(_number(new_page, "scale"), expected_scale)
@@ -188,6 +192,36 @@ def test_all_modes_preserve_forward_and_backward_states(qapp, mode_name):
         _dispose(engine, component, root)
 
 
+@pytest.mark.parametrize(
+    ("mode_name", "axis", "length_name"),
+    (("card_horizontal", "x", "width"), ("card_vertical", "y", "height")),
+)
+def test_card_axis_slides_outgoing_page_along_its_axis(
+    qapp, mode_name, axis, length_name
+):
+    """card 两种轴向：返回时旧页沿对应轴滑出，新页原地放大。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(engine, mode_name)
+    try:
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+
+        length = _number(stack, length_name)
+        other_axis = "y" if axis == "x" else "x"
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 0)
+        QTest.qWait(ANIMATION_DURATION_MS // 4)
+        assert 0 < _number(page1, axis) < length
+        _assert_close(_number(page0, axis), 0)
+        _assert_close(_number(page0, other_axis), 0)
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        _assert_resting_state(page0, page1)
+    finally:
+        _dispose(engine, component, root)
+
+
 def _assert_lazy_reveal_start(page: QObject) -> None:
     for name, expected in (("x", 0), ("y", 0), ("scale", 1), ("opacity", 1)):
         _assert_close(_number(page, name), expected)
@@ -218,7 +252,7 @@ def test_python_lazy_switch_defers_to_circle_reveal(qapp, mode_name):
 def test_switching_mode_interrupts_old_backend_without_extra_completion(qapp):
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root, stack, page0, page1 = _build_stack(engine, "slide")
+    component, root, stack, page0, page1 = _build_stack(engine, "slide_horizontal")
     try:
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 1)
@@ -257,7 +291,7 @@ def test_switching_between_pop_modes_reconfigures_shared_backend(qapp):
 def test_switching_slide_axis_does_not_retarget_running_transition(qapp):
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root, stack, page0, page1 = _build_stack(engine, "slide")
+    component, root, stack, page0, page1 = _build_stack(engine, "slide_horizontal")
     try:
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 1)

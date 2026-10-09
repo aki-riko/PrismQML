@@ -292,23 +292,6 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "slide"
-                        Column {
-                            spacing: Fluent.Enums.spacing.xs
-                            StackedWidget {
-                                id: slideStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.slide
-                                Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
-                                Rectangle { color: Fluent.Enums.demoPalette.pink; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
-                            }
-                            Row {
-                                spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: slideStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: slideStack.currentIndex = 1 }
-                            }
-                        }
-                    }
-                    ComponentCard {
                         label: "slide_horizontal"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
@@ -343,19 +326,36 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "card"
+                        label: "card_horizontal"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
-                                id: cardStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.card
+                                id: cardHorizontalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.card_horizontal
                                 Rectangle { color: Fluent.Enums.demoPalette.cyan; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: cardStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: cardStack.currentIndex = 1 }
+                                Button { text: "1"; width: 26; onClicked: cardHorizontalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: cardHorizontalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "card_vertical"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: cardVerticalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.card_vertical
+                                Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.pink; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: cardVerticalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: cardVerticalStack.currentIndex = 1 }
                             }
                         }
                     }

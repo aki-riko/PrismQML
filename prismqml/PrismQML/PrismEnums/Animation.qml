@@ -10,10 +10,10 @@ QtObject {
     readonly property int opacity: 1
     readonly property int popup: 2
     readonly property int popdown: 3
-    readonly property int slide: 4
-    readonly property int card: 5
-    readonly property int zoom: 6
-    readonly property int slide_fade: 7
-    readonly property int slide_horizontal: 8
-    readonly property int slide_vertical: 9
+    readonly property int slide_horizontal: 4
+    readonly property int slide_vertical: 5
+    readonly property int slide_fade: 6
+    readonly property int card_horizontal: 7
+    readonly property int card_vertical: 8
+    readonly property int zoom: 9
 }

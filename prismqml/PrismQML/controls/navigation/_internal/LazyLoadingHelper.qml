@@ -367,9 +367,12 @@ Item {
         loadingOverlay.scale = 1
         loadingOverlay.opacity = 0
         switch (loadingAnimationType) {
-        case Enums.animation.slide:
+        case Enums.animation.slide_horizontal:
         case Enums.animation.slide_fade:
             loadingOverlay.x = width
+            break
+        case Enums.animation.slide_vertical:
+            loadingOverlay.y = height
             break
         case Enums.animation.popup:
             loadingOverlay.y = Enums.controlSize.popUpOffset
