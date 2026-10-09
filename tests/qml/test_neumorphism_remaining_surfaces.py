@@ -19,7 +19,16 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
 from PySide6.QtQuick import QQuickItem
 
-from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
+from prismqml import (
+    Skin,
+    Theme,
+    getSkin,
+    getTheme,
+    register_types,
+    setSkin,
+    setTheme,
+    shutdown_tasks,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -125,6 +134,18 @@ def _dispose_scene(engine, component, window) -> None:
     _pump()
 
 
+def _restore_appearance(previous_theme, previous_skin) -> None:
+    """Restore appearance and drain queued persistence.
+
+    恢复外观并回收排队的持久化任务: setTheme/setSkin 会在独立 QThread 上排队写盘,
+    进程退出前必须等待其收尾, 否则 QThread 在线程仍运行时被销毁会触发 Qt fatal。
+    """
+    setTheme(previous_theme)
+    setSkin(previous_skin)
+    report = shutdown_tasks(3_000)
+    assert report.complete, report
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -222,8 +243,7 @@ def test_remaining_surfaces_follow_neumorphic_tokens(qapp):
         ] == []
     finally:
         _dispose_scene(engine, component, window)
-        setTheme(previous_theme)
-        setSkin(previous_skin)
+        _restore_appearance(previous_theme, previous_skin)
 
 
 def test_tip_popup_arrow_reuses_surface_border_contract(qapp):
@@ -242,5 +262,4 @@ def test_tip_popup_arrow_reuses_surface_border_contract(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
-        setTheme(previous_theme)
-        setSkin(previous_skin)
+        _restore_appearance(previous_theme, previous_skin)
