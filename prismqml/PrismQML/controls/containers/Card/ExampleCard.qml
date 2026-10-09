@@ -155,9 +155,8 @@ Item {
  // Top separator line 顶部分隔线
  Separator {
  width: parent.width
- // neo: 实黑 2px 硬分隔线(对齐偶数像素宽, 消除细黑线滚动抖动闪烁)
- lineColor: Enums.hasOutlinedSurfaces ? Enums.borderColor : Enums.stateColor.divider
- lineWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+ lineColor: Enums.stateColor.divider
+ lineWidth: Enums.border.thin
  }
  
  Label {
@@ -181,8 +180,8 @@ Item {
  anchors.fill: card
  radius: card.radius
  color: Enums.transparent
- border.width: Enums.surfaceBorderWidth(Enums.border.thin)
- border.color: Enums.surfaceBorderColor(Enums.stateColor.borderLight, card.color)
+ border.width: Enums.border.thin
+ border.color: Enums.surfaceBorderColor(Enums.stateColor.divider, card.color)
  }
  }
  }

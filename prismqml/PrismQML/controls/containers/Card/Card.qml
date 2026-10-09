@@ -198,8 +198,8 @@ Widget {
  color: _bgColor
  
     // Border 边框
-    border.width: _skin.surfaceBorderWidth(_skin.border.thin)
-    border.color: _skin.surfaceBorderColor(_skin.stateColor.borderLight, card.color)
+    border.width: _skin.border.thin
+    border.color: _skin.surfaceBorderColor(_skin.stateColor.divider, card.color)
 
     HoverBehavior on color {
         active: control._touchActive && !control.pressed

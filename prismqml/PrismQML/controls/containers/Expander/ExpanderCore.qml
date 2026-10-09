@@ -23,8 +23,8 @@ Widget {
     // 业务直接塞 GridLayout / Row / Column 等无自带 padding 容器即可上下对称, 不需要包 Item.
     // 设 0 退回旧行为 (业务自管 padding, 仅在已知内容自带 verticalCenter padding 时使用).
     property int contentPadding: Enums.spacing.l
-    property real borderWidth: Enums.surfaceBorderWidth(Enums.border.thin) // Surface border width 表面边线宽度
-    property color borderColor: Enums.stateColor.borderLight // Surface border color 表面边线颜色
+    property real borderWidth: Enums.border.thin // Surface border width 表面边线宽度
+    property color borderColor: Enums.stateColor.divider // Surface border color 表面边线颜色
     default property alias expandContent: contentArea.data
     
     // Header right content (between title and expand button) 头部右侧内容（标题和展开按钮之间）
@@ -162,8 +162,8 @@ Widget {
 
             // Background with bottom radius 带底部圆角的背景
             Rectangle {
-                readonly property int _outlinedInset: Enums.hasOutlinedSurfaces
-                    ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
+                readonly property real _outlinedInset: Enums.hasOutlinedSurfaces
+                    ? control.borderWidth : 0
 
                 anchors.fill: parent
                 color: Enums.stateColor.expandViewBg

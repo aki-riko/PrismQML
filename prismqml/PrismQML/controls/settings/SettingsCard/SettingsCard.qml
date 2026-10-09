@@ -78,9 +78,9 @@ Item {
                                          type === Enums.settingCard.type_folder_list ||
                                          type === Enums.settingCard.type_color
     readonly property color currentColor: useCustomColor ? customColor : defaultColor
-    readonly property real _surfaceBorderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real _surfaceBorderWidth: Enums.border.thin
     readonly property color _surfaceBorderColor: Enums.surfaceBorderColor(
-        Enums.stateColor.borderLight,
+        Enums.stateColor.divider,
         Enums.stateColor.controlBg
     )
     readonly property var _safeModel:

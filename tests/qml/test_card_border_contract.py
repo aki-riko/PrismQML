@@ -21,9 +21,9 @@ import QtQuick
 import PrismQML
 
 Item {
-    readonly property color borderToken: Enums.stateColor.borderLight
+    readonly property color borderToken: Enums.stateColor.divider
     readonly property color controlBackground: Enums.stateColor.controlBg
-    readonly property real borderWidth: Enums.surfaceBorderWidth(Enums.border.thin)
+    readonly property real borderWidth: Enums.border.thin
 
     width: 1200
     height: 900
@@ -86,6 +86,28 @@ def _border_item(items):
     return borders[0]
 
 
+def _has_ancestor(item, class_prefix):
+    ancestor = item.parentItem()
+    while ancestor is not None:
+        if ancestor.metaObject().className().startswith(class_prefix):
+            return True
+        ancestor = ancestor.parentItem()
+    return False
+
+
+def _separator_item(root):
+    separators = [
+        item for item in root.findChildren(QQuickItem)
+        if item.metaObject().className().startswith("Separator_QMLTYPE")
+        and item.isVisible()
+        and item.width() > 200
+        and item.height() > 0
+        and _has_ancestor(item, "Card_QMLTYPE")
+    ]
+    assert separators
+    return separators[0]
+
+
 def _gallery_surfaces(root):
     items = root.findChildren(QQuickItem)
     cards = [
@@ -130,16 +152,24 @@ def _assert_gallery_borders(root):
         )
     )
     edge = _border_item(expander.childItems())
+    separator = _separator_item(root)
+    separator_color = QColor(QQmlProperty(separator, "lineColor").read())
+    separator_width = QQmlProperty(separator, "lineWidth").read()
+    assert separator_width == pytest.approx(root.property("borderWidth"))
     borders = [_stroke(card) for card in cards] + [_stroke(edge)]
     assert all(border == borders[0] for border in borders), [
         border.name(QColor.NameFormat.HexArgb) for border in borders
     ]
-    token = QColor(root.property("borderToken"))
+    token = separator_color
+    assert token == QColor(root.property("borderToken"))
     width = root.property("borderWidth")
     for card in cards:
         _assert_color(_stroke(card), _composite(token, QColor(card.property("color"))))
         assert QQmlProperty(card, "border.width").read() == pytest.approx(width)
     assert QQmlProperty(edge, "border.width").read() == pytest.approx(width)
+    _assert_color(
+        _stroke(edge), _composite(separator_color, QColor(root.property("controlBackground")))
+    )
     for example in examples:
         _assert_example_border(example, token, width)
 
