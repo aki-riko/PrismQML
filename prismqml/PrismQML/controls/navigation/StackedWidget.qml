@@ -13,6 +13,9 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int currentIndex: 0
     property int animationType: Enums.animation.opacity
+    // Main axis of the slide / slide_fade / card transitions; other modes ignore it.
+    // 滑动类动画(slide / slide_fade / card)的主轴；其余模式忽略该属性。
+    property int animationOrientation: Qt.Horizontal
     // Transition used only while a lazy page is loading 懒加载期间使用的过渡类型
     property int lazyAnimationType: Enums.lazyAnimation.lazy_circle
     property int animationDuration: Enums.duration.slow

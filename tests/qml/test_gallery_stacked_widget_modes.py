@@ -26,27 +26,32 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE_PATH = ROOT / "examples" / "pages" / "NavigationPage.qml"
-EXPECTED_MODES = (
-    "opacity",
-    "popup",
-    "popdown",
-    "slide_horizontal",
-    "slide_vertical",
-    "slide_fade",
-    "card_horizontal",
-    "card_vertical",
-    "zoom",
+# (base animation, orientation) shown by the Gallery, in display order.
+# Gallery 按顺序展示的 (基础动画, 轴向) 组合。
+EXPECTED_TILES = (
+    ("opacity", None),
+    ("popup", None),
+    ("popdown", None),
+    ("slide", "horizontal"),
+    ("slide", "vertical"),
+    ("slide_fade", "horizontal"),
+    ("slide_fade", "vertical"),
+    ("card", "horizontal"),
+    ("card", "vertical"),
+    ("zoom", None),
 )
 _ENUM_PROPERTIES = {
     "opacity": "opacityMode",
     "popup": "popupMode",
     "popdown": "popdownMode",
-    "slide_horizontal": "slideHorizontalMode",
-    "slide_vertical": "slideVerticalMode",
+    "slide": "slideMode",
     "slide_fade": "slideFadeMode",
-    "card_horizontal": "cardHorizontalMode",
-    "card_vertical": "cardVerticalMode",
+    "card": "cardMode",
     "zoom": "zoomMode",
+}
+_ORIENTATION_PROPERTIES = {
+    "horizontal": "horizontalOrientation",
+    "vertical": "verticalOrientation",
 }
 _ENUM_SOURCE = b"""
 import QtQuick
@@ -56,14 +61,18 @@ QtObject {
     readonly property int opacityMode: Enums.animation.opacity
     readonly property int popupMode: Enums.animation.popup
     readonly property int popdownMode: Enums.animation.popdown
-    readonly property int slideHorizontalMode: Enums.animation.slide_horizontal
-    readonly property int slideVerticalMode: Enums.animation.slide_vertical
+    readonly property int slideMode: Enums.animation.slide
     readonly property int slideFadeMode: Enums.animation.slide_fade
-    readonly property int cardHorizontalMode: Enums.animation.card_horizontal
-    readonly property int cardVerticalMode: Enums.animation.card_vertical
+    readonly property int cardMode: Enums.animation.card
     readonly property int zoomMode: Enums.animation.zoom
+    readonly property int horizontalOrientation: Qt.Horizontal
+    readonly property int verticalOrientation: Qt.Vertical
 }
 """
+
+
+def _tile_label(mode: str, orientation) -> str:
+    return mode if orientation is None else f"{mode} ({orientation})"
 
 
 def _pump(milliseconds: int = 80) -> None:
@@ -118,8 +127,8 @@ def _stacked_widget_tiles(page: QQuickItem):
     return tiles
 
 
-def test_gallery_shows_axis_specific_stacked_widget_modes(qapp):
-    """Gallery 必须逐个展示收敛后的水平/垂直 slide 与 card 模式。"""
+def test_gallery_shows_base_animations_with_orientation(qapp):
+    """Gallery 必须展示"基础动画 + 轴向"的组合，且不再枚举 *_horizontal/*_vertical。"""
     register_gallery_resources()
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
@@ -143,10 +152,17 @@ def test_gallery_shows_axis_specific_stacked_widget_modes(qapp):
         _pump(200)
 
         tiles = _stacked_widget_tiles(page)
-        assert [label for label, _stack in tiles] == list(EXPECTED_MODES)
-        for label, stack in tiles:
+        assert [label for label, _stack in tiles] == [
+            _tile_label(mode, orientation) for mode, orientation in EXPECTED_TILES
+        ]
+        for (label, stack), (mode, orientation) in zip(tiles, EXPECTED_TILES):
             assert stack.property("animationType") == modes.property(
-                _ENUM_PROPERTIES[label]
+                _ENUM_PROPERTIES[mode]
+            ), label
+            if orientation is None:
+                continue
+            assert stack.property("animationOrientation") == modes.property(
+                _ORIENTATION_PROPERTIES[orientation]
             ), label
 
         assert warnings == []

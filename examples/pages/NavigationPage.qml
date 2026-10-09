@@ -292,12 +292,13 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "slide_horizontal"
+                        label: "slide (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
                                 id: slideHorizontalStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.slide_horizontal
+                                animationType: Fluent.Enums.animation.slide
+                                animationOrientation: Qt.Horizontal
                                 Rectangle { color: Fluent.Enums.demoPalette.cyan; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
@@ -309,12 +310,13 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "slide_vertical"
+                        label: "slide (vertical)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
                                 id: slideVerticalStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.slide_vertical
+                                animationType: Fluent.Enums.animation.slide
+                                animationOrientation: Qt.Vertical
                                 Rectangle { color: Fluent.Enums.demoPalette.sky; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.lime; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
@@ -326,29 +328,49 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "slide_fade"
+                        label: "slide_fade (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
-                                id: slideFadeStack; width: 110; height: 55
+                                id: slideFadeHorizontalStack; width: 110; height: 55
                                 animationType: Fluent.Enums.animation.slide_fade
+                                animationOrientation: Qt.Horizontal
                                 Rectangle { color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: slideFadeStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: slideFadeStack.currentIndex = 1 }
+                                Button { text: "1"; width: 26; onClicked: slideFadeHorizontalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: slideFadeHorizontalStack.currentIndex = 1 }
                             }
                         }
                     }
                     ComponentCard {
-                        label: "card_horizontal"
+                        label: "slide_fade (vertical)"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: slideFadeVerticalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.slide_fade
+                                animationOrientation: Qt.Vertical
+                                Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.pink; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: slideFadeVerticalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: slideFadeVerticalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "card (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
                                 id: cardHorizontalStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.card_horizontal
+                                animationType: Fluent.Enums.animation.card
+                                animationOrientation: Qt.Horizontal
                                 Rectangle { color: Fluent.Enums.demoPalette.cyan; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
@@ -360,12 +382,13 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "card_vertical"
+                        label: "card (vertical)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
                                 id: cardVerticalStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.card_vertical
+                                animationType: Fluent.Enums.animation.card
+                                animationOrientation: Qt.Vertical
                                 Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.pink; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }

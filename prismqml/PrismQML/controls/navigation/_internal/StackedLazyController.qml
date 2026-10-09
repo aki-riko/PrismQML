@@ -93,6 +93,8 @@ Item {
         // 加载覆盖层属于懒加载过渡，不属于普通切页；固定为无位移入场，
         // 避免 slide/fade 与圆圈收紧/揭幕同时运行。
         item.loadingAnimationType = Enums.animation.none
+        item.loadingAnimationOrientation = Qt.binding(
+            function() { return host.animationOrientation })
         item.loadingAnimationDuration = Qt.binding(
             function() { return host.animationDuration })
         item.loaderActivationDelay = Qt.binding(

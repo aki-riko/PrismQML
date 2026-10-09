@@ -48,17 +48,20 @@ Item {
                 newWidget.scale = 0
                 newWidget.opacity = 1
                 break
-            case Enums.animation.slide_vertical:
-            case Enums.animation.card_vertical:
+            case Enums.animation.slide:
+            case Enums.animation.card:
                 newWidget.x = 0
-                newWidget.y = control.height
+                newWidget.y = 0
+                if (_isVerticalAxis()) newWidget.y = control.height
+                else newWidget.x = control.width
                 newWidget.opacity = 1
                 break
-            case Enums.animation.slide_horizontal:
-            case Enums.animation.card_horizontal:
             case Enums.animation.slide_fade:
-                newWidget.x = control.width
-                newWidget.opacity = 1
+                newWidget.x = 0
+                newWidget.y = 0
+                if (_isVerticalAxis()) newWidget.y = control.height
+                else newWidget.x = control.width
+                newWidget.opacity = 0
                 break
             default:
                 newWidget.opacity = 0
@@ -79,23 +82,22 @@ Item {
         if (backend) backend.enterOnly(newIndex)
     }
     function slideTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.slide_horizontal))
+        var backend = _ensureBackend(_sourceForType(Enums.animation.slide))
         if (backend) backend.transition(oldIndex, newIndex, isBack, _isVerticalAxis())
     }
     function slideFadeTransition(oldIndex, newIndex, isBack) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
-        if (backend) backend.transition(oldIndex, newIndex, isBack)
+        if (backend) backend.transition(oldIndex, newIndex, isBack, _isVerticalAxis())
     }
     function enterSlideOnly(newIndex) {
-        var isCardAxis = control.animationType === Enums.animation.card_horizontal
-                || control.animationType === Enums.animation.card_vertical
-        var backend = _ensureBackend(_sourceForType(isCardAxis ?
-                    Enums.animation.card_horizontal : Enums.animation.slide_horizontal))
+        var backend = _ensureBackend(_sourceForType(
+                    control.animationType === Enums.animation.card
+                    ? Enums.animation.card : Enums.animation.slide))
         if (backend) backend.enterOnly(newIndex, _isVerticalAxis())
     }
     function enterSlideFadeOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.slide_fade))
-        if (backend) backend.enterOnly(newIndex)
+        if (backend) backend.enterOnly(newIndex, _isVerticalAxis())
     }
     function popUpTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.popup))
@@ -134,17 +136,16 @@ Item {
         if (backend) backend.enterOnly(newIndex)
     }
     function cardTransition(oldIndex, newIndex, isBack) {
-        var backend = _ensureBackend(_sourceForType(Enums.animation.card_horizontal))
+        var backend = _ensureBackend(_sourceForType(Enums.animation.card))
         if (backend) backend.transition(oldIndex, newIndex, isBack, _isVerticalAxis())
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Axis of the currently configured mode: slide and card both exist in a
-    // horizontal and a vertical variant.
-    // 当前模式的轴向：slide 与 card 都只有水平、垂直两个变体。
+    // Axis of the currently configured mode: slide, slide_fade and card all run
+    // on the axis selected by control.animationOrientation.
+    // 当前模式的轴向：slide、slide_fade 与 card 都跑在 animationOrientation 选定的轴上。
     function _isVerticalAxis() {
-        return control.animationType === Enums.animation.slide_vertical
-                || control.animationType === Enums.animation.card_vertical
+        return control.animationOrientation === Qt.Vertical
     }
 
     function _sourceForType(type) {
@@ -155,13 +156,11 @@ Item {
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.popdown:
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
-            case Enums.animation.slide_horizontal:
-            case Enums.animation.slide_vertical:
+            case Enums.animation.slide:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
             case Enums.animation.slide_fade:
                 return Qt.resolvedUrl("StackedSlideFadeAnimations.qml")
-            case Enums.animation.card_horizontal:
-            case Enums.animation.card_vertical:
+            case Enums.animation.card:
                 return Qt.resolvedUrl("StackedCardAnimations.qml")
             case Enums.animation.zoom:
                 return Qt.resolvedUrl("StackedZoomAnimations.qml")

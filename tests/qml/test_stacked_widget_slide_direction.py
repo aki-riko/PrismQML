@@ -15,9 +15,22 @@ from prismqml import register_types
 ANIMATION_TIMEOUT_MS = 2_000
 COMPONENT_READY_TIMEOUT_MS = 2_000
 COMPONENT_READY_POLL_MS = 10
+ORIENTATION_CASES = (
+    ("horizontal", "x", "width"),
+    ("vertical", "y", "height"),
+)
+ORIENTATION_IDS = tuple(orientation for orientation, _axis, _length in ORIENTATION_CASES)
+SLIDE_VARIANTS = ("slide", "slide_fade")
 
 
-def _build_slide_stack(engine: QQmlApplicationEngine, animation_type: str = "slide_horizontal"):
+def _build_slide_stack(
+    engine: QQmlApplicationEngine,
+    animation_type: str = "slide",
+    orientation: str = "horizontal",
+):
+    orientation_value = (
+        "Qt.Vertical" if orientation == "vertical" else "Qt.Horizontal"
+    )
     component = QQmlComponent(engine)
     component.setData(
         b"""
@@ -34,6 +47,7 @@ Item {
         width: parent.width
         height: parent.height
         animationType: Enums.animation.{animation_type}
+        animationOrientation: {orientation}
         animationDuration: Enums.duration.fast
 
         Rectangle {
@@ -46,8 +60,10 @@ Item {
         }
     }
 }
-""".replace(b"{animation_type}", animation_type.encode("ascii")),
-        QUrl("inline:stacked-widget-slide-direction"),
+"""
+        .replace(b"{animation_type}", animation_type.encode("ascii"))
+        .replace(b"{orientation}", orientation_value.encode("ascii")),
+        QUrl(f"inline:stacked-widget-{animation_type}-{orientation}-direction"),
     )
     elapsed = QElapsedTimer()
     elapsed.start()
@@ -61,12 +77,12 @@ Item {
     return component, root
 
 
-def _switch_and_capture(stack, target_index: int, incoming_page):
+def _switch_and_capture(stack, target_index: int, incoming_page, axis: str = "x"):
     start_positions = []
     finished = QSignalSpy(stack.animationFinished)
 
     def capture_start_position():
-        start_positions.append(float(incoming_page.property("x")))
+        start_positions.append(float(incoming_page.property(axis)))
 
     stack.animationStarted.connect(capture_start_position)
     try:
@@ -78,93 +94,45 @@ def _switch_and_capture(stack, target_index: int, incoming_page):
     return start_positions[0]
 
 
-def test_slide_horizontal_direction_follows_index_order(qapp):
-    engine = QQmlApplicationEngine()
-    register_types(engine)
-    component, root = _build_slide_stack(engine, "slide_horizontal")
-    stack = root.findChild(QObject, "slideStack")
-    page0 = root.findChild(QObject, "page0")
-    page1 = root.findChild(QObject, "page1")
-
-    assert stack is not None
-    assert page0 is not None
-    assert page1 is not None
-    stack_width = float(stack.property("width"))
-
-    try:
-        forward_start_x = _switch_and_capture(stack, 1, page1)
-        backward_start_x = _switch_and_capture(stack, 0, page0)
-
-        assert forward_start_x == stack_width
-        assert backward_start_x == -stack_width
-    finally:
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        qapp.processEvents()
-
-
-def test_slide_vertical_direction_follows_index_order(qapp):
-    engine = QQmlApplicationEngine()
-    register_types(engine)
-    component, root = _build_slide_stack(engine, "slide_vertical")
-    stack = root.findChild(QObject, "slideStack")
-    page0 = root.findChild(QObject, "page0")
-    page1 = root.findChild(QObject, "page1")
-
-    assert stack is not None
-    assert page0 is not None
-    assert page1 is not None
-    stack_height = float(stack.property("height"))
-
-    try:
-        forward_start_y = []
-        finished = QSignalSpy(stack.animationFinished)
-
-        def capture_forward_start():
-            forward_start_y.append(float(page1.property("y")))
-
-        stack.animationStarted.connect(capture_forward_start)
-        try:
-            assert stack.setProperty("currentIndex", 1)
-            assert forward_start_y
-            assert finished.wait(ANIMATION_TIMEOUT_MS)
-        finally:
-            stack.animationStarted.disconnect(capture_forward_start)
-
-        backward_start_y = []
-        finished = QSignalSpy(stack.animationFinished)
-
-        def capture_backward_start():
-            backward_start_y.append(float(page0.property("y")))
-
-        stack.animationStarted.connect(capture_backward_start)
-        try:
-            assert stack.setProperty("currentIndex", 0)
-            assert backward_start_y
-            assert finished.wait(ANIMATION_TIMEOUT_MS)
-        finally:
-            stack.animationStarted.disconnect(capture_backward_start)
-
-        assert forward_start_y[0] == stack_height
-        assert backward_start_y[0] == -stack_height
-    finally:
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        qapp.processEvents()
-
-
 @pytest.mark.parametrize(
-    "animation_type", ("slide_horizontal", "slide_vertical", "slide_fade")
+    ("orientation", "axis", "length_property"),
+    ORIENTATION_CASES,
+    ids=ORIENTATION_IDS,
 )
-def test_slide_variants_put_incoming_page_above_outgoing_on_back(
-    qapp, animation_type
-):
-    """三种滑动动画返回时都必须让目标页盖在旧页上。"""
+def test_slide_direction_follows_orientation(qapp, orientation, axis, length_property):
+    """slide 沿 animationOrientation 选定的轴滑动，方向跟随索引顺序。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
-    component, root = _build_slide_stack(engine, animation_type)
+    component, root = _build_slide_stack(engine, "slide", orientation)
+    stack = root.findChild(QObject, "slideStack")
+    page0 = root.findChild(QObject, "page0")
+    page1 = root.findChild(QObject, "page1")
+
+    assert stack is not None and page0 is not None and page1 is not None
+    length = float(stack.property(length_property))
+
+    try:
+        forward_start = _switch_and_capture(stack, 1, page1, axis)
+        backward_start = _switch_and_capture(stack, 0, page0, axis)
+
+        assert forward_start == length
+        assert backward_start == -length
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        qapp.processEvents()
+
+
+@pytest.mark.parametrize("orientation", ("horizontal", "vertical"))
+@pytest.mark.parametrize("animation_type", SLIDE_VARIANTS)
+def test_slide_variants_put_incoming_page_above_outgoing_on_back(
+    qapp, animation_type, orientation
+):
+    """两种滑动动画在两个轴向上返回时都必须让目标页盖在旧页上。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root = _build_slide_stack(engine, animation_type, orientation)
     stack = root.findChild(QObject, "slideStack")
     page0 = root.findChild(QObject, "page0")
     page1 = root.findChild(QObject, "page1")

@@ -5,7 +5,6 @@
 """Pre-1.0 compatibility APIs must stay removed. 旧兼容 API 删除回归。"""
 
 import inspect
-import re
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QTimer, QUrl
@@ -205,35 +204,47 @@ def test_stacked_widget_page_components_mode_is_removed():
     )
 
 
-def test_stacked_widget_animation_enum_keeps_axis_specific_modes_only():
-    """slide 与 card 只保留水平/垂直变体，不恢复无轴向的旧枚举。"""
+def test_stacked_widget_animation_uses_base_modes_with_orientation():
+    """动画枚举只保留基础模式；轴向经 animationOrientation 表达，不再枚举 *_horizontal/*_vertical。"""
     animation_source = _read("prismqml/PrismQML/PrismEnums/Animation.qml")
 
     for removed in (
-        "readonly property int slide:",
-        "readonly property int card:",
-    ):
-        assert removed not in animation_source, removed
-    for required in (
         "readonly property int slide_horizontal:",
         "readonly property int slide_vertical:",
         "readonly property int card_horizontal:",
         "readonly property int card_vertical:",
     ):
+        assert removed not in animation_source, removed
+    for required in (
+        "readonly property int slide:",
+        "readonly property int slide_fade:",
+        "readonly property int card:",
+    ):
         assert required in animation_source, required
+
+    stacked_source = _read("prismqml/PrismQML/controls/navigation/StackedWidget.qml")
+    assert "property int animationOrientation: Qt.Horizontal" in stacked_source
 
     for relative in (
         "prismqml/PrismQML/controls/navigation/_internal/"
         "StackedModeAnimations.qml",
         "prismqml/PrismQML/controls/navigation/_internal/"
         "StackedVisibilityController.qml",
+        "prismqml/PrismQML/controls/navigation/_internal/LazyLoadingHelper.qml",
     ):
         source = _read(relative)
-        assert "Enums.animation.slide_horizontal" in source, relative
-        assert "Enums.animation.card_horizontal" in source, relative
-        for stale in ("slide", "card"):
-            pattern = r"Enums\.animation\." + stale + r"\b"
-            assert not re.search(pattern, source), (relative, stale)
+        for stale in (
+            "slide_horizontal",
+            "slide_vertical",
+            "card_horizontal",
+            "card_vertical",
+        ):
+            assert stale not in source, (relative, stale)
+
+    dispatcher_source = _read(
+        "prismqml/PrismQML/controls/navigation/_internal/StackedModeAnimations.qml"
+    )
+    assert "control.animationOrientation === Qt.Vertical" in dispatcher_source
 
 
 def test_direct_children_do_not_enter_removed_lazy_loader_mode(qapp):

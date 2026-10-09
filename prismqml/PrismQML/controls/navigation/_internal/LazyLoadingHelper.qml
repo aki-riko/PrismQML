@@ -24,6 +24,8 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property int loadingAnimationType: Enums.animation.opacity
+    // Axis of the slide / slide_fade overlay entrance 滑动覆盖层的入场轴向
+    property int loadingAnimationOrientation: Qt.Horizontal
     property int loadingAnimationDuration: Enums.duration.medium
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
 
@@ -367,12 +369,10 @@ Item {
         loadingOverlay.scale = 1
         loadingOverlay.opacity = 0
         switch (loadingAnimationType) {
-        case Enums.animation.slide_horizontal:
+        case Enums.animation.slide:
         case Enums.animation.slide_fade:
-            loadingOverlay.x = width
-            break
-        case Enums.animation.slide_vertical:
-            loadingOverlay.y = height
+            if (loadingAnimationOrientation === Qt.Vertical) loadingOverlay.y = height
+            else loadingOverlay.x = width
             break
         case Enums.animation.popup:
             loadingOverlay.y = Enums.controlSize.popUpOffset

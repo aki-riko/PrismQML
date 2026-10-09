@@ -5,9 +5,9 @@
 import QtQuick
 
 // StackedCardAnimations - Card transition backend 卡片层叠后端
-// Card modes slide the pages along one axis while the outgoing page scales down
-// and fades; the axis is chosen by card_horizontal / card_vertical.
-// 卡片模式沿单一轴向滑动页面，同时旧页缩小并淡出；轴向由 card_horizontal / card_vertical 决定。
+// Card mode slides the pages along the axis given by the caller while the
+// outgoing page scales down and fades.
+// 卡片模式沿调用方给定的轴向滑动页面，同时旧页缩小并淡出。
 QtObject {
     id: backend
 
