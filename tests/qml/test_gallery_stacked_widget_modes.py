@@ -32,6 +32,7 @@ EXPECTED_MODES = (
     "popdown",
     "slide_horizontal",
     "slide_vertical",
+    "slide_fade",
     "card_horizontal",
     "card_vertical",
     "zoom",
@@ -42,6 +43,7 @@ _ENUM_PROPERTIES = {
     "popdown": "popdownMode",
     "slide_horizontal": "slideHorizontalMode",
     "slide_vertical": "slideVerticalMode",
+    "slide_fade": "slideFadeMode",
     "card_horizontal": "cardHorizontalMode",
     "card_vertical": "cardVerticalMode",
     "zoom": "zoomMode",
@@ -56,6 +58,7 @@ QtObject {
     readonly property int popdownMode: Enums.animation.popdown
     readonly property int slideHorizontalMode: Enums.animation.slide_horizontal
     readonly property int slideVerticalMode: Enums.animation.slide_vertical
+    readonly property int slideFadeMode: Enums.animation.slide_fade
     readonly property int cardHorizontalMode: Enums.animation.card_horizontal
     readonly property int cardVerticalMode: Enums.animation.card_vertical
     readonly property int zoomMode: Enums.animation.zoom

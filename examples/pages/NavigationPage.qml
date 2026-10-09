@@ -326,6 +326,23 @@ Item {
                         }
                     }
                     ComponentCard {
+                        label: "slide_fade"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: slideFadeStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.slide_fade
+                                Rectangle { color: Fluent.Enums.demoPalette.blue; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: slideFadeStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: slideFadeStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
                         label: "card_horizontal"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
