@@ -47,9 +47,14 @@ Item {
 
         anchors.fill: parent
         // Window shells keep their original page-stack feel: the incoming page
-        // always bounces in from the bottom, in both switch directions.
-        // 窗口外壳保持原有页面栈观感：新页在两个方向上都从下方回弹进入。
-        animationType: Enums.animation.bounce
+        // always slides in from the bottom and lands smoothly, in both switch
+        // directions. `bounce` changed that landing curve to OutBounce, which was
+        // a behaviour regression against the pre-0.6.0.0 `popup`; `pop` restores
+        // the original OutQuad landing frame for frame.
+        // 窗口外壳保持原有页面栈观感：新页在两个方向上都从下方平滑进入。
+        // 0.6.0.0 一度改用 bounce，落位曲线变成回弹，相对旧 popup 属行为回归；
+        // 这里用 pop 逐帧恢复原有 OutQuad 落位。
+        animationType: Enums.animation.pop
         animationOrigin: Enums.animation.origin_bottom
         // Budget measured from collapse start; the helper subtracts the elapsed
         // collapse to get the remaining indicator time. Derived from
