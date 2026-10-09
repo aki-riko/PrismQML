@@ -26,22 +26,21 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE_PATH = ROOT / "examples" / "pages" / "NavigationPage.qml"
-# (base animation, orientation, pinned origin) shown by the Gallery, in display order.
-# Gallery 按顺序展示的 (基础动画, 轴向, 钉住的进入边) 组合。
+# (base animation, orientation) shown by the Gallery, in display order.
+# Gallery 按顺序展示的 (基础动画, 轴向) 组合。
 EXPECTED_TILES = (
-    ("opacity", None, None),
-    ("pop", "horizontal", None),
-    ("pop", "vertical", None),
-    ("bounce", "horizontal", None),
-    ("bounce", "vertical", None),
-    ("bounce", None, "bottom"),
-    ("slide", "horizontal", None),
-    ("slide", "vertical", None),
-    ("slide_fade", "horizontal", None),
-    ("slide_fade", "vertical", None),
-    ("card", "horizontal", None),
-    ("card", "vertical", None),
-    ("zoom", None, None),
+    ("opacity", None),
+    ("pop", "horizontal"),
+    ("pop", "vertical"),
+    ("bounce", "horizontal"),
+    ("bounce", "vertical"),
+    ("slide", "horizontal"),
+    ("slide", "vertical"),
+    ("slide_fade", "horizontal"),
+    ("slide_fade", "vertical"),
+    ("card", "horizontal"),
+    ("card", "vertical"),
+    ("zoom", None),
 )
 _ENUM_PROPERTIES = {
     "opacity": "opacityMode",
@@ -55,9 +54,6 @@ _ENUM_PROPERTIES = {
 _ORIENTATION_PROPERTIES = {
     "horizontal": "horizontalOrientation",
     "vertical": "verticalOrientation",
-}
-_ORIGIN_PROPERTIES = {
-    "bottom": "bottomOrigin",
 }
 _ENUM_SOURCE = b"""
 import QtQuick
@@ -73,14 +69,11 @@ QtObject {
     readonly property int zoomMode: Enums.animation.zoom
     readonly property int horizontalOrientation: Qt.Horizontal
     readonly property int verticalOrientation: Qt.Vertical
-    readonly property int bottomOrigin: Enums.animation.origin_bottom
 }
 """
 
 
-def _tile_label(mode: str, orientation, origin) -> str:
-    if origin is not None:
-        return f"{mode} ({origin} edge)"
+def _tile_label(mode: str, orientation) -> str:
     return mode if orientation is None else f"{mode} ({orientation})"
 
 
@@ -162,20 +155,15 @@ def test_gallery_shows_base_animations_with_orientation(qapp):
 
         tiles = _stacked_widget_tiles(page)
         assert [label for label, _stack in tiles] == [
-            _tile_label(mode, orientation, origin)
-            for mode, orientation, origin in EXPECTED_TILES
+            _tile_label(mode, orientation) for mode, orientation in EXPECTED_TILES
         ]
-        for (label, stack), (mode, orientation, origin) in zip(tiles, EXPECTED_TILES):
+        for (label, stack), (mode, orientation) in zip(tiles, EXPECTED_TILES):
             assert stack.property("animationType") == modes.property(
                 _ENUM_PROPERTIES[mode]
             ), label
             if orientation is not None:
                 assert stack.property("animationOrientation") == modes.property(
                     _ORIENTATION_PROPERTIES[orientation]
-                ), label
-            if origin is not None:
-                assert stack.property("animationOrigin") == modes.property(
-                    _ORIGIN_PROPERTIES[origin]
                 ), label
 
         assert warnings == []

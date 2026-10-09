@@ -330,24 +330,6 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "bounce (bottom edge)"
-                        Column {
-                            spacing: Fluent.Enums.spacing.xs
-                            StackedWidget {
-                                id: bounceBottomStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.bounce
-                                animationOrigin: Fluent.Enums.animation.origin_bottom
-                                Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
-                                Rectangle { color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
-                            }
-                            Row {
-                                spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: bounceBottomStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: bounceBottomStack.currentIndex = 1 }
-                            }
-                        }
-                    }
-                    ComponentCard {
                         label: "slide (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
