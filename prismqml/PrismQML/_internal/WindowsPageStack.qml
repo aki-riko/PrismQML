@@ -47,9 +47,9 @@ Item {
 
         anchors.fill: parent
         // Window shells keep their original page-stack feel: the incoming page
-        // always pops in from the bottom, in both switch directions.
-        // 窗口外壳保持原有页面栈观感：新页在两个方向上都从下方弹入。
-        animationType: Enums.animation.pop
+        // always bounces in from the bottom, in both switch directions.
+        // 窗口外壳保持原有页面栈观感：新页在两个方向上都从下方回弹进入。
+        animationType: Enums.animation.bounce
         animationOrigin: Enums.animation.origin_bottom
         // Budget measured from collapse start; the helper subtracts the elapsed
         // collapse to get the remaining indicator time. Derived from

@@ -20,13 +20,17 @@ ANIMATION_DURATION_MS = 160
 ANIMATION_TIMEOUT_MS = 2_000
 COMPONENT_READY_TIMEOUT_MS = 2_000
 POLL_INTERVAL_MS = 5
-# (base animation, orientation) pairs; slide / slide_fade / card / pop are shown
-# on both axes because they follow animationOrientation.
-# (基础动画, 轴向) 组合；slide / slide_fade / card / pop 遵循 animationOrientation，两个轴都覆盖。
+CURVE_DURATION_MS = 600
+CURVE_SAMPLE_INTERVAL_MS = 20
+# (base animation, orientation) pairs; slide / slide_fade / card / pop / bounce are
+# shown on both axes because they follow animationOrientation.
+# (基础动画, 轴向) 组合；slide / slide_fade / card / pop / bounce 遵循 animationOrientation。
 MODE_CASES = (
     ("opacity", "horizontal"),
     ("pop", "horizontal"),
     ("pop", "vertical"),
+    ("bounce", "horizontal"),
+    ("bounce", "vertical"),
     ("slide", "horizontal"),
     ("slide", "vertical"),
     ("slide_fade", "horizontal"),
@@ -46,6 +50,7 @@ AXIS_CASES = (
 )
 AXIS_IDS = tuple(f"{mode}-{orientation}" for mode, orientation, _a, _l in AXIS_CASES)
 POP_ORIGINS = ("auto", "top", "bottom")
+LANDING_MODES = ("pop", "bounce")
 
 
 def _wait_until(predicate: Callable[[], bool], timeout_ms: int) -> bool:
@@ -77,6 +82,7 @@ def _build_stack(
     origin_name: str = "auto",
     *,
     lazy_loading: bool = False,
+    duration_ms: int = ANIMATION_DURATION_MS,
 ):
     orientation = "Qt.Vertical" if orientation_name == "vertical" else "Qt.Horizontal"
     component = QQmlComponent(engine)
@@ -88,6 +94,7 @@ Item {{
     width: 320
     height: 200
     readonly property int popMode: Enums.animation.pop
+    readonly property int bounceMode: Enums.animation.bounce
     readonly property int topOrigin: Enums.animation.origin_top
     readonly property int bottomOrigin: Enums.animation.origin_bottom
     readonly property int verticalOrientation: Qt.Vertical
@@ -100,7 +107,7 @@ Item {{
         animationType: Enums.animation.{mode_name}
         animationOrientation: {orientation}
         animationOrigin: {_origin_value(origin_name)}
-        animationDuration: {ANIMATION_DURATION_MS}
+        animationDuration: {duration_ms}
 
         Item {{ objectName: "page0" }}
         Item {{ objectName: "page1" }}
@@ -187,7 +194,7 @@ def _assert_transition_start(
     if mode_name == "opacity":
         assert bool(old_page.property("visible"))
         _assert_close(_number(new_page, "opacity"), 0)
-    elif mode_name == "pop":
+    elif mode_name in {"pop", "bounce"}:
         assert not bool(old_page.property("visible"))
         _assert_close(
             _number(new_page, axis), offset * _pop_entry_sign(origin_name, is_back)
@@ -258,26 +265,27 @@ def test_all_modes_preserve_forward_and_backward_states(
         _dispose(engine, component, root)
 
 
+@pytest.mark.parametrize("mode_name", LANDING_MODES)
 @pytest.mark.parametrize("origin_name", POP_ORIGINS)
-def test_pop_entry_edge_follows_origin(qapp, origin_name):
-    """pop 进入边：auto 跟随切换方向，钉住 top/bottom 时两个方向都固定在该边。"""
+def test_entry_edge_follows_origin(qapp, mode_name, origin_name):
+    """进入边：auto 跟随切换方向，钉住 top/bottom 时两个方向都固定在该边。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
     component, root, stack, page0, page1 = _build_stack(
-        engine, "pop", "vertical", origin_name
+        engine, mode_name, "vertical", origin_name
     )
     try:
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 1)
         _assert_transition_start(
-            "pop", "vertical", stack, page0, page1, False, origin_name
+            mode_name, "vertical", stack, page0, page1, False, origin_name
         )
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
 
         finished = QSignalSpy(stack.animationFinished)
         assert stack.setProperty("currentIndex", 0)
         _assert_transition_start(
-            "pop", "vertical", stack, page1, page0, True, origin_name
+            mode_name, "vertical", stack, page1, page0, True, origin_name
         )
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_resting_state(page0, page1)
@@ -285,12 +293,13 @@ def test_pop_entry_edge_follows_origin(qapp, origin_name):
         _dispose(engine, component, root)
 
 
-def test_pinned_pop_origin_overrides_orientation(qapp):
+@pytest.mark.parametrize("mode_name", LANDING_MODES)
+def test_pinned_origin_overrides_orientation(qapp, mode_name):
     """钉住进入边时忽略 animationOrientation：水平轴向 + origin_top 仍从上方进入。"""
     engine = QQmlApplicationEngine()
     register_types(engine)
     component, root, stack, page0, page1 = _build_stack(
-        engine, "pop", "horizontal", "top"
+        engine, mode_name, "horizontal", "top"
     )
     try:
         offset = _number(stack, "popUpOffset")
@@ -300,6 +309,53 @@ def test_pinned_pop_origin_overrides_orientation(qapp):
         _assert_close(_number(page1, "x"), 0)
         assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
         _assert_resting_state(page1, page0)
+    finally:
+        _dispose(engine, component, root)
+
+
+def _is_monotonic_towards_rest(samples, tolerance: float = 0.5) -> bool:
+    """距离落位点是否单调不增(允许 tolerance 抖动)。"""
+    return all(
+        later <= earlier + tolerance for earlier, later in zip(samples, samples[1:])
+    )
+
+
+def _sample_entry_trajectory(stack: QObject, page: QObject, property_name: str):
+    """切页过程中按固定间隔采样进入页到落位点的距离。"""
+    samples = []
+    finished = QSignalSpy(stack.animationFinished)
+    elapsed = QElapsedTimer()
+    elapsed.start()
+    while finished.count() == 0 and elapsed.elapsed() < CURVE_DURATION_MS * 2:
+        samples.append(abs(_number(page, property_name)))
+        QTest.qWait(CURVE_SAMPLE_INTERVAL_MS)
+    return samples
+
+
+def test_landing_curve_follows_mode_on_shared_backend(qapp):
+    """同一后端：pop 单调平滑落位，切到 bounce 后出现回弹(反向)再落位。"""
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, root, stack, page0, page1 = _build_stack(
+        engine, "pop", "vertical", duration_ms=CURVE_DURATION_MS
+    )
+    try:
+        offset = _number(stack, "popUpOffset")
+
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 1)
+        smooth = _sample_entry_trajectory(stack, page1, "y")
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        assert smooth and smooth[0] > offset * 0.5
+        assert _is_monotonic_towards_rest(smooth)
+
+        assert stack.setProperty("animationType", root.property("bounceMode"))
+        finished = QSignalSpy(stack.animationFinished)
+        assert stack.setProperty("currentIndex", 0)
+        elastic = _sample_entry_trajectory(stack, page0, "y")
+        assert _wait_until(lambda: finished.count() == 1, ANIMATION_TIMEOUT_MS)
+        assert elastic and elastic[0] > offset * 0.5
+        assert not _is_monotonic_towards_rest(elastic)
     finally:
         _dispose(engine, component, root)
 

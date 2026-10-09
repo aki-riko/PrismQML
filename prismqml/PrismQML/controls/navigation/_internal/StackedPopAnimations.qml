@@ -4,11 +4,12 @@
 
 import QtQuick
 
-// StackedPopAnimations - Parameterized pop backend 参数化弹入切页后端
-// The incoming page pops in from the requested edge while fading in; the
-// outgoing page is hidden immediately. Positive edges (bottom / right) keep the
-// bounce, negative edges (top / left) land smoothly.
-// 新页从指定边弹入并淡入，旧页立即隐藏；正侧(bottom/right)保留回弹，负侧(top/left)平滑落位。
+// StackedPopAnimations - Parameterized pop / bounce backend 参数化弹入切页后端
+// The incoming page enters from the requested edge while fading in; the outgoing
+// page is hidden immediately. The landing curve follows the mode: pop lands
+// smoothly (OutQuad), bounce lands elastically (OutBounce).
+// 新页从指定边进入并淡入，旧页立即隐藏；落位曲线跟随模式：pop 平滑(OutQuad)，
+// bounce 回弹(OutBounce)。
 QtObject {
     id: backend
 
@@ -66,10 +67,10 @@ QtObject {
             _resetPosition(_newWidget)
         }
     }
-    function transition(oldIndex, newIndex, vertical, entrySign) {
+    function transition(oldIndex, newIndex, vertical, entrySign, bounce) {
         stopAllAnimations()
         _vertical = Boolean(vertical)
-        _bounce = entrySign >= 0
+        _bounce = Boolean(bounce)
         _oldWidget = widget(oldIndex)
         _newWidget = widget(newIndex)
         if (!_oldWidget || !_newWidget) return
@@ -84,10 +85,10 @@ QtObject {
         popAnimation.from = offset
         animationGroup.start()
     }
-    function enterOnly(newIndex, vertical, entrySign) {
+    function enterOnly(newIndex, vertical, entrySign, bounce) {
         stopAllAnimations()
         _vertical = Boolean(vertical)
-        _bounce = entrySign >= 0
+        _bounce = Boolean(bounce)
         _oldWidget = null
         _newWidget = widget(newIndex)
         if (!_newWidget) return

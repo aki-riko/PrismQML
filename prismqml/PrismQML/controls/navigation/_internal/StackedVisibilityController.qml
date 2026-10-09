@@ -31,6 +31,7 @@ Item {
             animations.fadeTransition(oldIndex, newIndex)
             break
         case Enums.animation.pop:
+        case Enums.animation.bounce:
             animations.popTransition(oldIndex, newIndex, isBack)
             break
         case Enums.animation.slide:
@@ -66,6 +67,7 @@ Item {
             animations.enterFadeOnly(newIndex)
             break
         case Enums.animation.pop:
+        case Enums.animation.bounce:
             animations.enterPopOnly(newIndex)
             break
         case Enums.animation.zoom:

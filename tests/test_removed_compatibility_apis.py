@@ -219,6 +219,7 @@ def test_stacked_widget_animation_uses_base_modes_with_orientation():
         assert removed not in animation_source, removed
     for required in (
         "readonly property int pop:",
+        "readonly property int bounce:",
         "readonly property int slide:",
         "readonly property int slide_fade:",
         "readonly property int card:",
@@ -261,11 +262,11 @@ def test_stacked_widget_animation_uses_base_modes_with_orientation():
     assert "control.animationOrigin" in dispatcher_source
 
 
-def test_window_page_stack_pins_pop_entry_to_the_bottom():
-    """窗口外壳的页面栈钉住 origin_bottom：收敛后两个方向仍都从下方弹入，观感不变。"""
+def test_window_page_stack_pins_bounce_entry_to_the_bottom():
+    """窗口外壳钉住 origin_bottom 并保留回弹：收敛后两个方向仍都从下方弹入，观感不变。"""
     page_stack_source = _read("prismqml/PrismQML/_internal/WindowsPageStack.qml")
 
-    assert "animationType: Enums.animation.pop" in page_stack_source
+    assert "animationType: Enums.animation.bounce" in page_stack_source
     assert (
         "animationOrigin: Enums.animation.origin_bottom" in page_stack_source
     )

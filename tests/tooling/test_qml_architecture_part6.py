@@ -873,13 +873,16 @@ def test_stacked_animations_monolith_stays_deleted():
         assert backend in dispatcher_source
         assert (internal / backend).exists()
 
-    # One pop backend parameterized by axis and entry edge; the bounce and the
-    # smooth landing curves both stay in it.
-    # 单个 pop 后端由轴向与进入边参数化；回弹与平滑两种落位曲线都留在其中。
+    # One pop/bounce backend parameterized by axis, entry edge and landing curve;
+    # the smooth and the elastic curves both stay in it.
+    # 单个 pop/bounce 后端由轴向、进入边与落位曲线参数化；平滑与回弹两种曲线都留在其中。
     assert dispatcher_source.count('"StackedPopAnimations.qml"') == 1
     pop_source = (internal / "StackedPopAnimations.qml").read_text(encoding="utf-8")
-    assert "function transition(oldIndex, newIndex, vertical, entrySign)" in pop_source
-    assert "function enterOnly(newIndex, vertical, entrySign)" in pop_source
+    assert (
+        "function transition(oldIndex, newIndex, vertical, entrySign, bounce)"
+        in pop_source
+    )
+    assert "function enterOnly(newIndex, vertical, entrySign, bounce)" in pop_source
     assert "Easing.OutBounce" in pop_source
     assert "Easing.OutQuad" in pop_source
     assert "StackedPopUpAnimations.qml" not in dispatcher_source

@@ -294,20 +294,56 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "pop (top edge)"
+                        label: "bounce (horizontal)"
                         Column {
                             spacing: Fluent.Enums.spacing.xs
                             StackedWidget {
-                                id: popTopStack; width: 110; height: 55
-                                animationType: Fluent.Enums.animation.pop
-                                animationOrigin: Fluent.Enums.animation.origin_top
+                                id: bounceHorizontalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.bounce
+                                animationOrientation: Qt.Horizontal
+                                Rectangle { color: Fluent.Enums.demoPalette.purple; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.pink; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: bounceHorizontalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: bounceHorizontalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "bounce (vertical)"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: bounceVerticalStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.bounce
+                                animationOrientation: Qt.Vertical
                                 Rectangle { color: Fluent.Enums.demoPalette.sky; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
                                 Rectangle { color: Fluent.Enums.demoPalette.lime; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
                             }
                             Row {
                                 spacing: Fluent.Enums.spacing.xs
-                                Button { text: "1"; width: 26; onClicked: popTopStack.currentIndex = 0 }
-                                Button { text: "2"; width: 26; onClicked: popTopStack.currentIndex = 1 }
+                                Button { text: "1"; width: 26; onClicked: bounceVerticalStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: bounceVerticalStack.currentIndex = 1 }
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "bounce (bottom edge)"
+                        Column {
+                            spacing: Fluent.Enums.spacing.xs
+                            StackedWidget {
+                                id: bounceBottomStack; width: 110; height: 55
+                                animationType: Fluent.Enums.animation.bounce
+                                animationOrigin: Fluent.Enums.animation.origin_bottom
+                                Rectangle { color: Fluent.Enums.demoPalette.teal; Text { anchors.centerIn: parent; text: "1"; color: Fluent.Enums.accentForeground } }
+                                Rectangle { color: Fluent.Enums.demoPalette.orange; Text { anchors.centerIn: parent; text: "2"; color: Fluent.Enums.accentForeground } }
+                            }
+                            Row {
+                                spacing: Fluent.Enums.spacing.xs
+                                Button { text: "1"; width: 26; onClicked: bounceBottomStack.currentIndex = 0 }
+                                Button { text: "2"; width: 26; onClicked: bounceBottomStack.currentIndex = 1 }
                             }
                         }
                     }

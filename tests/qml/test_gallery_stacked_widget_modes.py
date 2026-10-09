@@ -32,7 +32,9 @@ EXPECTED_TILES = (
     ("opacity", None, None),
     ("pop", "horizontal", None),
     ("pop", "vertical", None),
-    ("pop", None, "top"),
+    ("bounce", "horizontal", None),
+    ("bounce", "vertical", None),
+    ("bounce", None, "bottom"),
     ("slide", "horizontal", None),
     ("slide", "vertical", None),
     ("slide_fade", "horizontal", None),
@@ -44,6 +46,7 @@ EXPECTED_TILES = (
 _ENUM_PROPERTIES = {
     "opacity": "opacityMode",
     "pop": "popMode",
+    "bounce": "bounceMode",
     "slide": "slideMode",
     "slide_fade": "slideFadeMode",
     "card": "cardMode",
@@ -54,7 +57,7 @@ _ORIENTATION_PROPERTIES = {
     "vertical": "verticalOrientation",
 }
 _ORIGIN_PROPERTIES = {
-    "top": "topOrigin",
+    "bottom": "bottomOrigin",
 }
 _ENUM_SOURCE = b"""
 import QtQuick
@@ -63,13 +66,14 @@ import PrismQML
 QtObject {
     readonly property int opacityMode: Enums.animation.opacity
     readonly property int popMode: Enums.animation.pop
+    readonly property int bounceMode: Enums.animation.bounce
     readonly property int slideMode: Enums.animation.slide
     readonly property int slideFadeMode: Enums.animation.slide_fade
     readonly property int cardMode: Enums.animation.card
     readonly property int zoomMode: Enums.animation.zoom
     readonly property int horizontalOrientation: Qt.Horizontal
     readonly property int verticalOrientation: Qt.Vertical
-    readonly property int topOrigin: Enums.animation.origin_top
+    readonly property int bottomOrigin: Enums.animation.origin_bottom
 }
 """
 

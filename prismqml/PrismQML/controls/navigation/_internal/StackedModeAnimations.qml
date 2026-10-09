@@ -37,6 +37,7 @@ Item {
                 newWidget.opacity = 0
                 break
             case Enums.animation.pop:
+            case Enums.animation.bounce:
                 newWidget.x = 0
                 newWidget.y = 0
                 _setEntryPosition(newWidget, _popVerticalAxis(), _popEntrySign(false))
@@ -101,12 +102,12 @@ Item {
         var backend = _ensureBackend(_sourceForType(Enums.animation.pop))
         if (backend) backend.transition(
                     oldIndex, newIndex,
-                    _popVerticalAxis(), _popEntrySign(isBack))
+                    _popVerticalAxis(), _popEntrySign(isBack), _isBounceMode())
     }
     function enterPopOnly(newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.pop))
         if (backend) backend.enterOnly(
-                    newIndex, _popVerticalAxis(), _popEntrySign(false))
+                    newIndex, _popVerticalAxis(), _popEntrySign(false), _isBounceMode())
     }
     function zoomTransition(oldIndex, newIndex) {
         var backend = _ensureBackend(_sourceForType(Enums.animation.zoom))
@@ -122,15 +123,22 @@ Item {
     }
 
     // ==================== Internal Methods 内部方法 ====================
-    // Axis of slide / slide_fade / card; pop follows it only while origin is auto.
-    // slide / slide_fade / card 的轴向；pop 仅在 origin 为 auto 时跟随它。
+    // Axis of slide / slide_fade / card; pop / bounce follow it only while origin is auto.
+    // slide / slide_fade / card 的轴向；pop / bounce 仅在 origin 为 auto 时跟随它。
     function _isVerticalAxis() {
         return control.animationOrientation === Qt.Vertical
     }
 
-    // Pop entry edge: a pinned origin wins; origin_auto keeps the axis from
-    // animationOrientation and takes the edge from the switch direction.
-    // pop 进入边：钉住的 origin 优先；origin_auto 时轴取 animationOrientation，边取切换方向。
+    // Landing curve of the shared pop backend: pop is smooth, bounce is elastic.
+    // 共享 pop 后端的落位曲线：pop 平滑，bounce 回弹。
+    function _isBounceMode() {
+        return control.animationType === Enums.animation.bounce
+    }
+
+    // Entry edge of pop / bounce: a pinned origin wins; origin_auto keeps the axis
+    // from animationOrientation and takes the edge from the switch direction.
+    // pop / bounce 进入边：钉住的 origin 优先；origin_auto 时轴取 animationOrientation，
+    // 边取切换方向。
     function _popVerticalAxis() {
         switch (control.animationOrigin) {
             case Enums.animation.origin_top:
@@ -168,6 +176,7 @@ Item {
             case Enums.animation.opacity:
                 return Qt.resolvedUrl("StackedFadeAnimations.qml")
             case Enums.animation.pop:
+            case Enums.animation.bounce:
                 return Qt.resolvedUrl("StackedPopAnimations.qml")
             case Enums.animation.slide:
                 return Qt.resolvedUrl("StackedSlideAnimations.qml")
