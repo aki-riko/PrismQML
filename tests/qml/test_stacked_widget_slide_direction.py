@@ -5,7 +5,7 @@
 """StackedWidget 滑动方向运行时回归测试。"""
 
 import pytest
-from PySide6.QtCore import QElapsedTimer, QObject, QUrl
+from PySide6.QtCore import QCoreApplication, QElapsedTimer, QEvent, QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtTest import QSignalSpy, QTest
 
@@ -21,6 +21,19 @@ ORIENTATION_CASES = (
 )
 ORIENTATION_IDS = tuple(orientation for orientation, _axis, _length in ORIENTATION_CASES)
 SLIDE_VARIANTS = ("slide", "slide_fade")
+
+
+def _dispose(engine: QQmlApplicationEngine, component: QQmlComponent, root) -> None:
+    """Drop the scene eagerly: StackedWidget's PageTransition owns a hidden overlay
+    window, and leaving its deferred deletion pending leaks that window into the
+    next test in the same process.
+    尽早释放场景：StackedWidget 的 PageTransition 持有隐藏 overlay 窗口，
+    延迟删除若不派发会把该窗口泄漏给同进程的下一个用例。"""
+    root.deleteLater()
+    component.deleteLater()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
 
 
 def _build_slide_stack(
@@ -118,10 +131,7 @@ def test_slide_direction_follows_orientation(qapp, orientation, axis, length_pro
         assert forward_start == length
         assert backward_start == -length
     finally:
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        qapp.processEvents()
+        _dispose(engine, component, root)
 
 
 @pytest.mark.parametrize("orientation", ("horizontal", "vertical"))
@@ -160,7 +170,4 @@ def test_slide_variants_put_incoming_page_above_outgoing_on_back(
         assert float(page0.property("z")) == 0
         assert float(page1.property("z")) == 1
     finally:
-        root.deleteLater()
-        component.deleteLater()
-        engine.deleteLater()
-        qapp.processEvents()
+        _dispose(engine, component, root)
