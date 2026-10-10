@@ -129,9 +129,14 @@ Window {
         assert instance.property("drawn") is False
         assert ring.property("keyboardFocused") is False
 
-        from PySide6.QtCore import QMetaObject
+        from PySide6.QtCore import QCoreApplication, QMetaObject
 
         QMetaObject.invokeMethod(instance, "focusByKeyboard")
+        # Focus propagation and the Loader's materialisation both need the event
+        # loop to turn over before the ring can be observed.
+        # 焦点传播与 Loader 实例化都需要事件循环推进一轮后才能观察到焦点环。
+        for _ in range(4):
+            QCoreApplication.processEvents()
         assert area.property("activeFocus") is True
         assert ring.property("keyboardFocused") is True
         assert instance.property("drawn") is True
