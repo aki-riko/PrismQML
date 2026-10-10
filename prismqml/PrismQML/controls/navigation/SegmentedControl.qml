@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 import "_internal" as NavigationInternal
 
 // SegmentedControl - Segmented control with icon+text support 分段控件
@@ -21,6 +22,8 @@ Rectangle {
     property int iconSize: Enums.iconSize.m
     property bool showIndicator: true
     property int orientation: Qt.Horizontal
+    // Accessible name for the segmented strip. 分段条的可访问名称。
+    property string a11yName: ""
 
     // ==================== Internal Props 内部属性 ====================
     property real _slideX: 0
@@ -128,6 +131,14 @@ Rectangle {
     onCurrentIndexChanged: slideSyncTimer.schedule(true)
 
     // ==================== Content 内容 ====================
+    // A segmented control is a tab list: the user picks one of several views.
+    // 分段控件是标签列表：用户在多个视图之间选择其一。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_tabbar
+        name: control.a11yName
+    }
+
     NavigationInternal.SegmentedSelectedBackground {
         id: selectedBg
         host: control
