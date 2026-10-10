@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 
 // RefreshContainer - Pull-to-refresh wrapper 下拉刷新容器
 //
@@ -32,6 +33,9 @@ Item {
     // Distance the user must pull to arm a refresh 触发刷新所需的下拉距离
     property int pullThreshold: Enums.controlSize.refreshPullThreshold
     property bool interactionEnabled: true
+    // Optional accessible name; unset leaves the container unnamed.
+    // 可选的可访问名称；未设置时容器保持无名。
+    property string a11yName: ""
     // Optional explicit scroll surface; null auto-detects the first Flickable inside
     // 可选显式滚动面; 为空则自动取内容里第一个 Flickable
     property Flickable target: null
@@ -116,6 +120,19 @@ Item {
     onRefreshingChanged: if (!refreshing && !_dragging) _offset = 0
 
     // ==================== Content 内容 ====================
+    // A refresh container groups the pull affordance with its content; while a
+    // refresh runs it also reports itself as a progress surface. The accessible name
+    // is supplied by the host because this component renders no label of its own.
+    // 刷新容器把下拉动作与内容归为一组；刷新进行时它同时充当进度表面。
+    // 该组件自身不渲染任何标签，因此可访问名称由宿主提供。
+    A11ySurface {
+        target: control
+        role: control.refreshing
+              ? Enums.accessibility.role_progressbar
+              : Enums.accessibility.role_group
+        name: control.a11yName
+    }
+
     // Pull indicator 下拉指示器
     Item {
         id: indicator
