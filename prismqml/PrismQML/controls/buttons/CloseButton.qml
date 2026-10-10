@@ -37,6 +37,12 @@ Item {
     // ==================== Size 尺寸 ====================
     width: size
     height: size
+    // The button shows only a glyph, so its accessible name comes from the shared
+    // catalogue instead of an icon name that reads as meaningless to a screen reader.
+    // 该按钮只显示图形，因此可访问名称取自共享词表，而不是读屏器无法理解的图标名。
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_button)
+    Accessible.name: Translator.tr("close")
+    Accessible.focusable: true
 
     // ==================== Content 内容 ====================
     // Background 背景
