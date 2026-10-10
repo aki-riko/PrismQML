@@ -111,6 +111,10 @@ Item {
     // 平台高对比度由管理器读取一次并在此只读暴露，使各表面可自行提升对比度，
     // 而无需每个组件各自探测操作系统。
     readonly property bool highContrast: ThemeManager ? ThemeManager.highContrast : false
+    // Right-to-left scripts mirror the layout; the resolved language owns that
+    // decision so windows and nested scopes only need to forward it.
+    // 从右到左的文字会镜像布局；该判定由解析后的语言持有，窗口与嵌套作用域只需转发。
+    readonly property bool isRtl: Translator ? Translator.isRightToLeft : false
     // Raw appearance inputs are public so SkinScope can reuse the current user
     // preference while changing only its local design language.
     // 原始外观输入公开给 SkinScope，使它仅替换局部设计语言而保留用户明暗、字体和强调色。
