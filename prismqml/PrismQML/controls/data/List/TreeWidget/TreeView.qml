@@ -166,20 +166,26 @@ DataWidgetCore {
 
                 property real expandEnd: Enums.spacing.xl + delegateRoot.branchOffset + Enums.controlSize.treeIndentSize + Enums.spacing.xs
 
+                function isExpandZone(x) { return x <= expandEnd }
+
                 anchors.fill: parent
                 hoverEnabled: true
 
                 onEntered: control._hoverIndex = delegateRoot.index
                 onExited: { if (control._hoverIndex === delegateRoot.index) control._hoverIndex = -1 }
                 onClicked: (mouse) => {
-                    if (delegateRoot.hasChildren && mouse.x <= expandEnd) {
+                    if (delegateRoot.hasChildren && isExpandZone(mouse.x)) {
                         Core.toggleExpandAt(control, internalModel, delegateRoot.index)
                         return
                     }
                     control.itemClicked(Core.getItemObject(control, internalModel, delegateRoot.index), delegateRoot.index)
                 }
-                onDoubleClicked: {
-                    if (delegateRoot.hasChildren) Core.toggleExpandAt(control, internalModel, delegateRoot.index)
+                onDoubleClicked: (mouse) => {
+                    // The expand zone already toggled on the first click of a double click.
+                    // 展开按钮区在双击的第一击已切换过，双击不再重复切换。
+                    if (delegateRoot.hasChildren && !isExpandZone(mouse.x)) {
+                        Core.toggleExpandAt(control, internalModel, delegateRoot.index)
+                    }
                 }
             }
         }

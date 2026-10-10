@@ -172,6 +172,8 @@ Rectangle {
         property real expandBtnStart: Enums.spacing.xl + delegateRoot.branchOffset - Enums.spacing.xxs
         property real expandBtnEnd: expandBtnStart + Enums.controlSize.treeIndentSize + Enums.spacing.xs
 
+        function isExpandZone(x) { return x >= expandBtnStart && x <= expandBtnEnd }
+
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -188,14 +190,14 @@ Rectangle {
         onPressed: (mouse) => {
             if (!control) return
             // Skip selection for expand button area 跳过展开按钮区域的选择
-            if (delegateRoot.hasChildren && mouse.x >= expandBtnStart && mouse.x <= expandBtnEnd) {
+            if (delegateRoot.hasChildren && isExpandZone(mouse.x)) {
                 return
             }
             control.itemPressed(control._getItemObject(delegateRoot.index), delegateRoot.index)
         }
         onClicked: (mouse) => {
             if (!control) return
-            if (delegateRoot.hasChildren && mouse.x >= expandBtnStart && mouse.x <= expandBtnEnd) {
+            if (delegateRoot.hasChildren && isExpandZone(mouse.x)) {
                 control._toggleExpandAt(delegateRoot.index)
                 return
             }
@@ -208,10 +210,14 @@ Rectangle {
             control._handleItemClick(delegateRoot.index, mouse.button, mouse.modifiers)
             control.itemClicked(control._getItemObject(delegateRoot.index), delegateRoot.index)
         }
-        onDoubleClicked: {
+        onDoubleClicked: (mouse) => {
             if (!control) return
             control.itemDoubleClicked(control._getItemObject(delegateRoot.index), delegateRoot.index)
-            if (delegateRoot.hasChildren) control._toggleExpandAt(delegateRoot.index)
+            // The expand zone already toggled on the first click of a double click.
+            // 展开按钮区在双击的第一击已切换过，双击不再重复切换。
+            if (delegateRoot.hasChildren && !isExpandZone(mouse.x)) {
+                control._toggleExpandAt(delegateRoot.index)
+            }
         }
     }
 }
