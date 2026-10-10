@@ -7,6 +7,7 @@ import "../.."
 import "../../effects"
 import QtQuick.Effects
 import "../containers"
+import "../utils"
 
 // InputCore - Input control base class 输入控件基类
 // LineEditCore/SpinBoxCore/TextEditCore etc. extend this 这些控件继承此基类
@@ -33,6 +34,12 @@ Widget {
     property int radius: Enums.surfaceRadius(Enums.radius.small)
     property bool transparentBackground: false
     property bool folderDropEnabled: false  // Enable one-folder drop 启用单文件夹拖放
+    // Accessible metadata contract (required shape for a11y roll-out).
+    // Subclasses set role/name through the shared A11ySurface declared below.
+    // 无障碍元数据契约（铺开的必需形状）。子类通过下方共享 A11ySurface 设置角色与名称。
+    property int a11yRole: Enums.accessibility.role_textfield
+    property string a11yName: ""
+    property string a11yDescription: ""
 
     // Use unified control colors 使用统一的控件颜色
     // Note: transparentBackground takes highest priority 透明背景优先级最高
@@ -116,6 +123,15 @@ Widget {
     contentHeight: Enums.controlSize.inputHeight
 
     // ==================== Content 内容 ====================
+    // Inputs own their accessible contract here so every subclass inherits it.
+    // 输入控件在此持有无障碍契约，使所有子类继承同一份实现。
+    A11ySurface {
+        target: control
+        role: control.a11yRole
+        name: control.a11yName
+        description: control.a11yDescription
+    }
+
     // Shadow layer 阴影层
     // Fluent: blurred shadow. Neobrutalism: hard shadow. Fluent：模糊阴影。Neobrutalism：硬阴影。
     RectangularShadow {

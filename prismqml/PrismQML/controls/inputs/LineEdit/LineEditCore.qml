@@ -91,6 +91,10 @@ InputCore {
     hovered: loader.item ? loader.item.hovered : false
     _folderDropTarget: control
     _folderDropWritable: !readOnly && inputType === Enums.input.type_normal
+    // The visible label wins, then the placeholder, so screen readers announce the
+    // same words the user sees beside the field.
+    // 可见标签优先，其次占位文本，使读屏器播报与用户看到的字段标识一致。
+    a11yName: label !== "" ? label : placeholderText
 
     // Override InputCore content size 覆盖InputCore内容尺寸
     // Content calculated size based on inputType 根据inputType计算内容尺寸

@@ -108,18 +108,11 @@ def read_high_contrast_env(raw: Optional[str] = None) -> Optional[bool]:
     return None
 
 
-def detect_high_contrast() -> bool:
-    """Detect the platform high-contrast setting. 探测平台高对比度设置。
+def _read_high_contrast_flags() -> Optional[int]:
+    """Read the Windows high-contrast flag word, or None when unavailable.
 
-    Qt exposes no contrast signal (QStyleHints only carries the color scheme), so
-    Windows is asked through SystemParametersInfoW(SPI_GETHIGHCONTRAST). Other
-    platforms report False rather than guessing a value nobody can verify.
-    Qt 不暴露对比度信号（QStyleHints 只有配色方案），因此 Windows 走
-    SystemParametersInfoW(SPI_GETHIGHCONTRAST)。其他平台返回 False，而不是猜一个
-    无法验证的值。
+    返回 Windows 高对比度标志位；不可用时返回 None。
     """
-    if sys.platform != "win32":
-        return False
     try:
         import ctypes
         from ctypes import wintypes
@@ -138,11 +131,29 @@ def detect_high_contrast() -> bool:
         )
         if not succeeded:
             debug("SystemParametersInfoW(SPI_GETHIGHCONTRAST) 调用失败，按未启用处理")
-            return False
-        return bool(info.dwFlags & _HCF_HIGHCONTRASTON)
+            return None
+        return int(info.dwFlags)
     except (AttributeError, OSError, ValueError) as error:
         debug(f"高对比度探测失败: {error}")
+        return None
+
+
+def detect_high_contrast() -> bool:
+    """Detect the platform high-contrast setting. 探测平台高对比度设置。
+
+    Qt exposes no contrast signal (QStyleHints only carries the color scheme), so
+    Windows is asked through SystemParametersInfoW(SPI_GETHIGHCONTRAST). Other
+    platforms report False rather than guessing a value nobody can verify.
+    Qt 不暴露对比度信号（QStyleHints 只有配色方案），因此 Windows 走
+    SystemParametersInfoW(SPI_GETHIGHCONTRAST)。其他平台返回 False，而不是猜一个
+    无法验证的值。
+    """
+    if sys.platform != "win32":
         return False
+    flags = _read_high_contrast_flags()
+    if flags is None:
+        return False
+    return bool(flags & _HCF_HIGHCONTRASTON)
 
 
 def _shift_lightness(hex_color: str, delta: float) -> str:

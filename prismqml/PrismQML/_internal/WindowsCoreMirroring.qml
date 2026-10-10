@@ -18,16 +18,27 @@ QtObject {
     id: mirroring
 
     // ==================== Required Props 必需属性 ====================
-    required property Item host
+    // The host is a Window, which is a QObject but not a QQuickItem, so the type
+    // must stay QtObject for the assignment to be legal.
+    // 宿主是 Window（QObject 但非 QQuickItem），因此类型必须保持 QtObject 才可赋值。
+    required property QtObject host
     // Language-derived direction, resolved once by the shared enum entry point.
     // 由语言派生的文字方向，由共享枚举入口解析一次。
     required property bool rightToLeft
 
     // ==================== Public Props 公开属性 ====================
     // A binding rather than a one-shot assignment, so switching the language at
-    // runtime re-mirrors the window.
-    // 使用绑定而非一次性赋值，因此运行时切换语言会重新镜像窗口。
+    // runtime re-mirrors the window. The host is re-checked on every write because
+    // a torn-down window reports null and must not raise a binding error.
+    // 使用绑定而非一次性赋值，因此运行时切换语言会重新镜像窗口。每次写入都重新检查
+    // 宿主，因为已拆解的窗口会返回 null，不得因此抛出绑定错误。
     property bool enabled: rightToLeft
-    onEnabledChanged: mirroring.host.LayoutMirroring.enabled = mirroring.enabled
-    Component.onCompleted: mirroring.host.LayoutMirroring.enabled = mirroring.enabled
+    onEnabledChanged: mirroring._apply()
+    Component.onCompleted: mirroring._apply()
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _apply() {
+        if (mirroring.host === null || mirroring.host === undefined) return
+        mirroring.host.LayoutMirroring.enabled = mirroring.enabled
+    }
 }
