@@ -72,6 +72,18 @@ SCENES = {
         QAccessible.Role.Dialog,
         "Confirm",
     ),
+    "Card": (
+        b"""Item { width: 300; height: 200
+            Card { objectName: "probe"; title: "Summary" } }""",
+        QAccessible.Role.Grouping,
+        "Summary",
+    ),
+    "GroupBox": (
+        b"""Item { width: 300; height: 200
+            GroupBox { objectName: "probe"; title: "Options" } }""",
+        QAccessible.Role.Grouping,
+        "Options",
+    ),
     "ProgressBar": (
         b"""Item { width: 200; height: 60
             ProgressBar { objectName: "probe"; value: 30; a11yName: "Loading" } }""",
