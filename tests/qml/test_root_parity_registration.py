@@ -43,6 +43,14 @@ REQUIRED_ROOT_TYPES = (
     "ItemsRepeaterLayout",
     "ItemsStackLayout",
     "ItemsUniformGridLayout",
+    "RibbonBar",
+    "RibbonTab",
+    "RibbonGroup",
+    "AppBarButton",
+    "AppBarToggleButton",
+    "AppBarSeparator",
+    "FocusVisual",
+    "AccessibilityHelper",
 )
 
 # Types whose construction touches heavyweight backends stay uninstantiated here;
@@ -53,6 +61,10 @@ INSTANTIATE_EXEMPT = frozenset(
         "MediaPlayerElement",
         "MapControl",
         "WebView2",
+        # Composite singletons are not creatable from QML, so reachability is the
+        # only thing a component expression can prove for them.
+        # 组合单例无法从 QML 实例化，因此组件表达式对它们只能证明可达。
+        "AccessibilityHelper",
     }
 )
 
@@ -82,7 +94,7 @@ def _root_type_source() -> str:
 def _registered_type_names(qmldir_source: str) -> set[str]:
     """Collect the type name of every active (non-commented) qmldir line.
 
-    逐行取首 token，避免用带空格的子串去匹配行首类型名。
+    逐行取类型名 token：跳过可选的 `singleton` 修饰符，避免把修饰符当成类型名。
     """
     names: set[str] = set()
     for raw in qmldir_source.splitlines():
@@ -92,7 +104,9 @@ def _registered_type_names(qmldir_source: str) -> set[str]:
         parts = line.split()
         if len(parts) < 2 or not parts[-1].endswith(".qml"):
             continue
-        names.add(parts[0])
+        # `singleton Foo Foo.qml` registers the type `Foo`, not `singleton`.
+        # `singleton Foo Foo.qml` 注册的类型是 Foo 而非 singleton。
+        names.add(parts[1] if parts[0] == "singleton" else parts[0])
     return names
 
 

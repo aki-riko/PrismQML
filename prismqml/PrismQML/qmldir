@@ -26,6 +26,7 @@ TicketPaper effects/TicketPaper.qml
 ToggleAnimation effects/ToggleAnimation.qml
 HoverBehavior effects/HoverBehavior.qml
 MatrixRain effects/MatrixRain.qml
+FocusVisual effects/FocusVisual.qml
 
 # ==================== Icons 图标 ====================
 Icon controls/icons/Icon.qml
@@ -146,6 +147,12 @@ PipsPager navigation/PipsPager.qml
 StatusBar navigation/StatusBar.qml
 ToggleNavigationBar navigation/ToggleNavigationBar.qml
 #ToolBar navigation/ToolBar.qml
+RibbonBar navigation/RibbonBar.qml
+RibbonTab navigation/RibbonTab.qml
+RibbonGroup navigation/RibbonGroup.qml
+AppBarButton navigation/AppBarButton.qml
+AppBarToggleButton navigation/AppBarToggleButton.qml
+AppBarSeparator navigation/AppBarSeparator.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml
@@ -272,3 +279,4 @@ ViewportCulling controls/utils/ViewportCulling.qml
 HorizontalScrollMixin controls/utils/HorizontalScrollMixin.qml
 WindowDragHandle controls/utils/WindowDragHandle.qml
 DeferredCall controls/utils/DeferredCall.qml
+singleton AccessibilityHelper controls/utils/AccessibilityHelper.qml

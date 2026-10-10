@@ -219,6 +219,7 @@ Item {
     Auth { id: _auth }
     IndicatorBar { id: _indicatorBar }
     Media { id: _media }
+    Accessibility { id: _accessibility }
 
     // ==================== Module Aliases 模块别名 ====================
     readonly property alias statusLevel: _statusLevel
@@ -361,6 +362,9 @@ Item {
     readonly property alias motionTokens: _motionTokens
     readonly property alias motionCurve: _motionTokens.curve
     readonly property alias motionDuration: _motionTokens.duration
+
+    // Forward accessibility tokens 转发无障碍令牌（阶段二：角色枚举单一入口）
+    readonly property alias accessibility: _accessibility
 
     // Global icon path (resolved once, used everywhere) 全局图标路径
     readonly property string iconPath: Qt.resolvedUrl("controls/icons/fluent/")

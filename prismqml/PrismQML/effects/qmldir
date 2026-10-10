@@ -10,3 +10,4 @@ TicketPaper TicketPaper.qml
 ToggleAnimation ToggleAnimation.qml
 HoverBehavior HoverBehavior.qml
 MatrixRain MatrixRain.qml
+FocusVisual FocusVisual.qml
