@@ -79,6 +79,15 @@ Item {
         messageViewport.contentY + messageViewport.height
         >= messageViewport.contentHeight - _bottomTolerance
 
+    // ==================== Accessibility 无障碍 ====================
+    // A transcript is a live log. The name is derived from the count instead of a
+    // UI string, so it needs no catalogue entry. Qt's Accessible attached type has
+    // no live-region property, so no announcement policy is claimed here.
+    // 消息记录是实时日志。名称由消息数量派生而非 UI 字符串，无需进入翻译词表。
+    // Qt 的 Accessible 附加类型没有实时区域属性，因此此处不声明播报策略。
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_list)
+    Accessible.name: AccessibilityHelper.describe([messageCount])
+
     // ==================== Internal Methods 内部方法 ====================
     function _scheduleScrollBarUpdate() {
         if (scrollViewportState) scrollViewportState.invalidate()

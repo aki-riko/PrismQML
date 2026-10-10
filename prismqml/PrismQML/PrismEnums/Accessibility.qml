@@ -39,11 +39,4 @@ QtObject {
     readonly property int state_selected: 3
     readonly property int state_busy: 4
     readonly property int state_invalid: 5
-
-    // ==================== Live Region 实时区域 ====================
-    // Polite announcements queue behind the user's current action; assertive
-    // ones interrupt it. 礼貌播报排队等待用户当前操作，强硬播报会打断。
-    readonly property int live_off: 0
-    readonly property int live_polite: 1
-    readonly property int live_assertive: 2
 }

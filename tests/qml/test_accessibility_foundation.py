@@ -53,7 +53,6 @@ Item {
         Enums.accessibility.state_selected,
         Enums.accessibility.state_invalid
     ]
-    property int livePolite: Enums.accessibility.live_polite
     property real innerWidth: Enums.border.normal
     property real outerWidth: Enums.border.thin
 }
@@ -70,7 +69,6 @@ Item {
             states = states.toVariant()
         assert list(states) == [0, 1, 3, 5]
 
-        assert instance.property("livePolite") == 1
         # The ring reuses the border tokens, so both strokes must stay positive
         # and the inner one must not be thinner than the outer one.
         # 焦点环复用描边令牌：两圈都必须为正，且内圈不得比外圈更细。
