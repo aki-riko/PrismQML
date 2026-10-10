@@ -33,7 +33,9 @@ SCENE_URL = QUrl.fromLocalFile(
 # TableHeader owns a title row, sort affordance and click area per column.
 # Declarative skin lookup adds no signal-handler objects.
 # 表头每列拥有标题行、排序图标和点击区域；声明式皮肤查找不增加信号处理对象。
-EXPECTED_NORMAL_OBJECTS = 968
+# The released-row guard adds one object, one timer and one connection, independent of row count.
+# 退场兜底增加一个对象、一个定时器和一条连接，与行数无关。
+EXPECTED_NORMAL_OBJECTS = 971
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

@@ -273,20 +273,15 @@ Item {
                         // Transitions 过渡动画
                         add: Transition {
                             enabled: control.animated
-                            ParallelAnimation {
-                                NumberAnimation {
-                                    property: "opacity"
-                                    from: 0
-                                    to: 1
-                                    duration: Enums.duration.enter
-                                    easing.type: Easing.OutCubic
-                                }
-                                NumberAnimation {
-                                    property: "y"
-                                    from: listView.contentY + 12
-                                    duration: Enums.duration.enter
-                                    easing.type: Easing.OutCubic
-                                }
+                            // Rows appear in place and push the rows below them down, instead of
+                            // flying in from the top of the viewport.
+                            // 新行就地出现并把后面的行向下推开，不再从视口顶部飞入。
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 0
+                                to: 1
+                                duration: Enums.duration.enter
+                                easing.type: Easing.OutCubic
                             }
                         }
 
@@ -316,6 +311,12 @@ Item {
                                 easing.type: Easing.OutQuart
                             }
                         }
+                    }
+
+                    // Exit guard 退场兜底
+                    DataViewReleaseGuard {
+                        view: listView
+                        active: control.animated
                     }
 
                     ScrollViewportState {
