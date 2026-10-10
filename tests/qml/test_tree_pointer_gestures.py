@@ -20,7 +20,7 @@ import PrismQML
 Window {
     id: window
     width: 640
-    height: 420
+    height: 560
     visible: true
     color: "white"
 
@@ -32,7 +32,7 @@ Window {
         x: 10
         y: 10
         width: 280
-        height: 360
+        height: 480
         model: [
             {
                 text: "Root", expanded: false, children: [
@@ -40,8 +40,17 @@ Window {
                     { text: "Beta" }
                 ]
             },
-            { text: "Second" },
-            { text: "Third" }
+            {
+                text: "Second", expanded: false, children: [
+                    { text: "Gamma" },
+                    { text: "Delta" }
+                ]
+            },
+            {
+                text: "Third", expanded: false, children: [
+                    { text: "Epsilon" }
+                ]
+            }
         ]
     }
 
@@ -51,7 +60,7 @@ Window {
         x: 320
         y: 10
         width: 280
-        height: 360
+        height: 480
         model: [
             {
                 text: "Root", expanded: false, children: [
@@ -59,8 +68,17 @@ Window {
                     { text: "Beta" }
                 ]
             },
-            { text: "Second" },
-            { text: "Third" }
+            {
+                text: "Second", expanded: false, children: [
+                    { text: "Gamma" },
+                    { text: "Delta" }
+                ]
+            },
+            {
+                text: "Third", expanded: false, children: [
+                    { text: "Epsilon" }
+                ]
+            }
         ]
         onItemDoubleClicked: window.widgetDoubleClicks += 1
     }
@@ -112,13 +130,60 @@ def _shape(rows: list[dict]) -> list[tuple]:
     ]
 
 
+def _model_texts(control, widget: bool) -> list[str]:
+    """Row texts held by the control's flat model. 控件扁平模型里的行文本。"""
+    if widget:
+        return [
+            _variant(control._getItemObject(index))["text"]
+            for index in range(control.count())
+        ]
+    return [row.get("text") for row in _rows(control.property("listModel"))]
+
+
+def _rendered_texts(control) -> list[str]:
+    """Texts of the rows actually rendered inside the viewport. 视口内实际渲染的行文本。
+
+    Rows released to the reuse pool must be invisible: a row left at partial opacity shows up
+    here as a text that the model no longer contains.
+    进入复用池的行必须不可见：停在半透明状态的行会在这里表现为模型里不存在的文本。
+    """
+    origin = control.mapToScene(QPointF(0.0, 0.0))
+    top = origin.y()
+    bottom = top + control.height()
+    rendered = []
+    for item in _descendants(control):
+        if item.metaObject().indexOfProperty("itemText") < 0:
+            continue
+        if not item.isVisible() or item.opacity() <= 0.05:
+            continue
+        item_top = item.mapToScene(QPointF(0.0, 0.0)).y()
+        item_bottom = item_top + item.height()
+        if item_bottom <= top or item_top >= bottom:
+            continue
+        rendered.append((int(item.property("index")), item.property("itemText")))
+    rendered.sort()
+    return [text for _, text in rendered]
+
+
 def _delegate(root: QQuickItem, text: str) -> QQuickItem:
+    """Return the delegate bound to a live row, skipping reuse-pool ghosts.
+
+    只返回绑定到有效模型行（index >= 0）的委托，跳过 reuseItems 复用池中的幽灵委托。
+    """
+    candidates = []
     for item in _descendants(root):
         if item.metaObject().indexOfProperty("itemText") < 0:
             continue
-        if item.property("itemText") == text:
-            return item
-    raise AssertionError(f"delegate not found: {text}")
+        if item.property("itemText") != text:
+            continue
+        index = int(item.property("index"))
+        if index < 0:
+            continue
+        candidates.append((index, item))
+    if not candidates:
+        raise AssertionError(f"delegate not found: {text}")
+    candidates.sort(key=lambda pair: pair[0])
+    return candidates[0][1]
 
 
 def _mouse_area(delegate: QQuickItem) -> QQuickItem:
@@ -174,6 +239,18 @@ def _double_click(window, root: QQuickItem, text: str, zone: bool) -> None:
         _point(root, text, zone).toPoint(),
     )
     _pump(200)
+
+
+def _click_immediately(window, root: QQuickItem, text: str, zone: bool) -> None:
+    """Click without waiting for transitions to finish. 不等待过渡动画结束即点击。"""
+    point = _point(root, text, zone)
+    QTest.mouseMove(window, point.toPoint())
+    QTest.mouseClick(
+        window,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
+        point.toPoint(),
+    )
 
 
 def _create_scene(engine, qapp):
@@ -289,6 +366,85 @@ def test_tree_view_expand_zone_double_click_toggles_once(qapp):
 
         _click(window, tree_view, "Root", zone=True)
         assert tree_view.count() == 3
+    finally:
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_click_after_collapse_is_not_swallowed_by_exiting_rows(qapp):
+    """A click right after a collapse must still reach the row underneath.
+
+    收起后立即点击下面的行不得被正在退场的行拦截（这是"第一次点不生效"的成因）。
+    """
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, window, tree_view, tree_widget = _create_scene(engine, qapp)
+    try:
+        for name, control in (("TreeView", tree_view), ("TreeWidget", tree_widget)):
+            assert control.count() == 3, name
+
+            # Expand then settle so the collapsed rows below are the only moving parts.
+            # 先展开并等动画结束，随后只有被收起的行为运动对象。
+            _click(window, control, "Root", zone=True)
+            _pump(400)
+            assert control.count() == 5, name
+
+            # Collapse and click the row underneath while the exit animation still runs.
+            # 收起后趁退场动画未结束就点击下面的行。
+            _click_immediately(window, control, "Root", zone=True)
+            _pump(80)
+            assert control.count() == 3, name
+            _click_immediately(window, control, "Second", zone=True)
+            _pump(400)
+            assert control.count() == 5, name
+
+            # Restore the collapsed baseline for the next control.
+            # 恢复收起基线以便校验下一个组件。
+            _click(window, control, "Second", zone=True)
+            _pump(400)
+            assert control.count() == 3, name
+    finally:
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_interrupted_exit_leaves_no_rendered_rows(qapp):
+    """Rows released during an interrupted exit transition must not stay rendered.
+
+    退场过渡被中断时被释放的行不得残留在视口内（否则收起后子项仍然可见）。
+    """
+    engine = QQmlApplicationEngine()
+    register_types(engine)
+    component, window, tree_view, tree_widget = _create_scene(engine, qapp)
+    try:
+        for name, control, widget in (
+            ("TreeView", tree_view, False),
+            ("TreeWidget", tree_widget, True),
+        ):
+            # Expand every branch so the rapid collapses below release many rows.
+            # 先全部展开，使随后的快速收起释放大量行。
+            _click(window, control, "Root", zone=True)
+            _click(window, control, "Second", zone=True)
+            _click(window, control, "Third", zone=True)
+            _pump(600)
+            assert control.count() == 8, name
+            assert _rendered_texts(control) == _model_texts(control, widget), name
+
+            # Collapse them in quick succession so each exit transition gets cancelled.
+            # 连续快速收起，使每次退场过渡都被下一次模型变化取消。
+            _click_immediately(window, control, "Root", zone=True)
+            _pump(60)
+            _click_immediately(window, control, "Second", zone=True)
+            _pump(60)
+            _click_immediately(window, control, "Third", zone=True)
+            _pump(2000)
+
+            assert _model_texts(control, widget) == ["Root", "Second", "Third"], name
+            assert _rendered_texts(control) == ["Root", "Second", "Third"], name
     finally:
         window.deleteLater()
         component.deleteLater()

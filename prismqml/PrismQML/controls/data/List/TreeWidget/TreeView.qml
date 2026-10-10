@@ -90,6 +90,10 @@ DataWidgetCore {
             // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
             readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
+            // Set when the exit guard had to hide this row after an interrupted exit transition.
+            // 退场过渡被中断后由兜底隐藏该行时置位，复用时需要恢复可见。
+            property bool _hiddenByExitGuard: false
+
             width: ListView.view ? ListView.view.width : 0
             height: control.itemHeight
             color: Enums.transparent
@@ -99,6 +103,21 @@ DataWidgetCore {
                 NumberAnimation { duration: Enums.duration.fast; easing.type: Easing.OutCubic }
             }
             transformOrigin: Item.Center
+
+            // A row released to the reuse pool must always end up hidden: a follow-up model change
+            // can cancel the exit transition and leave the row rendered at a partial opacity.
+            // 进入复用池的行必须最终隐藏：后续模型变化会取消退场过渡，使行停留在半透明状态。
+            onIndexChanged: {
+                if (index < 0) {
+                    exitGuard.restart()
+                } else {
+                    exitGuard.stop()
+                    if (_hiddenByExitGuard) {
+                        _hiddenByExitGuard = false
+                        opacity = 1
+                    }
+                }
+            }
 
             Rectangle {
                 anchors.fill: parent
@@ -168,6 +187,10 @@ DataWidgetCore {
 
                 function isExpandZone(x) { return x <= expandEnd }
 
+                // Rows released to the reuse pool (index < 0) must not intercept clicks while
+                // their exit animation still runs. 进入复用池的行(index<0)在退场动画期间不得拦截点击。
+                enabled: delegateRoot.index >= 0
+
                 anchors.fill: parent
                 hoverEnabled: true
 
@@ -187,6 +210,31 @@ DataWidgetCore {
                         Core.toggleExpandAt(control, internalModel, delegateRoot.index)
                     }
                 }
+            }
+
+            // Exit guard 退场兜底
+            // The exit transition can be cancelled by the next model change; this guarantees the
+            // row still fades out instead of staying visible at a partial opacity.
+            // 退场过渡会被下一次模型变化取消；此处保证该行仍然淡出，而不是停在半透明状态可见。
+            Timer {
+                id: exitGuard
+
+                interval: Enums.duration.exit + Enums.duration.fast
+                onTriggered: {
+                    if (delegateRoot.index < 0 && delegateRoot.opacity > 0) {
+                        delegateRoot._hiddenByExitGuard = true
+                        exitFade.restart()
+                    }
+                }
+            }
+
+            NumberAnimation {
+                id: exitFade
+
+                target: delegateRoot
+                property: "opacity"
+                to: 0
+                duration: Enums.duration.fast
             }
         }
     }
