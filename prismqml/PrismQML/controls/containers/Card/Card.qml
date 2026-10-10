@@ -7,6 +7,7 @@ import QtQuick.Effects
 import QtQuick.Window
 import "../../.."
 import "../../../effects"
+import "../../utils"
 import "../../data/Label"
 import ".."
 
@@ -110,6 +111,15 @@ Widget {
  }
  
  // ==================== Content 内容 ====================
+ // A card groups its header and body into one announced unit; the title is the
+ // only text it owns, so it doubles as the accessible name when present.
+ // 卡片把页头与主体归为一个播报单元；标题是它唯一自有的文本，因此有标题时即以之为名称。
+ A11ySurface {
+     target: control
+     role: Enums.accessibility.role_group
+     name: control.title
+ }
+
  // Shadow layer 阴影层
  // Fluent: 模糊阴影(RectangularShadow)。Neobrutalism: 硬阴影(偏移纯黑矩形, 无模糊)。
  RectangularShadow {
