@@ -39,6 +39,10 @@ Item {
     // 仅对可勾选与单选角色有意义；其余角色不设置，避免辅助技术播报过期状态。
     property int checkable: 0
     property bool checked: false
+    // Decorations (anchors, dividers, glows) carry no text and no interaction, so
+    // they should be hidden from the accessibility tree instead of given a role.
+    // 装饰元素（锚点、分隔线、光晕）既无文本也无交互，应被无障碍树隐藏而不是赋予角色。
+    property bool ignored: false
 
     // ==================== Readonly State 只读状态 ====================
     // Compose the effective metadata once, then apply it to the target.
@@ -53,6 +57,14 @@ Item {
     function _apply() {
         var item = surface.target
         if (item === null || item === undefined) return
+        // A decoration is removed from the tree outright; assigning a role on top of
+        // that would be contradictory, so the ignored branch returns early.
+        // 装饰元素直接从无障碍树移除；再赋予角色会自相矛盾，因此该分支提前返回。
+        if (surface.ignored) {
+            item.Accessible.ignored = true
+            return
+        }
+        item.Accessible.ignored = false
         item.Accessible.role = AccessibilityHelper.roleValue(surface.role)
         // An explicit name wins; otherwise the target's own Accessible.name is kept
         // so a subclass can declare it on itself in one line.
