@@ -6,3 +6,4 @@ ViewportCulling ViewportCulling.qml
 HorizontalScrollMixin HorizontalScrollMixin.qml
 WindowDragHandle WindowDragHandle.qml
 singleton AccessibilityHelper AccessibilityHelper.qml
+A11ySurface _internal/A11ySurface.qml

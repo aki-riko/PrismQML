@@ -271,16 +271,6 @@ Widget {
         return Math.max(_skin.controlSize.buttonMinWidth, cw + extraWidth)
     }
     contentHeight: _skin.controlSize.buttonHeight
-    // A toggle feature carries state, so it presents as a check box; every other
-    // style stays a plain button. The name falls back to the visible text and then
-    // the tooltip, matching how the control labels itself on screen.
-    // 切换特性带状态，因此以复选框呈现；其余样式保持普通按钮。名称依次回退到可见
-    // 文本与提示文本，与控件在屏幕上的自我标识一致。
-    Accessible.role: AccessibilityHelper.roleValue(
-        feature === _skin.button.feature_toggle
-            ? Enums.accessibility.role_checkbox
-            : Enums.accessibility.role_button)
-    Accessible.name: AccessibilityHelper.resolveName("", text, toolTipText)
 
     Component.onCompleted: {
         // Initialize with current values (break binding) 用当前值初始化（打破绑定）
@@ -343,6 +333,7 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
+    ButtonInternal.ButtonA11ySurface { buttonControl: control }
     ButtonInternal.ButtonSurface {
         id: surface
         buttonControl: control

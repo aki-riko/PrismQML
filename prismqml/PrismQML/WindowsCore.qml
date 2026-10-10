@@ -318,13 +318,6 @@ Window {
     color: Enums.transparent
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinimizeButtonHint
     title: windowTitle  // Sync to native Window.title for taskbar 同步到原生标题用于任务栏显示
-    // Right-to-left scripts mirror the whole window: the attached property
-    // propagates to every child, so surfaces do not each hand-roll a mirrored
-    // layout. Left-to-right keeps the historical geometry untouched.
-    // 从右到左的文字会镜像整个窗口：附加属性会传播到所有子项，因此各表面无需各自
-    // 手写镜像布局。从左到右保持既有几何完全不变。
-    LayoutMirroring.enabled: Enums.isRtl
-    LayoutMirroring.childrenInherit: true
 
     onWindowIconChanged: _syncTaskbarIcon("windowIconChanged")
     onWindowRadiusChanged: _syncNativeCorner("windowRadiusChanged")
@@ -416,6 +409,8 @@ Window {
     onVisibleChanged: ensureVisiblePaintState("visibleChanged")
 
     // ==================== Content 内容 ====================
+    WindowsCoreMirroring { host: window; rightToLeft: Enums.isRtl }  // RTL 镜像拆到 _internal
+
     NativeWindowStartupHelper {
         id: nativeWindowStartup
         targetWindow: window

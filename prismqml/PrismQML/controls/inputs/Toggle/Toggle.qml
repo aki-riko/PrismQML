@@ -173,20 +173,6 @@ Widget {
     // Toggle owns tooltip hover so the inherited support does not schedule a second lifecycle.
     // Toggle 接管工具提示悬浮，继承支持层不再重复调度生命周期。
     _toolTipSupportTracksHover: false
-    // The unified toggle presents as a check box, radio button or switch depending
-    // on controlType, so the accessible role follows that same decision. The name
-    // falls back to the visible text, and the checked state is announced with the
-    // catalogue's own on/off wording rather than a new English literal.
-    // 统一切换控件按 controlType 呈现为复选框/单选按钮/开关，无障碍角色沿用同一判定。
-    // 名称回退到可见文本；勾选状态用词表已有的 on/off 措辞播报，不新增英文字面量。
-    Accessible.role: AccessibilityHelper.roleValue(
-        _isRadio ? Enums.accessibility.role_radiobutton
-                 : (_isSwitch ? Enums.accessibility.role_switch
-                              : Enums.accessibility.role_checkbox))
-    Accessible.name: AccessibilityHelper.resolveName("", text, "")
-    Accessible.description: AccessibilityHelper.describe([checked ? textOn : textOff])
-    Accessible.checked: checked
-    Accessible.focusable: true
 
     onCheckedChanged: {
         if (_syncingCheckState) return
@@ -203,6 +189,8 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
+    ToggleInternal.ToggleA11ySurface { toggleControl: control }
+
     ToggleInternal.ToggleContent {
         id: toggleContent
         toggleControl: control
