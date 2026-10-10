@@ -10,6 +10,7 @@ import "../../effects"
 import "../feedback"
 import "../data"
 import "../dialogs"
+import "../utils"
 import "_internal" as DialogInternal
 
 // ProgressDialog - Progress dialog 进度对话框
@@ -47,6 +48,15 @@ OverlayDialogCore {
     signal timeout()
     
     // ==================== Content 内容 ====================
+    // A progress dialog announces its dialog role plus the visible title, so a user
+    // hears what is blocking the screen.
+    // 进度对话框播报其对话框角色与可见标题，使用户得知是什么在占用屏幕。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_dialog
+        name: control.title
+    }
+
     // Fluent: 模糊阴影; neo: 硬阴影
     RectangularShadow {
         anchors.fill: container
