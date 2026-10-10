@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../../.."
+import "../../utils"
 import "_internal"
 
 // CommandBar - Fluent Design command bar 命令栏
@@ -36,6 +37,8 @@ Item {
     
     // Convenience alias 便捷别名
     property alias commands: control.primaryCommands
+    // Optional accessible name for the command group. 命令组的可选可访问名称。
+    property string a11yName: ""
     
     // ==================== Signals 信号 ====================
     signal actionTriggered(int index, var action)
@@ -61,6 +64,15 @@ Item {
     height: implicitHeight
     
     // ==================== Content 内容 ====================
+    // A command bar groups commands; assistive technology navigates it as a group
+    // of buttons rather than as one anonymous surface.
+    // 命令栏把命令分组；辅助技术将其作为一组按钮导航，而不是一个匿名表面。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+        name: control.a11yName
+    }
+
     // Style loader 样式加载器
     Loader {
         id: loader
