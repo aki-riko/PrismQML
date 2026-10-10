@@ -6,7 +6,6 @@ import QtQuick
 import QtQuick.Layouts
 import "../../.."
 import ".."
-import "../../utils"
 
 // Separator - Unified separator component 统一分隔线组件
 // Usage: Separator { type: Enums.separator.horizontal }
@@ -39,17 +38,6 @@ Widget {
     Rectangle {
         anchors.fill: parent
         color: control.lineColor
-    }
-
-    // A divider is pure decoration: it carries no text and no interaction, so it is
-    // removed from the accessibility tree instead of being given a role. The role
-    // stays required by the A11ySurface contract and is passed as none.
-    // 分隔线是纯装饰：既无文本也无交互，因此从无障碍树移除而不是赋予角色。
-    // A11ySurface 契约要求 role，故传入 none。
-    A11ySurface {
-        target: control
-        role: Enums.accessibility.role_none
-        ignored: true
     }
 
 }
