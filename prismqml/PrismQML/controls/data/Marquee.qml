@@ -4,7 +4,6 @@
 
 import QtQuick
 import "../.."
-import "../utils"
 import "../data"
 import "_internal" as DataInternal
 
@@ -68,15 +67,6 @@ Item {
     Component.onCompleted: startTimer.start()
 
     // ==================== Content 内容 ====================
-    // A marquee carries real text that a sighted user reads, so assistive technology
-    // gets the same string instead of an empty node.
-    // 跑马灯承载用户真实可读的文本，因此辅助技术拿到同一字符串而不是空节点。
-    A11ySurface {
-        target: control
-        role: Enums.accessibility.role_statictext
-        name: control.text
-    }
-
     Item {
         id: marqueeContent
         objectName: "marqueeContent"
