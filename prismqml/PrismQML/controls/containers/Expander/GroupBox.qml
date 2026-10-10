@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import "../../inputs/Toggle"
 import "../../data/Label"
+import "../../utils"
 import ".."
 
 // GroupBox - Qt-style group box with optional checkbox 分组框（支持可选复选框）
@@ -67,6 +68,15 @@ Widget {
     contentHeight: contentArea.childrenRect.height + _titleHeight + Enums.spacing.l * 2
 
     // ==================== Content 内容 ====================
+    // A group box is a titled group; its title is exactly the label a screen reader
+    // should attach to the group, so no extra name property is needed.
+    // 分组框是带标题的分组；标题正是读屏器应挂到该分组上的标签，无需额外名称属性。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+        name: control.title
+    }
+
     // Border 边框
     Rectangle {
         id: borderRect
