@@ -106,6 +106,11 @@ Item {
     // Reduced motion follows the runtime switch; motion tokens resolve to 0 when on.
     // 减少动态效果跟随运行时开关；开启时动效令牌时长解析为 0。
     readonly property bool reduceMotion: ThemeManager ? ThemeManager.reduceMotion : false
+    // Platform high contrast is read once by the manager and exposed read-only here,
+    // so surfaces can raise their contrast instead of every component probing the OS.
+    // 平台高对比度由管理器读取一次并在此只读暴露，使各表面可自行提升对比度，
+    // 而无需每个组件各自探测操作系统。
+    readonly property bool highContrast: ThemeManager ? ThemeManager.highContrast : false
     // Raw appearance inputs are public so SkinScope can reuse the current user
     // preference while changing only its local design language.
     // 原始外观输入公开给 SkinScope，使它仅替换局部设计语言而保留用户明暗、字体和强调色。

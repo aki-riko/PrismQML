@@ -16,6 +16,7 @@ PrismQML 主题系统
 from enum import Enum
 import os
 import re
+import sys
 from typing import Callable, Optional
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Property, Slot
@@ -73,6 +74,75 @@ def read_reduce_motion_env(raw: Optional[str] = None) -> bool:
         f"{REDUCE_MOTION_ENV} 值非法: {value!r}，已回退为 {_REDUCE_MOTION_DEFAULT}"
     )
     return _REDUCE_MOTION_DEFAULT
+
+
+# High-contrast environment override. Unset means "ask the platform"; the
+# documented truthy/falsy spellings win over the platform answer so hosts and
+# tests can pin the state deterministically.
+# 高对比度环境变量覆盖。未设置表示"询问平台"；文档化的真/假拼写优先于平台结果，
+# 使宿主与测试可以确定性地固定该状态。
+HIGH_CONTRAST_ENV = "PRISM_HIGH_CONTRAST"
+_HIGH_CONTRAST_TRUTHY = _REDUCE_MOTION_TRUTHY
+_HIGH_CONTRAST_FALSY = _REDUCE_MOTION_FALSY
+_SPI_GETHIGHCONTRAST = 0x0042
+_HCF_HIGHCONTRASTON = 0x00000001
+
+
+def read_high_contrast_env(raw: Optional[str] = None) -> Optional[bool]:
+    """Parse the high-contrast override, or None when unset. 解析高对比度覆盖值。
+
+    返回 True/False 表示显式覆盖；未设置或空值返回 None，交由平台判定。
+    非法值告警并回退为未覆盖。
+    """
+    value = os.environ.get(HIGH_CONTRAST_ENV) if raw is None else raw
+    if value is None:
+        return None
+    normalized = value.strip().casefold()
+    if not normalized:
+        return None
+    if normalized in _HIGH_CONTRAST_TRUTHY:
+        return True
+    if normalized in _HIGH_CONTRAST_FALSY:
+        return False
+    warning(f"{HIGH_CONTRAST_ENV} 值非法: {value!r}，已忽略并回退平台判定")
+    return None
+
+
+def detect_high_contrast() -> bool:
+    """Detect the platform high-contrast setting. 探测平台高对比度设置。
+
+    Qt exposes no contrast signal (QStyleHints only carries the color scheme), so
+    Windows is asked through SystemParametersInfoW(SPI_GETHIGHCONTRAST). Other
+    platforms report False rather than guessing a value nobody can verify.
+    Qt 不暴露对比度信号（QStyleHints 只有配色方案），因此 Windows 走
+    SystemParametersInfoW(SPI_GETHIGHCONTRAST)。其他平台返回 False，而不是猜一个
+    无法验证的值。
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _HighContrast(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.UINT),
+                ("dwFlags", wintypes.DWORD),
+                ("lpszDefaultScheme", wintypes.LPWSTR),
+            ]
+
+        info = _HighContrast()
+        info.cbSize = ctypes.sizeof(_HighContrast)
+        succeeded = ctypes.windll.user32.SystemParametersInfoW(
+            _SPI_GETHIGHCONTRAST, info.cbSize, ctypes.byref(info), 0
+        )
+        if not succeeded:
+            debug("SystemParametersInfoW(SPI_GETHIGHCONTRAST) 调用失败，按未启用处理")
+            return False
+        return bool(info.dwFlags & _HCF_HIGHCONTRASTON)
+    except (AttributeError, OSError, ValueError) as error:
+        debug(f"高对比度探测失败: {error}")
+        return False
 
 
 def _shift_lightness(hex_color: str, delta: float) -> str:
@@ -157,6 +227,7 @@ class ThemeManager(QObject):
     accentColorChanged = Signal(str)
     skinChanged = Signal(str)
     reduceMotionChanged = Signal(bool)
+    highContrastChanged = Signal(bool)
 
     # Default accent color (deep Fluent blue) 默认主题色：沉稳深蓝
     # 选用 #0E5A9C 的依据：白字对比度 7.09 达 WCAG AAA 级，浅色背景上比 #0078D4 更沉稳不刺眼，
@@ -188,6 +259,11 @@ class ThemeManager(QObject):
         self._accent_color_dark = self._darken_color(self._accent_color, self.DARKEN_FACTOR)
         self._accent_scale = accent_scale_for(self._accent_color)
         self._reduce_motion = read_reduce_motion_env()
+        # Read the contrast state once at construction so the property has a real
+        # value before any consumer binds to it.
+        # 构造时读取一次对比度状态，使属性在任何消费者绑定前就持有真实值。
+        self._high_contrast = False
+        self.refresh_high_contrast()
         # Platform color-scheme watch is installed lazily: the application object
         # may not exist yet when the singleton is created.
         # 平台配色方案监听延迟安装：单例创建时应用对象可能尚不存在。
@@ -340,6 +416,29 @@ class ThemeManager(QObject):
     def get_reduce_motion(self) -> bool:
         """获取当前减少动态效果状态"""
         return self._reduce_motion
+
+    # ==================== 高对比度 ====================
+
+    @Property(bool, notify=highContrastChanged)
+    def highContrast(self) -> bool:
+        """平台是否启用高对比度（只读，供 QML 绑定）"""
+        return self._high_contrast
+
+    def refresh_high_contrast(self) -> bool:
+        """Re-read the platform contrast setting and notify on change. 重读并通知。
+
+        环境变量覆盖优先，便于宿主与测试固定该状态。
+        """
+        override = read_high_contrast_env()
+        detected = detect_high_contrast() if override is None else override
+        if self._high_contrast != detected:
+            self._high_contrast = detected
+            self.highContrastChanged.emit(detected)
+        return detected
+
+    def get_high_contrast(self) -> bool:
+        """获取当前高对比度状态"""
+        return self._high_contrast
 
     # ==================== 皮肤属性 ====================
 
