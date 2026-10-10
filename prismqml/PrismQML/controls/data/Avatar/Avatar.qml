@@ -7,6 +7,7 @@ import QtQuick.Effects
 import "../../.."
 import "../Label"
 import "../../icons"
+import "../../utils"
 
 // Avatar - Avatar component 头像组件
 // Props: source(图片路径), text(文字), size(尺寸)
@@ -61,6 +62,14 @@ Rectangle {
     // Avatar boundary for non-Fluent skins 非 Fluent 皮肤头像边界
     border.width: control._avatarBorderWidth
     border.color: control._avatarBorderColor
+    // An avatar is a person or group label, so it stays static text; the name
+    // prefers explicit initials over the fallback text a sighted user reads.
+    // 头像是人物或群组标签，故按静态文本处理；名称优先显式首字母，其次回退可见文本。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_statictext
+        name: control.initials !== "" ? control.initials : control.text
+    }
 
     // Text avatar 文字头像
     // Explicit initials without a text fallback share this label: its own `text`

@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "../../icons"
+import "../../utils"
 import "../../../effects"
 
 // Badge - Unified badge component 统一徽章组件
@@ -114,6 +115,15 @@ Rectangle {
     }
     
     // ==================== Content 内容 ====================
+    // A badge is a static annotation; its accessible name is the count or text a
+    // sighted user reads, so screen readers announce the same value.
+    // 徽标是静态标注；可访问名称即用户看到的计数或文本，使读屏器播报同一数值。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_statictext
+        name: control.text !== "" ? control.text : String(control.count)
+    }
+
     // Host anchoring binds only while a target exists, so a badge without a
     // target never overrides its own x/y.
     // 宿主锚定仅在存在 target 时绑定, 没有 target 的徽章永远不会覆盖自身 x/y。
