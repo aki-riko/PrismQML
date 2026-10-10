@@ -96,13 +96,11 @@ SCENES = {
         None,  # ignored: must not surface as a meaningful node
         None,
     ),
-    "Separator": (
-        b"""Item { width: 200; height: 100
-            Separator { objectName: "probe" } }""",
-        None,  # ignored
-        None,
-    ),
 }
+
+# Separator is deliberately absent: every TableWidget row instantiates one, and that
+# test asserts an exact object count, so its adoption had to be reverted.
+# Separator 被 TableWidget 的每一行实例化，而该测试按精确对象数断言，故其接入已回退。
 
 
 @pytest.mark.parametrize("component", sorted(SCENES))
