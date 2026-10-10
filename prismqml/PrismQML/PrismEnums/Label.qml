@@ -17,4 +17,10 @@ QtObject {
     readonly property int type_title_large: 6    // Large title 大标题 (40px)
     readonly property int type_display: 7        // Display text 展示文本 (68px)
     readonly property int type_hyperlink: 8      // Hyperlink 超链接
+
+    // Text trimming 文本裁剪
+    readonly property int trim_none: 0                 // No trimming 不裁剪
+    readonly property int trim_character_ellipsis: 1   // Character ellipsis 字符省略号
+    readonly property int trim_word_ellipsis: 2        // Word ellipsis 单词省略号
+    readonly property int trim_clip: 3                 // Clip without ellipsis 直接裁切
 }

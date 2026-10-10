@@ -10,7 +10,7 @@ import "PrismEnums"
 // Usage 使用方式: Enums.radius.large, Enums.button.type_primary
 //
 // Architecture 架构: Modular design, each category in separate file 模块化设计
-// Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Animation.qml, LazyAnimation.qml, Icons.qml
+// Files 文件: Theme.qml, StatusLevel.qml, Button.qml, StateColor.qml, Constants.qml, Metrics.qml, Animation.qml, LazyAnimation.qml, Motion.qml, Icons.qml
 // Startup assessment 启动评估 (2026-09-17): five fresh-process samples measured
 // the eager 45-module graph at about +20ms QML load and +17ms object creation
 // versus a minimal QtQuick object. Loader-based deferral would expose null
@@ -103,6 +103,9 @@ Item {
     readonly property bool usesSoftElevation: !hasOutlinedSurfaces && !isNeumorphism
     readonly property bool usesNeumorphicElevation: isNeumorphism
     readonly property bool allowsMica: !hasOutlinedSurfaces && !isNeumorphism
+    // Reduced motion follows the runtime switch; motion tokens resolve to 0 when on.
+    // 减少动态效果跟随运行时开关；开启时动效令牌时长解析为 0。
+    readonly property bool reduceMotion: ThemeManager ? ThemeManager.reduceMotion : false
     // Raw appearance inputs are public so SkinScope can reuse the current user
     // preference while changing only its local design language.
     // 原始外观输入公开给 SkinScope，使它仅替换局部设计语言而保留用户明暗、字体和强调色。
@@ -128,6 +131,10 @@ Item {
         : (isNeumorphism ? Qt.darker(_constants.neumorphismColors.primary, 1.12)
         : rawAccentColorDark
         ))
+    // WinUI-style accent scale derived from the raw user accent; falls back to the
+    // Constants table only when ThemeManager is missing.
+    // WinUI 风格强调色阶，由用户原始强调色派生；仅在 ThemeManager 缺失时回退到 Constants 常量表。
+    readonly property var accentScale: ThemeManager ? ThemeManager.accentScale : _constants.accentScale
 
     // Transparent color constant 透明色常量
     readonly property color transparent: "transparent"
@@ -170,6 +177,10 @@ Item {
         touchTargetFloor: Touch.minTargetSize
     }
     Orient { id: _orient }
+    // Metrics may be torn down before Enums; read it through a null-safe guard so the
+    // token layer degrades to zero durations instead of raising a QML TypeError.
+    // Metrics 可能先于 Enums 销毁；通过 null 安全守卫读取，使令牌层退化为零时长而非抛 QML TypeError。
+    Motion { id: _motionTokens; reduceMotion: root.reduceMotion; durations: _metrics ? _metrics.duration : null }
     Flow { id: _flow }
     Chart { id: _chart }
     Card { id: _card }
@@ -207,6 +218,7 @@ Item {
     SettingsCard { id: _settingCard }
     Auth { id: _auth }
     IndicatorBar { id: _indicatorBar }
+    Media { id: _media }
 
     // ==================== Module Aliases 模块别名 ====================
     readonly property alias statusLevel: _statusLevel
@@ -253,6 +265,7 @@ Item {
     readonly property alias settingCard: _settingCard
     readonly property alias auth: _auth
     readonly property alias indicatorBar: _indicatorBar
+    readonly property alias media: _media
     // Icon Enums Icon枚举
     // QML usage: Enums.icon.chevron_up (snake_case) QML侧使用: Enums.icon.chevron_up (小写下划线)
     // Python usage: Icon.CHEVRON_UP (UPPER_SNAKE_CASE) Python侧使用: Icon.CHEVRON_UP (大写下划线)
@@ -343,6 +356,11 @@ Item {
     readonly property alias listIndicator: _metrics.listIndicator
     readonly property alias navigationFade: _metrics.navigationFade
     readonly property alias navigationRail: _metrics.navigationRail
+
+    // Forward motion tokens 转发动效令牌（阶段一：仅新增令牌，既有 Enums.motion 语义不变）
+    readonly property alias motionTokens: _motionTokens
+    readonly property alias motionCurve: _motionTokens.curve
+    readonly property alias motionDuration: _motionTokens.duration
 
     // Global icon path (resolved once, used everywhere) 全局图标路径
     readonly property string iconPath: Qt.resolvedUrl("controls/icons/fluent/")

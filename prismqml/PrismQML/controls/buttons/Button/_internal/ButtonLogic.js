@@ -13,6 +13,20 @@ function click(control, enums) {
     control.clicked()
 }
 
+// Open the configured hyperlink target and mark the button visited.
+// 打开配置的超链接目标并把按钮标记为已访问。
+// An empty navigateUri keeps the plain button behavior untouched.
+// navigateUri 为空时按钮行为与普通按钮完全一致。
+function navigate(control) {
+    var uri = control.navigateUri
+    if (uri === undefined || uri === null || uri === "") return
+    control.visited = true
+    control.navigationRequested(uri)
+    if (!control.navigateOnClick) return
+    if (typeof control.urlOpener === "function") control.urlOpener(uri)
+    else Qt.openUrlExternally(uri)
+}
+
 function toggle(control, enums) {
     if (control.feature === enums.button.feature_toggle) {
         control.checked = !control.checked

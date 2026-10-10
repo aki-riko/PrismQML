@@ -1,0 +1,13 @@
+module Layout
+
+# Layout 布局
+FlowLayout FlowLayout.qml
+GridLayout GridLayout.qml
+HBoxLayout HBoxLayout.qml
+VBoxLayout VBoxLayout.qml
+RowFit RowFit.qml
+SplitPane SplitPane.qml
+SplitView SplitView.qml
+RelativePanel RelativePanel.qml
+Viewbox Viewbox.qml
+ParallaxView ParallaxView.qml

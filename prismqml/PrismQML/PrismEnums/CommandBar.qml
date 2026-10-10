@@ -16,4 +16,12 @@ QtObject {
     readonly property int style_icon_only: 0       // Icon only 仅图标
     readonly property int style_text_beside: 1     // Text beside icon 文字在图标旁
     readonly property int style_text_under: 2      // Text under icon 文字在图标下
+
+    // ==================== FlyoutState 浮出层状态 ====================
+    // CommandBarFlyout: collapsed shows primary commands only, mini-expanded adds the
+    // compact secondary row, expanded labels that secondary row.
+    // 命令浮出层: 折叠只显示主命令, 迷你展开增加紧凑次命令行, 完全展开为次命令行加标签。
+    readonly property int flyout_collapsed: 0
+    readonly property int flyout_mini_expanded: 1
+    readonly property int flyout_expanded: 2
 }

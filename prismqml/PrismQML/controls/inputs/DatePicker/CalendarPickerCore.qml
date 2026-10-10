@@ -5,6 +5,8 @@
 import QtQuick
 import "../../.."
 import "_internal" as DatePickerInternal
+import "_internal/CalendarPickerBlackout.js" as CalendarPickerBlackout
+import "_internal/CalendarPickerNav.js" as CalendarPickerNav
 
 // CalendarPickerCore - Calendar grid layout base 日历网格布局基类
 // Used standalone or embedded in CalendarPicker 可单独使用或嵌入CalendarPicker
@@ -34,6 +36,13 @@ Item {
     property bool rangeMode: false
     property var rangeStart: null  // Date or null
     property var rangeEnd: null    // Date or null
+
+    // Display and selection extensions 显示与选择扩展
+    property int displayMode: Enums.calendarPicker.display_month
+    property int selectionMode: Enums.calendarPicker.selection_single
+    property var selectedDates: []        // Multi-selection dates 多选日期
+    property var blackoutDates: []        // Disabled days, Date or "yyyy-MM-dd" 禁用日期
+    property bool showTodayButton: false  // Built-in today shortcut 内置今天快捷方式
     
     // ==================== Internal Props 内部属性 ====================
     // Animation props 动画属性
@@ -58,6 +67,12 @@ Item {
     readonly property int _firstDay: new Date(year, month - 1, 1).getDay()
     readonly property int _daysInMonth: new Date(year, month, 0).getDate()
     readonly property int _daysInPrev: new Date(year, month - 1, 0).getDate()
+    // Year/decade modes replace the day grid 年/十年模式替换日期网格
+    readonly property bool _periodMode:
+        displayMode !== Enums.calendarPicker.display_month
+    readonly property int _decadeStart:
+        Math.floor(year / Enums.calendarPicker.yearsPerDecade)
+        * Enums.calendarPicker.yearsPerDecade
 
     // ==================== Signals 信号 ====================
     signal dayClicked(int day)
@@ -95,6 +110,36 @@ Item {
 
     function getDate() {
         return new Date(year, month - 1, day)
+    }
+
+    // Set the display mode, ignoring unknown values 设置显示模式, 忽略未知值
+    function setDisplayMode(mode) {
+        if (mode < Enums.calendarPicker.display_month
+                || mode > Enums.calendarPicker.display_decade) return
+        displayMode = mode
+    }
+
+    // Step one page for the active display mode 按当前显示模式翻一页
+    function previousPage() {
+        CalendarPickerNav.previousPage(control, Enums.calendarPicker)
+    }
+
+    function nextPage() {
+        CalendarPickerNav.nextPage(control, Enums.calendarPicker)
+    }
+
+    function clearSelection() { selectedDates = [] }  // Clear multi-selection 清空多选
+
+    function isBlackoutDate(date) {                   // Date blackout test 日期是否禁用
+        return CalendarPickerBlackout.containsDate(blackoutDates, date)
+    }
+
+    function isDateSelected(date) {                   // Multi-selection test 是否已多选
+        return CalendarPickerBlackout.containsDate(selectedDates, date)
+    }
+
+    function toggleDateSelection(date) {              // Toggle one date 增删一个日期
+        selectedDates = CalendarPickerBlackout.toggleDate(selectedDates, date)
     }
 
     // ==================== Internal Methods 内部方法 ====================

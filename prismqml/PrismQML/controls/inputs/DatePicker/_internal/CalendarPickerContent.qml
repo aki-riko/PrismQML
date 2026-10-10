@@ -82,11 +82,25 @@ Item {
 
                 CalendarNavButton {
                     icon: Enums.icon.chevron_up
-                    onClicked: calendarControl.prevMonth()
+                    onClicked: calendarControl.previousPage()
                 }
                 CalendarNavButton {
                     icon: Enums.icon.chevron_down
-                    onClicked: calendarControl.nextMonth()
+                    onClicked: calendarControl.nextPage()
+                }
+            }
+
+            // Built-in today shortcut 内置今天快捷方式
+            Loader {
+                objectName: "calendarTodayLoader"
+                anchors.left: titleBtn.right
+                anchors.leftMargin: Enums.spacing.xs
+                anchors.verticalCenter: parent.verticalCenter
+                active: content.calendarControl.showTodayButton
+                visible: active
+
+                sourceComponent: CalendarPickerTodayButton {
+                    calendarControl: content.calendarControl
                 }
             }
         }
@@ -120,6 +134,9 @@ Item {
             width: parent.width
             height: Enums.controlSize.calendarGridHeight
             clip: true
+            // The period grid replaces the day grid in year/decade modes
+            // 年/十年模式下周期网格替换日期网格
+            visible: !calendarControl._periodMode
 
             // Wrapper for both grids 两个网格的容器
             Item {
@@ -187,6 +204,12 @@ Item {
                                 var e = calendarControl.rangeEnd.getTime()
                                 return t > Math.min(s, e) && t < Math.max(s, e)
                             }
+                            property bool isBlackout: isCurrent
+                                && calendarControl.isBlackoutDate(cellDate)
+                            property bool multiSelected: isCurrent
+                                && calendarControl.selectionMode
+                                   === Enums.calendarPicker.selection_multiple
+                                && calendarControl.isDateSelected(cellDate)
 
                             // ==================== Readonly State 只读状态 ====================
                             // Touch has no hover preview: on touch the hover treatment follows the press
@@ -233,13 +256,15 @@ Item {
                                 height: Enums.controlSize.calendarCell
                                 radius: width / 2
                                 color: dayCell.isToday ? calendarControl.accentColor
-                                    : (dayCell.selected || dayCell.isRangeStart
+                                    : (dayCell.selected || dayCell.multiSelected
+                                       || dayCell.isRangeStart
                                        || dayCell.isRangeEnd)
                                         ? Enums.stateColor.transparentPressed
                                         : dayCell._touchActive
                                             ? Enums.stateColor.transparentHover
                                             : Enums.transparent
-                                border.width: (dayCell.selected || dayCell.isRangeStart
+                                border.width: (dayCell.selected || dayCell.multiSelected
+                                    || dayCell.isRangeStart
                                     || dayCell.isRangeEnd) && !dayCell.isToday
                                     ? Enums.border.normal : 0
                                 border.color: calendarControl.accentColor
@@ -250,7 +275,10 @@ Item {
                                 type: Enums.label.type_body
                                 text: dayCell.displayDay
                                 color: dayCell.isToday ? Enums.accentForeground
-                                    : (dayCell.selected || dayCell.isRangeStart
+                                    : dayCell.isBlackout
+                                        ? Enums.stateColor.pickerTextSecondary
+                                    : (dayCell.selected || dayCell.multiSelected
+                                       || dayCell.isRangeStart
                                        || dayCell.isRangeEnd) ? calendarControl.accentColor
                                     : !dayCell.isCurrent ? Enums.stateColor.pickerTextSecondary
                                     : Enums.textColor.primary
@@ -261,6 +289,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: {
+                                    if (dayCell.isBlackout) return
                                     var targetYear = calendarControl.year
                                     var targetMonth = calendarControl.month
                                     var targetDay = dayCell.displayDay
@@ -277,6 +306,11 @@ Item {
                                     }
                                     if (calendarControl.rangeMode) {
                                         calendarControl.rangeDateClicked(
+                                            new Date(targetYear, targetMonth - 1, targetDay)
+                                        )
+                                    } else if (calendarControl.selectionMode
+                                               === Enums.calendarPicker.selection_multiple) {
+                                        calendarControl.toggleDateSelection(
                                             new Date(targetYear, targetMonth - 1, targetDay)
                                         )
                                     } else {
@@ -364,9 +398,20 @@ Item {
                 }
             }
         }
-    }
+        // Period grid container 周期网格容器
+        Loader {
+            id: periodGridLoader
+            objectName: "calendarPeriodGridLoader"
+            width: parent.width
+            height: Enums.controlSize.calendarGridHeight
+            active: calendarControl._periodMode
+            visible: active
 
-    // Animation timer 动画定时器
+            sourceComponent: CalendarPickerPeriodGrid {
+                calendarControl: content.calendarControl
+            }
+        }
+    }
     Timer {
         id: animationTimer
         interval: Enums.duration.slower + 10

@@ -12,6 +12,45 @@ function setState(layout, name, value) {
     layout._setEngineState(name, value)
 }
 
+// Span contract 跨格约定:
+// A layout child may declare optional rowSpan / columnSpan integers (>= 1) on
+// itself; PrismQML has no pure-QML attached properties, so the span travels as
+// a child-declared property and is read defensively here.
+// 布局子项可自行声明可选整数 rowSpan / columnSpan (>= 1)；PrismQML 无纯 QML 附加
+// 属性, 因此跨格数由子项属性承载, 并在此处做防御式读取。
+function readSpan(item, name) {
+    if (!item) return 1
+    var value = item[name]
+    if (typeof value !== "number" || !isFinite(value)) return 1
+    var span = Math.floor(value)
+    return span > 1 ? span : 1
+}
+
+function itemSpan(item) {
+    return {
+        rowSpan: readSpan(item, "rowSpan"),
+        columnSpan: readSpan(item, "columnSpan")
+    }
+}
+
+// Cell footprint: the cell cross extent follows the mode's uniform axis
+// 单元格足迹: 单元格横向范围跟随该模式的统一轴
+function footprintWidth(layout, item, originalSize, unitWidth) {
+    var span = readSpan(item, "columnSpan")
+    var base = unitWidth !== undefined && unitWidth !== null
+        ? unitWidth : (originalSize ? originalSize.width : item.width)
+    if (span <= 1) return base
+    return span * base + (span - 1) * layout.spacing
+}
+
+function footprintHeight(layout, item, originalSize, unitHeight) {
+    var span = readSpan(item, "rowSpan")
+    var base = unitHeight !== undefined && unitHeight !== null
+        ? unitHeight : (originalSize ? originalSize.height : item.height)
+    if (span <= 1) return base
+    return span * base + (span - 1) * layout.rowSpacing
+}
+
 function findBestSlidingPosition(heightMap, containerWidth, itemWidth, deque) {
     var maxX = containerWidth - itemWidth
     if (maxX < 0 || !isFinite(maxX)) return { x: 0, y: Infinity }
@@ -42,8 +81,8 @@ function findBestSlidingPosition(heightMap, containerWidth, itemWidth, deque) {
 
 function placeDefaultItem(layout, item, originalSize, heightMap,
                            containerWidth, useSlidingWindow, positionDeque) {
-    var itemWidth = originalSize ? originalSize.width : item.width
-    var itemHeight = originalSize ? originalSize.height : item.height
+    var itemWidth = footprintWidth(layout, item, originalSize)
+    var itemHeight = footprintHeight(layout, item, originalSize)
     var position = findBestPosition(
         heightMap, containerWidth, itemWidth, itemHeight,
         useSlidingWindow, positionDeque
@@ -199,6 +238,9 @@ function usesSlidingWindow(layout, itemTotal, slidingWindowMinItems) {
 
 function layoutHorizontal(layout, children, slidingWindowMinItems) {
     var rows = calculateRows(layout, children)
+    for (var band = 0; band < rows.length; band++) {
+        rows[band].bandHeight = rowBandHeight(layout, rows[band])
+    }
     var y = 0
     for (var r = 0; r < rows.length; r++) {
         var row = rows[r]
@@ -206,29 +248,43 @@ function layoutHorizontal(layout, children, slidingWindowMinItems) {
         for (var i = 0; i < row.items.length; i++) {
             var item = row.items[i]
             var itemIndex = row.indices[i]
+            var original = getState(layout, "originalSizes")[itemIndex]
             item.x = x
             item.y = y
-            if (layout.preserveAspectRatio
-                    && getState(layout, "originalSizes")[itemIndex]) {
-                var original = getState(layout, "originalSizes")[itemIndex]
+            if (layout.preserveAspectRatio && original) {
                 if (original.height > 0) {
                     var ratio = original.width / original.height
-                    item.height = row.maxHeight
-                    item.width = row.maxHeight * ratio
+                    item.height = row.bandHeight
+                    item.width = row.bandHeight * ratio
                 }
             } else {
-                item.height = row.maxHeight
-                if (getState(layout, "originalSizes")[itemIndex])
-                    item.width = getState(layout, "originalSizes")[itemIndex].width
+                item.height = row.bandHeight
+                if (original) item.width = footprintWidth(layout, item, original)
             }
             x += item.width + layout.spacing
         }
-        y += row.maxHeight + layout.rowSpacing
+        y += row.bandHeight + layout.rowSpacing
     }
     setState(layout, "rowCount", rows.length)
     setState(layout, "rowHeights",
-        rows.map(function(row) { return row.maxHeight }))
+        rows.map(function(row) { return row.bandHeight }))
     return rows.length > 0 ? y - layout.rowSpacing : 0
+}
+
+// Row band height: a rowSpan item raises its row band by whole row units
+// 行带高度: rowSpan 子项把所在行带按行单位抬升, 因此不会与相邻行重叠
+function rowBandHeight(layout, row) {
+    var bandHeight = row.maxHeight
+    for (var i = 0; i < row.items.length; i++) {
+        var span = readSpan(row.items[i], "rowSpan")
+        if (span > 1) {
+            bandHeight = Math.max(
+                bandHeight,
+                span * row.maxHeight + (span - 1) * layout.rowSpacing
+            )
+        }
+    }
+    return bandHeight
 }
 
 function calculateRows(layout, children) {
@@ -238,7 +294,7 @@ function calculateRows(layout, children) {
     for (var i = 0; i < children.length; i++) {
         var item = children[i]
         var originalSize = getState(layout, "originalSizes")[i]
-        var itemWidth = originalSize ? originalSize.width : item.width
+        var itemWidth = footprintWidth(layout, item, originalSize)
         var itemHeight = originalSize ? originalSize.height : item.height
         if (x + itemWidth > layout.width && x > 0) {
             rows.push(currentRow)
@@ -266,28 +322,30 @@ function layoutVertical(layout, children) {
 
     for (var i = 0; i < children.length; i++) {
         var item = children[i]
-        var shortestColumn = 0
-        var minHeight = columnHeights[0]
-        for (var column = 1; column < columns; column++) {
-            if (columnHeights[column] < minHeight) {
-                minHeight = columnHeights[column]
-                shortestColumn = column
-            }
-        }
+        var columnSpan = Math.min(readSpan(item, "columnSpan"), columns)
+        var group = findShortestColumnGroup(columnHeights, columns, columnSpan)
         var originalSize = getState(layout, "originalSizes")[i]
         var originalHeight = originalSize ? originalSize.height : item.height
         var originalWidth = originalSize ? originalSize.width : item.width
+        // A span wider than the grid is clamped to the available columns
+        // 超过网格的跨格数会被约束到可用列数
+        var spannedWidth = columnSpan > 1
+            ? columnSpan * itemWidth + (columnSpan - 1) * layout.spacing
+            : itemWidth
         var itemHeight
         if (layout.preserveAspectRatio && originalWidth > 0) {
-            itemHeight = itemWidth * (originalHeight / originalWidth)
+            itemHeight = spannedWidth * (originalHeight / originalWidth)
         } else {
-            itemHeight = originalHeight
+            itemHeight = footprintHeight(layout, item, originalSize)
         }
-        item.x = shortestColumn * (itemWidth + layout.spacing)
-        item.y = columnHeights[shortestColumn]
-        item.width = itemWidth
+        item.x = group.start * (itemWidth + layout.spacing)
+        item.y = group.height
+        item.width = spannedWidth
         item.height = itemHeight
-        columnHeights[shortestColumn] += itemHeight + layout.rowSpacing
+        var nextHeight = group.height + itemHeight + layout.rowSpacing
+        for (var covered = group.start; covered < group.start + columnSpan; covered++) {
+            columnHeights[covered] = nextHeight
+        }
     }
 
     var maxHeight = 0
@@ -297,6 +355,28 @@ function layoutVertical(layout, children) {
     setState(layout, "rowCount", columns)
     setState(layout, "rowHeights", columnHeights)
     return maxHeight > 0 ? maxHeight - layout.rowSpacing : 0
+}
+
+// Shortest column group: span 1 reproduces the historical shortest column pick
+// 最短列组: span 为 1 时与历史的最短列选择完全一致
+function findShortestColumnGroup(columnHeights, columns, span) {
+    var bestStart = 0
+    var bestHeight = Infinity
+    var lastStart = Math.max(0, columns - span)
+    for (var start = 0; start <= lastStart; start++) {
+        var groupHeight = 0
+        for (var index = start; index < start + span; index++) {
+            if (columnHeights[index] > groupHeight) groupHeight = columnHeights[index]
+        }
+        if (groupHeight < bestHeight) {
+            bestHeight = groupHeight
+            bestStart = start
+        }
+    }
+    return {
+        start: bestStart,
+        height: bestHeight === Infinity ? 0 : bestHeight
+    }
 }
 
 function calculateAutoColumnCount(layout, children) {

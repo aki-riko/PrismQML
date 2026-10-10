@@ -33,6 +33,7 @@ singleton IconRendererResources controls/icons/IconRendererResources.qml
 ChevronIcon controls/icons/ChevronIcon.qml
 CheckIcon controls/icons/CheckIcon.qml
 CloseIcon controls/icons/CloseIcon.qml
+AnimatedIcon controls/icons/AnimatedIcon.qml
 
 # ==================== Buttons 按钮 ====================
 Button controls/buttons/Button/ButtonCore.qml
@@ -42,6 +43,7 @@ ButtonContent controls/buttons/Button/ButtonContent.qml
 ButtonDropdown controls/buttons/Button/ButtonDropdown.qml
 ButtonProgress controls/buttons/Button/ButtonProgress.qml
 CloseButton controls/buttons/CloseButton.qml
+RepeatButton controls/buttons/RepeatButton.qml
 
 # ==================== Containers 容器 ====================
 Widget controls/containers/Widget.qml
@@ -72,7 +74,10 @@ HBoxLayout controls/containers/Layout/HBoxLayout.qml
 VBoxLayout controls/containers/Layout/VBoxLayout.qml
 RowFit controls/containers/Layout/RowFit.qml
 SplitPane controls/containers/Layout/SplitPane.qml
-#SplitView controls/containers/Layout/SplitView.qml
+SplitView controls/containers/Layout/SplitView.qml
+RelativePanel controls/containers/Layout/RelativePanel.qml
+Viewbox controls/containers/Layout/Viewbox.qml
+ParallaxView controls/containers/Layout/ParallaxView.qml
 
 # ScrollBar 滚动条
 ScrollBarEntry controls/containers/ScrollBar/ScrollBarEntry.qml
@@ -110,6 +115,12 @@ AudioWaveform controls/data/AudioWaveform.qml
 ChartView controls/data/Chart/ChartView.qml
 ChartDataZoom controls/data/Chart/ChartDataZoom.qml
 IndicatorBar controls/data/IndicatorBar.qml
+ItemsRepeater controls/data/List/ItemsRepeater.qml
+ItemsView controls/data/List/ItemsView.qml
+StandardUICommand controls/data/List/StandardUICommand.qml
+ItemsRepeaterLayout controls/data/List/_internal/ItemsRepeaterLayout.qml
+ItemsStackLayout controls/data/List/_internal/ItemsStackLayout.qml
+ItemsUniformGridLayout controls/data/List/_internal/ItemsUniformGridLayout.qml
 
 # ==================== Navigation 导航 ====================
 # controls/navigation
@@ -219,6 +230,13 @@ ContextMenu controls/menus/ContextMenu.qml
 Action controls/menus/Action.qml
 MenuSeparator controls/menus/MenuSeparator.qml
 SystemTrayMenu controls/menus/SystemTrayMenu.qml
+RadioMenuFlyoutItem controls/menus/RadioMenuFlyoutItem.qml
+CommandBarFlyout controls/menus/CommandBarFlyout.qml
+
+# ==================== Media 媒体 ====================
+MediaPlayerElement controls/media/MediaPlayerElement.qml
+MapControl controls/media/MapControl.qml
+WebView2 controls/media/WebView2.qml
 
 # ==================== Settings 设置 ====================
 SettingsCardCore controls/settings/SettingsCard/SettingsCardCore.qml

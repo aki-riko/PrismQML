@@ -18,7 +18,22 @@ Rectangle {
     property string text: ""
     property int size: 40
 
+    // PersonPicture extensions 人物头像扩展能力
+    property string initials: ""     // Explicit initials, may be multi-character 显式首字母, 可多字符
+    property int badgeNumber: 0      // Overlay badge count 叠加数字徽章
+    property string badgeGlyph: ""   // Overlay badge icon 叠加图标徽章
+    property bool isGroup: false     // Group picture semantics 群组头像语义
+
     // ==================== Readonly State 只读状态 ====================
+    // Empty initials fall back to the historical single-character behaviour.
+    // initials 为空时回落到既有的单字符行为。
+    readonly property string _displayInitials: initials !== ""
+        ? initials.slice(0, Enums.badge.personPictureInitialsLength)
+        : (text.length > 0 ? text.charAt(0).toUpperCase() : "")
+    readonly property bool _multiInitials: _displayInitials.length > 1
+    readonly property bool _hasBadge: badgeNumber > 0 || badgeGlyph !== ""
+    readonly property string _placeholderIcon:
+        isGroup ? Enums.icon.people : Enums.icon.person
     readonly property color _avatarBackground: source !== "" ? Enums.transparent : Enums.accentColor
     readonly property real _avatarBorderWidth: Enums.hasOutlinedSurfaces
                                                ? Enums.surfaceBorderWidth(Enums.border.thin) : 0
@@ -48,11 +63,17 @@ Rectangle {
     border.color: control._avatarBorderColor
 
     // Text avatar 文字头像
+    // Explicit initials without a text fallback share this label: its own `text`
+    // now carries the resolved initials.
+    // 无 text 回退的显式首字母复用该标签: 标签自身的 `text` 已是解析后的首字母。
     Label {
+        objectName: "avatarInitials"
         type: Enums.label.type_body
         anchors.centerIn: parent
-        text: control.text.length > 0 ? control.text.charAt(0).toUpperCase() : ""
-        font.pixelSize: size * 0.4
+        text: control._displayInitials
+        font.pixelSize: size * (control._multiInitials
+                                ? Enums.badge.personPictureMultiInitialsScale
+                                : Enums.badge.personPictureInitialsScale)
         font.bold: true
         color: control._avatarContentColor
         visible: source === "" && text !== ""
@@ -96,10 +117,31 @@ Rectangle {
 
     // Placeholder when no content 无内容时的占位符
     Icon {
+        objectName: "avatarPlaceholder"
         anchors.centerIn: parent
-        icon: control.source === "" && control.text !== "" ? "" : Enums.icon.person
+        // Keep the historical empty icon whenever initials are rendered, so the
+        // renderer set of a text avatar is unchanged.
+        // 渲染首字母时保持历史上的空图标, 使文字头像的渲染器集合不变。
+        icon: (source === "" && (text !== "" || initials !== ""))
+              ? "" : control._placeholderIcon
         iconSize: size * 0.5
         color: control._avatarContentColor
         visible: control.source === "" && control.text === ""
+    }
+
+    // Badge overlay 叠加徽章
+    // Created only when a badge is requested, so a plain avatar keeps exactly the
+    // renderer set it had before. 仅在需要徽章时创建, 普通头像保持改动前的渲染器集合。
+    Loader {
+        objectName: "avatarBadgeLoader"
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        active: control._hasBadge
+
+        sourceComponent: Badge {
+            objectName: "avatarBadge"
+            count: control.badgeNumber
+            icon: control.badgeGlyph
+        }
     }
 }

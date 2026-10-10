@@ -10,6 +10,10 @@ import "_internal" as LayoutInternal
 
 // FlowLayout - Enhanced flow layout with multiple modes 增强流式布局（支持多种模式）
 // Supports: default (preserve size), horizontal (equal height), vertical (equal width) 支持：默认（保持尺寸）、水平（等高）、垂直（等宽）
+// Cross-cell spans 跨格: a child may declare `property int columnSpan` / `property int rowSpan`
+// (>= 1, default 1) on itself; the span math lives in FlowLayoutEngine and the change
+// watcher lives in _internal. 子项可自行声明 columnSpan / rowSpan（>= 1，默认 1），
+// 跨格计算在 FlowLayoutEngine，变更监听在 _internal。
 Item {
     id: control
 
@@ -114,6 +118,9 @@ Item {
     function isEmpty() {
         return itemCount === 0
     }
+
+    // spanOf - Read the normalized cross-cell spans of a child 读取子项的规范化跨格数
+    function spanOf(item) { return FlowLayoutEngine.itemSpan(item) }
 
     // clear - Remove all children 清空所有子组件
     function clear() {
@@ -354,6 +361,13 @@ Item {
     LayoutInternal.FlowLayoutAppendTimer {
         id: appendLayoutTimer
         host: control
+    }
+
+    // Cross-cell span change watcher 跨格变更监听
+    LayoutInternal.FlowLayoutSpanWatcher {
+        id: spanWatcher
+        host: control
+        contentHost: contentItem
     }
 
     Item {

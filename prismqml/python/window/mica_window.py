@@ -20,33 +20,32 @@ from PySide6.QtQuick import QQuickImageProvider
 
 from ..core.logger import info, warning, error, debug
 from ._acrylic_image_state import _AcrylicImageState
+# DWM attributes and the backdrop token map live in _dwm_backdrop; four names below
+# are deliberate re-exports because consumers read the DWM surface from mica_window.
+# DWM 属性与背板令牌映射位于 _dwm_backdrop；下方四个名字是有意重导出，供既有消费者读取。
+from ._dwm_backdrop import (
+    BACKDROP_TYPE_VALUES as BACKDROP_TYPE_VALUES,
+    DWM_BACKDROP_ACRYLIC as DWM_BACKDROP_ACRYLIC,
+    DWM_BACKDROP_MICA,
+    DWM_BACKDROP_MICA_ALT as DWM_BACKDROP_MICA_ALT,
+    DWM_BACKDROP_NONE,
+    DWMWA_BORDER_COLOR,
+    DWMWA_COLOR_NONE,
+    DWMWA_SYSTEMBACKDROP_TYPE as DWMWA_SYSTEMBACKDROP_TYPE,
+    DWMWA_USE_IMMERSIVE_DARK_MODE,
+    DWMWA_WINDOW_CORNER_PREFERENCE,
+    DWMWCP_DONOTROUND,
+    DWMWCP_ROUND,
+    WIN11_BACKDROP_BUILD_THRESHOLD,
+    apply_backdrop_attributes as _apply_backdrop_attributes,
+    apply_backdrop_request as _apply_backdrop_request,
+    resolve_backdrop_value as _resolve_backdrop_value,
+    hresult_succeeded as _dwm_hresult_succeeded,
+)
 from ._window_frame_capture import grab_window_frame as _grab_window_frame
 
 # Windows 11 build number threshold Windows 11 版本号阈值
 WIN11_BUILD_THRESHOLD = 22000
-
-# DWMWA_SYSTEMBACKDROP_TYPE 最低支持版本（Win11 22H2）
-# Build 22000-22621 之间无此接口，调用会静默失败
-WIN11_BACKDROP_BUILD_THRESHOLD = 22621
-
-# DWM constants DWM 常量
-DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-DWMWA_WINDOW_CORNER_PREFERENCE = 33
-DWMWA_BORDER_COLOR = 34
-DWMWA_SYSTEMBACKDROP_TYPE = 38  # 需要 Build >= 22621
-
-# Window corner preference 窗口圆角偏好
-DWMWCP_DONOTROUND = 1
-DWMWCP_ROUND = 2
-
-# DWM backdrop type values DWM背景类型值
-DWM_BACKDROP_NONE = 1   # DWMSBT_NONE
-DWM_BACKDROP_MICA = 2   # DWMSBT_MAINWINDOW (Mica)
-DWMWA_COLOR_NONE = 0xFFFFFFFE  # Suppress the DWM frame border 抑制 DWM 窗口边框
-
-def _dwm_hresult_succeeded(result: int) -> bool:
-    """Apply Windows SUCCEEDED semantics. 使用 Windows SUCCEEDED 语义。"""
-    return int(result) >= 0
 
 def _is_win11() -> bool:
     """Check if running on Windows 11 检查是否运行在 Windows 11"""
@@ -147,37 +146,19 @@ class MicaManager(QObject):
 
     def _apply_mica_to_hwnd(self, hwnd: int, enabled: bool) -> bool:
         """Apply rounded Mica backdrop to a validated HWND. 向已验证 HWND 应用云母。"""
-        if self._windows_build < WIN11_BACKDROP_BUILD_THRESHOLD:
-            warning(
-                "DWMWA_SYSTEMBACKDROP_TYPE requires Build >= "
-                f"{WIN11_BACKDROP_BUILD_THRESHOLD}, current: {self._windows_build}"
-            )
-            return False
-        self._set_dwm_int_attribute(
-            hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND
-        )
-        border_result = self._set_dwm_color_attribute(
-            hwnd, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE
-        )
-        if not _dwm_hresult_succeeded(border_result):
-            warning(f"DwmSetWindowAttribute border suppression failed: {border_result}")
         backdrop = DWM_BACKDROP_MICA if enabled else DWM_BACKDROP_NONE
-        result = self._set_dwm_int_attribute(
-            hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop
-        )
-        if _dwm_hresult_succeeded(result):
-            return True
-        warning(f"DwmSetWindowAttribute failed: {result}")
-        return False
+        return _apply_backdrop_attributes(self, hwnd, backdrop)
 
-    def _commit_mica_state(self, window: QWindow, hwnd: int, enabled: bool) -> None:
+    def _commit_mica_state(
+        self, window: QWindow, hwnd: int, enabled: bool, label: str = "Mica effect"
+    ) -> None:
         """Commit state and log only logical transitions. 提交状态并仅记录逻辑变化。"""
         target_changed = self._current_hwnd != hwnd or self._mica_enabled != enabled
         enabled_changed = self._mica_enabled != enabled
         self._current_window = window
         self._current_hwnd = hwnd
         self._mica_enabled = enabled
-        message = f"Mica effect {'enabled' if enabled else 'disabled'}"
+        message = f"{label} {'enabled' if enabled else 'disabled'}"
         if target_changed:
             info(message)
         else:
@@ -247,6 +228,25 @@ class MicaManager(QObject):
         except (ValueError, OSError, TypeError) as e:
             error(f"Failed to set mica effect: {e}")
             return False
+
+    @Slot(QWindow, str, bool, result=bool)
+    def setBackdropType(self, window: QWindow, backdrop: str, dark: bool = False) -> bool:
+        """Set an explicit system backdrop type. 设置显式系统背板类型。
+
+        令牌取 none / mica / acrylic / mica_alt；未知令牌告警并返回 False。
+        micaEnabled 仍表示"存在生效的系统背板"，即 none 之外的类型为 True。
+        """
+        if not self._is_mica_supported:
+            debug("System backdrop not available (not Win11 or DWM unavailable)")
+            return False
+
+        value = _resolve_backdrop_value(backdrop)
+        if value is None:
+            warning(f"Unknown system backdrop type: {backdrop!r}")
+            return False
+
+        token = str(backdrop).strip().lower()
+        return _apply_backdrop_request(self, window, value, dark, token)
     
     @Slot(bool)
     def updateDarkMode(self, dark: bool):

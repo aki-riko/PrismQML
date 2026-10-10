@@ -459,4 +459,19 @@ QtObject {
         readonly property color editBtnHover: "#1976d2"
         readonly property color editBtnPressed: "#1565c0"
     }
+
+    // ==================== AccentScale 强调色阶 ====================
+    // WinUI 风格色阶，仅当 ThemeManager 缺失时兜底；运行时由 ThemeManager.accentScale
+    // 以同一算法(HSL 明度 ±0.10/0.20/0.30, 限幅 0..1)从当前 accentColor 确定性派生。
+    // 本组数值即 #0e5a9c 按该算法的派生结果, 由 tests/test_accent_scale_tokens.py 交叉校验。
+    // 追加在文件末尾, 以免平移既有颜色数组的行号基线。
+    readonly property QtObject accentScale: QtObject {
+        readonly property color light3: "#53a7f0"  // accent L+0.30
+        readonly property color light2: "#258feb"  // accent L+0.20
+        readonly property color light1: "#1275cb"  // accent L+0.10
+        readonly property color accent: "#0e5a9c"  // base accent 基准强调色
+        readonly property color dark1: "#0a3f6d"   // accent L-0.10
+        readonly property color dark2: "#06243e"   // accent L-0.20
+        readonly property color dark3: "#010910"   // accent L-0.30
+    }
 }

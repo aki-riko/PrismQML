@@ -7,6 +7,7 @@
 
 #include <QString>
 #include <QColor>
+#include <QVariantMap>
 
 namespace prism {
 
@@ -31,5 +32,12 @@ bool   isDark();
 void   setAccentColor(const QString &color);
 QString getAccentColor();
 QColor  accentQColor();
+// WinUI-style accent scale, mirroring Python get_accent_scale().
+// WinUI 风格强调色阶，镜像 Python get_accent_scale()。
+QVariantMap getAccentScale();
+// Reduced-motion runtime switch, mirroring Python is_reduce_motion()/set_reduce_motion().
+// 减少动态效果运行时开关，镜像 Python is_reduce_motion()/set_reduce_motion()。
+bool   isReduceMotion();
+void   setReduceMotion(bool enabled);
 
 }  // namespace prism

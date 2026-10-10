@@ -60,6 +60,9 @@ QtObject {
         if (props.checked !== undefined) action.checked = props.checked
         if (props.enabled !== undefined) action.enabled = props.enabled
         if (props.toolTip !== undefined) action.toolTip = props.toolTip
+        if (props.radioGroup !== undefined) action.radioGroup = props.radioGroup
+        if (props.exclusive !== undefined) action.exclusive = props.exclusive
+        if (props.canExecute !== undefined) action.canExecute = props.canExecute
         Qt.callLater(host._updateSize)
         return true
     }

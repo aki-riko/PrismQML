@@ -1,0 +1,4 @@
+module media
+MediaPlayerElement MediaPlayerElement.qml
+MapControl MapControl.qml
+WebView2 WebView2.qml

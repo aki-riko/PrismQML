@@ -50,4 +50,11 @@ QtObject {
     
     // Color factors 颜色系数
     readonly property real hoverLighten: 1.3        // Hover state lighten factor 悬浮状态变亮系数
+
+    // Hyperlink visited state 超链接已访问态
+    // Only consumed while a hyperlink button is marked visited; the unvisited
+    // path keeps using the accent color unchanged.
+    // 仅在超链接按钮被标记为已访问时消费；未访问路径继续使用主题强调色，行为不变。
+    readonly property color hyperlinkVisitedLight: "#8b2fa0"  // Visited link (light) 已访问链接(浅色)
+    readonly property color hyperlinkVisitedDark: "#c586c0"   // Visited link (dark) 已访问链接(深色)
 }

@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import ".."
 import "_internal" as SpinBoxInternal
+import "_internal/SpinBoxValue.js" as SpinBoxValue
 
 // SpinBoxCore - Number input base class (extends InputCore) 数字输入基类
 // SpinBox/DoubleSpinBox extend this 继承此基类
@@ -34,6 +35,9 @@ InputCore {
     property bool spinButtonsVisible: true
     property bool compactMode: false  // Compact mode 紧凑模式
     property bool wheelOnlyWhenFocused: true  // Only allow wheel when focused 仅聚焦时允许滚轮
+    // Expression and validation extensions 表达式与校验扩展
+    property bool acceptsExpression: false
+    property int validationMode: Enums.input.validation_invalid_input_overridden
 
     // Held-button repeat matching native Windows SpinBox 模拟 Windows 原生微调框的长按重复
     // autoRepeat enables held-button repetition autoRepeat 控制是否启用长按重复
@@ -63,31 +67,9 @@ InputCore {
     signal valueModified(real value)  // Qt-style edit signal Qt风格编辑信号
 
     // ==================== Public Methods 公开方法 ====================
-    function increase() {
-        var previousValue = value
-        var newVal = value + stepSize
-        if (newVal > maximum) {
-            value = wrap ? minimum : maximum
-        } else {
-            value = newVal
-        }
-        if (value === previousValue) return
-        valueUpdated(value)
-        valueModified(value)
-    }
+    function increase() { SpinBoxValue.increase(control) }
 
-    function decrease() {
-        var previousValue = value
-        var newVal = value - stepSize
-        if (newVal < minimum) {
-            value = wrap ? maximum : minimum
-        } else {
-            value = newVal
-        }
-        if (value === previousValue) return
-        valueUpdated(value)
-        valueModified(value)
-    }
+    function decrease() { SpinBoxValue.decrease(control) }
 
     // Set range 设置范围
     function setRange(min, max) {
@@ -109,16 +91,10 @@ InputCore {
 
     // ==================== Internal Methods 内部方法 ====================
     function _startAutoRepeat(isUp) {
-        if (!autoRepeat || !enabled) return
-        _repeatIsUp = isUp
-        autoRepeatTimer._inRepeatPhase = false
-        autoRepeatTimer.start()
+        SpinBoxValue.startAutoRepeat(control, autoRepeatTimer, isUp)
     }
 
-    function _stopAutoRepeat() {
-        autoRepeatTimer.stop()
-        autoRepeatTimer._inRepeatPhase = false
-    }
+    function _stopAutoRepeat() { SpinBoxValue.stopAutoRepeat(autoRepeatTimer) }
 
     function _triggerFeedback(isUp) {
         var button = isUp ? _increaseButton : _decreaseButton
@@ -132,6 +108,16 @@ InputCore {
             button.pseudoHovered = true
             button.pseudoPressed = true
         }
+    }
+
+    // Resolve edited text into a number, evaluating expressions when enabled
+    // 把编辑文本解析为数值, 启用时先求值表达式
+    function _resolveEditedValue(raw) {
+        var source = String(raw)
+        if (acceptsExpression && SpinBoxExpression.isExpression(source)) {
+            return SpinBoxExpression.evaluate(source)
+        }
+        return parseFloat(source)
     }
 
     // Bind inherited InputCore state 绑定继承的 InputCore 状态
@@ -174,7 +160,7 @@ InputCore {
                             ? control._buttonGroup.textLeftInset : Enums.spacing.xs
         anchors.rightMargin: control._buttonGroup
                              ? control._buttonGroup.textRightInset : Enums.spacing.xs
-        
+
         text: control.displayValue
         font.family: Enums.fontFamily
         font.pixelSize: control.fontSize
@@ -190,32 +176,31 @@ InputCore {
         // 图标单位只占内边距：输入框宽度不变,输入、光标滚动与裁切行为与无图标时一致
         leftPadding: control.prefixIcon !== "" ? control._unitIconInset : 0
         rightPadding: control.suffixIcon !== "" ? control._unitIconInset : 0
-        
-        validator: DoubleValidator { bottom: control.minimum; top: control.maximum; decimals: control.decimals }
+
+        validator: control.acceptsExpression
+                   ? expressionValidator : doubleValidator
 
         // Clamp values above maximum while editing instead of waiting for blur 编辑时立即钳制超过 maximum 的值
         // Prevent extreme intermediate text such as 99999999999 防止显示远超上限的中间值
         onTextChanged: {
-            if (activeFocus) {
-                var raw = text.replace(control.prefix, "").replace(control.suffix, "")
-                var num = parseFloat(raw)
-                if (!isNaN(num) && num > control.maximum) {
-                    control.value = control.maximum
-                    text = Qt.binding(function() { return control.displayValue })
-                }
+            if (activeFocus && SpinBoxValue.shouldClampWhileEditing(
+                    control, text, Enums.input.validation_invalid_input_disabled)) {
+                control.value = control.maximum
+                text = Qt.binding(function() { return control.displayValue })
             }
         }
 
         onEditingFinished: {
-            var num = parseFloat(text.replace(control.prefix, "").replace(control.suffix, ""))
-            if (!isNaN(num)) {
-                control.value = Math.max(control.minimum, Math.min(control.maximum, num))
-                control.valueUpdated(control.value)
-                control.valueModified(control.value)
-            }
+            SpinBoxValue.commitEditedValue(
+                control, text, Enums.input.validation_invalid_input_disabled)
             // Re-establish binding to avoid breaking it 重新建立绑定避免破坏
             text = Qt.binding(function() { return control.displayValue })
         }
+
+        DoubleValidator { id: doubleValidator; bottom: control.minimum; top: control.maximum; decimals: control.decimals }
+
+        // Expression mode only restricts the character set 表达式模式只限制字符集
+        RegularExpressionValidator { id: expressionValidator; regularExpression: /^[0-9eE+\-*\/(). ]*$/ }
     }
 
     // Optional icon units 可选图标单位

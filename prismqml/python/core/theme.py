@@ -7,26 +7,88 @@
 PrismQML 主题系统
 
 支持功能：
-- 深色/浅色/自动主题切换
-- 自定义主题色（accentColor）
+- 深色/浅色/自动主题切换（AUTO 实时跟随系统配色方案）
+- 自定义主题色（accentColor）与 WinUI 风格强调色阶
+- 减少动态效果开关（reduceMotion）
 - QML属性绑定（自动通知更新）
 """
 
 from enum import Enum
+import os
 import re
 from typing import Callable, Optional
 
-from PySide6.QtCore import QObject, Signal, Property, Slot
+from PySide6.QtCore import QObject, Qt, QTimer, Signal, Property, Slot
 from PySide6.QtGui import QColor
 
 from .appearance_defaults import DEFAULT_ACCENT as _DEFAULT_ACCENT
-from .logger import debug
+from .logger import debug, warning
 
 
 _HEX_COLOR_PATTERN = re.compile(
     r"#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{5})?"
 )
 _appearance_persistence: Optional[Callable[[str, str], None]] = None
+
+# Reduced-motion environment input. Only documented truthy/falsy spellings are
+# accepted; anything else warns and falls back to "motion enabled".
+# 减少动态效果的环境变量输入。仅接受文档化的真/假拼写；其他值告警并回退到"开启动效"。
+REDUCE_MOTION_ENV = "PRISM_REDUCE_MOTION"
+_REDUCE_MOTION_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_REDUCE_MOTION_FALSY = frozenset({"0", "false", "no", "off"})
+_REDUCE_MOTION_DEFAULT = False
+
+# WinUI-style accent scale steps, ordered light to dark. Each step is an HSL
+# lightness delta applied to the current accent color, so the whole scale is a
+# deterministic derivation instead of a second hardcoded palette.
+# WinUI 风格强调色阶步进，由浅到深。每档是施加在当前强调色上的 HSL 明度增量，
+# 因此整条色阶是确定性派生结果，而不是第二份硬编码调色板。
+ACCENT_SCALE_STEPS = (
+    ("light3", 0.30),
+    ("light2", 0.20),
+    ("light1", 0.10),
+    ("accent", 0.0),
+    ("dark1", -0.10),
+    ("dark2", -0.20),
+    ("dark3", -0.30),
+)
+
+
+def read_reduce_motion_env(raw: Optional[str] = None) -> bool:
+    """Parse the reduced-motion environment input. 解析减少动态效果环境变量。
+
+    非法值告警并回退默认值，不抛异常；空值/未设置视为未启用。
+    """
+    value = os.environ.get(REDUCE_MOTION_ENV) if raw is None else raw
+    if value is None:
+        return _REDUCE_MOTION_DEFAULT
+    normalized = value.strip().casefold()
+    if not normalized:
+        return _REDUCE_MOTION_DEFAULT
+    if normalized in _REDUCE_MOTION_TRUTHY:
+        return True
+    if normalized in _REDUCE_MOTION_FALSY:
+        return False
+    warning(
+        f"{REDUCE_MOTION_ENV} 值非法: {value!r}，已回退为 {_REDUCE_MOTION_DEFAULT}"
+    )
+    return _REDUCE_MOTION_DEFAULT
+
+
+def _shift_lightness(hex_color: str, delta: float) -> str:
+    """Shift one color's HSL lightness by a clamped delta. 按限幅增量调整 HSL 明度。"""
+    color = QColor(hex_color)
+    h, s, l, a = color.getHslF()
+    color.setHslF(h, s, max(0.0, min(1.0, l + delta)), a)
+    return color.name()
+
+
+def accent_scale_for(hex_color: str) -> dict:
+    """Derive the WinUI-style accent scale from one accent color. 派生强调色阶。"""
+    return {
+        name: _shift_lightness(hex_color, delta)
+        for name, delta in ACCENT_SCALE_STEPS
+    }
 
 
 def _bind_appearance_persistence(
@@ -94,6 +156,7 @@ class ThemeManager(QObject):
     themeChanged = Signal(str)
     accentColorChanged = Signal(str)
     skinChanged = Signal(str)
+    reduceMotionChanged = Signal(bool)
 
     # Default accent color (deep Fluent blue) 默认主题色：沉稳深蓝
     # 选用 #0E5A9C 的依据：白字对比度 7.09 达 WCAG AAA 级，浅色背景上比 #0078D4 更沉稳不刺眼，
@@ -123,6 +186,13 @@ class ThemeManager(QObject):
         self._accent_color = self.DEFAULT_ACCENT
         self._accent_color_light = self._lighten_color(self._accent_color, self.LIGHTEN_FACTOR)
         self._accent_color_dark = self._darken_color(self._accent_color, self.DARKEN_FACTOR)
+        self._accent_scale = accent_scale_for(self._accent_color)
+        self._reduce_motion = read_reduce_motion_env()
+        # Platform color-scheme watch is installed lazily: the application object
+        # may not exist yet when the singleton is created.
+        # 平台配色方案监听延迟安装：单例创建时应用对象可能尚不存在。
+        self._system_color_scheme_bound = False
+        self._system_theme_notify_pending = False
         self._initialized = True
 
     # ==================== 主题属性 ====================
@@ -136,19 +206,72 @@ class ThemeManager(QObject):
     def isDark(self) -> bool:
         """是否为深色主题"""
         if self._theme == Theme.AUTO:
-            # Detect system theme 检测系统主题
-            try:
-                from PySide6.QtWidgets import QApplication
-
-                app = QApplication.instance()
-                if app:
-                    palette = app.palette()
-                    return palette.window().color().lightness() < 128
-            except (ImportError, AttributeError, RuntimeError) as exc:
-                # System theme detection failed, default to light 系统主题检测失败
-                debug(f"系统主题检测失败,默认使用浅色: {exc}")
-            return False
+            # Follow the platform color scheme live 实时跟随系统配色方案
+            self.bind_system_theme_watch()
+            return self._detect_system_dark()
         return self._theme == Theme.DARK
+
+    def _detect_system_dark(self) -> bool:
+        """Detect the system dark state for Theme.AUTO. 检测 AUTO 下的系统深色状态。"""
+        try:
+            from PySide6.QtWidgets import QApplication
+
+            app = QApplication.instance()
+            if app:
+                palette = app.palette()
+                return palette.window().color().lightness() < 128
+        except (ImportError, AttributeError, RuntimeError) as exc:
+            # System theme detection failed, default to light 系统主题检测失败
+            debug(f"系统主题检测失败,默认使用浅色: {exc}")
+        return False
+
+    # ==================== 系统配色方案跟随 ====================
+
+    def _style_hints(self):
+        """Return live style hints, or None without a GUI application. 返回样式提示。"""
+        from PySide6.QtGui import QGuiApplication
+
+        if QGuiApplication.instance() is None:
+            return None
+        return QGuiApplication.styleHints()
+
+    def bind_system_theme_watch(self) -> bool:
+        """Subscribe Theme.AUTO to the platform color scheme. 订阅平台配色方案。
+
+        幂等；仅在 GUI 应用已存在时生效，未生效时返回 False 并留待下次调用重试。
+        """
+        if self._system_color_scheme_bound:
+            return True
+        hints = self._style_hints()
+        if hints is None:
+            return False
+        changed = getattr(hints, "colorSchemeChanged", None)
+        if changed is None:
+            debug("当前 Qt 未提供 QStyleHints.colorSchemeChanged，AUTO 无法实时跟随")
+            return False
+        changed.connect(self._on_system_color_scheme_changed)
+        self._system_color_scheme_bound = True
+        return True
+
+    def _on_system_color_scheme_changed(self, _scheme) -> None:
+        """Re-notify only while Theme.AUTO owns the dark state. 仅在 AUTO 下重新通知。"""
+        if self._theme != Theme.AUTO or self._system_theme_notify_pending:
+            return
+        self._system_theme_notify_pending = True
+        # The platform palette is refreshed after this signal returns, so wait one
+        # event-loop turn before re-reading the effective dark state.
+        # 平台调色板在本信号返回后才刷新，因此延后一个事件循环再重读有效深色状态。
+        QTimer.singleShot(0, self._emit_system_theme_changed)
+
+    def _emit_system_theme_changed(self) -> None:
+        """Notify AUTO followers once the palette settled. 调色板稳定后通知 AUTO 跟随者。"""
+        self._system_theme_notify_pending = False
+        if self._theme != Theme.AUTO:
+            return
+        # isDark is notified by themeChanged, so the existing binding contract is
+        # reused instead of adding a second notify path.
+        # isDark 以 themeChanged 作为通知信号，因此复用既有绑定契约而不新增通知路径。
+        self.themeChanged.emit(self._theme.value)
 
     def setTheme(self, theme: Theme):
         """立即设置主题并在后台持久化。"""
@@ -191,6 +314,32 @@ class ThemeManager(QObject):
         """Apply a validated persisted theme without writing it again."""
         theme_map = {"light": Theme.LIGHT, "dark": Theme.DARK, "auto": Theme.AUTO}
         self._apply_theme(theme_map.get(theme_str.lower(), Theme.LIGHT))
+
+    # ==================== 减少动态效果属性 ====================
+
+    @Property(bool, notify=reduceMotionChanged)
+    def reduceMotion(self) -> bool:
+        """是否请求减少动态效果（只读，供 QML 绑定）"""
+        return self._reduce_motion
+
+    def set_reduce_motion(self, enabled: bool) -> None:
+        """运行时切换减少动态效果（Python 公开入口）"""
+        self._apply_reduce_motion(bool(enabled))
+
+    @Slot(bool)
+    def setReduceMotionFromQml(self, enabled: bool) -> None:
+        """运行时切换减少动态效果（QML 调用入口）"""
+        self._apply_reduce_motion(bool(enabled))
+
+    def _apply_reduce_motion(self, enabled: bool) -> None:
+        """Apply committed reduced-motion state. 提交减少动态效果状态。"""
+        if self._reduce_motion != enabled:
+            self._reduce_motion = enabled
+            self.reduceMotionChanged.emit(enabled)
+
+    def get_reduce_motion(self) -> bool:
+        """获取当前减少动态效果状态"""
+        return self._reduce_motion
 
     # ==================== 皮肤属性 ====================
 
@@ -344,6 +493,11 @@ class ThemeManager(QObject):
         """主题色暗色变体（pressed状态）Accent color dark variant (pressed state)"""
         return self._accent_color_dark
 
+    @Property("QVariantMap", notify=accentColorChanged)
+    def accentScale(self) -> dict:
+        """WinUI 风格强调色阶 light3/light2/light1/accent/dark1/dark2/dark3"""
+        return dict(self._accent_scale)
+
     @Slot(str)
     def setAccentColor(self, color: str):
         """
@@ -365,6 +519,7 @@ class ThemeManager(QObject):
             # Pre-calculate variants cache 当颜色变化时直接更新对应的派生颜色缓存
             self._accent_color_light = self._lighten_color(color, self.LIGHTEN_FACTOR)
             self._accent_color_dark = self._darken_color(color, self.DARKEN_FACTOR)
+            self._accent_scale = accent_scale_for(color)
             self.accentColorChanged.emit(color)
 
     def getAccentColor(self) -> str:
@@ -442,6 +597,21 @@ def setAccentColor(color: str):
 def getAccentColor() -> str:
     """获取当前主题色"""
     return ThemeManager().getAccentColor()
+
+
+def get_accent_scale() -> dict:
+    """获取当前 WinUI 风格强调色阶 light3..dark3"""
+    return ThemeManager().accentScale
+
+
+def is_reduce_motion() -> bool:
+    """是否请求减少动态效果"""
+    return ThemeManager().reduceMotion
+
+
+def set_reduce_motion(enabled: bool) -> None:
+    """运行时切换减少动态效果"""
+    ThemeManager().set_reduce_motion(enabled)
 
 
 def accentQColor() -> QColor:

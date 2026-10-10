@@ -25,6 +25,9 @@ __all__ = [
     "getAccentColor",
     "accentQColor",
     "getThemeManager",
+    "get_accent_scale",
+    "is_reduce_motion",
+    "set_reduce_motion",
     # Icons
     "Icon",
     "IconCore",
@@ -134,6 +137,9 @@ _LAZY_EXPORTS = {
     "getAccentColor": (".python.runtime.appearance", "getAccentColor"),
     "accentQColor": (".python.runtime.appearance", "accentQColor"),
     "getThemeManager": (".python.runtime.appearance", "getThemeManager"),
+    "get_accent_scale": (".python.runtime.appearance", "get_accent_scale"),
+    "is_reduce_motion": (".python.runtime.appearance", "is_reduce_motion"),
+    "set_reduce_motion": (".python.runtime.appearance", "set_reduce_motion"),
     # Icons
     "Icon": (".python.core.icons", "Icon"),
     "IconCore": (".python.core.icon_core", "IconCore"),

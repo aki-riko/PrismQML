@@ -1,5 +1,6 @@
 module icons
 Icon Icon.qml
+AnimatedIcon AnimatedIcon.qml
 ChevronIcon ChevronIcon.qml
 CheckIcon CheckIcon.qml
 CloseIcon CloseIcon.qml

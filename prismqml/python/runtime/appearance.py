@@ -14,7 +14,10 @@ from ..core.theme import (
     getSkin as _core_get_skin,
     getTheme as _core_get_theme,
     getThemeManager as _core_get_theme_manager,
+    get_accent_scale as _core_get_accent_scale,
     isDark as _core_is_dark,
+    is_reduce_motion as _core_is_reduce_motion,
+    set_reduce_motion as _core_set_reduce_motion,
 )
 from .configuration import get_config_manager
 
@@ -37,6 +40,21 @@ def isDark() -> bool:
 def getAccentColor() -> str:
     """Get the current accent color through the runtime facade. 通过运行时门面获取当前强调色。"""
     return _core_get_accent_color()
+
+
+def get_accent_scale() -> dict:
+    """Get the WinUI-style accent scale through the runtime facade. 获取强调色阶。"""
+    return _core_get_accent_scale()
+
+
+def is_reduce_motion() -> bool:
+    """Return the reduced-motion state through the runtime facade. 获取减少动态效果状态。"""
+    return _core_is_reduce_motion()
+
+
+def set_reduce_motion(enabled: bool) -> None:
+    """Toggle reduced motion through the runtime facade. 切换减少动态效果。"""
+    _core_set_reduce_motion(enabled)
 
 
 def accentQColor():
@@ -72,6 +90,15 @@ def configure_appearance_persistence(manager) -> None:
         apply_persisted=manager.appearancePersistenceEnabled,
     )
     _bind_appearance_persistence(_persist_appearance_change)
+    # Install the Theme.AUTO color-scheme subscription from the composition layer.
+    # Only the real ThemeManager exposes this port: composition may run against a
+    # lighter test double that legitimately omits the subscription. The call stays
+    # idempotent and retryable, so a missing GUI application is retried lazily.
+    # 由装配层安装 Theme.AUTO 的配色方案订阅。只有真实 ThemeManager 暴露该端口：
+    # 装配可能面对可省略订阅的测试假实现；调用本身幂等，尚无 GUI 应用时延迟重试。
+    binder = getattr(getThemeManager(), "bind_system_theme_watch", None)
+    if callable(binder):
+        binder()
 
 
 def _persist_appearance_change(field: str, value: str) -> None:

@@ -8,6 +8,7 @@ import "../icons"
 import "../data"
 import "../feedback/Tooltip"
 import "_internal" as MenuInternal
+import "_internal/ActionLogic.js" as ActionLogic
 
 // Action - Menu action item 菜单动作项
 // Supports text position: side (default) or bottom 支持文本位置：侧边（默认）或底部
@@ -17,7 +18,12 @@ Rectangle {
     // ==================== Public Props 公开属性 ====================
     property string text: ""
     property string icon: ""
-    property string shortcut: ""
+    property string shortcut: ""          // Keyboard accelerator, e.g. "Ctrl+O" 键盘加速器
+    property string radioGroup: ""        // Non-empty enables single-choice semantics 非空即启用单选语义
+    property bool exclusive: true         // Clear the other checked rows of the group 清除组内其它已选项
+    // Dynamic CanExecute: null always allows, a bool is fixed, a function is re-evaluated.
+    // 动态 CanExecute: null 始终允许, bool 为固定值, function 每次求值。
+    property var canExecute: null
     property bool checkable: false
     property bool checked: false
     property int textPosition: Enums.position.side  // side or bottom 侧边或底部
@@ -41,6 +47,9 @@ Rectangle {
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
     readonly property bool _touchActive: Touch.feedback(hovered, actionInteraction.hoverArea.pressed)
+    // A radio group makes the row selectable without the checkable flag 单选组使该行无需 checkable 即可选中
+    readonly property bool radioMode: radioGroup !== ""
+    readonly property bool canExecuteNow: ActionLogic.canExecute(control)
 
     // ==================== Internal Props 内部属性 ====================
     readonly property bool _isBottomText: textPosition === Enums.position.bottom
@@ -49,13 +58,36 @@ Rectangle {
     readonly property color _itemPressedColor: Enums.stateColor.menuItemPressed
     readonly property color _itemTextColor: control.enabled ? Enums.textColor.primary : Enums.textColor.disabled
     readonly property color _shortcutTextColor: Enums.stateColor.textMedium
+    property var _accelerator: null
+    property var _acceleratorComponent: null
 
     // ==================== Signals 信号 ====================
     signal pressed()
     signal triggered()
     signal submenuRequested()  // Submenu open request 子菜单打开请求
 
+    // ==================== Public Methods 公开方法 ====================
+    // Activate exactly like a pointer click or the keyboard accelerator 与指针点击或键盘加速器一致地激活
+    function activate() { return ActionLogic.activate(control) }
+
     // ==================== Internal Methods 内部方法 ====================
+    // The accelerator is created on demand: a shortcut-less row keeps no idle object.
+    // 加速器按需创建: 没有快捷键的行不常驻多余对象。
+    function _syncAccelerator() {
+        if (shortcut === "") { _destroyAccelerator(); return }
+        if (!_acceleratorComponent)
+            _acceleratorComponent = Qt.createComponent(Qt.resolvedUrl("_internal/ActionAccelerator.qml"))
+        if (!_acceleratorComponent
+                || _acceleratorComponent.status !== Component.Ready) return
+        if (!_accelerator)
+            _accelerator = _acceleratorComponent.createObject(
+                control, { "actionControl": control })
+    }
+
+    function _destroyAccelerator() {
+        if (_accelerator) { _accelerator.destroy(); _accelerator = null }
+    }
+
     // Stabilize the nearest popup before the press/release hit test begins.
     // 在按下/释放命中测试开始前稳定最近的弹层。
     function _stabilizePopupAncestor() {
@@ -88,10 +120,11 @@ Rectangle {
     color: {
         if (!enabled) return Enums.transparent
         if (actionInteraction.hoverArea.pressed) return _itemPressedColor
-        if (checkable && checked) return _itemPressedColor
+        if ((checkable || radioMode) && checked) return _itemPressedColor
         if (_touchActive) return _itemHoverColor
         return Enums.transparent
     }
+    onShortcutChanged: _syncAccelerator()
     
     // ==================== Content 内容 ====================
     // Side layout (default) 默认侧边布局
@@ -103,14 +136,15 @@ Rectangle {
         spacing: Enums.spacing.l
         visible: !control._isBottomText
         
-        // Check mark 选中标记
+        // Selection indicator: a radio glyph inside a group, otherwise a check mark
+        // 选中指示器: 组内使用单选图标, 其余使用勾选图标
         Icon {
             iconSize: Enums.iconSize.xs
             color: Enums.accentColor
             width: Enums.spacing.xl
             anchors.verticalCenter: parent.verticalCenter
-            visible: control.checkable && control.checked
-            icon: Enums.icon.checkmark
+            visible: (control.checkable || control.radioMode) && control.checked
+            icon: control.radioMode ? Enums.icon.radio_button : Enums.icon.checkmark
         }
         
         // Icon 图标
