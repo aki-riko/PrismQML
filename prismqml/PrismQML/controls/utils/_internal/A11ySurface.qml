@@ -54,7 +54,12 @@ Item {
         var item = surface.target
         if (item === null || item === undefined) return
         item.Accessible.role = AccessibilityHelper.roleValue(surface.role)
-        item.Accessible.name = surface._effectiveName
+        // An explicit name wins; otherwise the target's own Accessible.name is kept
+        // so a subclass can declare it on itself in one line.
+        // 显式名称优先；否则保留目标自身的 Accessible.name，使子类可用一行自行声明。
+        var declared = surface._effectiveName
+        if (declared === "") declared = item.Accessible.name || ""
+        item.Accessible.name = declared
         var described = surface._effectiveDescription
         if (described !== "") item.Accessible.description = described
         if (surface._hasCheckedState) item.Accessible.checked = surface.checked

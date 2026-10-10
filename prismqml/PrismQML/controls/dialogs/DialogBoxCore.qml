@@ -7,6 +7,7 @@ import QtQuick.Effects
 import "../.."
 import "../../effects"
 import "../buttons/Button"
+import "../utils"
 
 // DialogBoxCore - Customizable dialog box base class 可定制对话框基类
 OverlayDialogCore {
@@ -16,6 +17,9 @@ OverlayDialogCore {
     
     property bool actionsVisible: true      // Show action row 显示动作按钮区
     property Component footer: null             // Footer button component 按钮组件（由子类提供）
+    // Accessible name for the dialog surface; subclasses pass their visible title.
+    // 对话框表面的可访问名称；子类传入其可见标题。
+    property string a11yName: ""
 
     // Explicit content width 显式内容宽度
     // When > 0, the dialog width is driven by this value instead of the content's
@@ -81,6 +85,14 @@ OverlayDialogCore {
 
     // ==================== Content 内容 ====================
     maskColor: control._dialogMaskColor
+    // A dialog announces its role and title once, so every dialog subclass
+    // inherits the same contract instead of restating it.
+    // 对话框只声明一次角色与标题，使全部对话框子类继承同一契约。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_dialog
+        name: control.a11yName
+    }
 
     // Dialog body 对话框主体
     Item {
