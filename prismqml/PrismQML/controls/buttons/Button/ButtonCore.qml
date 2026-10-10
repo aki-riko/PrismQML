@@ -106,9 +106,7 @@ Widget {
         _skin.isNeumorphism, _skin.button, _skin.stateColor,
         _skin.textColor, _skin.statusLevel, _skin.accentColor,
         _skin.cardColor, _skin.accentForeground, _skin.transparent,
-        _skin.opacityLevel, _skin.neo, _skin.ticket,
-        visited, _skin.isDark ? _skin.button.hyperlinkVisitedDark
-                              : _skin.button.hyperlinkVisitedLight)
+        _skin.opacityLevel, _skin.neo, _skin.ticket)
     readonly property color _styleBgColor: styleHelper.bgColor
     readonly property color _styleBorderColor: styleHelper.borderColor
     readonly property color _styleTextColor: styleHelper.textColor
@@ -151,15 +149,8 @@ Widget {
     property bool _hoverExitPending: false
     property bool _menuPrewarmRetryScheduled: false
 
-    // Hyperlink navigation 超链接导航
-    property string navigateUri: ""      // Target URL; empty disables it 目标URL, 为空则不导航
-    property bool navigateOnClick: true  // Open navigateUri on click 点击时打开目标
-    property var urlOpener: null         // Optional opener override 可覆盖的打开回调
-    property bool visited: false         // Visited state drives hyperlink color 超链接已访问态
-
     // ==================== Signals 信号 ====================
     signal clicked()
-    signal navigationRequested(string url)
     // Note: must not be named pressed (signal shadowed by property) 注意: 不能命名为 pressed, 会与下方 `property bool pressed` 同名,
     // QML 中属性会遮蔽同名信号, 导致 emit (pressed()) 把 bool 当函数调而报 TypeError。
     // 外部监听按下请用 onButtonPressed。
@@ -208,12 +199,15 @@ Widget {
 
     function getText() { return text }
 
+
     function isChecked() { return checked }
 
     function isEnabled() { return enabled }
 
+
     // Set flat 设置扁平样式
     function setFlat(f) { ButtonLogic.setFlat(control, _skin, f) }
+
 
     function getUrl() { return textToCopy }
 
@@ -301,8 +295,6 @@ Widget {
         }
     }
 
-    onClicked: ButtonLogic.navigate(control)
-
     // Watch hover changes directly for reliable updates 直接监听悬浮变化以确保可靠更新
     onHoveredChanged: {
         _hoverExitPending = !hovered
@@ -333,8 +325,6 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
-    ButtonInternal.ButtonA11ySurface { buttonControl: control }
-
     ButtonInternal.ButtonSurface {
         id: surface
         buttonControl: control
