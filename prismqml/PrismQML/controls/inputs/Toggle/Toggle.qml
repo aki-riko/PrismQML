@@ -189,8 +189,6 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
-    ToggleInternal.ToggleA11ySurface { toggleControl: control }
-
     ToggleInternal.ToggleContent {
         id: toggleContent
         toggleControl: control
