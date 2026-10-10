@@ -94,8 +94,14 @@ Rectangle {
 
     // This bar is a pure visual anchor: it carries no text and no interaction, so
     // exposing it would only add noise to the accessibility tree. Hiding it is the
-    // correct accessibility treatment, not a missing role.
+    // correct accessibility treatment, not a missing role. The role stays required
+    // by the A11ySurface contract, so it is passed as none and never applied.
     // 本指示条是纯视觉锚点：既无文本也无交互，暴露它只会给无障碍树增加噪声。
-    // 隐藏它才是正确的无障碍处理，而不是"缺少角色"。
-    A11ySurface { target: control; ignored: true }
+    // 隐藏它才是正确的无障碍处理，而不是"缺少角色"。A11ySurface 契约要求 role，
+    // 故传入 none；该值在忽略分支不会被应用。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_none
+        ignored: true
+    }
 }
