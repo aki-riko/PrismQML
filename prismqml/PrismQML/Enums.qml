@@ -168,7 +168,7 @@ Item {
     }
 
     // ==================== Modular Components 模块化组件 ====================
-    Theme { id: _theme; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; isNeumorphism: root.isNeumorphism; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
+    Theme { id: _theme; isDark: root.isDark; isHighContrast: root.highContrast; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; isNeumorphism: root.isNeumorphism; accentColor: root.accentColor; accentColorLight: root.accentColorLight; accentColorDark: root.accentColorDark; constants: _constants }
     StatusLevel { id: _statusLevel; isDark: root.isDark; isNeo: root.isNeobrutalism; isTicket: root.isVintageTicket; isNeumorphism: root.isNeumorphism; accentColor: root.accentColor; constants: _constants }
     Button { id: _button; isTicket: root.isVintageTicket }
     Tab { id: _tab }

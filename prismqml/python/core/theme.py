@@ -451,6 +451,21 @@ class ThemeManager(QObject):
         """获取当前高对比度状态"""
         return self._high_contrast
 
+    def set_high_contrast(self, enabled: bool) -> None:
+        """运行时切换高对比度（Python 公开入口）"""
+        self._apply_high_contrast(bool(enabled))
+
+    @Slot(bool)
+    def setHighContrastFromQml(self, enabled: bool) -> None:
+        """运行时切换高对比度（QML 调用入口）"""
+        self._apply_high_contrast(bool(enabled))
+
+    def _apply_high_contrast(self, enabled: bool) -> None:
+        """Apply committed high-contrast state. 提交高对比度状态。"""
+        if self._high_contrast != enabled:
+            self._high_contrast = enabled
+            self.highContrastChanged.emit(enabled)
+
     # ==================== 皮肤属性 ====================
 
     @Property(str, notify=skinChanged)

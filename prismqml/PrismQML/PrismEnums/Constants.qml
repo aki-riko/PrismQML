@@ -474,4 +474,22 @@ QtObject {
         readonly property color dark2: "#06243e"   // accent L-0.20
         readonly property color dark3: "#010910"   // accent L-0.30
     }
+
+    // ==================== High Contrast 高对比度 ====================
+    // Windows high-contrast themes maximise luminance separation instead of using
+    // soft greys: strokes reach full white and secondary text stops being faded.
+    // These are absolute endpoints, so they stay readable under either theme.
+    // Windows 高对比度主题以最大化亮度差代替柔和灰阶：描边取纯白、次要文本不再淡化。
+    // 它们是绝对端点值，因此在两种明暗主题下都可读。
+    // 同样追加在文件末尾, 以免平移既有颜色数组的行号基线。
+    readonly property QtObject highContrastColors: QtObject {
+        readonly property color background: "#000000"
+        readonly property color surface: "#000000"
+        readonly property color foreground: "#ffffff"
+        readonly property color secondaryForeground: "#ffffff"
+        readonly property color border: "#ffffff"
+        readonly property color borderStrong: "#ffffff"
+        readonly property color divider: "#ffffff"
+        readonly property color disabled: "#c0c0c0"
+    }
 }
