@@ -333,6 +333,8 @@ Widget {
     on_ToolTipTimersCanceled: _stopButtonToolTipTimer()
 
     // ==================== Content 内容 ====================
+    ButtonInternal.ButtonA11ySurface { buttonControl: control }
+
     ButtonInternal.ButtonSurface {
         id: surface
         buttonControl: control
