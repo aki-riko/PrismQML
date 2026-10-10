@@ -33,12 +33,13 @@ QtObject {
     // 使用绑定而非一次性赋值，因此运行时切换语言会重新镜像窗口。每次写入都重新检查
     // 宿主，因为已拆解的窗口会返回 null，不得因此抛出绑定错误。
     property bool enabled: rightToLeft
-    onEnabledChanged: mirroring._apply()
-    Component.onCompleted: mirroring._apply()
 
     // ==================== Internal Methods 内部方法 ====================
     function _apply() {
         if (mirroring.host === null || mirroring.host === undefined) return
         mirroring.host.LayoutMirroring.enabled = mirroring.enabled
     }
+
+    onEnabledChanged: mirroring._apply()
+    Component.onCompleted: mirroring._apply()
 }
