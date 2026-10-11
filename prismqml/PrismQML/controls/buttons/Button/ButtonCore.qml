@@ -123,11 +123,12 @@ Widget {
                                : _skin.radius.small)))
     property color color: _styleBgColor
     // Optional icon-only appearance overrides. Unset keeps the computed style snapshot;
-    // a supplied pressed face also bypasses the colour animation, as a lightweight
-    // close/remove affordance needs.
-    // 仅图标按钮的可选外观覆盖。不设置时沿用样式快照；提供按压面色时同时绕过颜色动画。
+    // a supplied face also bypasses the colour animation, as a lightweight close/remove
+    // affordance needs.
+    // 仅图标按钮的可选外观覆盖。不设置时沿用样式快照；提供面色时同时绕过颜色动画。
     property color iconColor: _styleTextColor
     property color iconHoverColor: _styleTextColor
+    property var hoverBgColor: null
     property var pressedBgColor: null
     // Replacing a lightweight close/remove affordance must not steal focus from the
     // owning input or tab; the default keeps the historical Button behaviour.

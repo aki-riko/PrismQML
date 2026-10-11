@@ -125,11 +125,15 @@ function startCountdown(control) {
 
 // ==================== Appearance overrides 外观覆盖 ====================
 
-// A supplied pressed face also switches the caller to an instant face change, so the
+// A supplied face override switches the caller to an instant face change, so the
 // animated colour is bypassed entirely.
-// 提供按压面色时，调用方同时要求即时切换面色，因此完全绕过动画色。
+// 提供面色覆盖时，调用方同时要求即时切换面色，因此完全绕过动画色。
 function hasPressedBgOverride(control) {
     return control.pressedBgColor !== null && control.pressedBgColor !== undefined
+}
+
+function hasHoverBgOverride(control) {
+    return control.hoverBgColor !== null && control.hoverBgColor !== undefined
 }
 
 // Overrides resolve against the shared disabled state so a disabled icon button never
@@ -144,6 +148,13 @@ function effectiveIconColor(control) {
 
 function effectiveBgColor(control, stateColor) {
     if (!control._styleEffectiveEnabled) return stateColor.controlBgTransparent
-    if (!hasPressedBgOverride(control)) return control._animatedBgColor
-    return control.pressed ? control.pressedBgColor : control._styleBgColor
+    if (control.pressed) {
+        return hasPressedBgOverride(control) ? control.pressedBgColor
+                                             : control._animatedBgColor
+    }
+    if (hasHoverBgOverride(control)) {
+        return control._touchActive ? control.hoverBgColor : control._styleBgColor
+    }
+    return hasPressedBgOverride(control) ? control._styleBgColor
+                                         : control._animatedBgColor
 }

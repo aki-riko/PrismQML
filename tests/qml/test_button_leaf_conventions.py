@@ -154,6 +154,7 @@ Item {
         iconSize: Enums.iconSize.s
         iconColor: Enums.textColor.secondary
         iconHoverColor: Enums.textColor.primary
+        hoverBgColor: Enums.stateColor.transparentHover
         pressedBgColor: Enums.stateColor.transparentPressed
         focusOnPress: false
     }
@@ -445,6 +446,9 @@ def test_close_style_button_honours_colour_and_focus_overrides(button_leaf_scene
     button.setProperty("pseudoHovered", True)
     _pump(20)
     assert content.property("textColor") == root.property("expectedCloseHoverIcon")
+    # A hover face override switches the hover treatment to the instant path.
+    # 悬浮面色覆盖会让悬浮态走即时路径。
+    assert button.property("_effectiveBgColor") == button.property("hoverBgColor")
 
     button.setProperty("pseudoHovered", False)
     _pump(20)
