@@ -548,7 +548,7 @@ Item {
             // Status bar 状态栏
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_c8592da567d69005", Fluent.Translator._v)
-                description: "message / structured items / progress / busy"
+                description: "message / structured items / progress"
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
@@ -571,15 +571,6 @@ Item {
                                 "level": Fluent.Enums.statusLevel.info
                             },
                             { "text": "100%", "clickable": true }
-                        ]
-                    }
-                    StatusBar {
-                        width: parent ? parent.width : 0
-                        message: Fluent.Translator.tr("gallery_bb429d0227b7d9d6", Fluent.Translator._v)
-                        level: Fluent.Enums.statusLevel.processing
-                        busy: true
-                        rightItems: [
-                            { "text": "68%", "level": Fluent.Enums.statusLevel.processing }
                         ]
                     }
                 }
