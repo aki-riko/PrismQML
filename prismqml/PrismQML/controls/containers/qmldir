@@ -31,9 +31,6 @@ HBoxLayout Layout/HBoxLayout.qml
 VBoxLayout Layout/VBoxLayout.qml
 RowFit Layout/RowFit.qml
 SplitPane Layout/SplitPane.qml
-RelativePanel Layout/RelativePanel.qml
-Viewbox Layout/Viewbox.qml
-ParallaxView Layout/ParallaxView.qml
 
 # ScrollBar 滚动条
 ScrollBarEntry ScrollBar/ScrollBarEntry.qml
