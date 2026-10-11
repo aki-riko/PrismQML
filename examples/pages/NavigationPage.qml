@@ -548,15 +548,39 @@ Item {
             // Status bar 状态栏
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_c8592da567d69005", Fluent.Translator._v)
-                description: "message / leftItems / rightItems"
+                description: "message / structured items / progress / busy"
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
                     StatusBar {
                         width: parent ? parent.width : 0
                         message: Fluent.Translator.tr("gallery_b073db9c0bd6f2ed", Fluent.Translator._v)
-                        leftItems: [{ "text": Fluent.Translator.tr("gallery_46bcd62dbbd12358", Fluent.Translator._v) }, { "text": "UTF-8" }]
-                        rightItems: [{ "text": Fluent.Translator.tr("gallery_b249c970347ca6af", Fluent.Translator._v) }, { "text": "100%" }]
+                        level: Fluent.Enums.statusLevel.success
+                        progress: 0.68
+                        leftItems: [
+                            {
+                                "text": Fluent.Translator.tr("gallery_46bcd62dbbd12358", Fluent.Translator._v),
+                                "icon": Fluent.Enums.icon.document,
+                                "level": Fluent.Enums.statusLevel.info
+                            },
+                            { "text": "UTF-8", "clickable": true }
+                        ]
+                        rightItems: [
+                            {
+                                "text": Fluent.Translator.tr("gallery_b249c970347ca6af", Fluent.Translator._v),
+                                "level": Fluent.Enums.statusLevel.info
+                            },
+                            { "text": "100%", "clickable": true }
+                        ]
+                    }
+                    StatusBar {
+                        width: parent ? parent.width : 0
+                        message: Fluent.Translator.tr("gallery_bb429d0227b7d9d6", Fluent.Translator._v)
+                        level: Fluent.Enums.statusLevel.processing
+                        busy: true
+                        rightItems: [
+                            { "text": "68%", "level": Fluent.Enums.statusLevel.processing }
+                        ]
                     }
                 }
             }
