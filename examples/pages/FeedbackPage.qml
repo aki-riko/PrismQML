@@ -381,7 +381,9 @@ Item {
                         width: 320
                         height: 200
                         SplashScreen {
+                            objectName: "gallerySplashScreen"
                             anchors.fill: parent
+                            iconSource: Qt.resolvedUrl("../resources/app_icon.svg")
                             title: "PrismQML"
                             subtitle: Fluent.Translator.tr("gallery_df2e168f7e89a7a4", Fluent.Translator._v)
                             showProgress: true

@@ -142,6 +142,23 @@ def test_gallery_feedback_page_uses_shared_notification_showcase():
     assert "width: 320" not in showcase_source
 
 
+def test_gallery_splash_preview_mounts_the_prismqml_logo(qapp):
+    """启动画面 Gallery 卡片必须实际挂载项目 Logo。"""
+    engine, component, root = _create_feedback_page()
+    try:
+        splash = root.findChild(QQuickItem, "gallerySplashScreen")
+        assert splash is not None
+        assert splash.property("iconSource").endswith(
+            "/examples/resources/app_icon.svg"
+        )
+        assert splash.findChild(QQuickItem, "splashImageDisplay") is not None
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
 def test_gallery_progress_showcases_share_static_and_popup_layout():
     page_source = FEEDBACK_PAGE_SOURCE.read_text(encoding="utf-8")
     progress_source = PROGRESS_SHOWCASE_SOURCE.read_text(encoding="utf-8")
