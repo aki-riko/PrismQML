@@ -34,7 +34,6 @@ LEAF_CARDS = (
     ("leafChevronIconCard", "ChevronIcon"),
     ("leafChevronOpenCard", "ChevronIcon (animated, isOpen)"),
     ("leafCloseIconCard", "CloseIcon"),
-    ("leafAnimatedIconCard", "AnimatedIcon"),
 )
 
 
@@ -113,14 +112,14 @@ def _card_label(card: QQuickItem) -> str:
     return str(label.property("text"))
 
 
-def _leaf_animated_icon(root: QQuickItem):
-    """The AnimatedIcon shown in the icon-components block. 图标组件区的 AnimatedIcon。"""
-    return next(
-        item
-        for item in root.findChildren(QQuickItem)
-        if item.metaObject().indexOfProperty("stateIcons") >= 0
-        and item.property("iconSize") == 28
+def _left_column(root: QQuickItem) -> QQuickItem:
+    """Left icon area of the page (title, search, leaf cards, grid). 页面左侧图标区。"""
+    row = next(
+        child
+        for child in root.childItems()
+        if "QQuickRow" in child.metaObject().className()
     )
+    return row.childItems()[0]
 
 
 def _detail_panel(root: QQuickItem) -> QQuickItem:
@@ -143,10 +142,19 @@ def test_icon_gallery_source_keeps_grid_cards_clickable():
     assert "onClicked: root.selectedIcon = modelData" in source
 
 
-def test_icon_gallery_shows_every_leaf_component_separately(icon_gallery):
-    """Each leaf component owns its own labelled card. 每个叶子组件拥有独立带名卡片。"""
+def test_icon_gallery_shows_every_leaf_component_in_the_icon_area(icon_gallery):
+    """Leaf components live in the left icon area, above the icon grid.
+
+    叶子组件展示在左侧图标区、图标网格上方, 不占用右侧详情面板。
+    """
     window, root, warnings = icon_gallery
+    left = _left_column(root)
     panel = _detail_panel(root)
+    grid, _ = _visible_cards(root)
+
+    left_scene = left.mapToScene(QPointF(0, 0))
+    panel_scene = panel.mapToScene(QPointF(0, 0))
+    grid_top = grid.mapToScene(QPointF(0, 0)).y()
 
     positions = []
     for object_name, label in LEAF_CARDS:
@@ -158,8 +166,12 @@ def test_icon_gallery_shows_every_leaf_component_separately(icon_gallery):
         assert label_item is not None, object_name
         assert label_item.property("text") == label
 
-        assert card.x() >= -0.5, object_name
-        assert card.x() + card.width() <= panel.width() + 0.5, object_name
+        card_scene = card.mapToScene(QPointF(0, 0))
+        assert card_scene.x() >= left_scene.x() - 0.5, object_name
+        assert card_scene.x() + card.width() <= left_scene.x() + left.width() + 0.5
+        # Above the icon grid and clear of the right-hand panel. 位于网格上方且不侵入右侧面板。
+        assert card_scene.y() + card.height() <= grid_top + 0.5, object_name
+        assert card_scene.x() + card.width() <= panel_scene.x(), object_name
         positions.append((card.x(), card.y()))
 
     assert len(set(positions)) == len(LEAF_CARDS)
@@ -183,5 +195,4 @@ def test_icon_gallery_card_click_switches_selection(icon_gallery):
     _pump(200)
 
     assert root.property("selectedIcon") == expected
-    assert _leaf_animated_icon(root).property("icon") == expected
     assert warnings == []

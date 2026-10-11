@@ -70,10 +70,54 @@ Item {
                 onTextChanged: root.searchText = text
             }
 
+            // Icon leaf components 图标叶子组件
+            Column {
+                width: parent.width
+                spacing: Fluent.Enums.spacing.s
+
+                Text {
+                    text: Fluent.Translator.tr("gallery_4fd513e48bb1fd12", Fluent.Translator._v)
+                    font.pixelSize: Fluent.Enums.typography.caption
+                    color: Fluent.Enums.textColor.secondary
+                    font.family: Fluent.Enums.fontFamily
+                }
+
+                // One card per leaf component 每个叶子组件单独一张卡片
+                GalleryFlow {
+                    ComponentCard {
+                        objectName: "leafCheckIconCard"
+                        label: "CheckIcon"
+                        CheckIcon { }
+                    }
+
+                    ComponentCard {
+                        objectName: "leafChevronIconCard"
+                        label: "ChevronIcon"
+                        ChevronIcon { }
+                    }
+
+                    ComponentCard {
+                        objectName: "leafChevronOpenCard"
+                        label: "ChevronIcon (animated, isOpen)"
+                        ChevronIcon {
+                            direction: "right"
+                            animated: true
+                            isOpen: true
+                        }
+                    }
+
+                    ComponentCard {
+                        objectName: "leafCloseIconCard"
+                        label: "CloseIcon"
+                        CloseIcon { }
+                    }
+                }
+            }
+
             // Icon grid 图标网格
             ScrollArea {
                 width: parent.width
-                height: parent.height - 80
+                height: parent.height - y
                 
                 type: Fluent.Enums.scroll.type_grid
                 model: filteredIcons
@@ -244,59 +288,6 @@ Item {
                             id: copyBtn3
                             icon: Fluent.Enums.icon.copy
                             onClicked: ClipboardHelper.copy("Icon." + root.toEnumName(root.selectedIcon))
-                        }
-                    }
-                }
-
-                // Icon leaf components 图标叶子组件
-                Column {
-                    width: parent.width
-                    spacing: Fluent.Enums.spacing.s
-
-                    Text {
-                        text: Fluent.Translator.tr("gallery_4fd513e48bb1fd12", Fluent.Translator._v)
-                        font.pixelSize: Fluent.Enums.typography.caption
-                        color: Fluent.Enums.textColor.secondary
-                        font.family: Fluent.Enums.fontFamily
-                    }
-
-                    // One card per leaf component 每个叶子组件单独一张卡片
-                    GalleryFlow {
-                        ComponentCard {
-                            objectName: "leafCheckIconCard"
-                            label: "CheckIcon"
-                            CheckIcon { }
-                        }
-
-                        ComponentCard {
-                            objectName: "leafChevronIconCard"
-                            label: "ChevronIcon"
-                            ChevronIcon { }
-                        }
-
-                        ComponentCard {
-                            objectName: "leafChevronOpenCard"
-                            label: "ChevronIcon (animated, isOpen)"
-                            ChevronIcon {
-                                direction: "right"
-                                animated: true
-                                isOpen: true
-                            }
-                        }
-
-                        ComponentCard {
-                            objectName: "leafCloseIconCard"
-                            label: "CloseIcon"
-                            CloseIcon { }
-                        }
-
-                        ComponentCard {
-                            objectName: "leafAnimatedIconCard"
-                            label: "AnimatedIcon"
-                            AnimatedIcon {
-                                iconSize: 28
-                                icon: root.selectedIcon
-                            }
                         }
                     }
                 }
