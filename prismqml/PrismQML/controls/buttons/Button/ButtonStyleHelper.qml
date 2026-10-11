@@ -20,6 +20,13 @@ QtObject {
     required property bool pressed
     required property bool isToggleChecked
 
+    // ==================== Public Props 公开属性 ====================
+    // Hyperlink visited state 超链接已访问态
+    property bool isVisited: false
+    // Resting hue for a visited hyperlink; unvisited links keep the accent color.
+    // 已访问超链接的静息色相; 未访问链接继续使用主题强调色。
+    property color visitedLinkColor: Enums.accentColor
+
     // ==================== Readonly State 只读状态 ====================
     readonly property bool effectiveEnabled: controlEnabled && !loading && !countdownActive
 
@@ -140,9 +147,10 @@ QtObject {
                 return Enums.accentForeground
             case Enums.button.style_hyperlink:
                 if (!effectiveEnabled) return Enums.textColor.disabled
-                if (pressed) return Qt.darker(Enums.accentColor, 1.2)
-                if (hovered) return Qt.lighter(Enums.accentColor, 1.1)
-                return Enums.accentColor
+                var linkColor = isVisited ? visitedLinkColor : Enums.accentColor
+                if (pressed) return Qt.darker(linkColor, 1.2)
+                if (hovered) return Qt.lighter(linkColor, 1.1)
+                return linkColor
             case Enums.button.style_text:
                 var sc = Enums.statusLevel.getColorByLevel(level)
                 if (!effectiveEnabled) return Enums.textColor.disabled

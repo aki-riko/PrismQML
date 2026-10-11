@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../.."
+import "../utils"
 import "ScrollBar"
 import "ScrollBar/_internal/ScrollCursorResolver.js" as ScrollCursorResolver
 
@@ -113,6 +114,14 @@ Item {
     Layout.preferredHeight: preferredHeight > 0 ? preferredHeight : -1
 
     // ==================== Content 内容 ====================
+    // A scroll area is a scrollable group; assistive technology needs the container
+    // boundary so it can expose the scrolling range of whatever it hosts.
+    // 滚动区是可滚动的分组；辅助技术需要容器边界，才能暴露其承载内容的滚动范围。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+    }
+
     // Internal default content holder 内部默认内容容器
     QtObject {
         id: defaultLoader

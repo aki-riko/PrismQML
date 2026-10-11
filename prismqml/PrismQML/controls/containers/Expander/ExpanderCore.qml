@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "../../../effects"
+import "../../utils"
 import ".."
 import "_internal" as ExpanderInternal
 
@@ -93,6 +94,15 @@ Widget {
     implicitHeight: mainContainer.height + Enums.spacing.xs
     
     // ==================== Content 内容 ====================
+    // An expander is a disclosure group: assistive technology needs the header
+    // text as the name and the expand/collapse state to report it correctly.
+    // 展开器是显示/隐藏分组：辅助技术需要以头部文本作为名称，并需要展开/折叠状态。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+        name: control.title
+    }
+
     // Main container without border; clips content 主容器无边框，仅裁剪内容
     Item {
         id: mainContainer

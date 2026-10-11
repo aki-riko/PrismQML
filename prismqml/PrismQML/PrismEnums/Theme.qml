@@ -16,6 +16,10 @@ QtObject {
     property bool isNeo: false
     property bool isTicket: false
     property bool isNeumorphism: false
+    // Platform high contrast is an accessibility axis orthogonal to light/dark:
+    // when on, strokes and text fall back to luminance endpoints.
+    // 平台高对比度是与明暗正交的无障碍轴：开启时描边与文本退化为亮度端点值。
+    property bool isHighContrast: false
     required property color accentColor
     required property color accentColorLight
     required property color accentColorDark
@@ -40,18 +44,23 @@ QtObject {
     readonly property color scrollHandleHoverColor: isNeumorphism ? _neu.indicatorHover : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.scrollHandleHoverDark : constants.themeColors.scrollHandleHoverLight))
     readonly property color tableBgColor: isNeo ? _neo.surface : (isNeumorphism ? _neu.surface : (isTicket ? _ticket.surface : (root.isDark ? constants.themeColors.tableBgDark : constants.themeColors.tableBgLight)))
 
+    // ==================== High Contrast 高对比度 ====================
+    // Absolute endpoints win over every skin and theme once high contrast is on.
+    // 一旦开启高对比度，绝对端点值优先于所有皮肤与明暗主题。
+    readonly property QtObject _hc: constants.highContrastColors
+
     // ==================== Foreground Colors 前景色 ====================
-    readonly property color foregroundColor: isNeo ? _neo.foreground : (isNeumorphism ? _neu.foreground : (isTicket ? _ticket.foreground : (root.isDark ? constants.themeColors.foregroundDark : constants.themeColors.foregroundLight)))
-    readonly property color secondaryForeground: isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.secondaryForegroundDark : constants.themeColors.secondaryForegroundLight)))
-    readonly property color tertiaryForeground: isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.tertiaryForegroundDark : constants.themeColors.tertiaryForegroundLight)))
-    readonly property color disabledForeground: isNeumorphism ? _neu.disabledForeground : (isTicket ? _ticket.disabledForeground : (root.isDark ? constants.themeColors.disabledForegroundDark : constants.themeColors.disabledForegroundLight))
+    readonly property color foregroundColor: root.isHighContrast ? _hc.foreground : (isNeo ? _neo.foreground : (isNeumorphism ? _neu.foreground : (isTicket ? _ticket.foreground : (root.isDark ? constants.themeColors.foregroundDark : constants.themeColors.foregroundLight))))
+    readonly property color secondaryForeground: root.isHighContrast ? _hc.secondaryForeground : (isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.secondaryForegroundDark : constants.themeColors.secondaryForegroundLight))))
+    readonly property color tertiaryForeground: root.isHighContrast ? _hc.secondaryForeground : (isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.tertiaryForegroundDark : constants.themeColors.tertiaryForegroundLight))))
+    readonly property color disabledForeground: root.isHighContrast ? _hc.disabled : (isNeumorphism ? _neu.disabledForeground : (isTicket ? _ticket.disabledForeground : (root.isDark ? constants.themeColors.disabledForegroundDark : constants.themeColors.disabledForegroundLight)))
     readonly property color accentForeground: isNeo ? _neo.primaryForeground : (isNeumorphism ? _neu.primaryForeground : (isTicket ? _ticket.primaryForeground : constants.themeColors.accentForeground))
 
     // ==================== Border Colors 边框色 ====================
-    readonly property color borderColor: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.borderDark : constants.themeColors.borderLight)))
-    readonly property color borderLightColor: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.borderLightDark : constants.themeColors.borderLightLight)))
-    readonly property color borderStrongColor: isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.borderStrongDark : constants.themeColors.borderStrongLight)))
-    readonly property color dividerColor: isNeo ? _neo.border : (isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.dividerDark : constants.themeColors.dividerLight)))
+    readonly property color borderColor: root.isHighContrast ? _hc.border : (isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.borderDark : constants.themeColors.borderLight))))
+    readonly property color borderLightColor: root.isHighContrast ? _hc.border : (isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.borderLightDark : constants.themeColors.borderLightLight))))
+    readonly property color borderStrongColor: root.isHighContrast ? _hc.borderStrong : (isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.borderStrongDark : constants.themeColors.borderStrongLight))))
+    readonly property color dividerColor: root.isHighContrast ? _hc.divider : (isNeo ? _neo.border : (isNeumorphism ? _neu.divider : (isTicket ? _ticket.divider : (root.isDark ? constants.themeColors.dividerDark : constants.themeColors.dividerLight))))
 
     // ==================== Interaction Colors 交互色 ====================
     readonly property color hoverColor: isNeo ? _neo.muted : (isNeumorphism ? _neu.hover : (isTicket ? _ticket.muted : (root.isDark ? constants.themeColors.hoverDark : constants.themeColors.hoverLight)))

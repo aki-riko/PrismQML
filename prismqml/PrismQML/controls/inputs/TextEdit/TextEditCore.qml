@@ -8,6 +8,7 @@ import ".."
 import QtQuick.Effects
 import "../../data"
 import "../../containers/ScrollBar"
+import "_internal" as TextEditInternal
 
 // TextEditCore - Multiline text input base (extends InputCore) 多行文本输入基类
 // Use multilineType to switch modes 通过multilineType切换模式
@@ -19,7 +20,10 @@ InputCore {
     // ==================== Public Props 公开属性 ====================
     property int multilineType: Enums.input.multiline_plain
     property alias text: textEdit.text
-    readonly property real textContentHeight: textEdit.contentHeight  // Native text layout height 原生文本布局高度
+    readonly property real textContentHeight: _usesTrimmingPresentation
+        ? (trimmingLoader.item ? trimmingLoader.item.naturalHeight : textEdit.contentHeight)
+        : (columnCount > 1 && columnsLoader.item
+           ? columnsLoader.item._textHeight : textEdit.contentHeight)
     property string placeholderText: ""
     property bool readOnly: _isBrowser  // Browser mode is always read-only 浏览器模式始终只读
     property int wrapMode: TextEdit.Wrap
@@ -31,9 +35,29 @@ InputCore {
     property int scrollDuration: Enums.duration.scroll
     property real scrollStep: Enums.spacing.xxxl * 3
     property int scrollEasing: Easing.OutQuart
+    // TextTrimming for the read-only presentation 只读呈现的文本裁剪方式
+    property int textTrimming: Enums.label.trim_none
+    // Newspaper columns for the read-only presentation (1 keeps the classic
+    // single viewport) 只读呈现的报纸式列数 (1 保持经典单视口)
+    property int columnCount: 1
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool _isBrowser: multilineType === Enums.input.multiline_browser
+    // Ellipsis trimming swaps in a read-only Text presentation 省略号裁剪改用只读 Text 呈现
+    readonly property bool _usesTrimmingPresentation:
+        textTrimming === Enums.label.trim_character_ellipsis
+        || textTrimming === Enums.label.trim_word_ellipsis
+    // Qt exposes one right-ellipsis mode; the two tokens differ by wrap mode
+    // Qt 只提供右省略一种模式; 两个 token 通过换行方式区分
+    readonly property int _trimWrapMode:
+        textTrimming === Enums.label.trim_character_ellipsis
+        ? Text.WrapAnywhere : wrapMode
+    // True while the content cannot be shown in full 内容无法完整展示时为真
+    readonly property bool hasOverflowContent: _usesTrimmingPresentation
+        ? (trimmingLoader.item ? trimmingLoader.item.hasOverflow : false)
+        : (columnCount > 1
+           ? (columnsLoader.item ? columnsLoader.item.hasOverflow : false)
+           : flickable.contentHeight > flickable.height)
     // Pointer-position-only effect: link hit-testing exists to shape the mouse cursor
     // 指针坐标专属效果: 链接命中测试只服务于鼠标光标, 触摸端关闭
     readonly property string _hoveredLink: {
@@ -108,6 +132,9 @@ InputCore {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         interactive: contentHeight > height  // Only enable scroll when needed 仅内容超出时启用滚动
+        // Multi-column and trimming modes own their own viewport 多列与裁剪模式使用自己的视口
+        visible: control.columnCount <= 1
+                 && !control._usesTrimmingPresentation
         
         TextEdit {
             id: textEdit
@@ -134,6 +161,52 @@ InputCore {
             }
             onCursorPositionChanged: control.cursorPositionChanged()
             onSelectedTextChanged: control.selectionChanged()
+        }
+    }
+
+    // Newspaper columns, created only when more than one column is requested
+    // 报纸式多列, 仅在请求多列时创建
+    Loader {
+        id: columnsLoader
+        objectName: "textEditColumnsLoader"
+        anchors.fill: parent
+        anchors.leftMargin: control.paddingLeft
+        anchors.rightMargin: control.paddingRight
+        anchors.topMargin: control.paddingTop
+        anchors.bottomMargin: control.paddingBottom
+        active: control.columnCount > 1 && !control._usesTrimmingPresentation
+
+        sourceComponent: TextEditInternal.RichTextColumns {
+            editor: control
+            columnGap: Enums.spacing.m
+            textFontFamily: Enums.fontFamily
+            textFontSize: control.fontSize
+            textColor: Enums.textColor.primary
+        }
+    }
+
+    // Ellipsis trimming presentation 省略号裁剪呈现
+    Loader {
+        id: trimmingLoader
+        objectName: "textEditTrimmingLoader"
+        anchors.fill: parent
+        anchors.leftMargin: control.paddingLeft
+        anchors.rightMargin: control.paddingRight
+        anchors.topMargin: control.paddingTop
+        anchors.bottomMargin: control.paddingBottom
+        active: control._usesTrimmingPresentation
+        visible: active
+
+        sourceComponent: TextEditInternal.RichTextTrimView {
+            editor: control
+            textFontFamily: Enums.fontFamily
+            textFontSize: control.fontSize
+            textColor: Enums.textColor.primary
+            trimWrapMode: control._trimWrapMode
+            onLinkTriggered: (link) => {
+                control.linkActivated(link)
+                if (control.openExternalLinks) Qt.openUrlExternally(link)
+            }
         }
     }
 
@@ -179,7 +252,8 @@ InputCore {
         width: Enums.controlSize.progressBarHeight
         radius: Enums.radius.tiny
         color: control.innerButtonHover
-        visible: control.showScrollIndicator && flickable.contentHeight > flickable.height
+        visible: control.showScrollIndicator && flickable.visible
+                 && flickable.contentHeight > flickable.height
         
         Rectangle {
             anchors.right: parent.right

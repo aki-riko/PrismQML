@@ -52,5 +52,8 @@ bool isDark()                           { return ThemeManager::instance()->isDar
 void setAccentColor(const QString &c)   { ThemeManager::instance()->setAccentColor(c); }
 QString getAccentColor()                { return ThemeManager::instance()->getAccentColor(); }
 QColor accentQColor()                   { return QColor(ThemeManager::instance()->getAccentColor()); }
+QVariantMap getAccentScale()            { return ThemeManager::instance()->accentScale(); }
+bool isReduceMotion()                   { return ThemeManager::instance()->reduceMotion(); }
+void setReduceMotion(bool enabled)      { ThemeManager::instance()->setReduceMotion(enabled); }
 
 }  // namespace prism

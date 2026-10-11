@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import ".."
 import "../../icons"
+import "../../utils"
 
 // RatingCore - Star rating component base class 星级评分组件基类（Fluent Design风格）
 Item {
@@ -18,6 +19,9 @@ Item {
     property color fillColor: Enums.starColor  // Star fill color 填充星星的颜色
     property color outlineColor: Enums.gray.text  // Outline star color 未填充星星的边框颜色
     property int spacing: Enums.spacing.xxs  // Star spacing 星星间距
+    // Accessible name for the rating; unset leaves it to adjacent labelling text.
+    // 评分的可访问名称；未设置时交由相邻标注文本承担。
+    property string a11yName: ""
     readonly property color _effectiveFillColor: enabled ? fillColor : Enums.textColor.disabled
     readonly property color _effectiveOutlineColor: {
         if (!enabled) return Enums.textColor.disabled
@@ -84,5 +88,13 @@ Item {
                 }
             }
         }
+    }
+
+    // A rating is a bounded value the user adjusts, which is the slider contract.
+    // 评分是用户可调节的有界数值，正对应滑块语义。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_slider
+        name: control.a11yName
     }
 }

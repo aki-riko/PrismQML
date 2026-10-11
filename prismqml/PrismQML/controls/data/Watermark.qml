@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 import "../data"
 
 // Watermark - Pure QtQuick implementation 水印组件
@@ -39,6 +40,15 @@ Item {
         readonly property int defaultGapY: 100       // Vertical gap 垂直间距
         readonly property int extraCols: 2           // Extra columns for coverage 额外列数确保覆盖
         readonly property int extraRows: 2           // Extra rows for coverage 额外行数确保覆盖
+    }
+
+    // A watermark is static text with no interaction; its name is the translated
+    // wording it already renders, so no new catalogue entry is needed.
+    // 水印是无交互的静态文本；名称即它已渲染的翻译文本，无需新增词条。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_statictext
+        name: control.text
     }
 
     // Content item 内容项

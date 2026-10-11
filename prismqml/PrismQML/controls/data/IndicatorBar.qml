@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 
 // IndicatorBar - Animated indicator/accent bar 动画指示器/重音条
 // Use as visual anchor in lists, navigation, selection states 用于列表/导航/选中态的视觉锚点
@@ -89,5 +90,18 @@ Rectangle {
         orientation: control._isVertical ? Gradient.Vertical : Gradient.Horizontal
         GradientStop { position: 0.0; color: Enums.isVintageTicket ? control._animatedBottom : control._animatedTop }
         GradientStop { position: 1.0; color: control._animatedBottom }
+    }
+
+    // This bar is a pure visual anchor: it carries no text and no interaction, so
+    // exposing it would only add noise to the accessibility tree. Hiding it is the
+    // correct accessibility treatment, not a missing role. The role stays required
+    // by the A11ySurface contract, so it is passed as none and never applied.
+    // 本指示条是纯视觉锚点：既无文本也无交互，暴露它只会给无障碍树增加噪声。
+    // 隐藏它才是正确的无障碍处理，而不是"缺少角色"。A11ySurface 契约要求 role，
+    // 故传入 none；该值在忽略分支不会被应用。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_none
+        ignored: true
     }
 }

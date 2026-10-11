@@ -8,6 +8,7 @@ import "../.."
 import "../icons"
 import "../buttons/Button"
 import "../data/Label"
+import "../utils"
 
 // DropZone - Drop file widget like Fluent Design 拖放文件组件
 // Supports single/multiple files and folder mode 支持单文件/多文件/文件夹模式
@@ -26,6 +27,9 @@ Rectangle {
     property bool folderMode: false  // Folder only mode 仅文件夹模式
     property var allowedExtensions: []  // Allowed suffixes like ["jpg", "png"] 允许的后缀（如 ["jpg", "png"]）
     property string initialDir: ""  // Initial directory 初始目录
+    // Optional accessible name; unset falls back to the rendered drop hint.
+    // 可选的可访问名称；未设置时回退到已渲染的拖放提示。
+    property string a11yName: ""
 
     // Custom text 自定义文字
     property string dropText: {
@@ -99,6 +103,15 @@ Rectangle {
     onDragActiveChanged: dashedBorder.requestPaint()
     
     // ==================== Content 内容 ====================
+    // A drop zone groups the file/folder input affordances; its name prefers an
+    // explicit label and otherwise falls back to the drop hint it already renders.
+    // 拖放区是文件/文件夹输入的集合；名称优先显式标签，否则回退到它已渲染的拖放提示。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+        name: control.a11yName !== "" ? control.a11yName : control.dropText
+    }
+
     // Dashed border 虚线边框
     Canvas {
         id: dashedBorder

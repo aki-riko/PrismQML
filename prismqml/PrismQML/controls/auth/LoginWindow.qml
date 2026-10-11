@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 import "_internal"
 
 // LoginWindow - Login window with MatrixRain background 带矩阵雨背景的登录窗口
@@ -219,6 +220,15 @@ Rectangle {
     }
 
     // ==================== Content 内容 ====================
+    // A login window is a dialog: it takes over the session, so the role and the
+    // visible title are what a screen reader must announce on entry.
+    // 登录窗口是对话框：它接管整个会话，因此进入时读屏器必须播报角色与可见标题。
+    A11ySurface {
+        target: root
+        role: Enums.accessibility.role_dialog
+        name: root.title
+    }
+
     LoginWindowContent {
         id: contentLayer
 

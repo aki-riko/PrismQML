@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import "../../icons"
 import "../../data"
+import "../../utils"
 import "../../../effects"
 
 // Stepper - Fluent Design step progress bar 步骤进度条
@@ -57,6 +58,15 @@ Item {
     implicitHeight: indicatorSize + Enums.spacing.m + Enums.typography.caption + Enums.spacing.s
 
     // ==================== Content 内容 ====================
+    // A stepper is a grouped progress indicator; its name is derived from the step
+    // numbers the user already sees, so it needs no catalogue entry.
+    // 步骤条是分组的进度指示；名称由用户已看到的步数派生，因此无需翻译词条。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_group
+        name: String(control.currentStep + 1) + " / " + String(control._safeSteps.length)
+    }
+
     // Background line 背景连接线
     Rectangle {
         x: _lineStartX

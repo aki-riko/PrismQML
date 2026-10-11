@@ -431,6 +431,12 @@ if(PRISM_BUILD_TESTS)
     prism_add_cpp_test(
         prism_test_provider_lifecycle prism_test_provider_lifecycle offscreen)
 
+    # ThemeManager 镜像契约: reduceMotion / accentScale / AUTO 实时跟随
+    qt_add_executable(prism_test_theme_manager tests/test_theme_manager.cpp)
+    target_link_libraries(prism_test_theme_manager PRIVATE prism)
+    prism_add_cpp_test(
+        prism_test_theme_manager prism_test_theme_manager offscreen)
+
     set_tests_properties(
         prism_test_store
         prism_test_updater
@@ -441,6 +447,7 @@ if(PRISM_BUILD_TESTS)
         prism_test_qrcode_decode
         prism_test_sqlmodel
         prism_test_provider_lifecycle
+        prism_test_theme_manager
         PROPERTIES LABELS headless
     )
     set_tests_properties(prism_test_qml_runtime_plugin PROPERTIES LABELS headless)

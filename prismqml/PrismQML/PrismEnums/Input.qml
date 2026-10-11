@@ -36,6 +36,11 @@ QtObject {
     readonly property real spinBoxIntegerStep: 1
     readonly property real spinBoxDoubleStep: 0.1
     readonly property real spinBoxRepeatAcceleration: 0.85  // Held-repeat interval multiplier 长按重复间隔倍率
+    // NumberBox validation modes NumberBox 校验模式
+    // InvalidInputOverridden clamps to the nearest bound; InvalidInputDisabled
+    // keeps the previously committed value. 越界输入钳制到最近边界 / 拒绝并保留上一次提交值。
+    readonly property int validation_invalid_input_overridden: 0
+    readonly property int validation_invalid_input_disabled: 1
     // Floating label input configuration 浮动标签输入配置
     readonly property real labelRestingScale: 1.0
     // PIN input configuration PIN 输入配置

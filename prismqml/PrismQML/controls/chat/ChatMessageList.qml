@@ -264,6 +264,14 @@ Item {
     onHeightChanged: _scheduleScrollBarUpdate()
     Component.onCompleted: _scheduleScrollBarUpdate()
 
+    // A transcript is a live log. The accessible name is derived from the message
+    // count instead of a UI string, so it needs no catalogue entry; Qt's Accessible
+    // attached type has no live-region property, so no announcement policy is set.
+    // 消息记录是实时日志。可访问名称由消息数量派生而非 UI 字符串，无需翻译词条；
+    // Qt 的 Accessible 附加类型没有实时区域属性，因此不声明播报策略。
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_list)
+    Accessible.name: AccessibilityHelper.describe([messageCount])
+
     // ==================== Content 内容 ====================
     // Deferred work timers 延迟任务计时器
     ChatInternal.ChatMessageListScrollToBottomTimer {

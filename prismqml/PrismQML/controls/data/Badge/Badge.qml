@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "../../icons"
+import "../../utils"
 import "../../../effects"
 
 // Badge - Unified badge component 统一徽章组件
@@ -24,8 +25,38 @@ Rectangle {
     property string icon: ""           // Icon mode 图标模式
     property bool dot: false           // Dot mode 点模式
     property bool showZero: false      // Show badge when count is 0 计数为0时是否显示
-    
+
+    // Host anchoring 宿主锚定
+    // Inert until a target is supplied: with `target: null` the badge keeps its
+    // own declarative geometry exactly as before.
+    // 未提供 target 前完全不生效: target 为 null 时徽章保持原有声明式几何, 行为不变。
+    property Item target: null         // Host item to anchor onto 锚定的宿主控件
+    property int anchorPosition: Enums.position.top_right  // Anchored corner 锚定角
+    property real anchorOffset: Enums.spacing.xs           // Outward offset 向外偏移
+
     // ==================== Readonly State 只读状态 ====================
+    // Anchor geometry, resolved in the badge's own parent space
+    // 锚定几何, 在徽章自身父级坐标系内解析
+    readonly property point _anchorOrigin: control.target
+        ? control._originInParentSpace(control.target, control.parent)
+        : Qt.point(0, 0)
+    readonly property real _anchorRight: _anchorOrigin.x
+        + (control.target ? control.target.width : 0)
+    readonly property real _anchorBottom: _anchorOrigin.y
+        + (control.target ? control.target.height : 0)
+    readonly property bool _anchorLeftSide:
+        anchorPosition === Enums.position.top_left
+        || anchorPosition === Enums.position.bottom_left
+    readonly property bool _anchorTopSide:
+        anchorPosition === Enums.position.top_left
+        || anchorPosition === Enums.position.top_right
+    readonly property real _anchoredX: _anchorLeftSide
+        ? _anchorOrigin.x - anchorOffset
+        : _anchorRight - width + anchorOffset
+    readonly property real _anchoredY: _anchorTopSide
+        ? _anchorOrigin.y - anchorOffset
+        : _anchorBottom - height + anchorOffset
+
     // Check if has explicit content 检查是否有显式内容
     readonly property bool _hasContent: icon !== "" || text !== "" || count > 0 || showZero
     
@@ -51,6 +82,18 @@ Rectangle {
     readonly property color _badgeBorderColor: Enums.hasOutlinedSurfaces
                                                 ? Enums.borderColor : Enums.transparent
 
+    // ==================== Internal Methods 内部方法 ====================
+    // Resolve a target origin inside the badge's parent space while keeping the
+    // binding reactive; mapToItem() alone would not create dependencies.
+    // 在徽章父级空间内解析 target 原点并保持绑定响应; 仅用 mapToItem 不会建立依赖。
+    // The badge's parent must be the target itself or one of its ancestors.
+    // 徽章的父级必须是 target 本身或它的某个祖先。
+    function _originInParentSpace(item, space) {
+        if (!item || item === space) return Qt.point(0, 0)
+        var parentOrigin = _originInParentSpace(item.parent, space)
+        return Qt.point(parentOrigin.x + item.x, parentOrigin.y + item.y)
+    }
+
     // ==================== Size 尺寸 ====================
     implicitWidth: _effectiveDot ? Enums.spacing.s : Math.max(Enums.controlSize.checkboxOuter, contentItem.implicitWidth + Enums.spacing.m)
     implicitHeight: _effectiveDot ? Enums.spacing.s : Enums.controlSize.checkboxOuter
@@ -72,6 +115,32 @@ Rectangle {
     }
     
     // ==================== Content 内容 ====================
+    // A badge is a static annotation; its accessible name is the count or text a
+    // sighted user reads, so screen readers announce the same value.
+    // 徽标是静态标注；可访问名称即用户看到的计数或文本，使读屏器播报同一数值。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_statictext
+        name: control.text !== "" ? control.text : String(control.count)
+    }
+
+    // Host anchoring binds only while a target exists, so a badge without a
+    // target never overrides its own x/y.
+    // 宿主锚定仅在存在 target 时绑定, 没有 target 的徽章永远不会覆盖自身 x/y。
+    Binding {
+        target: control
+        property: "x"
+        when: control.target !== null
+        value: control._anchoredX
+    }
+
+    Binding {
+        target: control
+        property: "y"
+        when: control.target !== null
+        value: control._anchoredY
+    }
+
     Item {
         id: contentItem
         anchors.centerIn: parent

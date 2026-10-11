@@ -10,6 +10,7 @@ import "../../effects"
 import "../data"
 import "../containers/ScrollBar"
 import "../containers"
+import "../utils"
 import "_internal"
 import QtQuick.Effects
 
@@ -34,6 +35,8 @@ Widget {
     property int tabContentVerticalPadding: Enums.spacing.xs  // Vertical breathing room around detailed tab content 详细标签内容上下留白
     property int tabWidth: 0  // Fixed width; zero keeps content sizing 固定宽度，零值按内容计算
     property int minimumTabWidth: Enums.controlSize.segmentedMinWidth
+    // Accessible name for the tab strip. 标签条的可访问名称。
+    property string a11yName: ""
     property int maximumTabWidth: 0  // Zero means unlimited 零值表示不限制
     property bool interactionEnabled: true
     property var canCloseTab: null  // Optional function(index, tab)->bool 可选关闭判定
@@ -186,6 +189,15 @@ Widget {
     }
 
     // ==================== Content 内容 ====================
+    // The tab strip announces itself as a tab list so assistive technology can
+    // navigate between the tabs it contains.
+    // 标签条以标签列表身份呈现，使辅助技术可在其标签之间导航。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_tabbar
+        name: control.a11yName
+    }
+
     TabEdgeAutoScroll {
         id: _edgeAutoScrollTimer
         host: control

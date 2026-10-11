@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "../../utils"
 import "../Label"
 
 // Tag - Status tag component 状态标签组件
@@ -51,6 +52,14 @@ Rectangle {
     // neo: 始终黑粗边(标签靠黑边显形); Fluent: 按 showBorder
     border.width: _tagBorderWidth
     border.color: _tagBorderColor
+
+    // A tag is static status text; the name is what the user reads beside the dot.
+    // 标签是静态状态文本；名称即用户在圆点旁读到的文字。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_statictext
+        name: control.text
+    }
     
     Row {
         id: contentRow

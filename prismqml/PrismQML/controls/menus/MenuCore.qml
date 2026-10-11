@@ -246,7 +246,8 @@ PopupWindowCore {
  // @param text: string - action text
  // @param icon: string - icon name (optional)
  // @param shortcut: string - shortcut key (optional)
- // @param options: object - {actionId, checkable, checked, enabled, toolTip, hasSubmenu} (optional)
+ // @param options: object - {actionId, checkable, checked, enabled, toolTip, hasSubmenu,
+ //                 radioGroup, exclusive, canExecute} (optional)
  function addAction(text, icon, shortcut, options) {
  var props = { "text": text || "" }
  if (icon) props.icon = icon
@@ -260,6 +261,9 @@ PopupWindowCore {
  if (options.enabled !== undefined) props.enabled = options.enabled
  if (options.toolTip !== undefined) props.toolTip = options.toolTip
  if (options.hasSubmenu !== undefined) props.hasSubmenu = options.hasSubmenu
+ if (options.radioGroup !== undefined) props.radioGroup = options.radioGroup
+ if (options.exclusive !== undefined) props.exclusive = options.exclusive
+ if (options.canExecute !== undefined) props.canExecute = options.canExecute
  }
  
  var action = actionComponent.createObject(menuContent.itemContainer, props)

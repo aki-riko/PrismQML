@@ -102,6 +102,11 @@ Item {
     // ==================== Size 尺寸 ====================
     implicitHeight: bubble.y + bubble.height + Enums.spacing.xl
     implicitWidth: parent ? parent.width : 800
+    // A bubble reads as its own transcript line; the name falls back to the visible
+    // content so screen readers announce the message rather than an empty node.
+    // 气泡是其所在行的独立文本；名称回退到可见正文，使读屏器播报消息而非空节点。
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_statictext)
+    Accessible.name: AccessibilityHelper.resolveName("", content, timestamp)
 
     onContentChanged: {
         if (content !== "" && !_userToggledReasoning) _reasoningExpanded = false

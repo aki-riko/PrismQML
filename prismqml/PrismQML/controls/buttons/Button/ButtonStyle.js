@@ -142,7 +142,7 @@ function _neoTextColor(style, effectiveEnabled, button, opacityLevel, neo) {
 function textColor(style, level, effectiveEnabled, hovered, pressed,
                    isToggleChecked, isNeobrutalism, button, textColorTokens,
                    statusLevel, accentColor, accentForeground, opacityLevel,
-                   neo) {
+                   neo, isVisited, visitedLinkColor) {
     if (isNeobrutalism) {
         return _neoTextColor(
             style, effectiveEnabled, button, opacityLevel, neo)
@@ -165,9 +165,12 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
         return accentForeground
     case button.style_hyperlink:
         if (!effectiveEnabled) return textColorTokens.disabled
-        if (pressed) return Qt.darker(accentColor, 1.2)
-        if (hovered) return Qt.lighter(accentColor, 1.1)
-        return accentColor
+        // A visited hyperlink keeps the same hover/press derivation, only the
+        // resting hue changes. 已访问超链接沿用同一套悬浮/按压推导，仅静息色相改变。
+        var linkColor = isVisited ? visitedLinkColor : accentColor
+        if (pressed) return Qt.darker(linkColor, 1.2)
+        if (hovered) return Qt.lighter(linkColor, 1.1)
+        return linkColor
     case button.style_text:
         var statusColor = statusLevel.getColorByLevel(level)
         if (!effectiveEnabled) return textColorTokens.disabled
@@ -185,7 +188,8 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
                   isToggleChecked, isNeobrutalism, isVintageTicket,
                   isNeumorphism, button, stateColor, textColorTokens,
                   statusLevel, accentColor, cardColor, accentForeground,
-                  transparent, opacityLevel, neo, ticket) {
+                  transparent, opacityLevel, neo, ticket,
+                  isVisited, visitedLinkColor) {
     return {
         effectiveEnabled: effectiveEnabled,
         isToggleChecked: isToggleChecked,
@@ -200,6 +204,6 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
         textColor: textColor(
             style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
             isNeobrutalism, button, textColorTokens, statusLevel, accentColor,
-            accentForeground, opacityLevel, neo)
+            accentForeground, opacityLevel, neo, isVisited, visitedLinkColor)
     }
 }

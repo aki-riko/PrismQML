@@ -38,6 +38,14 @@ QtObject {
     
     // Actual resolved language 实际解析后的语言
     property string _resolvedLanguage: "en"
+
+    // Languages whose script runs right to left. Fluent mirrors the whole layout
+    // for these, so the decision is derived from the resolved language rather than
+    // configured separately by every consumer.
+    // 文字方向从右到左的语言。Fluent 会为这些语言镜像整个布局，因此该判定由解析后的
+    // 语言派生，而不是由每个消费者各自配置。
+    readonly property var rtlLanguages: ["ar", "he", "fa", "ur", "ps", "sd", "ug", "yi", "dv", "ku"]
+    readonly property bool isRightToLeft: isRtlLanguage(_resolvedLanguage)
     
     // Translation version trigger 翻译版本触发器
     // Bind to this in components to auto-update translations 组件绑定此属性实现自动更新
@@ -86,6 +94,14 @@ QtObject {
     // Language change signal 语言变化信号
     signal languageUpdated(string lang)
     
+    // Whether one language code is written right to left. Exposed so callers can
+    // classify a code without mutating the active language.
+    // 判断某个语言代码是否从右到左书写。对外公开，使调用方无需改动当前语言即可判定。
+    function isRtlLanguage(code) {
+        if (code === undefined || code === null) return false
+        return rtlLanguages.indexOf(String(code)) >= 0
+    }
+
     // Detect system language 检测系统语言
     function detectSystemLanguage() {
         var locale = Qt.locale().name  // e.g. "zh_CN", "en_US", "ja_JP"

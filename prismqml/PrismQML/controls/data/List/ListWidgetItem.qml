@@ -4,6 +4,7 @@
 
 import "../../.."
 import "../../icons"
+import "../../utils"
 import "../../data"
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
@@ -25,6 +26,13 @@ Rectangle {
     // Touch has no hover preview: on touch the hover treatment follows the press
     // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
     readonly property bool _touchActive: Touch.feedback(hovered, pressed)
+    // Accessible name, resolved from the same data keys the row renders, so the
+    // announcement matches the visible label without duplicating the fallback chain.
+    // 可访问名称取自该行渲染所用的同一批数据键，使播报与可见标签一致且不重复回退链。
+    readonly property string _a11yName:
+        typeof itemData === "object" && itemData !== null
+            ? (itemData.text || itemData.label || itemData.name || "")
+            : (typeof itemData === "string" ? itemData : "")
     // Compose every state into an opaque color so ColorAnimation does not flash dirty gray 将所有状态合成为不透明颜色，避免插值时闪过脏灰
     readonly property color _bgColor: {
         var base = Enums.cardColor
@@ -66,6 +74,15 @@ Rectangle {
     }
 
     // ==================== Content 内容 ====================
+    // Each row is a list item, and its selected state is what assistive technology
+    // needs in order to report the current selection.
+    // 每一行都是列表项；其选中状态正是辅助技术报告当前选择所需的语义。
+    A11ySurface {
+        target: root
+        role: Enums.accessibility.role_listitem
+        name: root._a11yName
+    }
+
     // Reveal highlight 悬浮光晕
     // Pointer-following glow is a mouse affordance: suppress it on touch 跟随指针的光晕属于鼠标反馈, 触摸端关闭
     Item {

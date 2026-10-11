@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../../.."
+import "ButtonLogic.js" as ButtonLogic
 
 // ButtonInteraction - Keeps pointer handling outside the button shell 将指针处理从按钮壳中拆出
 MouseArea {
@@ -39,6 +40,7 @@ MouseArea {
             button._countdownRemaining = button.countdown
             button._countdownActive = true
         }
+        ButtonLogic.navigate(button)
         button.clicked()
     }
 

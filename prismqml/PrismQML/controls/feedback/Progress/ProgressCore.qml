@@ -5,6 +5,7 @@
 import QtQuick
 import "../../.."
 import "../../containers"
+import "../../utils"
 
 // ProgressCore - Progress base class 进度基类
 Widget {
@@ -19,6 +20,9 @@ Widget {
     property bool indeterminate: false
     property bool paused: false
     property bool error: false  // Error state 错误状态
+    // Accessible name for the progress surface; both bar and ring inherit it.
+    // 进度表面的可访问名称；进度条与进度环共同继承。
+    property string a11yName: ""
 
     // Custom color props (per-theme) 颜色自定义属性（分主题）
     property color fillColorLight: Enums.accentColor
@@ -102,5 +106,15 @@ Widget {
     // Get position (0-1) 获取位置
     function getPosition() {
         return position
+    }
+
+    // ==================== Content 内容 ====================
+    // Progress reports a bounded value, so it presents as a progress bar; the name
+    // stays optional because many progress surfaces are labelled by adjacent text.
+    // 进度控件报告有界数值，故以进度条身份呈现；名称可选，因为许多进度表面由相邻文本标注。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_progressbar
+        name: control.a11yName
     }
 }

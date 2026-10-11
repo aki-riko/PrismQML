@@ -5,6 +5,7 @@
 import QtQuick
 import "../.."
 import "../containers/ScrollBar"
+import "../utils"
 import "_internal" as NavigationInternal
 
 // SelectorBar - Flat selector bar for switching between a small set of views
@@ -175,6 +176,13 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    // A selector bar is a tab list: the user picks one of several views.
+    // 选择条是标签列表：用户在多个视图之间选择其一。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_tabbar
+    }
+
     // Horizontal strip: scrollable when the cells overflow 横向条带: 溢出时可滚动
     Flickable {
         id: scrollArea

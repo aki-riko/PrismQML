@@ -52,15 +52,6 @@ Item {
         onContainsMouseChanged: {
             if (!containsMouse && tipLoader.item) tipLoader.item.hide()
         }
-        onClicked: {
-            if (interaction.actionControl.hasSubmenu) {
-                interaction.actionControl.submenuRequested()
-                return
-            }
-            if (interaction.actionControl.checkable) {
-                interaction.actionControl.checked = !interaction.actionControl.checked
-            }
-            interaction.actionControl.triggered()
-        }
+        onClicked: interaction.actionControl.activate()
     }
 }

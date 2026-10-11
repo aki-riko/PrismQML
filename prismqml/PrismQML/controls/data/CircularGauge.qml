@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../.."
+import "../utils"
 import "../data"
 
 // CircularGauge - Circular gauge with theme support 仪表盘
@@ -93,5 +94,17 @@ Item {
             color: control._gaugeLabelColor
             visible: text !== ""
         }
+    }
+
+    // A gauge reports a bounded numeric value, which is the progress contract. Its
+    // name is derived from the number and unit the user reads, so it needs no
+    // catalogue entry. 仪表盘报告有界数值，属进度语义；名称由用户看到的数值与单位派生，
+    // 因此无需翻译词条。
+    A11ySurface {
+        target: control
+        role: Enums.accessibility.role_progressbar
+        name: control.unit !== ""
+              ? String(Math.round(control.value)) + control.unit
+              : String(Math.round(control.value))
     }
 }

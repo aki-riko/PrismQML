@@ -409,6 +409,8 @@ Window {
     onVisibleChanged: ensureVisiblePaintState("visibleChanged")
 
     // ==================== Content 内容 ====================
+    WindowsCoreMirroring { host: window; rightToLeft: Enums.isRtl }  // RTL 镜像拆到 _internal
+
     NativeWindowStartupHelper {
         id: nativeWindowStartup
         targetWindow: window
