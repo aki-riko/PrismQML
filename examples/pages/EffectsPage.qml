@@ -507,6 +507,10 @@ Item {
                             border.width: Enums.border.thin
                             border.color: Enums.borderColor
                             activeFocusOnTab: true
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: focusVisualTarget.forceActiveFocus()
+                            }
                             FocusVisual {
                                 anchors.fill: parent
                                 radius: Enums.radius.small
