@@ -54,6 +54,9 @@ Item {
     MouseArea {
         id: wheelArea
 
+        // Keep wheel ownership on the real viewport, not card chrome or gutters.
+        // 滚轮只归真实视口，不覆盖卡片边距、表头、底栏和滚动条槽。
+        parent: listView
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         hoverEnabled: control.hoverElevation

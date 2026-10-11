@@ -407,7 +407,7 @@ QtObject {
  readonly property int tablePaginationHeight: 50 // Table pagination height 分页高度
  // Feedback controls 反馈控件
  readonly property int resultStateIconSize: 80 // ResultState icon container 结果状态图标容器
- readonly property int emptyStateButtonHeight: Math.max(32, root.touchTargetFloor) // EmptyState button height 空状态按钮高度
+ readonly property int emptyStateButtonHeight: Math.max(32, root.touchTargetFloor) // StateWidget empty button height StateWidget 空状态按钮高度
  readonly property int stateDescMaxWidth: 280 // StateWidget result description max width 结果描述最大宽度
  readonly property int stateDescEmptyWidth: 260 // StateWidget empty description max width 空状态描述最大宽度
  readonly property int stateButtonPaddingLarge: 32 // StateWidget result button padding 结果按钮内边距

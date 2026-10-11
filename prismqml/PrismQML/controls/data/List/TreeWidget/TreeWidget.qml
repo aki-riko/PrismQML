@@ -332,6 +332,9 @@ Rectangle {
                 }
                 
                 MouseArea {
+                    // Keep the wheel surface identical to the real list viewport.
+                    // 让滚轮命中面与真实列表视口完全一致。
+                    parent: listView
                     anchors.fill: parent
                     acceptedButtons: Qt.NoButton
                     onWheel: (event) => {

@@ -88,10 +88,23 @@ Item {
         return true
     }
 
+    function _containsPoint(item, target, x, y) {
+        if (!item || !target) return false
+        var point = item.mapToItem(target, x, y)
+        return point.x >= 0 && point.y >= 0
+            && point.x <= target.width && point.y <= target.height
+    }
+
     function _scrollViewport(item, horizontal, mouseX, mouseY) {
         if (!item || !_supportsScrollAxis(item, horizontal)) return null
         var direct = item.flickableItem || item.listView || item.gridView || null
-        if (direct && _hasScrollOverflow(direct, horizontal)) return direct
+        // A public listView/flickableItem may be narrower than its wrapper
+        // (scrollbar gutter, header or card margin). Only adopt it when the
+        // pointer is inside the actual viewport, not merely inside the wrapper.
+        // 公开的 listView/flickableItem 可能窄于外层包装（滚动条槽、表头或卡片边距）。
+        // 只有指针确实位于真实视口内才接管，不能仅凭包装矩形命中。
+        if (direct && _containsPoint(item, direct, mouseX, mouseY)
+                && _hasScrollOverflow(direct, horizontal)) return direct
         var positionName = horizontal ? "contentX" : "contentY"
         var extentName = horizontal ? "contentWidth" : "contentHeight"
         if (item[positionName] !== undefined && item[extentName] !== undefined
