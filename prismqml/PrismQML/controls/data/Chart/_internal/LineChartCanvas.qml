@@ -194,7 +194,7 @@ Canvas {
         if (control.animated && control.schedulerActive) {
             animProgress = 0
             lineAnimation.restart()
-        } else {
+        } else if (control.schedulerActive) {
             requestPaint()
         }
     }

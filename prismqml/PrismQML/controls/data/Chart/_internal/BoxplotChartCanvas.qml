@@ -302,7 +302,7 @@ Canvas {
         if (control.animated && control.schedulerActive) {
             animProgress = 0
             chartAnimation.restart()
-        } else {
+        } else if (control.schedulerActive) {
             requestPaint()
         }
     }

@@ -281,7 +281,7 @@ Item {
             if (root.animated && root.schedulerActive) {
                 animProgress = 0
                 chartAnimation.restart()
-            } else {
+            } else if (root.schedulerActive) {
                 animProgress = 1
                 requestPaint()
             }
