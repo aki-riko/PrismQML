@@ -17,6 +17,8 @@ Item {
     required property var calendarControl
 
     // ==================== Public Props 公开属性 ====================
+    readonly property bool _rangeSelection: calendarControl.rangeMode
+        || calendarControl.selectionMode === Enums.calendarPicker.selection_range
     property alias gridWrapper: gridWrapper
     property alias gridWrapperBehavior: gridWrapperBehavior
     property alias dayGrid: dayGrid
@@ -181,31 +183,35 @@ Item {
                                 && calendarControl.year === calendarControl._todayYear
                                 && calendarControl.month === calendarControl._todayMonth
                                 && displayDay === calendarControl._todayDay
-                            property bool selected: !calendarControl.rangeMode
+                            property bool selected: !content._rangeSelection
                                 && isCurrent && displayDay === calendarControl.day
                             property bool hovered: cellArea.containsMouse && isCurrent
 
+                            property int cellYear: calendarControl.year
+                                + (isPrevMonth && calendarControl.month === 1 ? -1
+                                    : (isNextMonth && calendarControl.month === 12 ? 1 : 0))
+                            property int cellMonth: calendarControl.month
+                                + (isPrevMonth ? -1 : (isNextMonth ? 1 : 0))
                             property date cellDate: new Date(
-                                calendarControl.year, calendarControl.month - 1, displayDay
+                                cellYear, cellMonth - 1, displayDay
                             )
-                            property bool isRangeStart: calendarControl.rangeMode
+                            property bool isRangeStart: content._rangeSelection
                                 && calendarControl.rangeStart && isCurrent
                                 && cellDate.toDateString()
                                     === calendarControl.rangeStart.toDateString()
-                            property bool isRangeEnd: calendarControl.rangeMode
+                            property bool isRangeEnd: content._rangeSelection
                                 && calendarControl.rangeEnd && isCurrent
                                 && cellDate.toDateString()
                                     === calendarControl.rangeEnd.toDateString()
                             property bool isInRange: {
-                                if (!calendarControl.rangeMode || !calendarControl.rangeStart
+                                if (!content._rangeSelection || !calendarControl.rangeStart
                                         || !calendarControl.rangeEnd || !isCurrent) return false
                                 var t = cellDate.getTime()
                                 var s = calendarControl.rangeStart.getTime()
                                 var e = calendarControl.rangeEnd.getTime()
                                 return t > Math.min(s, e) && t < Math.max(s, e)
                             }
-                            property bool isBlackout: isCurrent
-                                && calendarControl.isBlackoutDate(cellDate)
+                            property bool isBlackout: calendarControl.isBlackoutDate(cellDate)
                             property bool multiSelected: isCurrent
                                 && calendarControl.selectionMode
                                    === Enums.calendarPicker.selection_multiple
@@ -222,7 +228,7 @@ Item {
 
                             Item {
                                 id: rangeBarContainer
-                                readonly property bool showBar: calendarControl.rangeMode
+                                readonly property bool showBar: content._rangeSelection
                                     && dayCell.isCurrent
                                     && (dayCell.isInRange || dayCell.isRangeStart
                                         || dayCell.isRangeEnd)
@@ -304,7 +310,7 @@ Item {
                                             targetMonth = 1
                                         } else targetMonth++
                                     }
-                                    if (calendarControl.rangeMode) {
+                                    if (content._rangeSelection) {
                                         calendarControl.rangeDateClicked(
                                             new Date(targetYear, targetMonth - 1, targetDay)
                                         )

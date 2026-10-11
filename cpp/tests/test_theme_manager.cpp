@@ -510,6 +510,7 @@ import QtQml
 QtObject {
     readonly property var scale: ThemeManager.accentScale
     readonly property bool reduced: ThemeManager.reduceMotion
+    readonly property bool contrast: ThemeManager.highContrast
     readonly property string light3: ThemeManager.accentScale.light3
     readonly property string dark3: ThemeManager.accentScale.dark3
     function setReduced(value) { ThemeManager.setReduceMotionFromQml(value) }
@@ -550,6 +551,8 @@ QtObject {
           "QML: accentScale 以 QVariantMap 暴露 7 档且逐值正确");
     CHECK(probe->property("reduced").toBool() == manager->reduceMotion(),
           "QML: reduceMotion 只读属性与单例一致");
+    CHECK(probe->property("contrast").toBool() == manager->highContrast(),
+          "QML: highContrast 只读属性与单例一致");
 
     manager->setReduceMotion(false);
     CHECK(QMetaObject::invokeMethod(probe.get(), "setReduced", Qt::DirectConnection,

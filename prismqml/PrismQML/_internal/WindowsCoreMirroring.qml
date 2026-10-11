@@ -38,6 +38,7 @@ QtObject {
     function _apply() {
         if (mirroring.host === null || mirroring.host === undefined) return
         mirroring.host.LayoutMirroring.enabled = mirroring.enabled
+        mirroring.host.LayoutMirroring.childrenInherit = true
     }
 
     onEnabledChanged: mirroring._apply()

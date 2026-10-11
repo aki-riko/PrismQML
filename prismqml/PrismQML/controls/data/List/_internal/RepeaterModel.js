@@ -7,7 +7,8 @@
 // Supported models 支持的模型:
 //   * number                       — count only, modelData is the index 仅计数, modelData 为索引
 //   * JS array                     — modelData is the entry 数组项本身
-//   * ListModel / QAbstractItemModel with count()+get()  — modelData is the role object 角色对象
+//   * ListModel or another QML model exposing count()+get() — modelData is the role object
+//     暴露 count()+get() 的 ListModel 或其他 QML 模型 — modelData 为角色对象
 function dataAt(model, index) {
     if (model === null || model === undefined) return undefined
     if (index < 0) return undefined

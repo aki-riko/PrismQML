@@ -15,6 +15,10 @@
 #include <QTimer>
 #include <QVariantMap>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace prism {
 
 // 全平台字体 fallback 链 (镜像 Python FONT_FAMILY)
@@ -43,6 +47,7 @@ ThemeManager::ThemeManager(QObject *parent) : QObject(parent) {
     m_accentScale = accentScaleFor(m_accentColor);
     // Reduced-motion input is read once at construction. 减少动态效果输入在构造时读取一次。
     m_reduceMotion = readReduceMotionEnv();
+    m_highContrast = detectHighContrast();
 }
 
 // ==================== 属性读取器 ====================
@@ -72,6 +77,7 @@ QString ThemeManager::accentColorLight() const { return m_accentColorLight; }
 QString ThemeManager::accentColorDark() const { return m_accentColorDark; }
 QVariantMap ThemeManager::accentScale() const { return m_accentScale; }
 bool ThemeManager::reduceMotion() const { return m_reduceMotion; }
+bool ThemeManager::highContrast() const { return m_highContrast; }
 
 // ==================== 主题 ====================
 void ThemeManager::setTheme(Theme theme) {
@@ -171,6 +177,59 @@ void ThemeManager::applyReduceMotion(bool enabled) {
 }
 
 bool ThemeManager::getReduceMotion() const { return m_reduceMotion; }
+
+// ==================== 高对比度 (镜像 Python highContrast) ====================
+bool ThemeManager::detectHighContrast() {
+    const QByteArray raw = qgetenv(HIGH_CONTRAST_ENV);
+    if (!raw.isNull() && !raw.trimmed().isEmpty()) {
+        const QString value = QString::fromLocal8Bit(raw).trimmed().toCaseFolded();
+        static const QStringList truthy{
+            QStringLiteral("1"), QStringLiteral("true"),
+            QStringLiteral("yes"), QStringLiteral("on")};
+        static const QStringList falsy{
+            QStringLiteral("0"), QStringLiteral("false"),
+            QStringLiteral("no"), QStringLiteral("off")};
+        if (truthy.contains(value)) return true;
+        if (falsy.contains(value)) return false;
+        qWarning("prism::ThemeManager: %s 值非法: '%s', 已忽略并回退平台判定",
+                 HIGH_CONTRAST_ENV, qUtf8Printable(QString::fromLocal8Bit(raw)));
+    }
+
+#ifdef Q_OS_WIN
+    HIGHCONTRASTW info{};
+    info.cbSize = sizeof(info);
+    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(info), &info, 0)) {
+        return (info.dwFlags & HCF_HIGHCONTRASTON) != 0;
+    }
+#endif
+    return false;
+}
+
+bool ThemeManager::refreshHighContrast() {
+    const bool detected = detectHighContrast();
+    if (m_highContrast != detected) {
+        m_highContrast = detected;
+        emit highContrastChanged(detected);
+    }
+    return detected;
+}
+
+void ThemeManager::setHighContrast(bool enabled) {
+    applyHighContrast(enabled);
+}
+
+void ThemeManager::setHighContrastFromQml(bool enabled) {
+    applyHighContrast(enabled);
+}
+
+void ThemeManager::applyHighContrast(bool enabled) {
+    if (m_highContrast != enabled) {
+        m_highContrast = enabled;
+        emit highContrastChanged(enabled);
+    }
+}
+
+bool ThemeManager::getHighContrast() const { return m_highContrast; }
 
 // ==================== 皮肤 ====================
 void ThemeManager::setSkin(Skin skin) {

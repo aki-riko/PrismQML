@@ -10,6 +10,7 @@ function click(control, enums) {
         control.checked = !control.checked
         control.toggled(control.checked)
     }
+    navigate(control)
     control.clicked()
 }
 

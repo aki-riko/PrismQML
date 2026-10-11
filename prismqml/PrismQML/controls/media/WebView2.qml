@@ -47,6 +47,9 @@ Item {
     property bool _canGoBack: false
     property bool _canGoForward: false
     property var _probeComponent: null
+    property string _pendingHtml: ""
+    property url _pendingHtmlBaseUrl: ""
+    property bool _hasPendingHtml: false
 
     // ==================== Signals 信号 ====================
     signal activated()
@@ -115,9 +118,13 @@ Item {
 
     // Load inline markup 加载内联标记
     function loadHtml(html, baseUrl) {
+        _pendingHtml = html
+        _pendingHtmlBaseUrl = baseUrl === undefined ? "" : baseUrl
+        _hasPendingHtml = true
         activate()
         if (surfaceLoader.item !== null) {
             surfaceLoader.item.requestLoadHtml(html, baseUrl)
+            _hasPendingHtml = false
         }
     }
 
@@ -162,6 +169,10 @@ Item {
     function _onSurfaceReady() {
         _availability = Enums.media.availability_available
         _errorString = ""
+        if (_hasPendingHtml) {
+            surfaceLoader.item.requestLoadHtml(_pendingHtml, _pendingHtmlBaseUrl)
+            _hasPendingHtml = false
+        }
         activated()
     }
 

@@ -48,6 +48,10 @@ Widget {
     property bool showProgress: false
     property var menuItems: []
     property var menu: null  // Optional external PopupWindowCore-compatible menu 外部菜单
+    property string navigateUri: ""
+    property bool navigateOnClick: true
+    property var urlOpener: null
+    property bool visited: false
     property int level: 0
     property string textToCopy: ""
     property int countdown: _skin.button.countdownDefault
@@ -106,7 +110,9 @@ Widget {
         _skin.isNeumorphism, _skin.button, _skin.stateColor,
         _skin.textColor, _skin.statusLevel, _skin.accentColor,
         _skin.cardColor, _skin.accentForeground, _skin.transparent,
-        _skin.opacityLevel, _skin.neo, _skin.ticket)
+        _skin.opacityLevel, _skin.neo, _skin.ticket, visited,
+        Enums.isDark ? _skin.button.hyperlinkVisitedDark
+                     : _skin.button.hyperlinkVisitedLight)
     readonly property color _styleBgColor: styleHelper.bgColor
     readonly property color _styleBorderColor: styleHelper.borderColor
     readonly property color _styleTextColor: styleHelper.textColor
@@ -161,12 +167,17 @@ Widget {
     signal menuItemClicked(int index, string text)
     signal menuAboutToOpen()
     signal countdownFinished()
+    signal navigationRequested(string url)
 
     // ==================== Public Methods 公开方法 ====================
     function getTextColor() { return _styleTextColor }
 
     // Programmatic click 程序化点击
     function click() { ButtonLogic.click(control, _skin) }
+
+    // Navigate to the configured URI and emit the public request signal.
+    // 导航到配置的 URI 并发出公开请求信号。
+    function navigate() { ButtonLogic.navigate(control) }
 
     // Toggle state 切换状态
     function toggle() { ButtonLogic.toggle(control, _skin) }
@@ -198,8 +209,6 @@ Widget {
     }
 
     function getText() { return text }
-
-
     function isChecked() { return checked }
 
     function isEnabled() { return enabled }

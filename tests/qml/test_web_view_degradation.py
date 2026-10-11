@@ -61,6 +61,19 @@ MISSING_MODULE_SURFACE = (
     "Item { }\n"
 )
 
+ASYNC_RECORDING_SURFACE = b"""
+import QtQuick
+
+Item {
+    required property Item host
+    property string loadedHtml: ""
+
+    function requestLoadHtml(html, baseUrl) {
+        loadedHtml = html
+    }
+}
+"""
+
 
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
@@ -251,6 +264,30 @@ def test_web_view_reports_a_missing_surface_file(qapp, tmp_path):
         assert warnings == [
             warning for warning in warnings if "No such file or directory" in warning
         ]
+    finally:
+        _dispose(engine, component, root)
+
+
+def test_web_view_replays_load_html_after_async_activation(qapp, tmp_path):
+    """Inline HTML survives first async activation. 首次异步激活不会丢失内联 HTML。"""
+    engine, component, root, warnings = _create_scene()
+    try:
+        view = root.findChild(QQuickItem, "probeView")
+        assert view is not None
+        surface = tmp_path / "recording-web-surface.qml"
+        surface.write_bytes(ASYNC_RECORDING_SURFACE)
+        view.setProperty("surfaceUrl", QUrl.fromLocalFile(str(surface)))
+
+        _invoke(view, "loadHtml('hello from the first call', '')")
+
+        assert _wait_for(lambda: view.property("surfaceCreated"))
+        loaded = [
+            child.property("loadedHtml")
+            for child in view.findChildren(QQuickItem)
+            if child.property("loadedHtml") is not None
+        ]
+        assert loaded == ["hello from the first call"]
+        assert warnings == []
     finally:
         _dispose(engine, component, root)
 

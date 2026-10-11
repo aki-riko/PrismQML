@@ -16,7 +16,6 @@ PrismQML 主题系统
 from enum import Enum
 import os
 import re
-import sys
 from typing import Callable, Optional
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal, Property, Slot
@@ -24,6 +23,11 @@ from PySide6.QtGui import QColor
 
 from .appearance_defaults import DEFAULT_ACCENT as _DEFAULT_ACCENT
 from .logger import debug, warning
+from .theme_accessibility import (
+    HIGH_CONTRAST_ENV,
+    detect_high_contrast,
+    read_high_contrast_env,
+)
 
 
 _HEX_COLOR_PATTERN = re.compile(
@@ -74,86 +78,6 @@ def read_reduce_motion_env(raw: Optional[str] = None) -> bool:
         f"{REDUCE_MOTION_ENV} 值非法: {value!r}，已回退为 {_REDUCE_MOTION_DEFAULT}"
     )
     return _REDUCE_MOTION_DEFAULT
-
-
-# High-contrast environment override. Unset means "ask the platform"; the
-# documented truthy/falsy spellings win over the platform answer so hosts and
-# tests can pin the state deterministically.
-# 高对比度环境变量覆盖。未设置表示"询问平台"；文档化的真/假拼写优先于平台结果，
-# 使宿主与测试可以确定性地固定该状态。
-HIGH_CONTRAST_ENV = "PRISM_HIGH_CONTRAST"
-_HIGH_CONTRAST_TRUTHY = _REDUCE_MOTION_TRUTHY
-_HIGH_CONTRAST_FALSY = _REDUCE_MOTION_FALSY
-_SPI_GETHIGHCONTRAST = 0x0042
-_HCF_HIGHCONTRASTON = 0x00000001
-
-
-def read_high_contrast_env(raw: Optional[str] = None) -> Optional[bool]:
-    """Parse the high-contrast override, or None when unset. 解析高对比度覆盖值。
-
-    返回 True/False 表示显式覆盖；未设置或空值返回 None，交由平台判定。
-    非法值告警并回退为未覆盖。
-    """
-    value = os.environ.get(HIGH_CONTRAST_ENV) if raw is None else raw
-    if value is None:
-        return None
-    normalized = value.strip().casefold()
-    if not normalized:
-        return None
-    if normalized in _HIGH_CONTRAST_TRUTHY:
-        return True
-    if normalized in _HIGH_CONTRAST_FALSY:
-        return False
-    warning(f"{HIGH_CONTRAST_ENV} 值非法: {value!r}，已忽略并回退平台判定")
-    return None
-
-
-def _read_high_contrast_flags() -> Optional[int]:
-    """Read the Windows high-contrast flag word, or None when unavailable.
-
-    返回 Windows 高对比度标志位；不可用时返回 None。
-    """
-    try:
-        import ctypes
-        from ctypes import wintypes
-
-        class _HighContrast(ctypes.Structure):
-            _fields_ = [
-                ("cbSize", wintypes.UINT),
-                ("dwFlags", wintypes.DWORD),
-                ("lpszDefaultScheme", wintypes.LPWSTR),
-            ]
-
-        info = _HighContrast()
-        info.cbSize = ctypes.sizeof(_HighContrast)
-        succeeded = ctypes.windll.user32.SystemParametersInfoW(
-            _SPI_GETHIGHCONTRAST, info.cbSize, ctypes.byref(info), 0
-        )
-        if not succeeded:
-            debug("SystemParametersInfoW(SPI_GETHIGHCONTRAST) 调用失败，按未启用处理")
-            return None
-        return int(info.dwFlags)
-    except (AttributeError, OSError, ValueError) as error:
-        debug(f"高对比度探测失败: {error}")
-        return None
-
-
-def detect_high_contrast() -> bool:
-    """Detect the platform high-contrast setting. 探测平台高对比度设置。
-
-    Qt exposes no contrast signal (QStyleHints only carries the color scheme), so
-    Windows is asked through SystemParametersInfoW(SPI_GETHIGHCONTRAST). Other
-    platforms report False rather than guessing a value nobody can verify.
-    Qt 不暴露对比度信号（QStyleHints 只有配色方案），因此 Windows 走
-    SystemParametersInfoW(SPI_GETHIGHCONTRAST)。其他平台返回 False，而不是猜一个
-    无法验证的值。
-    """
-    if sys.platform != "win32":
-        return False
-    flags = _read_high_contrast_flags()
-    if flags is None:
-        return False
-    return bool(flags & _HCF_HIGHCONTRASTON)
 
 
 def _shift_lightness(hex_color: str, delta: float) -> str:

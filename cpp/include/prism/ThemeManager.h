@@ -23,6 +23,8 @@ class ThemeManager : public QObject {
     Q_PROPERTY(bool isDark READ isDark NOTIFY themeChanged)
     // ==================== 减少动态效果属性 ====================
     Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY reduceMotionChanged)
+    // ==================== 高对比度属性 ====================
+    Q_PROPERTY(bool highContrast READ highContrast NOTIFY highContrastChanged)
     // ==================== 皮肤属性 ====================
     Q_PROPERTY(QString skin READ skin NOTIFY skinChanged)
     // ==================== 字体属性 ====================
@@ -46,6 +48,8 @@ public:
     // Fallback for unset/empty/illegal input. 未设置/空值/非法值的回退结果
     // (镜像 Python _REDUCE_MOTION_DEFAULT)。
     static constexpr bool REDUCE_MOTION_DEFAULT = false;
+    // High-contrast environment input name. 高对比度环境变量名。
+    static constexpr const char *HIGH_CONTRAST_ENV = "PRISM_HIGH_CONTRAST";
 
     // 单例入口 (镜像 Python ThemeManager() / getThemeManager())
     static ThemeManager *instance();
@@ -65,6 +69,7 @@ public:
     QString theme() const;
     bool isDark() const;
     bool reduceMotion() const;
+    bool highContrast() const;
     QString skin() const;
     QString fontFamily() const;
     QString fontMonospace() const;
@@ -82,6 +87,9 @@ public:
     QString getAccentColor() const;
     void setReduceMotion(bool enabled);
     bool getReduceMotion() const;
+    void setHighContrast(bool enabled);
+    bool getHighContrast() const;
+    bool refreshHighContrast();
 
     // Subscribe Theme::Auto to the platform color scheme. 订阅平台配色方案；
     // 幂等，GUI 应用尚不存在时返回 false 并留待下次调用重试
@@ -94,12 +102,14 @@ public slots:
     void setThemeFromQml(const QString &themeStr);
     void setSkinFromQml(const QString &skinStr);
     void setReduceMotionFromQml(bool enabled);
+    void setHighContrastFromQml(bool enabled);
 
 signals:
     void themeChanged(const QString &theme);
     void accentColorChanged(const QString &color);
     void skinChanged(const QString &skin);
     void reduceMotionChanged(bool enabled);
+    void highContrastChanged(bool enabled);
 
 private:
     friend class ConfigManager;
@@ -108,6 +118,8 @@ private:
     void applySkin(Skin skin);
     void applyAccentColor(const QString &color);
     void applyReduceMotion(bool enabled);
+    void applyHighContrast(bool enabled);
+    static bool detectHighContrast();
     void onSystemColorSchemeChanged(Qt::ColorScheme scheme);
     void emitSystemThemeChanged();
     static QString lightenColor(const QString &hexColor, double factor);
@@ -121,6 +133,7 @@ private:
     QString m_accentColorDark;
     QVariantMap m_accentScale;
     bool m_reduceMotion = REDUCE_MOTION_DEFAULT;
+    bool m_highContrast = false;
     // Lazy platform color-scheme watch state. 平台配色方案监听状态(延迟安装)
     bool m_systemColorSchemeBound = false;
     bool m_systemThemeNotifyPending = false;

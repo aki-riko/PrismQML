@@ -115,4 +115,3 @@ QtObject {
         return result
     }
 }
-

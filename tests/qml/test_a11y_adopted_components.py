@@ -138,6 +138,10 @@ def test_adopted_component_exposes_expected_accessible_role(qapp, component: str
             assert interface.role() == expected_role, (
                 f"{component}: role={interface.role()} expected={expected_role}"
             )
+        elif component == "IndicatorBar":
+            assert interface.state().invisible and interface.state().offscreen, (
+                "IndicatorBar must remain hidden from meaningful accessibility traversal"
+            )
         if expected_name is not None:
             assert interface.text(QAccessible.Text.Name) == expected_name, (
                 f"{component}: name={interface.text(QAccessible.Text.Name)!r}"

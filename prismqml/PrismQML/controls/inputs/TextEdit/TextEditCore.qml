@@ -20,7 +20,10 @@ InputCore {
     // ==================== Public Props 公开属性 ====================
     property int multilineType: Enums.input.multiline_plain
     property alias text: textEdit.text
-    readonly property real textContentHeight: textEdit.contentHeight  // Native text layout height 原生文本布局高度
+    readonly property real textContentHeight: _usesTrimmingPresentation
+        ? (trimmingLoader.item ? trimmingLoader.item.naturalHeight : textEdit.contentHeight)
+        : (columnCount > 1 && columnsLoader.item
+           ? columnsLoader.item._textHeight : textEdit.contentHeight)
     property string placeholderText: ""
     property bool readOnly: _isBrowser  // Browser mode is always read-only 浏览器模式始终只读
     property int wrapMode: TextEdit.Wrap

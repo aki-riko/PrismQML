@@ -104,6 +104,21 @@ Item {
         instance.deleteLater()
 
 
+def test_windows_core_mirroring_propagates_to_children():
+    """Window mirroring must keep child inheritance enabled. 窗口镜像必须开启子项继承。"""
+    from pathlib import Path
+
+    helper = (
+        Path(__file__).resolve().parents[2]
+        / "prismqml"
+        / "PrismQML"
+        / "_internal"
+        / "WindowsCoreMirroring.qml"
+    )
+    source = helper.read_text(encoding="utf-8")
+    assert "LayoutMirroring.childrenInherit = true" in source
+
+
 def test_language_classifier_covers_rtl_and_ltr_codes(qapp):
     """The classifier answers for any code without touching the active language."""
     engine = QQmlApplicationEngine()

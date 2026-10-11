@@ -53,6 +53,7 @@ Window {
     readonly property int decadeMode: Enums.calendarPicker.display_decade
     readonly property int singleMode: Enums.calendarPicker.selection_single
     readonly property int multipleMode: Enums.calendarPicker.selection_multiple
+    readonly property int rangeSelectionMode: Enums.calendarPicker.selection_range
     readonly property int todayYear: new Date().getFullYear()
     readonly property int todayMonth: new Date().getMonth() + 1
     readonly property int todayDay: new Date().getDate()
@@ -349,6 +350,33 @@ def test_blackout_dates_also_block_multi_selection(qapp) -> None:
         _dispose_scene(engine, component, window)
 
 
+def test_blackout_dates_block_adjacent_month_cells(qapp) -> None:
+    engine, component, window, warnings = _create_scene()
+    try:
+        calendar = _calendar(window)
+        calendar.setProperty("blackoutDates", ["2026-04-01"])
+        _pump(60)
+
+        adjacent = [
+            child
+            for child in _descendants(calendar)
+            if child.metaObject().indexOfProperty("displayDay") >= 0
+            and child.property("isNextMonth") is True
+            and child.property("displayDay") == 1
+        ]
+        assert len(adjacent) == 1
+        assert adjacent[0].property("isBlackout") is True
+
+        _click(window, adjacent[0])
+        assert calendar.property("month") == 3
+        assert calendar.property("day") == 0
+        assert list(_variant(window.property("dayClicks"))) == []
+        assert list(_variant(window.property("dateChanges"))) == []
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
 def test_range_mode_still_receives_its_gesture(qapp) -> None:
     engine, component, window, warnings = _create_scene()
     try:
@@ -357,6 +385,22 @@ def test_range_mode_still_receives_its_gesture(qapp) -> None:
         _pump(40)
         _click(window, _day_cell(calendar, 10))
 
+        clicks = list(_variant(window.property("rangeClicks")))
+        assert len(clicks) == 1
+        assert "2026" in clicks[0]
+        assert list(_variant(window.property("dayClicks"))) == []
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_range_selection_enum_receives_range_gesture(qapp) -> None:
+    engine, component, window, warnings = _create_scene()
+    try:
+        calendar = _calendar(window)
+        calendar.setProperty("selectionMode", window.property("rangeSelectionMode"))
+        _pump(40)
+        _click(window, _day_cell(calendar, 10))
         clicks = list(_variant(window.property("rangeClicks")))
         assert len(clicks) == 1
         assert "2026" in clicks[0]

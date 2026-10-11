@@ -10,6 +10,7 @@
 from hashlib import sha256
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -390,6 +391,9 @@ def test_multi_column_overflow_and_single_column_fallback(qapp) -> None:
         assert _wait_for(lambda: columns.property("_textHeight") > 0)
         assert columns.property("hasOverflow") is True
         assert browser.property("hasOverflowContent") is True
+        assert browser.property("textContentHeight") == pytest.approx(
+            columns.property("_textHeight")
+        )
 
         browser.setProperty("columnCount", 1)
         assert _wait_for(lambda: not loader.property("active"))
