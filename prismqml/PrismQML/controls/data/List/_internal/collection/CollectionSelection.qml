@@ -6,9 +6,8 @@ import QtQuick
 import "../../../../.."
 
 // CollectionSelection - Selection state machine for collection views 集合视图选择状态机
-// Shared by ItemsView and ScrollAreaGrid so both expose identical selection
-// semantics. Modes come from Enums.scroll.selection_*.
-// 由 ItemsView 与 ScrollAreaGrid 共享, 使两者暴露完全一致的选择语义。
+// Shared by collection views so they expose identical selection semantics.
+// 由集合视图共享, 使它们暴露一致的选择语义。
 // 模式取自 Enums.scroll.selection_*。
 QtObject {
     id: selection

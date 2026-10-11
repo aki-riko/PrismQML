@@ -16,8 +16,8 @@ QtObject {
     // Idle gap that ends one continuous relative-scroll burst.
     // 结束一次连续相对滚动输入串的空闲间隙。
     readonly property int input_burst_gap: 120
-    // Selection modes shared by the collection views (ItemsView / ScrollAreaGrid).
-    // 集合视图（ItemsView / ScrollAreaGrid）共享的选择模式。
+    // Selection modes shared by ScrollAreaGrid and other collection views.
+    // ScrollAreaGrid 及其它集合视图共享的选择模式。
     readonly property int selection_none: 0
     readonly property int selection_single: 1
     readonly property int selection_multiple: 2

@@ -63,7 +63,6 @@ QtObject {
         { "text": Fluent.Translator.tr("gallery_8829dbcbcfce6e54", Fluent.Translator._v), "icon": iconPath("Sparkle") },
         { "text": Fluent.Translator.tr("gallery_1b0049fcfd4163fe", Fluent.Translator._v), "icon": iconPath("Bot") },
         { "text": Fluent.Translator.tr("gallery_4b3510b8d86ea785", Fluent.Translator._v), "icon": iconPath("Chat") },
-        { "text": Fluent.Translator.tr("gallery_fa33e10009759859", Fluent.Translator._v), "icon": iconPath("Video") },
         { "text": Fluent.Translator.tr("gallery_d2d648bd1c94b7f9", Fluent.Translator._v), "icon": iconPath("Person") },
         { "text": Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v), "icon": iconPath("ArrowSync") }
     ]
@@ -88,7 +87,6 @@ QtObject {
         Qt.resolvedUrl("pages/EffectsPage.qml"),
         Qt.resolvedUrl("pages/AIAssistantPage.qml"),
         Qt.resolvedUrl("pages/ChatPage.qml"),
-        Qt.resolvedUrl("pages/MediaPage.qml"),
         Qt.resolvedUrl("pages/AuthPage.qml"),
         Qt.resolvedUrl("pages/AutoUpdatePage.qml"),
         Qt.resolvedUrl("pages/SettingsPage.qml")

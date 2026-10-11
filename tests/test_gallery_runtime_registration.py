@@ -153,7 +153,6 @@ def test_gallery_navigation_order_matches_page_sources():
         ("gallery_8829dbcbcfce6e54", "EffectsPage.qml"),
         ("gallery_1b0049fcfd4163fe", "AIAssistantPage.qml"),
         ("gallery_4b3510b8d86ea785", "ChatPage.qml"),
-        ("gallery_fa33e10009759859", "MediaPage.qml"),
         ("gallery_d2d648bd1c94b7f9", "AuthPage.qml"),
         ("gallery_736cff237d7d9255", "AutoUpdatePage.qml"),
     ]

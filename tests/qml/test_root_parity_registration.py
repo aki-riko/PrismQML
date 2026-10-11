@@ -26,15 +26,6 @@ import pytest
 # Newly registered public types that must stay reachable through `import PrismQML`.
 # 必须保持经 `import PrismQML` 可达的新增公开类型。
 REQUIRED_ROOT_TYPES = (
-    "RadioMenuFlyoutItem",
-    "CommandBarFlyout",
-    "RelativePanel",
-    "Viewbox",
-    "ParallaxView",
-    "AnimatedIcon",
-    "MediaPlayerElement",
-    "MapControl",
-    "WebView2",
     "RibbonBar",
     "RibbonTab",
     "RibbonGroup",
@@ -50,9 +41,6 @@ REQUIRED_ROOT_TYPES = (
 # 构造期会触达重型后端的类型在此只验证可达性，实例化交由各自的延迟创建测试。
 INSTANTIATE_EXEMPT = frozenset(
     {
-        "MediaPlayerElement",
-        "MapControl",
-        "WebView2",
         # Composite singletons are not creatable from QML, so reachability is the
         # only thing a component expression can prove for them.
         # 组合单例无法从 QML 实例化，因此组件表达式对它们只能证明可达。
