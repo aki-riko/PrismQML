@@ -32,6 +32,7 @@ Item {
     property bool showAverage: false     // Show average line (markLine) 显示平均线
     property bool showMinMax: false      // Show min/max markers (markPoint) 显示最大最小值标记
     property bool showBarGradient: false // Show gradient fill on bars 柱子渐变填充
+    property bool schedulerActive: true  // Runtime scheduler gate 运行时调度门控
 
     // ==================== Internal Props 内部属性 ====================
     property var barPositions: []        // For markPoint positioning 用于markPoint定位
@@ -138,10 +139,11 @@ Item {
 
     function _invalidateBarGeometry() {
         _barGeometryDirty = true
-        canvas.requestPaint()
+        if (schedulerActive) canvas.requestPaint()
     }
 
     function _requestMultiHoverPaint() {
+        if (!schedulerActive) return
         if (_barGeometryDirty || (animated && canvas.animProgress < 1)) {
             canvas.requestPaint()
             return
@@ -167,15 +169,17 @@ Item {
 
     // Repaint triggers 重绘触发
     onHoveredIndexChanged: {
+        if (!schedulerActive) return
         if (isMultiSeries && !isHorizontal) _requestMultiHoverPaint()
         if (!isMultiSeries && !isHorizontal) singleBarIndicator.requestPaint()
     }
     onHoveredSeriesIndexChanged: {
+        if (!schedulerActive) return
         if (isMultiSeries && !isHorizontal) _requestMultiHoverPaint()
     }
     onSeriesChanged: _invalidateBarGeometry()
-    onShowAverageChanged: canvas.requestPaint()
-    onShowBarGradientChanged: canvas.requestPaint()
+    onShowAverageChanged: if (schedulerActive) canvas.requestPaint()
+    onShowBarGradientChanged: if (schedulerActive) canvas.requestPaint()
 
     // ==================== Content 内容 ====================
     // Canvas for multi-series (Fluent Design) 多系列画布（Fluent Design）
@@ -183,6 +187,16 @@ Item {
         id: canvas
 
         property real animProgress: root.animated ? 0 : 1
+
+        function syncSchedulerActive() {
+            if (!root.schedulerActive) {
+                if (chartAnimation.running) chartAnimation.pause()
+                return
+            }
+            if (chartAnimation.paused) chartAnimation.resume()
+            else if (root.animated && animProgress < 1) chartAnimation.start()
+            requestPaint()
+        }
 
         function drawBars(ctx, region, fullPaint) {
             var geometry = root._barGeometry
@@ -213,6 +227,7 @@ Item {
         visible: root.isMultiSeries && !root.isHorizontal
 
         onPaint: (region) => {
+            if (!root.schedulerActive) return
             var ctx = getContext("2d")
             var fullPaint = root._barGeometryDirty || !region ||
                     (region.x <= 0 && region.y <= 0 &&
@@ -238,18 +253,18 @@ Item {
         }
         
         Component.onCompleted: {
-            if (root.animated) {
+            if (root.animated && root.schedulerActive) {
                 animProgress = 0
                 chartAnimation.restart()
             } else {
                 requestPaint()
             }
         }
-        onAnimProgressChanged: requestPaint()
+        onAnimProgressChanged: if (root.schedulerActive) requestPaint()
         onWidthChanged: root._invalidateBarGeometry()
         onHeightChanged: root._invalidateBarGeometry()
         onVisibleChanged: if (visible) root._invalidateBarGeometry()
-        
+
         NumberAnimation {
             id: chartAnimation
             target: canvas
@@ -290,6 +305,7 @@ Item {
                  && root.hoveredIndex >= 0
         
         onPaint: {
+            if (!root.schedulerActive) return
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             
@@ -348,6 +364,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        enabled: root.schedulerActive
         cursorShape: root.hoveredIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         visible: root.isMultiSeries
         
@@ -375,4 +392,6 @@ Item {
             }
         }
     }
+
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

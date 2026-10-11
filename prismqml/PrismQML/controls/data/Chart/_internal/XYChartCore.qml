@@ -42,6 +42,7 @@ Item {
     property real viewportStart: 0
     property real viewportEnd: 1
     property bool animateValueRange: false
+    property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
 
     // ==================== Readonly State 只读状态 ====================
     readonly property Item chartArea: axesLayer.chartArea

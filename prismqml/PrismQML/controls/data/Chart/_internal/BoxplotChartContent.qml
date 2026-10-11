@@ -28,6 +28,7 @@ Item {
     required property bool animated
     required property bool showValues
     required property bool isHorizontal    // Horizontal or vertical 水平或垂直
+    property bool schedulerActive: true    // Runtime scheduler gate 运行时调度门控
     
     // ==================== Public Props 公开属性 ====================
     property int hoveredIndex: -1
@@ -160,7 +161,7 @@ Item {
 
     function _invalidateBoxGeometry() {
         _boxGeometryDirty = true
-        canvas.requestPaint()
+        if (schedulerActive) canvas.requestPaint()
     }
 
     function _hoverDirtyRect(index) {
@@ -171,6 +172,7 @@ Item {
     }
 
     function _requestHoverPaint() {
+        if (!schedulerActive) return
         if (_boxGeometryDirty || (animated && canvas.animProgress < 1) ||
                 (showValues && !isHorizontal)) {
             canvas.requestPaint()
@@ -198,6 +200,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        enabled: root.schedulerActive
         cursorShape: root.hoveredIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onPositionChanged: (mouse) => {
@@ -229,4 +232,6 @@ Item {
             }
         }
     }
+
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

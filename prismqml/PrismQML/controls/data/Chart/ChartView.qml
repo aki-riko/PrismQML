@@ -102,6 +102,8 @@ ShadowedRectangle {
 
     // Chart card entrance animation 图表卡片入场动画
     property bool deferAnimation: false  // Set true for lazy-loaded charts 懒加载图表设为true
+    // Runtime scheduler gate; true preserves the historical behavior 运行时调度门控；true保持原有行为
+    property bool schedulerActive: true
 
     // ==================== Internal Props 内部属性 ====================
     // Disable viewport transitions during direct manipulation 直接拖动期间禁用视窗过渡
@@ -114,6 +116,7 @@ ShadowedRectangle {
     readonly property real _visualStart: viewportAnimator.visualStart
     readonly property real _visualEnd: viewportAnimator.visualEnd
     readonly property bool _viewportTransitionActive: viewportAnimator.active
+    readonly property bool workActive: schedulerActive && visible
     property int _hoveredBarIndex: -1
     property int _hoveredBarSeriesIndex: -1
     property int _hoveredPointIndex: -1
@@ -248,6 +251,18 @@ ShadowedRectangle {
     function isSeriesVisible(seriesIndex) {
         return _hiddenSeriesIndices.indexOf(seriesIndex) < 0
     }
+    function _clearHoverState() {
+        _hoveredBarIndex = -1
+        _hoveredBarSeriesIndex = -1
+        _hoveredPointIndex = -1
+        _hoveredSliceIndex = -1
+        _hoveredRadarSeriesIndex = -1
+        _hoveredRadarPointIndex = -1
+        _hoveredScatterSeriesIndex = -1
+        _hoveredScatterPointIndex = -1
+        _hoveredLineSeriesIndex = -1
+        _hoveredBoxplotIndex = -1
+    }
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
     color: Enums.cardColor
@@ -261,8 +276,17 @@ ShadowedRectangle {
     scale: 1.0
 
     Component.onCompleted: {
-        if (!deferAnimation) {
+        if (!deferAnimation && schedulerActive) {
             entranceAnim.start()
+        }
+    }
+    onSchedulerActiveChanged: {
+        if (!schedulerActive) {
+            _clearHoverState()
+            if (entranceAnim.running) entranceAnim.pause()
+        } else if (!deferAnimation && opacity < 1.0) {
+            if (entranceAnim.paused) entranceAnim.resume()
+            else entranceAnim.start()
         }
     }
     // Apply pointer-anchored wheel zoom and retarget running transitions 应用鼠标锚定滚轮缩放并重定向进行中的过渡
@@ -295,6 +319,7 @@ ShadowedRectangle {
         viewportStart: control.viewportStart
         viewportEnd: control.viewportEnd
         animated: control.animated
+        schedulerActive: control.schedulerActive
         interactive: control._viewportInteractive
         transitionEnabled: control._isXYChart
         onTransitionStarted: {

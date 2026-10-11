@@ -20,6 +20,7 @@ Item {
     required property bool showValues        // Show percentage labels 显示百分比标签
     required property bool showLegend        // Show legend 显示图例
     required property var getColor           // Function to get color 获取颜色函数
+    property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
     
     // ==================== Public Props 公开属性 ====================
     property string title: ""
@@ -61,6 +62,7 @@ Item {
             chartData: root.chartData
             totalValue: root.totalValue
             animated: root.animated
+            schedulerActive: root.schedulerActive
             showValues: root.showValues
             isDonut: root.isDonut
             donutRatio: root.donutRatio
@@ -155,6 +157,7 @@ Item {
     
     // Tooltip 提示框
     ChartTooltip {
+        enabled: root.schedulerActive
         // Hover-revealed tooltip is a mouse-only preview; on touch it would linger with no hover to clear it
         // 悬停揭示的提示框只对鼠标有意义; 触摸端没有 hover 可清除, 会一直残留
         visible: !Touch.isTouch && root.hoveredIndex >= 0 && root.chartData.length > 0
@@ -183,6 +186,7 @@ Item {
         active: root.showLegend && root.chartData.length > 0
         sourceComponent: Component {
             ChartBottomLegend {
+                enabled: root.schedulerActive
                 legendData: root.chartData
                 legendStyle: "dot"
                 hoveredIndex: root.hoveredIndex

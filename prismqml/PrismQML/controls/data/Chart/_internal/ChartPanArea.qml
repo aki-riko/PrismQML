@@ -16,7 +16,7 @@ MouseArea {
     property real _pressVS: 0
     property real _pressVE: 0
 
-    enabled: chart && chart.panEnabled && chart._isXYChart
+    enabled: chart && chart.schedulerActive && chart.panEnabled && chart._isXYChart
     acceptedButtons: Qt.LeftButton
     cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     propagateComposedEvents: true

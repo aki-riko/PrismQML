@@ -24,6 +24,7 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int hoveredSeriesIndex: -1
     property int hoveredPointIndex: -1
+    property bool schedulerActive: true  // Runtime scheduler gate 运行时调度门控
 
     // ==================== Internal Props 内部属性 ====================
     property var pointPositions: []
@@ -134,7 +135,7 @@ Item {
 
     function _invalidatePointGeometry() {
         _pointGeometryDirty = true
-        canvas.requestPaint()
+        if (schedulerActive) canvas.requestPaint()
     }
 
     function _nearestPointIndex(x, y) {
@@ -158,6 +159,7 @@ Item {
     }
 
     function _requestHoverPaint() {
+        if (!schedulerActive) return
         if (_pointGeometryDirty || (animated && canvas.animProgress < 1) ||
                 hoveredSeriesIndex !== _paintedHoverSeriesIndex) {
             canvas.requestPaint()
@@ -184,8 +186,8 @@ Item {
     onHoveredPointIndexChanged: _requestHoverPaint()
     onSeriesChanged: _invalidatePointGeometry()
     onIndicatorsChanged: _invalidatePointGeometry()
-    onShowLabelsChanged: canvas.requestPaint()
-    onRingsChanged: canvas.requestPaint()
+    onShowLabelsChanged: if (schedulerActive) canvas.requestPaint()
+    onRingsChanged: if (schedulerActive) canvas.requestPaint()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -193,6 +195,16 @@ Item {
         id: canvas
 
         property real animProgress: 0
+
+        function syncSchedulerActive() {
+            if (!root.schedulerActive) {
+                if (chartAnimation.running) chartAnimation.pause()
+                return
+            }
+            if (chartAnimation.paused) chartAnimation.resume()
+            else if (root.animated && animProgress < 1) chartAnimation.start()
+            requestPaint()
+        }
 
         function drawGrid(ctx) {
             var axes = root._axisGeometry
@@ -295,6 +307,7 @@ Item {
         anchors.fill: parent
 
         onPaint: (region) => {
+            if (!root.schedulerActive) return
             var ctx = getContext("2d")
             var fullPaint = root._pointGeometryDirty || !region ||
                     (region.x <= 0 && region.y <= 0 &&
@@ -334,7 +347,7 @@ Item {
         onHeightChanged: root._invalidatePointGeometry()
         
         Component.onCompleted: {
-            if (root.animated) {
+            if (root.animated && root.schedulerActive) {
                 animProgress = 0
                 chartAnimation.restart()
             } else {
@@ -342,8 +355,8 @@ Item {
                 requestPaint()
             }
         }
-        onAnimProgressChanged: requestPaint()
-        
+        onAnimProgressChanged: if (root.schedulerActive) requestPaint()
+
         NumberAnimation {
             id: chartAnimation
             target: canvas
@@ -359,6 +372,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        enabled: root.schedulerActive
         cursorShape: root.hoveredSeriesIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onPositionChanged: (mouse) => {
@@ -390,4 +404,6 @@ Item {
             }
         }
     }
+
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

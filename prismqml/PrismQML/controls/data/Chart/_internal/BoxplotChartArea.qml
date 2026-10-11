@@ -20,6 +20,7 @@ Item {
     required property bool showValues
     required property bool showGrid
     required property bool isHorizontal
+    property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
     
     // ==================== Public Props 公开属性 ====================
     property string title: ""
@@ -216,8 +217,9 @@ Item {
         // Grid lines 网格线
         Canvas {
             anchors.fill: parent
-            visible: root.showGrid
+            visible: root.schedulerActive && root.showGrid
             onPaint: {
+                if (!root.schedulerActive) return
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height)
                 ctx.strokeStyle = Enums.stateColor.controlBgHover
@@ -240,6 +242,7 @@ Item {
             
             boxplotData: root.boxplotData
             animated: root.animated
+            schedulerActive: root.schedulerActive
             showValues: root.showValues
             isHorizontal: root.isHorizontal
             hoveredIndex: root.hoveredIndex
@@ -253,7 +256,7 @@ Item {
     Rectangle {
         id: tooltip
         objectName: "boxplotTooltip"
-        visible: root.hoveredIndex >= 0 && root.boxplotData.length > 0
+        visible: root.schedulerActive && root.hoveredIndex >= 0 && root.boxplotData.length > 0
         x: chartArea.x + Math.min(Math.max(
             (root.hoveredIndex + 0.5) * (chartArea.width / root.boxplotData.length) - width / 2, 0),
             chartArea.width - width)

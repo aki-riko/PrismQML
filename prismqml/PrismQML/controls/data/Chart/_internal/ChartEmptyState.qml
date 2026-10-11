@@ -39,7 +39,7 @@ Column {
 
         SequentialAnimation on y {
             objectName: "emptyStateAnimation"
-            running: control.visible
+            running: control.visible && control.chart && control.chart.schedulerActive
             loops: Animation.Infinite
 
             NumberAnimation {
