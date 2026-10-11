@@ -230,9 +230,25 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
             )
 
     def _find_child_by_name(self, name: str) -> Optional[QQuickItem]:
-        """根据objectName查找子项"""
+        """根据 objectName 查找子项，并缓存稳定窗口树中的页面容器。"""
         if self._window is None:
             return None
+
+        cache_window = getattr(self, "_page_container_cache_window", None)
+        if cache_window is not self._window:
+            self._page_container_cache_window = self._window
+            self._page_container_cache = {}
+        cache = getattr(self, "_page_container_cache", None)
+        if cache is None:
+            cache = {}
+            self._page_container_cache = cache
+        cached = cache.get(name)
+        if cached is not None:
+            try:
+                if cached.objectName() == name:
+                    return cached
+            except RuntimeError:
+                cache.pop(name, None)
 
         def find_recursive(item: QQuickItem) -> Optional[QQuickItem]:
             if item.objectName() == name:
@@ -243,7 +259,10 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
                     return result
             return None
 
-        return find_recursive(self._window.contentItem())
+        result = find_recursive(self._window.contentItem())
+        if result is not None:
+            cache[name] = result
+        return result
 
     def _on_nav_changed(self, index: int):
         """导航项切换回调（QML触发）"""

@@ -7,6 +7,7 @@
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtQuick import QQuickItem
 
 
 @pytest.mark.parametrize("error_type", [KeyboardInterrupt, SystemExit])
@@ -66,3 +67,36 @@ def test_page_manager_invoke_process_control_propagates(
     manager._window = object()
     with pytest.raises(error_type, match="stop"):
         getattr(manager, method_name)(*args)
+
+
+def test_page_container_lookup_reuses_cache_until_window_changes(qapp):
+    from prismqml.python.window._page_manager import PageManagerMixin
+
+    root = QQuickItem()
+    first_page = QQuickItem(root)
+    first_page.setObjectName("page_0")
+
+    class Window:
+        def __init__(self, content_item):
+            self._content_item = content_item
+
+        def contentItem(self):
+            return self._content_item
+
+    manager = PageManagerMixin()
+    first_window = Window(root)
+    manager._window = first_window
+
+    assert manager._find_child_by_name("page_0") is first_page
+    assert manager._find_child_by_name("page_0") is first_page
+
+    second_root = QQuickItem()
+    second_page = QQuickItem(second_root)
+    second_page.setObjectName("page_0")
+    manager._window = Window(second_root)
+    assert manager._find_child_by_name("page_0") is second_page
+
+    first_page.deleteLater()
+    second_page.deleteLater()
+    root.deleteLater()
+    second_root.deleteLater()
