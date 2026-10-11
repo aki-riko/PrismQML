@@ -58,6 +58,7 @@ def _parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--radius", type=int, default=0)
     parser.add_argument("--pages", type=int, default=8)
+    parser.add_argument("--mode", choices=("source", "deferred"), default="source")
     parser.add_argument("--sample-ms", type=int, default=1000)
     parser.add_argument(
         "--result-file",
@@ -146,6 +147,15 @@ def _write_pages(root: Path, count: int):
     return urls
 
 
+def _deferred_pages(count: int) -> str:
+    return "[" + ", ".join(
+        "Component { Item { objectName: \"benchPage-%d\"; "
+        "MatrixRain { anchors.fill: parent; running: true; density: 0.7; schedulerActive: true } } }"
+        % index
+        for index in range(count)
+    ) + "]"
+
+
 def main(argv=None):
     args = _parse_args(argv)
     if args.pages < 2:
@@ -163,9 +173,14 @@ def main(argv=None):
 
     with tempfile.TemporaryDirectory(prefix="prismqml-retention-") as temp_dir:
         urls = _write_pages(Path(temp_dir), args.pages)
-        source = QML_TEMPLATE.replace("__RADIUS__", str(args.radius)).replace(
-            "__SOURCES__", ", ".join(f'"{url}"' for url in urls)
+        page_config = (
+            "pageSources: [" + ", ".join(f'"{url}"' for url in urls) + "]"
+            if args.mode == "source"
+            else "deferredPages: " + _deferred_pages(args.pages)
         )
+        source = QML_TEMPLATE.replace("__RADIUS__", str(args.radius)).replace(
+            "pageSources: [__SOURCES__]", page_config
+        ).replace("__SOURCES__", ", ".join(f'"{url}"' for url in urls))
         component = QQmlComponent(engine)
         component.setData(
             source.encode("utf-8"),
@@ -212,6 +227,7 @@ def main(argv=None):
             raise RuntimeError("; ".join(failures))
         result = {
             "radius": args.radius,
+            "mode": args.mode,
             "pages": args.pages,
             "sample_ms": args.sample_ms,
             "requested_graphics_api": "Direct3D11",
