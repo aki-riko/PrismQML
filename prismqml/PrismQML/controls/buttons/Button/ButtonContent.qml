@@ -34,9 +34,10 @@ Item {
     property int countdownRemaining: 0
     property string countdownText: "s"
     property var skinContext: Enums
+    property bool _verticalContent: false
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool verticalLayout: style === skinContext.commandBar.style_text_under
+    readonly property bool verticalLayout: _verticalContent
     readonly property bool hasIcon: icon !== "" || loading
         || feature === skinContext.button.feature_progress_ring
         || feature === skinContext.button.feature_indeterminate_ring

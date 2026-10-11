@@ -167,6 +167,7 @@ Widget {
     property bool _colorAnimationsReady: false
     property bool _hoverExitPending: false
     property bool _menuPrewarmRetryScheduled: false
+    property bool _verticalContent: false // Internal layout override 内部布局覆盖
 
     // ==================== Signals 信号 ====================
     signal clicked()

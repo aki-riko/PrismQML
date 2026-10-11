@@ -85,6 +85,7 @@ Item {
             skinContext: _skin
             feature: contentLayer.buttonControl.feature
             style: contentLayer.buttonControl.style
+            _verticalContent: contentLayer.buttonControl._verticalContent
             text: contentLayer.buttonControl.text
             icon: contentLayer.buttonControl.icon
             iconSize: contentLayer.buttonControl.iconSize

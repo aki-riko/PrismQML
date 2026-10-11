@@ -6,6 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -131,6 +132,26 @@ Window {
         showLabels: true
         primaryCommands: [{"text": "View", "icon": "View"}]
     }
+
+    Breadcrumb {
+        id: iconBreadcrumb
+        objectName: "iconBreadcrumb"
+        y: 220
+        showIcons: true
+
+        Component.onCompleted: {
+            addItem("home", "Home", Enums.icon.home)
+            addItem("folder", "Folder", Enums.icon.folder)
+        }
+    }
+
+    Paginator {
+        id: paginator
+        objectName: "paginator"
+        y: 340
+        totalPages: 10
+        currentPage: 3
+    }
 }
 """
 
@@ -238,6 +259,27 @@ def _command_button(core, text):
     return loaders[0], wrapper, buttons[0]
 
 
+def _breadcrumb_button(breadcrumb, text):
+    matches = [
+        item
+        for item in _visual_descendants(breadcrumb)
+        if item.metaObject().className().startswith("ButtonCore")
+        and item.property("text") == text
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _paginator_button(paginator, icon):
+    matches = [
+        item
+        for item in _visual_descendants(paginator)
+        if item.metaObject().className().startswith("ButtonCore")
+        and item.property("icon") == icon
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 def _more_loader(core):
     loader = core.findChild(QQuickItem, "commandBarMoreLoader")
     assert loader is not None
@@ -290,6 +332,11 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
         assert button.property("text") == "Open"
         assert button.width() == button_wrapper.width()
         assert button.height() == button_wrapper.height()
+        default_icon = button.findChild(QQuickItem, "buttonContentIcon")
+        default_text = button.findChild(QQuickItem, "buttonContentText")
+        assert default_icon is not None and default_text is not None
+        assert default_icon.mapToItem(button, QPointF()).x() + default_icon.width() \
+            <= default_text.mapToItem(button, QPointF()).x()
 
         _, view_button_wrapper, view_button = _command_button(view_core, "View")
         assert view_button.property("text") == "View"
@@ -300,6 +347,33 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
         assert view_icon is not None and view_text is not None
         assert view_icon.mapToItem(view_button, QPointF()).y() + view_icon.height() \
             <= view_text.mapToItem(view_button, QPointF()).y()
+
+        breadcrumb = root.findChild(QQuickItem, "iconBreadcrumb")
+        assert _wait_for(lambda: _breadcrumb_button(breadcrumb, "Home") is not None)
+        breadcrumb_button = _breadcrumb_button(breadcrumb, "Home")
+        breadcrumb_icon = breadcrumb_button.findChild(
+            QQuickItem, "buttonContentIcon"
+        )
+        breadcrumb_text = breadcrumb_button.findChild(
+            QQuickItem, "buttonContentText"
+        )
+        assert breadcrumb_icon is not None and breadcrumb_text is not None
+        assert breadcrumb_icon.mapToItem(breadcrumb_button, QPointF()).x() \
+            + breadcrumb_icon.width() \
+            <= breadcrumb_text.mapToItem(breadcrumb_button, QPointF()).x()
+
+        paginator = root.findChild(QQuickItem, "paginator")
+        for icon_name in ("ChevronLeft", "ChevronRight"):
+            arrow_button = _paginator_button(paginator, icon_name)
+            arrow_icon = arrow_button.findChild(
+                QQuickItem, "buttonContentIcon"
+            )
+            assert arrow_icon is not None
+            arrow_origin = arrow_icon.mapToItem(arrow_button, QPointF())
+            assert arrow_origin.x() + arrow_icon.width() / 2 == \
+                pytest.approx(arrow_button.width() / 2)
+            assert arrow_origin.y() + arrow_icon.height() / 2 == \
+                pytest.approx(arrow_button.height() / 2)
         assert QMetaObject.invokeMethod(button, "click")
         _pump()
         assert actions == [(0, "Open")]

@@ -242,6 +242,7 @@ Item {
                 flat: true
                 enabled: !commandData || commandData.enabled !== false
                 icon: commandData ? (commandData.icon || "") : ""
+                _verticalContent: buttonStyle === Enums.commandBar.style_text_under
                 text: buttonStyle === Enums.commandBar.style_icon_only
                       ? "" : (commandData ? (commandData.text || "") : "")
                 iconSize: control.iconSize
