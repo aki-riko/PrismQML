@@ -62,6 +62,7 @@ Item {
             property bool _loadOnce: false
             property int pageIndex: index
             property string _loadedSourceText: ""
+            property var _pendingPageProperties: ({})
 
             function _syncSource() {
                 var modelEntry = index >= 0 && index < sourceModel.count
@@ -83,9 +84,14 @@ Item {
                     }
                     return
                 }
+                if (!sourceLoader.item && sourceLoader.status === Loader.Loading) {
+                    sourceLoader._pendingPageProperties = nextProperties
+                    return
+                }
                 if (sourceLoader.source.toString() !== nextSourceText ||
-                        !sourceLoader.item) {
+                        (!sourceLoader.item && sourceLoader.status === Loader.Null)) {
                     sourceLoader._loadedSourceText = nextSourceText
+                    sourceLoader._pendingPageProperties = nextProperties
                     sourceLoader.setSource(nextSource, nextProperties)
                     return
                 }
@@ -158,6 +164,13 @@ Item {
                     "stacked.source_loader.loaded.begin", index, "", sourceLoader)
                 _loadOnce = true
                 sourceLoader._loadedSourceText = sourceLoader.source.toString()
+                var pendingKeys = Object.keys(sourceLoader._pendingPageProperties)
+                for (var pendingIndex = 0; pendingIndex < pendingKeys.length; pendingIndex++) {
+                    var pendingKey = pendingKeys[pendingIndex]
+                    if (pendingKey in sourceLoader.item) sourceLoader.item[pendingKey] =
+                            sourceLoader._pendingPageProperties[pendingKey]
+                }
+                sourceLoader._pendingPageProperties = ({})
                 sourceContainer.host.pageLoaded(index)
                 sourceContainer.host._syncPageActivity(sourceContainer.host._displayIndex)
                 sourceContainer.host.profileTime("sourceLoader onLoaded index=" + index)
