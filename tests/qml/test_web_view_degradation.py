@@ -292,6 +292,33 @@ def test_web_view_replays_load_html_after_async_activation(qapp, tmp_path):
         _dispose(engine, component, root)
 
 
+def test_web_view_scheduler_gate_defers_load_html_until_activation(qapp, tmp_path):
+    """Scheduler gating preserves queued inline HTML. 调度门控保留排队的内联 HTML。"""
+    engine, component, root, warnings = _create_scene()
+    try:
+        view = root.findChild(QQuickItem, "probeView")
+        assert view is not None
+        surface = tmp_path / "scheduler-recording-web-surface.qml"
+        surface.write_bytes(ASYNC_RECORDING_SURFACE)
+        view.setProperty("surfaceUrl", QUrl.fromLocalFile(str(surface)))
+        view.setProperty("schedulerActive", False)
+
+        _invoke(view, "loadHtml('queued by scheduler', '')")
+        assert view.property("surfaceCreated") is False
+
+        view.setProperty("schedulerActive", True)
+        assert _wait_for(lambda: view.property("surfaceCreated"))
+        loaded = [
+            child.property("loadedHtml")
+            for child in view.findChildren(QQuickItem)
+            if child.property("loadedHtml") is not None
+        ]
+        assert loaded == ["queued by scheduler"]
+        assert warnings == []
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_web_view_sources_contain_no_injected_endpoints():
     """Web QML must not hardcode URLs or credentials. 网页 QML 不得硬编码 URL 或凭据。"""
     media_root = ROOT / "prismqml" / "PrismQML" / "controls" / "media"

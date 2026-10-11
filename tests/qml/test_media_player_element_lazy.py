@@ -245,6 +245,23 @@ def test_media_player_element_activates_on_demand(qapp):
         _dispose(engine, component, root)
 
 
+def test_media_scheduler_gate_defers_playback_surface(qapp):
+    """Scheduler gating keeps a pending play request. 调度门控保留待执行播放请求。"""
+    engine, component, root, warnings = _create_scene()
+    try:
+        player = root.findChild(QQuickItem, "lazyPlayer")
+        assert player is not None
+        player.setProperty("schedulerActive", False)
+        _invoke(player, "play()")
+        assert player.property("surfaceCreated") is False
+
+        player.setProperty("schedulerActive", True)
+        assert _wait_for(lambda: player.property("surfaceCreated"))
+        assert warnings == []
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_media_player_element_degrades_on_broken_surface(qapp, tmp_path):
     """A broken surface degrades instead of crashing. 表面损坏时优雅降级。"""
     engine, component, root, warnings = _create_scene()

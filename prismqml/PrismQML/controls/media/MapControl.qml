@@ -27,6 +27,7 @@ Item {
     property var polylines: []                  // Polyline layer: { path: [{ latitude, longitude }] } 折线图层
     property var circles: []                    // Circle layer: { latitude, longitude, radius } 圆图层
     property bool autoActivate: false           // Activate during construction 构造期是否激活
+    property bool schedulerActive: true         // Runtime activation gate 运行时激活门控
     property string unavailableMessage: ""      // Localized fallback text 本地化回退文案
 
     // ==================== Readonly State 只读状态 ====================
@@ -45,6 +46,7 @@ Item {
     property string _errorString: ""
     property bool _mapReady: false
     property var _probeComponent: null
+    property bool _activationRequested: false
 
     // ==================== Signals 信号 ====================
     signal activated()
@@ -53,6 +55,8 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     // Incubate the map surface 孵化地图表面
     function activate() {
+        _activationRequested = true
+        if (!schedulerActive) return false
         if (surfaceLoader.status !== Loader.Null) {
             return available
         }
@@ -180,6 +184,13 @@ Item {
 
     Component.onCompleted: {
         if (autoActivate) {
+            activate()
+        }
+    }
+
+    onSchedulerActiveChanged: {
+        if (schedulerActive && _activationRequested &&
+                surfaceLoader.status === Loader.Null) {
             activate()
         }
     }

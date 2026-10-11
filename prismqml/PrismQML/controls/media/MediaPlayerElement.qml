@@ -17,6 +17,7 @@ Item {
     property url surfaceUrl: Qt.resolvedUrl("_internal/MediaSurface.qml")   // Injected surface component 注入的表面组件
     property url source: ""                     // Media source, injected by the caller 调用方注入的媒体源
     property bool autoActivate: false           // Activate during construction 构造期是否激活
+    property bool schedulerActive: true         // Runtime activation gate 运行时激活门控
     property bool autoPlay: false               // Play as soon as the surface is ready 表面就绪后立即播放
     property bool showControls: true            // Show the transport bar 是否显示播放控制条
     property bool stretch: false                // Stretch video instead of fitting it 视频拉伸而非等比适配
@@ -50,6 +51,7 @@ Item {
     property bool _pendingPlay: false
     property int _pendingSeek: -1
     property var _probeComponent: null
+    property bool _activationRequested: false
 
     // ==================== Signals 信号 ====================
     signal activated()
@@ -60,6 +62,8 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     // Incubate the playback surface 孵化播放表面
     function activate() {
+        _activationRequested = true
+        if (!schedulerActive) return false
         if (surfaceLoader.status !== Loader.Null) {
             return available
         }
@@ -216,6 +220,13 @@ Item {
 
     Component.onCompleted: {
         if (autoActivate) {
+            activate()
+        }
+    }
+
+    onSchedulerActiveChanged: {
+        if (schedulerActive && _activationRequested &&
+                surfaceLoader.status === Loader.Null) {
             activate()
         }
     }

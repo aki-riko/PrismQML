@@ -20,6 +20,7 @@ Item {
     property url url: ""                        // Injected page address 调用方注入的页面地址
     property real zoomFactor: Enums.media.webview_default_zoom
     property bool autoActivate: false           // Activate during construction 构造期是否激活
+    property bool schedulerActive: true         // Runtime activation gate 运行时激活门控
     property string unavailableMessage: ""      // Localized fallback text 本地化回退文案
 
     // ==================== Readonly State 只读状态 ====================
@@ -50,6 +51,7 @@ Item {
     property string _pendingHtml: ""
     property url _pendingHtmlBaseUrl: ""
     property bool _hasPendingHtml: false
+    property bool _activationRequested: false
 
     // ==================== Signals 信号 ====================
     signal activated()
@@ -61,6 +63,8 @@ Item {
     // ==================== Public Methods 公开方法 ====================
     // Incubate the browser surface 孵化浏览器表面
     function activate() {
+        _activationRequested = true
+        if (!schedulerActive) return false
         if (surfaceLoader.status !== Loader.Null) {
             return available
         }
@@ -201,6 +205,13 @@ Item {
 
     Component.onCompleted: {
         if (autoActivate) {
+            activate()
+        }
+    }
+
+    onSchedulerActiveChanged: {
+        if (schedulerActive && _activationRequested &&
+                surfaceLoader.status === Loader.Null) {
             activate()
         }
     }

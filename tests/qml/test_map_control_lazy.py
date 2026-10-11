@@ -203,6 +203,23 @@ def test_map_control_activates_with_injected_provider(qapp):
         _dispose(engine, component, root)
 
 
+def test_map_scheduler_gate_defers_surface_activation(qapp):
+    """Scheduler gating defers map surface creation. 调度门控延迟地图表面创建。"""
+    engine, component, root, warnings = _create_scene()
+    try:
+        control = root.findChild(QQuickItem, "mapControl")
+        assert control is not None
+        control.setProperty("schedulerActive", False)
+        _invoke(control, "activate()")
+        assert control.property("surfaceCreated") is False
+
+        control.setProperty("schedulerActive", True)
+        assert _wait_for(lambda: control.property("surfaceCreated"))
+        assert warnings == []
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_map_control_layers_and_viewport(qapp):
     """Layers, centre and zoom stay in sync with the map. 图层、中心与缩放与地图同步。"""
     engine, component, root, warnings = _create_scene()
