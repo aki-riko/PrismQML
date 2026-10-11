@@ -129,3 +129,21 @@ ChartView {
         engine.clearComponentCache()
         engine.deleteLater()
         QEventLoop().processEvents()
+
+
+def test_scheduler_gate_keeps_latest_viewport_target(qapp):
+    engine, component, chart, window = _create_chart()
+    try:
+        initial_start = chart.property("_renderStart")
+        chart.setProperty("schedulerActive", False)
+        chart.setProperty("viewportStart", 0.2)
+        chart.setProperty("viewportEnd", 0.8)
+        _pump(80)
+        assert chart.property("_renderStart") == initial_start
+
+        chart.setProperty("schedulerActive", True)
+        _pump(chart.property("chartDuration") + 80)
+        assert chart.property("_renderStart") == 0.2
+        assert chart.property("_renderEnd") == 0.8
+    finally:
+        _dispose(engine, component, chart, window)

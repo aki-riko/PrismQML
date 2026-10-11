@@ -60,8 +60,8 @@ Item {
     }
 
     function _applyTransition() {
-        _transitionPending = false
         if (!_ready || !schedulerActive) return
+        _transitionPending = false
         var transitionPlan = ViewportTransition.plan(
             renderStart, renderEnd, scaleValue, offsetRatio,
             viewportStart, viewportEnd, Enums.chart.viewport_epsilon
@@ -109,10 +109,10 @@ Item {
         if (!_ready) return
         if (!schedulerActive) {
             if (viewportAnimation.running) viewportAnimation.pause()
-        } else if (viewportAnimation.paused) {
-            viewportAnimation.resume()
         } else if (_transitionPending) {
             _applyTransition()
+        } else if (viewportAnimation.paused) {
+            viewportAnimation.resume()
         }
     }
     Component.onCompleted: {
