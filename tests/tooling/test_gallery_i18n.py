@@ -65,7 +65,10 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 引号键导航/托盘/面板标签源化后新增 14 条：929 + 14 = 943。
     # 共享命令面板展示卡及其 7 条专用文案一并移除：940 - 7 = 933。
     # 工具栏展示卡及其标题、描述文案一并移除：933 - 2 = 931。
-    assert gallery_i18n.validate_catalogs() == 931
+    # 静态聊天组件展示页并入 AI 助手入口，移除其 9 条引用：931 - 9 = 922。
+    # EmptyState 展示及其 5 条专用文案已从当前工作树移除：922 - 5 = 917。
+    # Feedback 页重复对话框、桌面通知展示移除，但加载页/启动画面/提示图标保留：917 - 19 = 898。
+    assert gallery_i18n.validate_catalogs() == 898
 
 
 def test_gallery_sources_have_no_inline_untranslated_literals():

@@ -289,72 +289,6 @@ Item {
                 }
             }
 
-            // ==================== Dialog family 对话框家族 ====================
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_4c5194a588b48adb", Fluent.Translator._v)
-                description: "level / title / message / countdown"
-                GalleryFlow {
-                    spacing: Fluent.Enums.spacing.l
-                    ComponentCard {
-                        label: "level: warning"
-                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: warningConfirmDialog.open() }
-                    }
-                    ComponentCard {
-                        label: "level: error"
-                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: errorConfirmDialog.open() }
-                    }
-                }
-            }
-
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_429f28bc9c81768b", Fluent.Translator._v)
-                description: "body / overlayTarget"
-                ComponentCard {
-                    label: Fluent.Translator.tr("gallery_5257fa0f8cc2558a", Fluent.Translator._v)
-                    Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: maskedDialogDemo.open() }
-                }
-            }
-
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_f98f28222b5db539", Fluent.Translator._v)
-                description: "version / currentVersion / notes"
-                ComponentCard {
-                    label: Fluent.Translator.tr("gallery_e14fc254e8c51947", Fluent.Translator._v)
-                    Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: updateDialogDemo.open() }
-                }
-            }
-
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_d7c4b785fe5dcdac", Fluent.Translator._v)
-                description: "contentItem / confirmText / open(target)"
-                ComponentCard {
-                    label: Fluent.Translator.tr("gallery_d7c4b785fe5dcdac", Fluent.Translator._v)
-                    Button {
-                        id: flyoutSheetTarget
-                        text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v)
-                        onClicked: {
-                            var sheet = flyoutSheetComponent.createObject(null)
-                            if (sheet) sheet.open(flyoutSheetTarget)
-                        }
-                    }
-                }
-            }
-
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_717084d927081995", Fluent.Translator._v)
-                description: "title / message / severity / show()"
-                ComponentCard {
-                    label: Fluent.Translator.tr("gallery_307fab1b81ae9848", Fluent.Translator._v)
-                    Button {
-                        text: Fluent.Translator.tr("gallery_4e1449e7d5e50593", Fluent.Translator._v)
-                        onClicked: {
-                            var notification = desktopNotificationComponent.createObject(null)
-                            if (notification) notification.show()
-                        }
-                    }
-                }
-            }
-
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
                 description: "text / running / finish()"
@@ -393,24 +327,6 @@ Item {
             }
 
             ExampleCard {
-                title: Fluent.Translator.tr("gallery_44af640822bd3c0d", Fluent.Translator._v)
-                description: "icon / title / description / actionText"
-                GalleryFlow {
-                    spacing: Fluent.Enums.spacing.l
-                    ComponentCard {
-                        label: Fluent.Translator.tr("gallery_1b817034e8e6ea9e", Fluent.Translator._v)
-                        EmptyState {
-                            width: 200
-                            height: 180
-                            title: Fluent.Translator.tr("gallery_7d77a938e62bb28b", Fluent.Translator._v)
-                            description: Fluent.Translator.tr("gallery_6e3c4a4dec6733b4", Fluent.Translator._v)
-                            actionText: Fluent.Translator.tr("gallery_cde2cd071d25bbab", Fluent.Translator._v)
-                        }
-                    }
-                }
-            }
-
-            ExampleCard {
                 title: Fluent.Translator.tr("gallery_dbed7f755fd4416d", Fluent.Translator._v)
                 description: "icon / iconSize / toolTipText"
                 GalleryFlow {
@@ -420,56 +336,6 @@ Item {
                 }
             }
 
-        }
-    }
-
-    // Dialog components - keep at root level so they fill the window 对话框组件 - 必须放在root级别以正确填充窗口
-    ConfirmDialog {
-        id: warningConfirmDialog
-        level: Fluent.Enums.statusLevel.warning
-        title: Fluent.Translator.tr("gallery_f8347f9a9dccb252", Fluent.Translator._v)
-        message: Fluent.Translator.tr("gallery_de59e21524acb3e4", Fluent.Translator._v)
-    }
-    ConfirmDialog {
-        id: errorConfirmDialog
-        level: Fluent.Enums.statusLevel.error
-        title: Fluent.Translator.tr("gallery_f2cf9101bb2d8816", Fluent.Translator._v)
-        message: Fluent.Translator.tr("gallery_77f4797d861e5875", Fluent.Translator._v)
-    }
-    MaskedDialog {
-        id: maskedDialogDemo
-        overlayTarget: root
-        body.width: 240
-        body.height: 160
-        Label { text: "MaskedDialog body" }
-    }
-    UpdateDialog {
-        id: updateDialogDemo
-        version: "v1.0.4"
-        currentVersion: "v1.0.3"
-        notes: Fluent.Translator.tr("gallery_14664913106ce22d", Fluent.Translator._v)
-    }
-
-    // FlyoutSheet and DesktopNotification own top-level windows, so they are created
-    // on demand instead of at page load.
-    // FlyoutSheet 与 DesktopNotification 拥有独立顶层窗口, 因此按需创建而非随页面加载。
-    Component {
-        id: flyoutSheetComponent
-
-        FlyoutSheet {
-            showCancelButton: true
-            onAccepted: close()
-            onRejected: close()
-        }
-    }
-    Component {
-        id: desktopNotificationComponent
-
-        DesktopNotification {
-            title: "PrismQML"
-            message: Fluent.Translator.tr("gallery_717084d927081995", Fluent.Translator._v)
-            severity: "info"
-            onClosed: destroy()
         }
     }
 
