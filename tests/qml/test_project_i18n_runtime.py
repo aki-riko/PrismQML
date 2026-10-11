@@ -20,7 +20,6 @@ import PrismQML
 
 Item {
     readonly property string initialTranslation: Translator.tr("checking_for_updates")
-    readonly property string loginTitle: login.title
     readonly property string calendarPlaceholder: calendar.placeholderText
     readonly property string calendarWeekday: calendar.weekDays[0]
     readonly property string treeSearchPlaceholder: tree.searchPlaceholder
@@ -38,13 +37,6 @@ Item {
 
     function useEnglish() { Translator.setLanguage(Enums.lang.en) }
     function useSimplifiedChinese() { Translator.setLanguage(Enums.lang.zh_CN) }
-
-    LoginWindow {
-        id: login
-        visible: false
-        matrixEnabled: false
-        oauthProviders: []
-    }
 
     CalendarPicker { id: calendar; visible: false; type: Enums.calendarPicker.type_range }
     ComboBoxTree { id: tree; visible: false }
@@ -94,7 +86,6 @@ def test_public_component_defaults_follow_runtime_language(qapp):
     try:
         assert root.property("initialTranslation") != "checking_for_updates"
         assert QMetaObject.invokeMethod(root, "useEnglish")
-        assert _wait_for(lambda: root.property("loginTitle") == "Welcome Back")
         assert root.property("calendarPlaceholder") == "Select date range"
         assert root.property("calendarWeekday") == "Sun"
         assert root.property("treeSearchPlaceholder") == "Enter keyword..."
@@ -111,7 +102,6 @@ def test_public_component_defaults_follow_runtime_language(qapp):
         assert root.property("colorTheme") == "Theme Colors"
 
         assert QMetaObject.invokeMethod(root, "useSimplifiedChinese")
-        assert _wait_for(lambda: root.property("loginTitle") == "欢迎回来")
         assert root.property("calendarPlaceholder") == "选择日期范围"
         assert root.property("calendarWeekday") == "日"
         assert root.property("treeSearchPlaceholder") == "请输入关键字..."

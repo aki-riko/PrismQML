@@ -74,7 +74,6 @@ Item {
     readonly property color chartTooltipBorder: chartTooltip._tooltipBorderColor
     readonly property color tipBackground: tipPopup._tipBackground
     readonly property color tipBorder: tipPopup._tipBorderColor
-    readonly property color loginBackground: login.color
     readonly property color matrixMain: matrixRain.mainColor
     readonly property color matrixHead: matrixRain.headColor
     readonly property color matrixBackground: matrixRain.backgroundColor
@@ -134,7 +133,6 @@ Item {
         isValueString: true
     }
     TipPopup { id: tipPopup; objectName: "tipPopup" }
-    LoginWindow { id: login; objectName: "login"; matrixEnabled: true }
     SplashScreen {
         objectName: "splash"
         enableShadow: true

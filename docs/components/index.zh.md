@@ -36,6 +36,6 @@ Fluent.Card { /* ... */ }
 | [菜单](menus.md) | ContextMenu · MenuBar |
 | [标签](badges.md) | Badge · Tag · Chip |
 | [特效](effects.md) | Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur |
-| 认证 / 聊天 / 设置 | LoginWindow · ChatBubble · ChatMessageList · SettingsCard 等（暂无独立用法页，完整清单见[速查表](list.md)） |
+| 聊天 / 设置 | ChatBubble · ChatMessageList · SettingsCard 等（暂无独立用法页，完整清单见[速查表](list.md)） |
 
 > 完整清单见各 `controls/` 子目录的 `qmldir`。

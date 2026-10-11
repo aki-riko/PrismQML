@@ -45,5 +45,4 @@ CommandBar CommandBar.qml
 Navigation Navigation.qml
 SettingsCard SettingsCard.qml
 GradientSlider GradientSlider.qml
-Auth Auth.qml
 IndicatorBar IndicatorBar.qml

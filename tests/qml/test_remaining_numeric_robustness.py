@@ -170,10 +170,6 @@ Item {
         objectName: "nullDropZone"
         allowedExtensions: null
     }
-    LoginWindow {
-        objectName: "nullLoginWindow"
-        oauthProviders: null
-    }
     Pivot { objectName: "nullPivot"; items: null }
     SegmentedControl { objectName: "nullSegmented"; items: null }
     SettingsCard {
@@ -230,10 +226,6 @@ Item {
         objectName: "elementCommandBar"
         primaryCommands: [null]
         secondaryCommands: [null]
-    }
-    LoginWindow {
-        objectName: "elementLoginWindow"
-        oauthProviders: [null]
     }
     SettingsCard {
         objectName: "elementSettingsCard"
@@ -519,7 +511,6 @@ def test_nullable_public_collections_have_no_qml_runtime_errors(qapp):
         for name in (
             "nullCommandBar",
             "nullDropZone",
-            "nullLoginWindow",
             "nullPivot",
             "nullSegmented",
             "nullSettingsCard",
@@ -579,7 +570,6 @@ def test_nullable_collection_elements_have_no_qml_runtime_errors(qapp):
         assert root.property("tabIndexAfterRemove") == 0
         for name in (
             "elementCommandBar",
-            "elementLoginWindow",
             "elementSettingsCard",
             "elementListWidget",
             "elementTreeWidget",

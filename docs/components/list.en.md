@@ -50,10 +50,6 @@ A quick index of every QML type registered by the root module (including 6 singl
 
 `ConfirmDialog` · `DialogBoxCore` · `FlyoutSheet` · `MaskedDialog` · `MessageBox` · `OverlayDialogCore` · `ProgressDialog` · `UpdateDialog`
 
-## Auth
-
-`LoginWindow`
-
 ## Chat
 
 `ChatBubble` · `ChatMessageList` · `CodeBlock` · `MarkdownView`

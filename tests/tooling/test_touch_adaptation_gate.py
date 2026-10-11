@@ -63,8 +63,6 @@ def has_touch_decision(code: str) -> bool:
 TOUCH_EXEMPT = {
     "effects/HoverBehavior.qml": "hover 动画助手本体, 只对鼠标 hover 有意义",
     "controls/utils/WindowDragHandle.qml": "鼠标拖动窗口句柄, 触摸端不存在该交互",
-    "controls/auth/_internal/LoginWindowContent.qml":
-        "无 hover 视觉; MouseArea 只做光标/预热/登录模式切换",
     "controls/buttons/Button/_internal/ButtonInteraction.qml":
         "纯 MouseArea, hover 只触发菜单预热, 自身无视觉",
     "controls/data/Carousel/_internal/CarouselFactories.qml":

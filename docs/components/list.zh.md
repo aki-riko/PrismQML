@@ -50,10 +50,6 @@
 
 `ConfirmDialog` · `DialogBoxCore` · `FlyoutSheet` · `MaskedDialog` · `MessageBox` · `OverlayDialogCore` · `ProgressDialog` · `UpdateDialog`
 
-## 认证
-
-`LoginWindow`
-
 ## 聊天
 
 `ChatBubble` · `ChatMessageList` · `CodeBlock` · `MarkdownView`

@@ -225,7 +225,6 @@ Item {
     Label { id: _label }
     Carousel { id: _carousel }
     SettingsCard { id: _settingCard }
-    Auth { id: _auth }
     IndicatorBar { id: _indicatorBar }
     Accessibility { id: _accessibility }
 
@@ -272,7 +271,6 @@ Item {
     readonly property alias label: _label
     readonly property alias carousel: _carousel
     readonly property alias settingCard: _settingCard
-    readonly property alias auth: _auth
     readonly property alias indicatorBar: _indicatorBar
     // Icon Enums Icon枚举
     // QML usage: Enums.icon.chevron_up (snake_case) QML侧使用: Enums.icon.chevron_up (小写下划线)

@@ -233,9 +233,6 @@ UpdateDialog controls/dialogs/UpdateDialog.qml
 FlyoutSheet controls/dialogs/FlyoutSheet.qml
 ProgressDialog controls/dialogs/ProgressDialog.qml
 
-# ==================== Auth 认证 ====================
-LoginWindow controls/auth/LoginWindow.qml
-
 # ==================== Chat 聊天 ====================
 ChatBubble controls/chat/ChatBubble.qml
 ChatBubbleSurface controls/chat/ChatBubbleSurface.qml
