@@ -27,9 +27,9 @@ Item {
     property real radius: Enums.radius.small
     // Gap between the ring and the surface edge. 环与表面边缘之间的间隔。
     property int inset: 1
-    // Inner stroke colour; defaults to the foreground so it reads on both themes.
-    // 内圈颜色; 默认取前景色, 因此在两种主题下都可读。
-    property color innerColor: Enums.foregroundColor
+    // Inner stroke follows the active theme accent like other focus indicators.
+    // 内圈跟随当前主题强调色，与其他焦点提示保持一致。
+    property color innerColor: Enums.accentColor
     // Outer stroke colour; defaults to the surface so the ring separates from it.
     // 外圈颜色; 默认取表面色, 使环与表面分离。
     property color outerColor: Enums.cardColor

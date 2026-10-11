@@ -13,7 +13,14 @@ Enums.border 描边令牌，因此 Metrics.qml 无需新增任何度量（保持
 
 from PySide6.QtQml import QQmlApplicationEngine
 
-from prismqml import register_types
+from prismqml import (
+    Skin,
+    getAccentColor,
+    getSkin,
+    register_types,
+    setAccentColor,
+    setSkin,
+)
 
 
 def _create(engine, source: bytes, expect_window: bool = False):
@@ -131,11 +138,18 @@ Window {
     property bool drawn: ring.ringItem !== null
     property real outerStroke: drawn ? ring.ringItem.children[0].border.width : -1
     property real innerInset: drawn ? ring.ringItem.children[1].x : -1
+    property color themeAccentColor: Enums.accentColor
+    property color focusInnerColor: ring.innerColor
+    property color drawnInnerColor: drawn
+        ? ring.ringItem.children[1].border.color : Enums.transparent
 }
 """,
         expect_window=True,
     )
+    previous_skin = getSkin()
+    previous_accent = getAccentColor()
     try:
+        setSkin(Skin.FLUENT)
         ring = instance.property("ringItem")
         area = instance.property("areaItem")
         # Before active focus the ring is dormant: nothing is drawn yet.
@@ -158,6 +172,14 @@ Window {
         assert ring.property("focused") is True
         assert instance.property("drawn") is True
 
+        setAccentColor("#fb923c")
+        for _ in range(4):
+            QCoreApplication.processEvents()
+        assert instance.property("themeAccentColor").name() == "#fb923c"
+        expected_accent = instance.property("themeAccentColor")
+        assert instance.property("focusInnerColor") == expected_accent
+        assert instance.property("drawnInnerColor") == expected_accent
+
         outer_width = instance.property("outerStroke")
         assert outer_width > 0
         # The inner stroke is inset by the outer stroke plus the configured gap.
@@ -166,6 +188,8 @@ Window {
     finally:
         from PySide6.QtCore import QCoreApplication, QEvent
 
+        setAccentColor(previous_accent)
+        setSkin(previous_skin)
         instance.close()
         instance.deleteLater()
         component.deleteLater()
