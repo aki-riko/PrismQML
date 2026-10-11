@@ -126,6 +126,24 @@ def test_async_qml_page_injects_backend_before_completed(qapp, tmp_path):
     EngineManager.reset()
 
 
+def test_async_qml_page_host_respects_shared_incubation_safety_gate(qapp, tmp_path):
+    page_path = tmp_path / "SynchronousFallbackPage.qml"
+    _write_page(page_path)
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled", False
+    )
+    EngineManager.set_engine(engine)
+    page = AsyncQmlPage(page_path)
+    loader = page._qml_host.findChild(QObject, "asyncQmlPageContentLoader")
+    assert loader is not None
+    assert loader.property("asynchronous") is False
+
+    page.start_loading()
+    assert _pump_until(lambda: page.is_ready)
+    EngineManager.reset()
+
+
 def test_async_qml_page_waits_for_optional_target_ready_gate(qapp, tmp_path):
     page_path = tmp_path / "GatedPage.qml"
     _write_page(page_path, gated=True)

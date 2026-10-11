@@ -19,6 +19,9 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property bool pageLoading: contentLoader.status === Loader.Loading
     readonly property bool pageReady: contentLoader.status === Loader.Ready && _targetReady
+    readonly property bool _asynchronousPageLoaderEnabled:
+        typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" ||
+        PrismQmlAsynchronousPageLoaderEnabled
 
     // ==================== Signals 信号 ====================
     signal pageLoaded()
@@ -59,9 +62,10 @@ Item {
     Loader {
         id: contentLoader
 
+        objectName: "asyncQmlPageContentLoader"
         anchors.fill: parent
         active: false
-        asynchronous: true
+        asynchronous: root._asynchronousPageLoaderEnabled
 
         onLoaded: root._syncTargetReady()
         onStatusChanged: {
