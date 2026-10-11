@@ -24,21 +24,27 @@ Item {
     // 可能重建全部委托，导致当前页重载并暴露空白帧。
     function _syncPageModel() {
         var sources = sourceContainer.host._safePageSources
-        while (sourceModel.count > sources.length) {
+        var components = sourceContainer.host._safeDeferredPages
+        var pageCount = sources.length > 0 ? sources.length : components.length
+        while (sourceModel.count > pageCount) {
             sourceModel.remove(sourceModel.count - 1)
         }
-        for (var index = 0; index < sources.length; index++) {
-            var source = sources[index] || ""
+        for (var index = 0; index < pageCount; index++) {
+            var source = sources.length > 0 ? (sources[index] || "") : ""
+            var component = sources.length > 0 ? null : components[index]
             if (index >= sourceModel.count) {
-                sourceModel.append({"sourceValue": source})
+                var entry = {"sourceValue": source}
+                if (component) entry.componentValue = component
+                sourceModel.append(entry)
             } else if (String(sourceModel.get(index).sourceValue)
-                       !== String(source)) {
+                       !== String(source) || sourceModel.get(index).componentValue !== component) {
                 sourceModel.setProperty(index, "sourceValue", source)
+                if (component) sourceModel.setProperty(index, "componentValue", component)
             }
         }
-        if (sourceContainer.host._loaders.length > sources.length) {
+        if (sourceContainer.host._loaders.length > pageCount) {
             sourceContainer.host._loaders = sourceContainer.host._loaders.slice(
-                0, sources.length)
+                0, pageCount)
         }
         var loaders = sourceContainer.host._loaders
         for (var loaderIndex = 0; loaderIndex < loaders.length; loaderIndex++) {
@@ -68,14 +74,29 @@ Item {
                 var modelEntry = index >= 0 && index < sourceModel.count
                         ? sourceModel.get(index) : null
                 var nextSource = modelEntry ? modelEntry.sourceValue : ""
+                var nextComponent = modelEntry ? modelEntry.componentValue : null
                 var nextProperties = sourceContainer.host._pagePropertiesFor(index)
-                if (!nextSource) {
+                if (!nextSource && !nextComponent) {
                     sourceLoader.source = ""
                     sourceLoader._loadedSourceText = ""
                     return
                 }
                 var nextSourceText = nextSource && nextSource.toString
                         ? nextSource.toString() : String(nextSource)
+                if (nextComponent) {
+                    if (sourceLoader.item && sourceLoader.sourceComponent === nextComponent) {
+                        var componentKeys = Object.keys(nextProperties)
+                        for (var componentIndex = 0; componentIndex < componentKeys.length; componentIndex++) {
+                            var componentKey = componentKeys[componentIndex]
+                            if (componentKey in sourceLoader.item) sourceLoader.item[componentKey] = nextProperties[componentKey]
+                        }
+                        return
+                    }
+                    sourceLoader._pendingPageProperties = nextProperties
+                    sourceLoader.source = ""
+                    sourceLoader.sourceComponent = nextComponent
+                    return
+                }
                 if (sourceLoader.item && sourceLoader._loadedSourceText === nextSourceText) {
                     var keys = Object.keys(nextProperties)
                     for (var i = 0; i < keys.length; i++) {
@@ -180,6 +201,7 @@ Item {
 
             Connections {
                 function onPageSourcesChanged() { sourceLoader._syncSource() }
+                function onDeferredPagesChanged() { sourceLoader._syncSource() }
                 function onPagePropertiesChanged() { sourceLoader._syncSource() }
 
                 target: sourceContainer.host
@@ -189,6 +211,7 @@ Item {
 
     Connections {
         function onPageSourcesChanged() { sourceContainer._syncPageModel() }
+        function onDeferredPagesChanged() { sourceContainer._syncPageModel() }
 
         target: sourceContainer.host
     }
