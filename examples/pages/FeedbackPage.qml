@@ -57,7 +57,7 @@ Item {
                         ComponentCard { label: "paused"; Progress { type: Fluent.Enums.progress.type_bar; width: 100; value: 40; paused: true } }
                         ComponentCard { label: "error"; Progress { type: Fluent.Enums.progress.type_bar; width: 100; value: 70; error: true } }
                         ComponentCard { label: "type_ring"; Progress { type: Fluent.Enums.progress.type_ring; value: 75; width: 60; height: 60 } }
-                        ComponentCard { label: "ring indeterminate"; Progress { type: Fluent.Enums.progress.type_ring; indeterminate: true; width: 60; height: 60 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_c26d328b7d3f7bab", Fluent.Translator._v); Progress { type: Fluent.Enums.progress.type_ring; indeterminate: true; width: 60; height: 60 } }
                     }
                 }
             }
@@ -310,7 +310,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_429f28bc9c81768b", Fluent.Translator._v)
                 description: "body / overlayTarget"
                 ComponentCard {
-                    label: "custom body"
+                    label: Fluent.Translator.tr("gallery_5257fa0f8cc2558a", Fluent.Translator._v)
                     Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: maskedDialogDemo.open() }
                 }
             }
@@ -319,7 +319,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_f98f28222b5db539", Fluent.Translator._v)
                 description: "version / currentVersion / notes"
                 ComponentCard {
-                    label: "release notes"
+                    label: Fluent.Translator.tr("gallery_e14fc254e8c51947", Fluent.Translator._v)
                     Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: updateDialogDemo.open() }
                 }
             }
@@ -328,7 +328,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_d7c4b785fe5dcdac", Fluent.Translator._v)
                 description: "contentItem / confirmText / open(target)"
                 ComponentCard {
-                    label: "floating sheet"
+                    label: Fluent.Translator.tr("gallery_d7c4b785fe5dcdac", Fluent.Translator._v)
                     Button {
                         id: flyoutSheetTarget
                         text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v)
@@ -344,7 +344,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_717084d927081995", Fluent.Translator._v)
                 description: "title / message / severity / show()"
                 ComponentCard {
-                    label: "bottom right banner"
+                    label: Fluent.Translator.tr("gallery_307fab1b81ae9848", Fluent.Translator._v)
                     Button {
                         text: Fluent.Translator.tr("gallery_4e1449e7d5e50593", Fluent.Translator._v)
                         onClicked: {
@@ -359,7 +359,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
                 description: "text / running / finish()"
                 ComponentCard {
-                    label: "loading page"
+                    label: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
                     Item {
                         width: 260
                         height: 160
@@ -376,7 +376,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_864c1ea9ab901edf", Fluent.Translator._v)
                 description: "title / subtitle / showProgress / finish()"
                 ComponentCard {
-                    label: "inline splash"
+                    label: Fluent.Translator.tr("gallery_e5b45207232ca077", Fluent.Translator._v)
                     Item {
                         width: 320
                         height: 200
@@ -396,7 +396,7 @@ Item {
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
-                        label: "with action"
+                        label: Fluent.Translator.tr("gallery_1b817034e8e6ea9e", Fluent.Translator._v)
                         EmptyState {
                             width: 200
                             height: 180
@@ -425,14 +425,14 @@ Item {
     ConfirmDialog {
         id: warningConfirmDialog
         level: Fluent.Enums.statusLevel.warning
-        title: "Confirm action"
-        message: "This operation can be undone."
+        title: Fluent.Translator.tr("gallery_f8347f9a9dccb252", Fluent.Translator._v)
+        message: Fluent.Translator.tr("gallery_de59e21524acb3e4", Fluent.Translator._v)
     }
     ConfirmDialog {
         id: errorConfirmDialog
         level: Fluent.Enums.statusLevel.error
-        title: "Delete record"
-        message: "This operation cannot be undone."
+        title: Fluent.Translator.tr("gallery_f2cf9101bb2d8816", Fluent.Translator._v)
+        message: Fluent.Translator.tr("gallery_77f4797d861e5875", Fluent.Translator._v)
     }
     MaskedDialog {
         id: maskedDialogDemo
@@ -445,7 +445,7 @@ Item {
         id: updateDialogDemo
         version: "v1.0.4"
         currentVersion: "v1.0.3"
-        notes: "Bug fixes and performance improvements."
+        notes: Fluent.Translator.tr("gallery_14664913106ce22d", Fluent.Translator._v)
     }
 
     // FlyoutSheet and DesktopNotification own top-level windows, so they are created
@@ -465,7 +465,7 @@ Item {
 
         DesktopNotification {
             title: "PrismQML"
-            message: "Desktop notification"
+            message: Fluent.Translator.tr("gallery_717084d927081995", Fluent.Translator._v)
             severity: "info"
             onClosed: destroy()
         }

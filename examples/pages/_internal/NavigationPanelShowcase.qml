@@ -115,7 +115,7 @@ ExampleCard {
     }
 
     // ==================== Size 尺寸 ====================
-    title: "Vertical navigation"
+    title: Fluent.Translator.tr("gallery_bafa04ec14a6b82b", Fluent.Translator._v)
     description: "NavigationView / NavigationBar / ToggleNavigationBar"
     orientation: Qt.Vertical
 
@@ -246,25 +246,25 @@ ExampleCard {
 
                         Label {
                             type: Fluent.Enums.label.type_caption
-                            text: "mode: " + showcase.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
+                            text: Fluent.Translator.tr("gallery_c71f747789407b15", Fluent.Translator._v) + showcase.navPaneModeName(galleryNavPane.effectivePaneDisplayMode)
                         }
                         Label {
                             type: Fluent.Enums.label.type_caption
-                            text: "expanded: " + galleryNavPane.isExpanded
+                            text: Fluent.Translator.tr("gallery_f94bf4843336d4cf", Fluent.Translator._v) + galleryNavPane.isExpanded
                         }
                         Label {
                             type: Fluent.Enums.label.type_caption
-                            text: "pane open: " + galleryNavPane.isPaneOpen
+                            text: Fluent.Translator.tr("gallery_bbbc415948fad8f5", Fluent.Translator._v) + galleryNavPane.isPaneOpen
                         }
                         Label {
                             objectName: "galleryNavPaneFrameWidth"
                             type: Fluent.Enums.label.type_caption
-                            text: "frame width: " + Math.round(navPaneFrame.width)
+                            text: Fluent.Translator.tr("gallery_954404b7cc76d8d6", Fluent.Translator._v) + Math.round(navPaneFrame.width)
                         }
                         Label {
                             objectName: "galleryNavPaneAcrylicState"
                             type: Fluent.Enums.label.type_caption
-                            text: "acrylic: " + (showcase._paneAcrylicReady ? "on" : "off")
+                            text: Fluent.Translator.tr("gallery_1c0141599fb5f520", Fluent.Translator._v) + (showcase._paneAcrylicReady ? "on" : "off")
                         }
                         Button {
                             text: "toggle()"

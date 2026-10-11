@@ -149,7 +149,7 @@ Item {
             // 无边框条带: 只有选中项带滑动胶囊。
             ExampleCard {
                 title: "SelectorBar"
-                description: "Flat selector with a sliding pill"
+                description: Fluent.Translator.tr("gallery_5637778aca97fc34", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
 
@@ -163,14 +163,14 @@ Item {
                                 { key: "settings", text: "Settings", icon: "Settings" },
                                 { key: "about", text: "About" }
                             ]
-                            onItemClicked: (index, byUser) => selectorStatus.text = "invoked " + index
-                            onCurrentItemChanged: (key) => selectorStatus.text = "selected " + key
+                            onItemClicked: (index, byUser) => selectorStatus.text = Fluent.Translator.tr("gallery_efd79829280946de") + index
+                            onCurrentItemChanged: (key) => selectorStatus.text = Fluent.Translator.tr("gallery_3b2ee82dd97c5c96") + key
                         }
                     }
 
                     Text {
                         id: selectorStatus
-                        text: "selected overview"
+                        text: Fluent.Translator.tr("gallery_5a3889af9e0aac4c", Fluent.Translator._v)
                         font.family: Fluent.Enums.fontFamily
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
@@ -544,7 +544,7 @@ Item {
                         }
                         Text {
                             id: galleryPaletteStatus
-                            text: "No command ran yet"
+                            text: Fluent.Translator.tr("gallery_7291782dad44666d", Fluent.Translator._v)
                             font.pixelSize: Fluent.Enums.typography.caption
                             color: Fluent.Enums.textColor.secondary
                             font.family: Fluent.Enums.fontFamily
@@ -572,7 +572,7 @@ Item {
             // Tool bar 工具栏
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3166d8af51f15eb6", Fluent.Translator._v)
-                description: "simple horizontal toolbar"
+                description: Fluent.Translator.tr("gallery_16e18ddfe3ef6b15", Fluent.Translator._v)
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
@@ -594,7 +594,7 @@ Item {
                         label: "isCompacted true"
                         NavigationProfileCard {
                             width: 200
-                            title: "Ada Lovelace"
+                            title: Fluent.Translator.tr("gallery_18378af80ed97854", Fluent.Translator._v)
                             subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
                             isCompacted: true
                         }
@@ -603,7 +603,7 @@ Item {
                         label: "isCompacted false"
                         NavigationProfileCard {
                             width: 200
-                            title: "Ada Lovelace"
+                            title: Fluent.Translator.tr("gallery_18378af80ed97854", Fluent.Translator._v)
                             subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
                             isCompacted: false
                         }
@@ -621,23 +621,23 @@ Item {
         id: galleryPalette
         objectName: "galleryCommandPalette"
         shortcut: "Ctrl+K"
-        placeholderText: "Type a command"
+        placeholderText: Fluent.Translator.tr("gallery_a80c8eaa7a2ad70d", Fluent.Translator._v)
         hintText: "Up/Down navigate  Enter run  Esc close"
         items: [
-            { key: "open-file", title: "Open File", subtitle: "Ctrl+O",
+            { key: "open-file", title: Fluent.Translator.tr("gallery_4c8a4e3da39e5c2a", Fluent.Translator._v), subtitle: "Ctrl+O",
               section: "File", icon: iconPath("FolderOpen") },
-            { key: "save-file", title: "Save File", subtitle: "Ctrl+S",
+            { key: "save-file", title: Fluent.Translator.tr("gallery_4d8dc23ed6e1e690", Fluent.Translator._v), subtitle: "Ctrl+S",
               section: "File", icon: iconPath("Save") },
-            { key: "toggle-theme", title: "Toggle Theme", subtitle: "View",
+            { key: "toggle-theme", title: Fluent.Translator.tr("gallery_7a1604323e8bf3f2", Fluent.Translator._v), subtitle: "View",
               section: "View", icon: iconPath("DarkTheme"),
               keywords: ["dark", "light", "appearance"] },
-            { key: "goto-navigation", title: "Go to Navigation", subtitle: "Go",
+            { key: "goto-navigation", title: Fluent.Translator.tr("gallery_dbe2fecffbbca250", Fluent.Translator._v), subtitle: "Go",
               section: "Navigate", icon: iconPath("Navigation") },
-            { key: "open-settings", title: "Open Settings", subtitle: "Go",
+            { key: "open-settings", title: Fluent.Translator.tr("gallery_37aa6ad6a36d46fa", Fluent.Translator._v), subtitle: "Go",
               section: "Navigate", icon: iconPath("Settings") }
         ]
         onCommandTriggered: (key, item) => {
-            galleryPaletteStatus.text = "Ran: " + key
+            galleryPaletteStatus.text = Fluent.Translator.tr("gallery_120721c3f1b49aab") + key
         }
     }
 }

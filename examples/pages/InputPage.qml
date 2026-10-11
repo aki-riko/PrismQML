@@ -529,7 +529,7 @@ Item {
             // Swipe actions 滑动操作: drag a row sideways to reveal actions
             ExampleCard {
                 title: "SwipeControl"
-                description: "Swipe / drag a row to reveal actions"
+                description: Fluent.Translator.tr("gallery_669104cdf8c6fa58", Fluent.Translator._v)
                 Column {
                     spacing: Enums.spacing.s
 
@@ -543,7 +543,7 @@ Item {
                             { key: "archive", text: "Archive", icon: iconPath("Archive"), level: Enums.statusLevel.warning },
                             { key: "delete", text: "Delete", icon: iconPath("Delete"), level: Enums.statusLevel.error }
                         ]
-                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
                             anchors.fill: parent
                             color: Enums.cardColor
@@ -554,7 +554,7 @@ Item {
                                 anchors.leftMargin: Enums.spacing.m
                                 anchors.verticalCenter: parent.verticalCenter
                                 type: Enums.label.type_body
-                                text: "Flag / Archive / Delete this row"
+                                text: Fluent.Translator.tr("gallery_6fbc64dfd85f39a0", Fluent.Translator._v)
                             }
                         }
                     }
@@ -565,7 +565,7 @@ Item {
                         rightActions: [
                             { key: "mail", text: "Mail", icon: iconPath("Mail"), level: Enums.statusLevel.success }
                         ]
-                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
                             anchors.fill: parent
                             color: Enums.cardColor
@@ -576,14 +576,14 @@ Item {
                                 anchors.leftMargin: Enums.spacing.m
                                 anchors.verticalCenter: parent.verticalCenter
                                 type: Enums.label.type_body
-                                text: "One action on the right only"
+                                text: Fluent.Translator.tr("gallery_4670d3316f825157", Fluent.Translator._v)
                             }
                         }
                     }
 
                     Text {
                         id: swipeStatus
-                        text: "No swipe action yet"
+                        text: Fluent.Translator.tr("gallery_b48c23fa0a362d90", Fluent.Translator._v)
                         font.pixelSize: Enums.typography.caption
                         color: Enums.textColor.secondary
                         font.family: Enums.fontFamily
@@ -603,7 +603,7 @@ Item {
                         placeholderText: Fluent.Translator.tr("gallery_89940594eac1efea", Fluent.Translator._v)
                         entries: [
                             { title: "Mica", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["mica", "material"] },
-                            { title: "Accent color", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["accent", "theme"] },
+                            { title: Fluent.Translator.tr("gallery_f84e05423960c3a4", Fluent.Translator._v), subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["accent", "theme"] },
                             { title: "Notifications", subtitle: "System", icon: "Alert", section: "System", keywords: ["toast", "banner"] }
                         ]
                         onEntrySelected: function(entry) { searchSelection.text = entry.title }

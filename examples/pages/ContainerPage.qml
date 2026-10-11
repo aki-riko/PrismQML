@@ -296,7 +296,7 @@ Item {
             // Pull to refresh 下拉刷新
             ExampleCard {
                 title: "RefreshContainer"
-                description: "Pull down from the top of the list to refresh"
+                description: Fluent.Translator.tr("gallery_25d3ed9884def6d7", Fluent.Translator._v)
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
 
@@ -338,19 +338,19 @@ Item {
                     Column {
                         spacing: Fluent.Enums.spacing.s
                         Text {
-                            text: "refreshing: " + refreshDemo.refreshing
+                            text: Fluent.Translator.tr("gallery_1e139c2225befbcd", Fluent.Translator._v) + refreshDemo.refreshing
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
                         }
                         Text {
-                            text: "armed: " + refreshDemo.armed
+                            text: Fluent.Translator.tr("gallery_335e3f907015ea3b", Fluent.Translator._v) + refreshDemo.armed
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
                         }
                         Text {
-                            text: "progress: " + Math.round(refreshDemo.progress * 100) + "%"
+                            text: Fluent.Translator.tr("gallery_410e0558d5c99656", Fluent.Translator._v) + Math.round(refreshDemo.progress * 100) + "%"
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
@@ -375,7 +375,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_9bd9267fe426ea05", Fluent.Translator._v)
                 description: "columns / spacing / model / delegate"
                 ComponentCard {
-                    label: "columns 3"
+                    label: Fluent.Translator.tr("gallery_fce5b87c0d1f98cd", Fluent.Translator._v)
                     Item {
                         width: 360
                         height: 200

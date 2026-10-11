@@ -276,7 +276,7 @@ Item {
                         Image { source: iconPath("Image"); sourceSize.width: 56; sourceSize.height: 56; width: 56; height: 56 }
                     }
                     ComponentCard {
-                        label: "radius 8"
+                        label: Fluent.Translator.tr("gallery_1a352ad76d7df01f", Fluent.Translator._v)
                         Image {
                             source: iconPath("Image")
                             sourceSize.width: 56
@@ -318,7 +318,7 @@ Item {
                 description: "layer.effect: OpacityMask (mask / invert)"
                 GalleryFlow {
                     ComponentCard {
-                        label: "gradient mask"
+                        label: Fluent.Translator.tr("gallery_82960027b0d5bcb9", Fluent.Translator._v)
                         Item {
                             width: 120; height: 56
                             Rectangle {
@@ -373,7 +373,7 @@ Item {
                 description: "neobrutalism hard shadow (target / accent / offset)"
                 GalleryFlow {
                     ComponentCard {
-                        label: "hard shadow"
+                        label: Fluent.Translator.tr("gallery_efcbe79b09214efa", Fluent.Translator._v)
                         Item {
                             width: 104; height: 60
                             Effects.NeoShadow { target: neoShadowSurface }
@@ -410,7 +410,7 @@ Item {
                 description: "vintage ticket surface (patternOriginX / patternOriginY)"
                 GalleryFlow {
                     ComponentCard {
-                        label: "ticket surface"
+                        label: Fluent.Translator.tr("gallery_e3fd227593a14aa7", Fluent.Translator._v)
                         Item {
                             width: 180; height: 72
                             TicketPaper { anchors.fill: parent; patternOriginX: 12; patternOriginY: 8 }
@@ -428,10 +428,10 @@ Item {
 
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_d0c45db5a7a82f27", Fluent.Translator._v)
-                description: "HoverBehavior on color (active / enterDuration)"
+                description: Fluent.Translator.tr("gallery_f44b8cddc2aec745", Fluent.Translator._v)
                 GalleryFlow {
                     ComponentCard {
-                        label: "hover fill"
+                        label: Fluent.Translator.tr("gallery_1fc0c0492445b92a", Fluent.Translator._v)
                         Rectangle {
                             id: hoverBehaviorSurface
                             width: 120; height: 52
@@ -448,7 +448,7 @@ Item {
 
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_7459e7da0ad47fc7", Fluent.Translator._v)
-                description: "target / running (transition on state change)"
+                description: Fluent.Translator.tr("gallery_a93f090d345176ea", Fluent.Translator._v)
                 GalleryFlow {
                     ComponentCard {
                         label: "toggle"
@@ -481,7 +481,7 @@ Item {
                 description: "keyboard focus ring (focusSource / radius / keyboardOnly)"
                 GalleryFlow {
                     ComponentCard {
-                        label: "focus ring"
+                        label: Fluent.Translator.tr("gallery_4bd3a78e64b8f16f", Fluent.Translator._v)
                         Rectangle {
                             id: focusVisualTarget
                             width: 120; height: 52

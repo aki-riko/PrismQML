@@ -75,10 +75,10 @@ Item {
                 title: Fluent.Translator.tr("gallery_c0b6fe57e6a0a585", Fluent.Translator._v)
                 description: "markdown: headings / lists / fenced code"
                 ComponentCard {
-                    label: "markdown document"
+                    label: Fluent.Translator.tr("gallery_7907b1e051a78f99", Fluent.Translator._v)
                     MarkdownView {
                         width: 460
-                        markdown: "# Heading\n\nParagraph with **bold** text.\n\n- first item\n- second item\n\n```js\nconsole.log('hello')\n```"
+                        markdown: Fluent.Translator.tr("gallery_393aa27a20203219", Fluent.Translator._v)
                     }
                 }
             }

@@ -60,7 +60,44 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 该页改成一整块对话框后，「聊天气泡 / 气泡壳 / 开始 / 中断」不再被引用；译文留在目录里备用。
     # 删除布局、集合、媒体和菜单 standalone Gallery 后，目录同步收敛到 762 条。
     # 图标页「图标组件」区块并入图标网格后，其标题 1 条引用消失：762 - 1 = 761。
-    assert gallery_i18n.validate_catalogs() == 761
+    # Gallery 英文文案源化后新增 105 条：761 + 105 = 866。
+    assert gallery_i18n.validate_catalogs() == 866
+
+
+def test_gallery_sources_have_no_inline_untranslated_literals():
+    # 中文源串必须已经由 --localize 转成 Translator.tr()，不得再留在源码里。
+    assert gallery_i18n.localize_sources(check=True) == 0
+
+
+def test_gallery_has_no_untranslated_visible_copy():
+    # 用户可见的英文文案必须源化成中文并进入目录，不得硬编码。
+    assert gallery_i18n.find_untranslated_copy() == []
+
+
+def test_gallery_copy_policy_separates_identifiers_from_copy():
+    technical = (
+        "Button",
+        "style_default",
+        "PrismQML Gallery",
+        "NavigationView / NavigationBar / ToggleNavigationBar",
+        "SegmentedControl (orientation: Qt.Vertical)",
+        "size / iconSize / iconColor",
+        "shadowLevel: level2 / level4 / level8 / level16 / level28",
+        "Indet. Ring",
+        "qrc:/app_icon.svg",
+    )
+    copy = (
+        "Swipe / drag a row to reveal actions",
+        "One action on the right only",
+        "Pull down from the top of the list to refresh",
+        "Flat selector with a sliding pill",
+        "Stacked Area Chart",
+        "This operation cannot be undone.",
+    )
+    for value in technical:
+        assert gallery_i18n.is_translatable_copy(value) is False, value
+    for value in copy:
+        assert gallery_i18n.is_translatable_copy(value) is True, value
 
 
 def test_gallery_notification_menu_uses_reviewed_chinese_terminology():

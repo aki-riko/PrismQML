@@ -40,8 +40,8 @@ Item {
                     ChartView {
                         width: 600; height: 320
                         chartType: Fluent.Enums.chart.type_bar
-                        title: "Rainfall vs Evaporation"
-                        subtitle: "Fake Data"
+                        title: Fluent.Translator.tr("gallery_ce2a040dc533453c", Fluent.Translator._v)
+                        subtitle: Fluent.Translator.tr("gallery_bad84c328f619c41", Fluent.Translator._v)
                         showAverage: true
                         showMinMax: true
                         showBarGradient: true
@@ -83,13 +83,13 @@ Item {
             // ==================== Line Chart - Multi Series 折线图 - 多系列 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_963916ba956b4ff3", Fluent.Translator._v)
-                description: "ChartView - Multi-series line chart with area gradient"
+                description: Fluent.Translator.tr("gallery_30b7e0a0252a9ac8", Fluent.Translator._v)
                 ComponentCard {
                     label: "type_line"
                     ChartView {
                         width: 560; height: 300
                         chartType: Fluent.Enums.chart.type_line
-                        title: "Temperature Change in the Coming Week"
+                        title: Fluent.Translator.tr("gallery_049c44589b5b21ee", Fluent.Translator._v)
                         boundaryGap: false
                         showAreaGradient: true
                         yAxisSuffix: " °C"
@@ -116,7 +116,7 @@ Item {
                     ChartView {
                         width: 600; height: 320
                         chartType: Fluent.Enums.chart.type_line
-                        title: "Stacked Area Chart"
+                        title: Fluent.Translator.tr("gallery_dd1d6f23c154550f", Fluent.Translator._v)
                         boundaryGap: false
                         stacked: true
                         chartData: [
@@ -125,10 +125,10 @@ Item {
                         ]
                         series: [
                             {name: "Email", values: [120, 132, 101, 134, 90, 230, 210], color: Fluent.Enums.chartColors.palette[0]},
-                            {name: "Union Ads", values: [220, 182, 191, 234, 290, 330, 310], color: Fluent.Enums.chartColors.palette[1]},
-                            {name: "Video Ads", values: [150, 232, 201, 154, 190, 330, 410], color: Fluent.Enums.chartColors.palette[2]},
+                            {name: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), values: [220, 182, 191, 234, 290, 330, 310], color: Fluent.Enums.chartColors.palette[1]},
+                            {name: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), values: [150, 232, 201, 154, 190, 330, 410], color: Fluent.Enums.chartColors.palette[2]},
                             {name: "Direct", values: [320, 332, 301, 334, 390, 330, 320], color: Fluent.Enums.chartColors.palette[3]},
-                            {name: "Search Engine", values: [820, 932, 901, 934, 1290, 1330, 1320], color: Fluent.Enums.chartColors.palette[5]}
+                            {name: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), values: [820, 932, 901, 934, 1290, 1330, 1320], color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -137,20 +137,20 @@ Item {
             // ==================== Pie Chart 饼图 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_ff1dc8827e7acaf2", Fluent.Translator._v)
-                description: "ChartView - Pie chart with hover effect"
+                description: Fluent.Translator.tr("gallery_d039b5cdb1c90520", Fluent.Translator._v)
                 ComponentCard {
                     label: "type_pie"
                     ChartView {
                         width: 420; height: 280
                         chartType: Fluent.Enums.chart.type_pie
-                        title: "Referer of a Website"
-                        subtitle: "Fake Data"
+                        title: Fluent.Translator.tr("gallery_1a4996debbffffb8", Fluent.Translator._v)
+                        subtitle: Fluent.Translator.tr("gallery_bad84c328f619c41", Fluent.Translator._v)
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
                             {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
                             {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
-                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
-                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
+                            {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -165,17 +165,17 @@ Item {
                     ChartView {
                         width: 420; height: 280
                         chartType: Fluent.Enums.chart.type_pie
-                        title: "Traffic Sources"
+                        title: Fluent.Translator.tr("gallery_6e8e4afc3398408b", Fluent.Translator._v)
                         isDonut: true
                         donutRatio: 0.55
                         donutCenterText: "3147"
                         donutCenterSubtext: "Total"
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
                             {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
                             {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
-                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
-                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
+                            {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -184,22 +184,22 @@ Item {
             // ==================== Donut Chart with Emphasis Center 带中心强调的环形图 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_3cf407787b79ad97", Fluent.Translator._v)
-                description: "ChartView - emphasisCenter: true (hover to see effect)"
+                description: Fluent.Translator.tr("gallery_95cde7e1ba90e7ce", Fluent.Translator._v)
                 ComponentCard {
                     label: "emphasisCenter"
                     ChartView {
                         width: 420; height: 300
                         chartType: Fluent.Enums.chart.type_pie
-                        title: "Access From"
+                        title: Fluent.Translator.tr("gallery_c8f60588710668cc", Fluent.Translator._v)
                         isDonut: true
                         donutRatio: 0.5
                         emphasisCenter: true
                         chartData: [
-                            {label: "Search Engine", value: 1048, color: Fluent.Enums.chartColors.palette[0]},
+                            {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
                             {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
                             {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
-                            {label: "Union Ads", value: 484, color: Fluent.Enums.chartColors.palette[3]},
-                            {label: "Video Ads", value: 300, color: Fluent.Enums.chartColors.palette[5]}
+                            {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
+                            {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
                 }
@@ -208,13 +208,13 @@ Item {
             // ==================== Scatter Chart 散点图 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_36af541acfbcd432", Fluent.Translator._v)
-                description: "ChartView - Scatter plot with outlier detection"
+                description: Fluent.Translator.tr("gallery_4182f4043194566b", Fluent.Translator._v)
                 ComponentCard {
                     label: "type_scatter"
                     ChartView {
                         width: 500; height: 320
                         chartType: Fluent.Enums.chart.type_scatter
-                        title: "Outlier Detection"
+                        title: Fluent.Translator.tr("gallery_8ae0d7e7e42468f3", Fluent.Translator._v)
                         series: [
                             // effectScatter: highlighted outliers with ripple 高亮异常点带涟漪
                             {name: "Outliers", type: "effectScatter", symbolSize: 20, data: [[172.7, 105.2], [153.4, 42]], color: Fluent.Enums.chartColors.palette[3]},
@@ -242,18 +242,18 @@ Item {
                     ChartView {
                         width: 480; height: 340
                         chartType: Fluent.Enums.chart.type_radar
-                        title: "Basic Radar Chart"
+                        title: Fluent.Translator.tr("gallery_546942f8b48814d1", Fluent.Translator._v)
                         indicators: [
                             {name: "Sales", max: 6500},
                             {name: "Administration", max: 16000},
-                            {name: "Information Technology", max: 30000},
-                            {name: "Customer Support", max: 38000},
+                            {name: Fluent.Translator.tr("gallery_bea5df18ef44c9e8", Fluent.Translator._v), max: 30000},
+                            {name: Fluent.Translator.tr("gallery_73c20614bb204536", Fluent.Translator._v), max: 38000},
                             {name: "Development", max: 52000},
                             {name: "Marketing", max: 25000}
                         ]
                         series: [
-                            {name: "Allocated Budget", values: [4200, 3000, 20000, 35000, 50000, 18000], color: Fluent.Enums.chartColors.palette[0]},
-                            {name: "Actual Spending", values: [5000, 14000, 28000, 26000, 42000, 21000], color: Fluent.Enums.chartColors.palette[1]}
+                            {name: Fluent.Translator.tr("gallery_12418479a66de3a4", Fluent.Translator._v), values: [4200, 3000, 20000, 35000, 50000, 18000], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: Fluent.Translator.tr("gallery_27e510bb25443ce4", Fluent.Translator._v), values: [5000, 14000, 28000, 26000, 42000, 21000], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }
@@ -268,14 +268,14 @@ Item {
                     ChartView {
                         width: 560; height: 340
                         chartType: Fluent.Enums.chart.type_boxplot
-                        title: "Michelson-Morley Experiment"
-                        subtitle: "Speed of Light Data"
+                        title: Fluent.Translator.tr("gallery_0ac3b54e9e564baa", Fluent.Translator._v)
+                        subtitle: Fluent.Translator.tr("gallery_35e4ba3d73ec8af5", Fluent.Translator._v)
                         boxplotData: [
-                            {label: "Exp 1", min: 650, q1: 850, median: 930, q3: 980, max: 1070, outliers: []},
-                            {label: "Exp 2", min: 760, q1: 800, median: 850, q3: 900, max: 960, outliers: []},
-                            {label: "Exp 3", min: 620, q1: 840, median: 860, q3: 880, max: 970, outliers: []},
-                            {label: "Exp 4", min: 720, q1: 770, median: 810, q3: 880, max: 920, outliers: []},
-                            {label: "Exp 5", min: 740, q1: 800, median: 820, q3: 870, max: 950, outliers: []}
+                            {label: Fluent.Translator.tr("gallery_9cb3046e6db1b8d3", Fluent.Translator._v), min: 650, q1: 850, median: 930, q3: 980, max: 1070, outliers: []},
+                            {label: Fluent.Translator.tr("gallery_680af39b3e465362", Fluent.Translator._v), min: 760, q1: 800, median: 850, q3: 900, max: 960, outliers: []},
+                            {label: Fluent.Translator.tr("gallery_4c84bb65bdec9d5c", Fluent.Translator._v), min: 620, q1: 840, median: 860, q3: 880, max: 970, outliers: []},
+                            {label: Fluent.Translator.tr("gallery_970634c639b07f5b", Fluent.Translator._v), min: 720, q1: 770, median: 810, q3: 880, max: 920, outliers: []},
+                            {label: Fluent.Translator.tr("gallery_b1a8d67fee8ffeff", Fluent.Translator._v), min: 740, q1: 800, median: 820, q3: 870, max: 950, outliers: []}
                         ]
                     }
                 }
@@ -290,12 +290,12 @@ Item {
                     ChartView {
                         width: 480; height: 300
                         chartType: Fluent.Enums.chart.type_boxplot
-                        title: "Test Scores Distribution"
+                        title: Fluent.Translator.tr("gallery_3172c3a3fcdfd371", Fluent.Translator._v)
                         boxplotData: [
-                            {label: "Class A", min: 55, q1: 70, median: 78, q3: 85, max: 95, outliers: [35, 42]},
-                            {label: "Class B", min: 60, q1: 72, median: 80, q3: 88, max: 98, outliers: [45]},
-                            {label: "Class C", min: 50, q1: 65, median: 75, q3: 82, max: 92, outliers: [30, 100]},
-                            {label: "Class D", min: 58, q1: 68, median: 76, q3: 84, max: 94, outliers: []}
+                            {label: Fluent.Translator.tr("gallery_6d34dad76233be0e", Fluent.Translator._v), min: 55, q1: 70, median: 78, q3: 85, max: 95, outliers: [35, 42]},
+                            {label: Fluent.Translator.tr("gallery_fc93ce190ade25d3", Fluent.Translator._v), min: 60, q1: 72, median: 80, q3: 88, max: 98, outliers: [45]},
+                            {label: Fluent.Translator.tr("gallery_f5b0c4e951d68cf0", Fluent.Translator._v), min: 50, q1: 65, median: 75, q3: 82, max: 92, outliers: [30, 100]},
+                            {label: Fluent.Translator.tr("gallery_b76796b0dfd34fea", Fluent.Translator._v), min: 58, q1: 68, median: 76, q3: 84, max: 94, outliers: []}
                         ]
                     }
                 }
@@ -316,9 +316,9 @@ Item {
                 title: Fluent.Translator.tr("gallery_55507e1dd15f61bd", Fluent.Translator._v)
                 description: "value / minValue / maxValue / unit"
                 GalleryFlow {
-                    ComponentCard { label: "value 60"; CircularGauge { width: 110; height: 110; value: 60; unit: "%" } }
-                    ComponentCard { label: "value 85"; CircularGauge { width: 110; height: 110; value: 85; unit: "%" } }
-                    ComponentCard { label: "range 0-10"; CircularGauge { width: 110; height: 110; value: 7; maxValue: 10 } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_d971a7856d2becfc", Fluent.Translator._v); CircularGauge { width: 110; height: 110; value: 60; unit: "%" } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_d0d8bf9e3c5b8515", Fluent.Translator._v); CircularGauge { width: 110; height: 110; value: 85; unit: "%" } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_7f0873fec2a1ac3f", Fluent.Translator._v); CircularGauge { width: 110; height: 110; value: 7; maxValue: 10 } }
                 }
             }
 

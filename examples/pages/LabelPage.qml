@@ -114,8 +114,8 @@ Item {
                 description: Fluent.Translator.tr("gallery_e2040891d0422823", Fluent.Translator._v)
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.m
-                    ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); Chip { text: "Attach camera"; icon: Fluent.Enums.icon.camera } }
-                    ComponentCard { label: Fluent.Translator.tr("gallery_45c21a9e1fe271db", Fluent.Translator._v); Chip { text: "Add friend"; icon: Fluent.Enums.icon.people; checked: true } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_206765db37265738", Fluent.Translator._v); icon: Fluent.Enums.icon.camera } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_45c21a9e1fe271db", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_fac9062e9065b399", Fluent.Translator._v); icon: Fluent.Enums.icon.people; checked: true } }
                     ComponentCard { label: Fluent.Translator.tr("gallery_eb6bb0da552629b5", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_1d0fd5f9336d9103", Fluent.Translator._v); closable: false } }
                 }
             }

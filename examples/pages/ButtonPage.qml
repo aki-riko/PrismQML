@@ -386,8 +386,8 @@ Item {
                     spacing: root._flowSpacing
                     ComponentCard { label: "pill+progress_bar"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_bar; text: "Progress"; progress: 0.6; showProgress: true } }
                     ComponentCard { label: "pill+progress_ring"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_progress_ring; text: "Ring"; progress: 0.6 } }
-                    ComponentCard { label: "pill+indeterminate_bar"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_indeterminate_bar; text: "Indet Bar" } }
-                    ComponentCard { label: "pill+indeterminate_ring"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_indeterminate_ring; text: "Indet Ring" } }
+                    ComponentCard { label: "pill+indeterminate_bar"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_indeterminate_bar; text: Fluent.Translator.tr("gallery_9509d263aaa4902f", Fluent.Translator._v) } }
+                    ComponentCard { label: "pill+indeterminate_ring"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_indeterminate_ring; text: Fluent.Translator.tr("gallery_54a6f40169f27dea", Fluent.Translator._v) } }
                     ComponentCard { label: "pill+toggle"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_toggle; text: "Toggle" } }
                     ComponentCard { label: "pill+dropdown"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_dropdown; text: "DropDown"; menuItems: ["A", "B", "C"] } }
                     ComponentCard { label: "pill+split"; Button { shape: Fluent.Enums.button.shape_pill; feature: Fluent.Enums.button.feature_split; text: "Split"; menuItems: ["A", "B"] } }
@@ -491,8 +491,8 @@ Item {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
                     ComponentCard { label: "default"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: Fluent.Enums.controlSize.closeButtonSize; height: width; radius: width / 2; iconSize: Fluent.Enums.iconSize.s } }
-                    ComponentCard { label: "size 36"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 36; height: 36; radius: width / 2; iconSize: Fluent.Enums.iconSize.s } }
-                    ComponentCard { label: "accent icon"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 32; height: 32; radius: width / 2; iconSize: Fluent.Enums.iconSize.s; iconColor: Fluent.Enums.accentColor; iconHoverColor: Fluent.Enums.accentColor } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_9e2482625518dad2", Fluent.Translator._v); Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 36; height: 36; radius: width / 2; iconSize: Fluent.Enums.iconSize.s } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_815cd4bc67c5ebe3", Fluent.Translator._v); Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 32; height: 32; radius: width / 2; iconSize: Fluent.Enums.iconSize.s; iconColor: Fluent.Enums.accentColor; iconHoverColor: Fluent.Enums.accentColor } }
                 }
             }
 
@@ -503,7 +503,7 @@ Item {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
                     ComponentCard {
-                        label: "accent colors"
+                        label: Fluent.Translator.tr("gallery_f84e05423960c3a4", Fluent.Translator._v)
                         CustomButtonCore {
                             text: Fluent.Translator.tr("gallery_4eafa9e925b30bcd", Fluent.Translator._v)
                             getBackgroundColor: function() { return Fluent.Enums.accentColorLight }
@@ -512,7 +512,7 @@ Item {
                         }
                     }
                     ComponentCard {
-                        label: "flat outline"
+                        label: Fluent.Translator.tr("gallery_7dd698e4206d046a", Fluent.Translator._v)
                         CustomButtonCore {
                             text: Fluent.Translator.tr("gallery_adcb8080365dd1a5", Fluent.Translator._v)
                             flat: true

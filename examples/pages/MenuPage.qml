@@ -575,7 +575,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_d7413200538cd4e9", Fluent.Translator._v)
                 description: "initialActions / showAtPosition(x, y)"
                 ComponentCard {
-                    label: "tray actions"
+                    label: Fluent.Translator.tr("gallery_ae6b36295790621a", Fluent.Translator._v)
                     Button {
                         text: Fluent.Translator.tr("gallery_37d0fee07c326818", Fluent.Translator._v)
                         onClicked: {

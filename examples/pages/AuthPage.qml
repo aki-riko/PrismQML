@@ -32,7 +32,7 @@ Item {
                 title: Fluent.Translator.tr("gallery_bbf70d40c7b0af6a", Fluent.Translator._v)
                 description: "mode / oauthProviders / onLoginRequested / onRegisterRequested"
                 ComponentCard {
-                    label: "top-level login window"
+                    label: Fluent.Translator.tr("gallery_9d256f4ecb417949", Fluent.Translator._v)
                     Column {
                         spacing: Fluent.Enums.spacing.s
                         Button {

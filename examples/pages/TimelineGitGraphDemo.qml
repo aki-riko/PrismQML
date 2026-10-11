@@ -121,7 +121,7 @@ Fluent.Timeline {
                     }
                 },
                 {
-                    text: "Merge gallery preview",
+                    text: Fluent.Translator.tr("gallery_35991a4eaca09719", Fluent.Translator._v),
                     description: "13ac741 · main",
                     commit: "merge-gallery",
                     graph: {
