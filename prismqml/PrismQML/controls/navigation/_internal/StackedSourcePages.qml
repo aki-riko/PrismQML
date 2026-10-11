@@ -40,6 +40,10 @@ Item {
             sourceContainer.host._loaders = sourceContainer.host._loaders.slice(
                 0, sources.length)
         }
+        var loaders = sourceContainer.host._loaders
+        for (var loaderIndex = 0; loaderIndex < loaders.length; loaderIndex++) {
+            if (loaders[loaderIndex]) loaders[loaderIndex]._syncSource()
+        }
     }
 
     // ==================== Content 内容 ====================
@@ -79,7 +83,8 @@ Item {
                     }
                     return
                 }
-                if (sourceLoader.source.toString() !== nextSourceText) {
+                if (sourceLoader.source.toString() !== nextSourceText ||
+                        !sourceLoader.item) {
                     sourceLoader._loadedSourceText = nextSourceText
                     sourceLoader.setSource(nextSource, nextProperties)
                     return
@@ -108,7 +113,7 @@ Item {
             onStatusChanged: sourceContainer.host._traceLazyStage(
                 "stacked.source_loader.status_changed", index, "", sourceLoader)
             active: sourceContainer.host.lazyLoading
-                    ? (index === sourceContainer.host._displayIndex || _loadOnce)
+                    ? retentionController.loaderActive(index, sourceLoader)
                     : (index === sourceContainer.host._displayIndex ||
                        sourceContainer.eagerHelper.ready ||
                        (sourceContainer.eagerHelper.activationActive &&
@@ -176,4 +181,9 @@ Item {
     }
 
     Component.onCompleted: sourceContainer._syncPageModel()
+
+    StackedPageRetentionController {
+        id: retentionController
+        host: sourceContainer.host
+    }
 }

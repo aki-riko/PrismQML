@@ -31,9 +31,8 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property var pageProperties: []
     property bool dynamicStack: false
-    // Keeps that many recently popped dynamic-stack levels resident so a repeated
-    // push of the same URL reuses the live page (no rebuild, no lazy-loading cover).
-    // 动态栈保留最近弹出的若干层, 重复 push 同一 URL 时复用存活页面(不重建、不再走懒加载覆盖层); 0 = 保持原有「弹出即销毁」行为。
+    property int pageRetentionRadius: -1
+    // Keeps recently popped dynamic-stack levels resident 动态栈保留最近弹出层
     property int dynamicStackRetainDepth: 0
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
@@ -63,6 +62,7 @@ Item {
     property int count: _useSourceMode ? _safePageSources.length : directPages.children.length
     property int _dynamicDepth: -1
     property int _pendingTrimDepth: -1
+    readonly property bool _retentionTransitionActive: animations.running
     readonly property int depth: dynamicStack && _dynamicDepth >= 0
         ? _dynamicDepth : count
     // ==================== Internal Props 内部属性 ====================
