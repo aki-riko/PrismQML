@@ -25,7 +25,7 @@ Fluent.Card { /* ... */ }
 
 | Category | Main controls |
 |----------|---------------|
-| [Buttons](buttons.md) | Button · CustomButtonCore · CloseButton |
+| [Buttons](buttons.md) | Button · CustomButtonCore |
 | [Inputs](inputs.md) | LineEdit · ComboBox · Slider · SpinBox · CheckBox · RadioButton · ToggleSwitch · PinInput |
 | [Cards](cards.md) | Card · ExampleCard · Expander |
 | [Data](data.md) | TableView · ListView · TreeView · Carousel · Avatar |

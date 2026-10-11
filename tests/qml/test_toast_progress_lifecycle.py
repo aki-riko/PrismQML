@@ -177,7 +177,9 @@ def test_toast_keeps_two_close_timers(qapp):
             "toastCompleteTimer",
         }
         # Declarative skin lookup adds no signal-handler objects. 声明式皮肤查找不增加信号处理对象。
-        assert object_count == 66
+        # 66 -> 95: same measured cost as InfoBar, see test_infobar_progress_lifecycle.
+        # 66 -> 95: 与 InfoBar 相同的实测成本, 见 test_infobar_progress_lifecycle。
+        assert object_count == 95
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

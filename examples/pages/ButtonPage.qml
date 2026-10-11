@@ -486,13 +486,13 @@ Item {
             // ==================== Leaf button variants 独立按钮变体 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_131bdbe2b285c116", Fluent.Translator._v)
-                description: "size / iconSizeValue / normalIconColor"
+                description: "size / iconSize / iconColor"
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
-                    ComponentCard { label: "default"; CloseButton { } }
-                    ComponentCard { label: "size 36"; CloseButton { size: 36 } }
-                    ComponentCard { label: "accent icon"; CloseButton { size: 32; normalIconColor: Fluent.Enums.accentColor; hoverIconColor: Fluent.Enums.accentColor } }
+                    ComponentCard { label: "default"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: Fluent.Enums.controlSize.closeButtonSize; height: width; radius: width / 2; iconSize: Fluent.Enums.iconSize.s } }
+                    ComponentCard { label: "size 36"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 36; height: 36; radius: width / 2; iconSize: Fluent.Enums.iconSize.s } }
+                    ComponentCard { label: "accent icon"; Button { style: Fluent.Enums.button.style_transparent; icon: Fluent.Enums.icon.dismiss; width: 32; height: 32; radius: width / 2; iconSize: Fluent.Enums.iconSize.s; iconColor: Fluent.Enums.accentColor; iconHoverColor: Fluent.Enums.accentColor } }
                 }
             }
 

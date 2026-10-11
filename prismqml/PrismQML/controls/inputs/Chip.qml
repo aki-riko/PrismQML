@@ -154,14 +154,19 @@ Item {
         }
 
         // Close button 透明关闭按钮
-        CloseButton {
+        Button {
             id: closeBtn
-            size: Enums.iconSize.m
-            iconSizeValue: Enums.iconSize.s
-            normalIconColor: control.contentColor
-            hoverIconColor: control.contentColor
-            hoverBgColor: control.checked ? Enums.stateColor.onAccentOverlay : Enums.stateColor.chipCloseHover
+            objectName: "closeBtn"
+            style: Enums.button.style_transparent
+            icon: Enums.icon.dismiss
+            width: Enums.iconSize.m
+            height: Enums.iconSize.m
+            radius: width / 2
+            iconSize: Enums.iconSize.s
+            iconColor: control.contentColor
+            iconHoverColor: control.contentColor
             pressedBgColor: control.checked ? Enums.stateColor.whiteOverlayPressed : Enums.stateColor.chipClosePressed
+            focusOnPress: false
             visible: control.closable
             anchors.verticalCenter: parent.verticalCenter
             onClicked: { control.dismissed() }

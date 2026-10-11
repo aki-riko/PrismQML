@@ -156,14 +156,19 @@ Item {
         }
     }
 
-    // Clear button 清除按钮
-    CloseButton {
-        id: clearBtn
+    // Clear button 清除按钮 (transparent Button, never steals input focus 透明按钮, 不抢输入焦点)
+    Button {
+        id: clearBtn; objectName: "closeBtn"
         anchors.right: actionBtn.visible ? actionBtn.left : parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter
-        size: Enums.controlSize.lineEditClearButtonSize
-        iconSizeValue: Enums.controlSize.checkboxInner
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        width: Enums.controlSize.lineEditClearButtonSize
+        height: Enums.controlSize.lineEditClearButtonSize
+        radius: width / 2
+        iconSize: Enums.controlSize.checkboxInner
+        focusOnPress: false  // Never steal focus from the input 不抢输入框焦点
         visible: normalInput.clearButtonEnabled && textInput.text.length > 0 && !normalInput._isSearch
         onClicked: {
             textInput.text = ""
@@ -197,7 +202,6 @@ Item {
             }
         }
     }
-
     // Hover detection 悬浮检测
     HoverHandler {
         id: hoverHandler

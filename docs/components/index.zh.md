@@ -23,7 +23,7 @@ Fluent.Card { /* ... */ }
 
 | 分类 | 主要控件 |
 |------|---------|
-| [按钮](buttons.md) | Button · CustomButtonCore · CloseButton |
+| [按钮](buttons.md) | Button · CustomButtonCore |
 | [输入](inputs.md) | LineEdit · ComboBox · Slider · SpinBox · CheckBox · RadioButton · ToggleSwitch · PinInput |
 | [卡片](cards.md) | Card · ExampleCard · Expander |
 | [数据](data.md) | TableView · ListView · TreeView · Carousel · Avatar |

@@ -17,7 +17,6 @@ from scripts.qml_conventions import scan_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 BUTTON_SOURCES = (
-    ROOT / "prismqml" / "PrismQML" / "controls" / "buttons" / "CloseButton.qml",
     ROOT
     / "prismqml"
     / "PrismQML"
@@ -88,6 +87,13 @@ Item {
     readonly property real closeHeight: closeButton.height
     readonly property bool closeHovered: closeButton.hovered
     readonly property bool closePressed: closeButton.pressed
+    readonly property int closeStyle: closeButton.style
+    readonly property string closeIcon: closeButton.icon
+    readonly property real closeRadius: closeButton.radius
+    readonly property int closeIconSize: closeButton.iconSize
+    readonly property color expectedCloseRestingIcon: Enums.textColor.secondary
+    readonly property color expectedCloseHoverIcon: Enums.textColor.primary
+    readonly property color expectedTransparentControlBg: Enums.stateColor.controlBgTransparent
     readonly property real actionWidth: actionButton.preferredWidth
     readonly property real actionHeight: actionButton.preferredHeight
     readonly property int actionStyle: actionButton.style
@@ -124,8 +130,32 @@ Item {
     width: 400
     height: 200
 
-    Buttons.CloseButton {
+    Button {
         id: closeButton
+        objectName: "closeButton"
+        width: Enums.controlSize.closeButtonSize
+        height: Enums.controlSize.closeButtonSize
+        radius: width / 2
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        iconSize: Enums.iconSize.s
+    }
+
+    // Same shape plus the optional colour overrides the removed CloseButton used to
+    // own: resting/hover foreground and the pressed face.
+    Button {
+        id: overrideCloseButton
+        objectName: "overrideCloseButton"
+        width: Enums.controlSize.closeButtonSize
+        height: Enums.controlSize.closeButtonSize
+        radius: width / 2
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        iconSize: Enums.iconSize.s
+        iconColor: Enums.textColor.secondary
+        iconHoverColor: Enums.textColor.primary
+        pressedBgColor: Enums.stateColor.transparentPressed
+        focusOnPress: false
     }
 
     Item {
@@ -193,6 +223,16 @@ Item {
     }
 }
 """
+
+
+def _button_source(name: str) -> Path:
+    """Locate a leaf source by file name so list order can never shift an index.
+
+    按文件名定位叶组件源码，避免列表顺序变动导致索引错位。
+    """
+    matches = [path for path in BUTTON_SOURCES if path.name == name]
+    assert len(matches) == 1, [path.name for path in BUTTON_SOURCES]
+    return matches[0]
 
 
 def _pump(milliseconds: int = 10) -> None:
@@ -364,6 +404,13 @@ def test_button_leaf_runtime_defaults_remain_stable(button_leaf_scene):
     assert (root.property("closeWidth"), root.property("closeHeight")) == (28, 28)
     assert not root.property("closeHovered")
     assert not root.property("closePressed")
+    # The transparent icon button that replaced CloseButton keeps its geometry,
+    # dismiss glyph and circular face. 取代 CloseButton 的透明图标按钮保持几何、
+    # dismiss 图标与圆形背板。
+    assert root.property("closeStyle") == root.property("transparentStyle")
+    assert root.property("closeIcon") == "Dismiss"
+    assert root.property("closeRadius") == pytest.approx(14.0)
+    assert root.property("closeIconSize") == root.property("closeWidth") / 2
     assert (root.property("actionWidth"), root.property("actionHeight")) == (30, 30)
     assert root.property("actionStyle") == root.property("transparentStyle")
     assert root.property("actionShape") == root.property("defaultShape")
@@ -376,6 +423,48 @@ def test_button_leaf_runtime_defaults_remain_stable(button_leaf_scene):
     )
     assert root.property("progressValue") == pytest.approx(0.4)
     assert root.property("progressVisible")
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_close_style_button_honours_colour_and_focus_overrides(button_leaf_scene):
+    """The override entry point reproduces the removed CloseButton contract.
+
+    覆盖入口复现被移除的 CloseButton 契约：静息/悬浮前景、按压面色与不抢焦点。
+    """
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "overrideCloseButton")
+    assert button is not None
+
+    content = _button_content(button)
+    assert content.property("textColor") == root.property("expectedCloseRestingIcon")
+    assert not button.property("focusOnPress")
+    assert button.property("pressedBgColor") is not None
+
+    # Hover switches the icon to the hover override without a colour animation.
+    # 悬浮时图标切到覆盖的悬浮色，且不经过颜色动画。
+    button.setProperty("pseudoHovered", True)
+    _pump(20)
+    assert content.property("textColor") == root.property("expectedCloseHoverIcon")
+
+    button.setProperty("pseudoHovered", False)
+    _pump(20)
+    assert content.property("textColor") == root.property("expectedCloseRestingIcon")
+
+    # The pressed face resolves through the override instead of the animated colour.
+    # 按压面色经覆盖值解析，而不是动画色。
+    button.setProperty("pseudoPressed", True)
+    _pump(20)
+    assert button.property("_effectiveBgColor") == button.property("pressedBgColor")
+
+    button.setProperty("pseudoPressed", False)
+    button.setProperty("enabled", False)
+    _pump(20)
+    assert button.property("_effectiveBgColor") == root.property(
+        "expectedTransparentControlBg"
+    )
+    # Disabled falls back to the style snapshot, not to a fixed token.
+    # 禁用态回退到样式快照，而不是固定 token。
+    assert content.property("textColor") == button.getTextColor()
     assert _new_visible_windows(windows_before) == []
 
 
@@ -446,7 +535,7 @@ def test_button_content_native_text_preserves_typography(button_leaf_scene):
 
 
 def test_button_content_uses_lightweight_noninteractive_text():
-    source = BUTTON_SOURCES[3].read_text(encoding="utf-8")
+    source = _button_source("ButtonContent.qml").read_text(encoding="utf-8")
     assert 'import "../../data"' not in source
     assert "    Text {\n        id: contentText" in source
     assert "    Label {\n        id: contentText" not in source
@@ -454,13 +543,13 @@ def test_button_content_uses_lightweight_noninteractive_text():
 
 
 def test_button_content_omits_unused_parent_state_bindings():
-    source = BUTTON_SOURCES[3].read_text(encoding="utf-8")
+    source = _button_source("ButtonContent.qml").read_text(encoding="utf-8")
     assert "required property bool controlEnabled" not in source
     assert "required property bool pressed" not in source
 
 
 def test_button_progress_omits_unused_parent_radius_binding():
-    source = BUTTON_SOURCES[2].read_text(encoding="utf-8")
+    source = _button_source("ButtonProgress.qml").read_text(encoding="utf-8")
     assert "required property real parentRadius" not in source
 
 

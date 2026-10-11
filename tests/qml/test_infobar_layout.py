@@ -131,14 +131,16 @@ def _visible_text_item(bar: QQuickItem, text: str) -> QQuickItem:
 
 
 def _close_button(bar: QQuickItem) -> QQuickItem:
+    # Located by objectName: the affordance is now a transparent Button.
+    # 按 objectName 定位：该入口现在是透明 Button。
     matches = [
         item
         for item in bar.findChildren(QObject)
         if isinstance(item, QQuickItem)
-        and "CloseButton" in item.metaObject().className()
+        and item.objectName() == "closeBtn"
         and item.property("visible")
     ]
-    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    assert len(matches) == 1, [item.objectName() for item in matches]
     return matches[0]
 
 

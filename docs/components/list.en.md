@@ -16,7 +16,7 @@ A quick index of every QML type registered by the root module (including 6 singl
 
 ## Buttons
 
-`Button` · `ButtonContent` · `ButtonCore` · `ButtonDropdown` · `ButtonProgress` · `CloseButton` · `CustomButtonCore`
+`Button` · `ButtonContent` · `ButtonCore` · `ButtonDropdown` · `ButtonProgress` · `CustomButtonCore`
 
 ## Containers
 

@@ -124,11 +124,18 @@ Window {
             }
         }
 
-        CloseButton {
+        Button {
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.topMargin: Enums.spacing.xs
             anchors.rightMargin: Enums.spacing.xs
+            style: Enums.button.style_transparent
+            icon: Enums.icon.dismiss
+            width: Enums.controlSize.closeButtonSize
+            height: Enums.controlSize.closeButtonSize
+            radius: width / 2
+            iconSize: Enums.iconSize.s
+            focusOnPress: false
             visible: popupControl.closable
             onClicked: popupControl.close()
         }

@@ -147,8 +147,8 @@ def _token_parts(token):
     close_buttons = [
         child
         for child in descendants
-        if child.metaObject().indexOfProperty("normalIconColor") >= 0
-        and child.metaObject().indexOfProperty("hoverIconColor") >= 0
+        if child.objectName() == "closeBtn"
+        and child.metaObject().indexOfProperty("iconSize") >= 0
     ]
     assert len(labels) == 1
     assert len(close_buttons) == 1
@@ -157,16 +157,19 @@ def _token_parts(token):
 
 def _assert_token_foreground(token, expected: QColor) -> None:
     label, close_button = _token_parts(token)
+    # The close affordance is a transparent Button now, so its glyph lives inside the
+    # default content loader rather than as a direct child.
+    # 关闭入口现在是透明 Button，其图标位于默认内容加载器内而不是直接子项。
     icons = [
         child
-        for child in close_button.childItems()
+        for child in _descendants(close_button)
         if child.metaObject().indexOfProperty("iconSize") >= 0
         and child.metaObject().indexOfProperty("color") >= 0
     ]
     assert len(icons) == 1
     assert label.property("color") == expected
-    assert close_button.property("normalIconColor") == expected
-    assert close_button.property("hoverIconColor") == expected
+    assert close_button.property("iconColor") == expected
+    assert close_button.property("iconHoverColor") == expected
     assert icons[0].property("color") == expected
 
 

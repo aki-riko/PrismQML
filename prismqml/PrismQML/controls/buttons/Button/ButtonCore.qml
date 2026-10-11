@@ -89,8 +89,7 @@ Widget {
                            ? false : (mouseArea.containsMouse || pseudoHovered)
     property bool pressed: feature === _skin.button.feature_split ? false : ((mouseArea && mouseArea.pressed) || pseudoPressed)
 
-    // Touch has no hover preview: on touch the hover treatment follows the press
-    // 触摸没有 hover 预览: 触摸端 hover 视觉只在按压时生效, 避免松手后残留
+    // Touch has no hover preview: hover treatment follows the press 触摸端 hover 视觉只在按压时生效
     readonly property bool _touchActive: Touch.feedback(hovered, pressed)
 
     readonly property bool _toolTipHovered: feature === _skin.button.feature_split
@@ -98,8 +97,7 @@ Widget {
             (featureLoader.item.mainHovered || featureLoader.item.dropHovered)))
         : hovered
 
-    // Shared style calculations avoid one resident QtObject per button.
-    // 共享样式计算避免每个按钮常驻一个QtObject。
+    // Shared style calculations avoid one resident QtObject per button. 共享样式计算避免每个按钮常驻一个QtObject。
     readonly property bool _styleEffectiveEnabled:
         control.enabled && !control.loading && !control._countdownActive
     readonly property bool _styleToggleChecked:
@@ -124,13 +122,27 @@ Widget {
                             : (_skin.isVintageTicket ? _skin.ticket.radius
                                : _skin.radius.small)))
     property color color: _styleBgColor
+    // Optional icon-only appearance overrides. Unset keeps the computed style snapshot;
+    // a supplied pressed face also bypasses the colour animation, as a lightweight
+    // close/remove affordance needs.
+    // 仅图标按钮的可选外观覆盖。不设置时沿用样式快照；提供按压面色时同时绕过颜色动画。
+    property color iconColor: _styleTextColor
+    property color iconHoverColor: _styleTextColor
+    property var pressedBgColor: null
+    // Replacing a lightweight close/remove affordance must not steal focus from the
+    // owning input or tab; the default keeps the historical Button behaviour.
+    // 替换轻量关闭/删除入口不得抢走所属输入框或标签页的焦点；默认沿用 Button 既有行为。
+    property bool focusOnPress: true
+    // Resolved colours; disabled and override fallbacks live in ButtonLogic.
+    // 解析后的颜色；禁用与覆盖回退在 ButtonLogic 中。
+    readonly property color _effectiveIconColor: ButtonLogic.effectiveIconColor(control)
+    readonly property color _effectiveBgColor: ButtonLogic.effectiveBgColor(control, _skin.stateColor)
 
     // Neobrutalism target press shift. Neo按压目标位移。
     readonly property real _neoPressTargetShift:
         (_skin.isNeobrutalism && pressed && !flat) ? _skin.neo.pressOffset : 0
     // The loaded Neo surface owns animation; Fluent keeps no resident Behavior. 动画由已加载的Neo表面持有，Fluent不常驻Behavior。
-    property real _neoPressShift:
-        surface.animatedPressShift
+    property real _neoPressShift: surface.animatedPressShift
     readonly property bool _hasMenuFeature: feature === _skin.button.feature_dropdown ||
                                             feature === _skin.button.feature_split
     readonly property bool _hasProgressBarFeature:
@@ -210,13 +222,10 @@ Widget {
 
     function getText() { return text }
     function isChecked() { return checked }
-
     function isEnabled() { return enabled }
-
 
     // Set flat 设置扁平样式
     function setFlat(f) { ButtonLogic.setFlat(control, _skin, f) }
-
 
     function getUrl() { return textToCopy }
 

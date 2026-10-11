@@ -55,7 +55,6 @@ HOVER_MOTION_AUDIT_EXEMPTIONS = {
 
 HOVER_POLICY_COUNTS = {
     "navigation/NavigationBarItem.qml": 3,
-    "controls/buttons/CloseButton.qml": 2,
     "controls/buttons/Button/CustomButtonCore.qml": 1,
     "controls/buttons/Button/_internal/ButtonDropdownSurface.qml": 2,
     "controls/navigation/Paginator.qml": 1,

@@ -16,7 +16,7 @@
 
 ## 按钮
 
-`Button` · `ButtonContent` · `ButtonCore` · `ButtonDropdown` · `ButtonProgress` · `CloseButton` · `CustomButtonCore`
+`Button` · `ButtonContent` · `ButtonCore` · `ButtonDropdown` · `ButtonProgress` · `CustomButtonCore`
 
 ## 容器
 

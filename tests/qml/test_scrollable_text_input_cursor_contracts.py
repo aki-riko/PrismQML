@@ -334,7 +334,7 @@ def test_scroll_area_preserves_editable_input_cursors(qapp):
             assert window.cursor().shape() == Qt.CursorShape.IBeamCursor, name
 
         for name, class_prefix in (
-            ("normal", "CloseButton"),
+            ("normal", "ButtonCore"),
             ("password", "InputActionButton"),
             ("search", "InputActionButton"),
         ):

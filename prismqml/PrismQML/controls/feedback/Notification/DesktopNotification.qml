@@ -212,15 +212,21 @@ Window {
         }
         
         // Close button 关闭按钮
-        CloseButton {
+        Button {
             id: closeBtn
+            objectName: "closeBtn"
             anchors.right: parent.right
             anchors.rightMargin: Enums.spacing.l
             anchors.top: parent.top
             anchors.topMargin: Enums.spacing.l
-            size: Enums.spacing.xxl
-            iconSizeValue: Enums.iconSize.tiny
-            normalIconColor: Enums.stateColor.scrollThumbHover
+            style: Enums.button.style_transparent
+            icon: Enums.icon.dismiss
+            width: Enums.spacing.xxl
+            height: Enums.spacing.xxl
+            radius: width / 2
+            iconSize: Enums.iconSize.tiny
+            iconColor: Enums.stateColor.scrollThumbHover
+            focusOnPress: false
             visible: closable
             onClicked: control.hide()
         }

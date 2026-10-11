@@ -91,7 +91,7 @@ Item {
             loading: contentLayer.buttonControl.loading
             loadingText: contentLayer.buttonControl.loadingText
             progress: contentLayer.buttonControl.progress
-            textColor: contentLayer.buttonControl.getTextColor()
+            textColor: contentLayer.buttonControl._effectiveIconColor
             fontSize: contentLayer.buttonControl.fontSize
             fontBold: contentLayer.buttonControl.fontBold
             fontItalic: contentLayer.buttonControl.fontItalic
