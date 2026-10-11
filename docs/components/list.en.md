@@ -32,7 +32,7 @@ A quick index of every QML type registered by the root module (including 6 singl
 
 ## Feedback
 
-`AutoUpdater` · `AutoUpdaterProgressDialogPresenter` · `AutoUpdaterToastPresenter` · `Confetti` · `DesktopNotification` · `EmptyDataState` · `EmptyState` · `Flyout` · `HintIcon` · `InfoBar` · `InfoBarCore` · `NotificationManager` · `OfflineState` · `Progress` · `ProgressBar` · `ProgressCore` · `ProgressRing` · `QMLPage` · `ResultState` · `Skeleton` · `SplashScreen` · `StateWidget` · `TeachingTip` · `TeachingTour` · `TipPopup` · `Toast` · `ToolTip` · `TooltipCore`
+`AutoUpdater` · `AutoUpdaterProgressDialogPresenter` · `AutoUpdaterToastPresenter` · `Confetti` · `DesktopNotification` · `EmptyDataState` · `Flyout` · `HintIcon` · `InfoBar` · `InfoBarCore` · `NotificationManager` · `OfflineState` · `Progress` · `ProgressBar` · `ProgressCore` · `ProgressRing` · `QMLPage` · `ResultState` · `Skeleton` · `SplashScreen` · `StateWidget` · `TeachingTip` · `TeachingTour` · `TipPopup` · `Toast` · `ToolTip` · `TooltipCore`
 
 ## Inputs
 
