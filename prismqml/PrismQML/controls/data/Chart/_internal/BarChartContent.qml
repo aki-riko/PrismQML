@@ -180,6 +180,7 @@ Item {
     onSeriesChanged: _invalidateBarGeometry()
     onShowAverageChanged: if (schedulerActive) canvas.requestPaint()
     onShowBarGradientChanged: if (schedulerActive) canvas.requestPaint()
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // ==================== Content 内容 ====================
     // Canvas for multi-series (Fluent Design) 多系列画布（Fluent Design）
@@ -392,6 +393,4 @@ Item {
             }
         }
     }
-
-    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }
