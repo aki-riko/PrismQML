@@ -12,7 +12,6 @@ import PrismQML as Fluent
 // Button showcase page 按钮展示页面
 Item {
     id: root
-    property int _repeatCount: 0
     readonly property int _flowSpacing: Fluent.Enums.spacing.l
     readonly property var cascadeMenuItems: [
         {
@@ -494,32 +493,6 @@ Item {
                     ComponentCard { label: "default"; CloseButton { } }
                     ComponentCard { label: "size 36"; CloseButton { size: 36 } }
                     ComponentCard { label: "accent icon"; CloseButton { size: 32; normalIconColor: Fluent.Enums.accentColor; hoverIconColor: Fluent.Enums.accentColor } }
-                }
-            }
-
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_143457a32f8499fb", Fluent.Translator._v)
-                description: "autoRepeat / repeatDelay / repeatInterval"
-                Flow {
-                    width: parent ? parent.width : 0
-                    spacing: root._flowSpacing
-                    ComponentCard {
-                        label: "autoRepeat (hold)"
-                        RepeatButton { text: Fluent.Translator.tr("gallery_5e221613dfbdcb3f", Fluent.Translator._v); onRepeated: root._repeatCount++ }
-                    }
-                    ComponentCard {
-                        label: "autoRepeat false"
-                        RepeatButton { text: Fluent.Translator.tr("gallery_1a72890352235570", Fluent.Translator._v); autoRepeat: false }
-                    }
-                    ComponentCard {
-                        label: "repeated " + root._repeatCount
-                        Text {
-                            text: String(root._repeatCount)
-                            color: Fluent.Enums.textColor.primary
-                            font.family: Fluent.Enums.fontFamily
-                            font.pixelSize: Fluent.Enums.typography.title
-                        }
-                    }
                 }
             }
 

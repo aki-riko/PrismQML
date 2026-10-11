@@ -6,4 +6,3 @@ ButtonContent Button/ButtonContent.qml
 ButtonDropdown Button/ButtonDropdown.qml
 ButtonProgress Button/ButtonProgress.qml
 CloseButton CloseButton.qml
-RepeatButton RepeatButton.qml

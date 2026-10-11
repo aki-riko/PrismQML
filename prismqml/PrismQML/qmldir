@@ -44,7 +44,6 @@ ButtonContent controls/buttons/Button/ButtonContent.qml
 ButtonDropdown controls/buttons/Button/ButtonDropdown.qml
 ButtonProgress controls/buttons/Button/ButtonProgress.qml
 CloseButton controls/buttons/CloseButton.qml
-RepeatButton controls/buttons/RepeatButton.qml
 
 # ==================== Containers 容器 ====================
 Widget controls/containers/Widget.qml

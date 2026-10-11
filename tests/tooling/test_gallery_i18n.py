@@ -58,7 +58,8 @@ def test_gallery_catalogs_cover_every_supported_language():
     assert {path.stem for path in I18N_ROOT.glob("*.json")} == EXPECTED_LANGUAGES
     # 784 = 692 + 组件补齐批次新增的 90 条展示标题/交互文案，外加复用既有译文的 2 条。
     # 该页改成一整块对话框后，「聊天气泡 / 气泡壳 / 开始 / 中断」不再被引用；译文留在目录里备用。
-    assert gallery_i18n.validate_catalogs() == 784
+    # 移除 RepeatButton 及其 Gallery 卡片后，标题「重复按钮」与「按住 / 单击」3 条引用消失：784 - 3 = 781。
+    assert gallery_i18n.validate_catalogs() == 781
 
 
 def test_gallery_notification_menu_uses_reviewed_chinese_terminology():
