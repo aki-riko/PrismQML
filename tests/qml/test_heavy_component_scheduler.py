@@ -94,6 +94,22 @@ Item {
         keepAlive: false
         sourceComponent: Component { Rectangle { width: 20; height: 20 } }
     }
+
+    HeavyComponentSlot {
+        id: rainSlot
+        objectName: "rain"
+        y: 100
+        width: 80
+        height: 60
+        scheduled: true
+        priority: HeavyComponentScheduler.priority_background
+        sourceComponent: Component {
+            MatrixRain {
+                running: true
+                schedulerActive: rainSlot.workActive
+            }
+        }
+    }
 }
 """
 
@@ -150,6 +166,32 @@ def test_scheduler_releases_nonretained_content_when_page_deactivates(qapp):
         _pump(30)
         assert releasable.property("loaded") is False
         assert releasable.property("workActive") is False
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_scheduler_work_gate_pauses_and_resumes_matrix_rain(qapp):
+    engine, component, root = _create_scene()
+    try:
+        _pump(120)
+        rain_slot = root.findChild(QObject, "rain")
+        assert rain_slot is not None
+        assert rain_slot.property("loaded") is True
+        rain_timer = rain_slot.findChild(QObject, "matrixRainAnimationTimer")
+        assert rain_timer is not None
+        assert rain_timer.property("running") is True
+
+        rain_slot.setProperty("pageActive", False)
+        _pump(30)
+        assert rain_slot.property("workActive") is False
+        assert rain_timer.property("running") is False
+
+        rain_slot.setProperty("pageActive", True)
+        _pump(30)
+        assert rain_slot.property("workActive") is True
+        assert rain_timer.property("running") is True
     finally:
         root.deleteLater()
         component.deleteLater()

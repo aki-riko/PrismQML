@@ -225,6 +225,15 @@ def test_matrix_rain_animation_timer_preserves_runtime_contract(qapp):
         instance.setProperty("paused", True)
         _pump(10)
         assert timer.property("running") is False
+
+        instance.setProperty("paused", False)
+        instance.setProperty("schedulerActive", False)
+        _pump(10)
+        assert timer.property("running") is False
+
+        instance.setProperty("schedulerActive", True)
+        _pump(10)
+        assert timer.property("running") is True
     finally:
         if instance is not None:
             instance.deleteLater()
