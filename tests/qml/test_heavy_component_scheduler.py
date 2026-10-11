@@ -84,6 +84,23 @@ Item {
         sourceComponent: Component { Rectangle { width: 20; height: 20 } }
     }
 
+    QtObject {
+        id: viewportGate
+        objectName: "viewportGate"
+        property bool inViewport: true
+    }
+
+    HeavyComponentSlot {
+        id: viewportBoundSlot
+        objectName: "viewport-bound"
+        y: 80
+        width: 20
+        height: 20
+        scheduled: true
+        viewportState: viewportGate
+        sourceComponent: Component { Rectangle { width: 20; height: 20 } }
+    }
+
     HeavyComponentSlot {
         id: releasableSlot
         objectName: "releasable"
@@ -166,6 +183,43 @@ def test_scheduler_releases_nonretained_content_when_page_deactivates(qapp):
         _pump(30)
         assert releasable.property("loaded") is False
         assert releasable.property("workActive") is False
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_slot_consumes_viewport_state_without_unloading_kept_content(qapp):
+    """Slot viewport state pauses work without duplicating timers or unloading content.
+
+    Slot 直接消费视口状态时，只暂停持续工作；保留内容不应被误卸载。
+    """
+    engine, component, root = _create_scene()
+    try:
+        _pump(80)
+        slot = root.findChild(QObject, "viewport-bound")
+        gate = root.findChild(QObject, "viewportGate")
+        assert slot is not None
+        assert gate is not None
+        assert slot.property("loaded") is True
+        assert slot.property("effectiveInViewport") is True
+        assert slot.property("workActive") is True
+
+        gate.setProperty("inViewport", False)
+        _pump(30)
+        assert slot.property("effectiveInViewport") is False
+        assert slot.property("workActive") is False
+        assert slot.property("loaded") is True
+
+        # The explicit fallback is ignored while a viewport state is bound.
+        slot.setProperty("inViewport", True)
+        _pump(20)
+        assert slot.property("effectiveInViewport") is False
+
+        gate.setProperty("inViewport", True)
+        _pump(30)
+        assert slot.property("effectiveInViewport") is True
+        assert slot.property("workActive") is True
     finally:
         root.deleteLater()
         component.deleteLater()

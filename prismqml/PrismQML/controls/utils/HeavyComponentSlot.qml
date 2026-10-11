@@ -18,6 +18,8 @@ Item {
     property bool scheduled: false
     property bool pageActive: true
     property bool inViewport: true
+    // Optional viewport state object exposing an inViewport bool 可选视口状态对象，需暴露 inViewport 布尔属性
+    property QtObject viewportState: null
     property bool preloadWhenOutOfViewport: false
     property bool keepAlive: true
     property bool incubate: true
@@ -28,7 +30,11 @@ Item {
     readonly property int status: contentLoader.status
     readonly property bool loading: contentLoader.status === Loader.Loading
     readonly property bool loaded: contentLoader.status === Loader.Ready && item !== null
-    readonly property bool workActive: enabled && pageActive && inViewport && loaded
+    // A bound viewport state takes precedence over the manual fallback.
+    // 绑定视口状态优先于手动回退值。
+    readonly property bool effectiveInViewport:
+        viewportState === null ? inViewport : viewportState.inViewport
+    readonly property bool workActive: enabled && pageActive && effectiveInViewport && loaded
     readonly property bool _runtimeIncubationEnabled:
         typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" ||
         PrismQmlAsynchronousPageLoaderEnabled
@@ -56,7 +62,7 @@ Item {
     // ==================== Internal Methods 内部方法 ====================
     function _schedulerCanActivate() {
         return enabled && pageActive &&
-                (inViewport || preloadWhenOutOfViewport)
+                (effectiveInViewport || preloadWhenOutOfViewport)
     }
 
     function _schedulerNeedsActivation() {
@@ -91,9 +97,9 @@ Item {
         if (!pageActive && !keepAlive) release()
         else if (scheduled && pageActive) requestLoad()
     }
-    onInViewportChanged: {
-        if (!inViewport && !keepAlive) release()
-        else if (scheduled && inViewport) requestLoad()
+    onEffectiveInViewportChanged: {
+        if (!effectiveInViewport && !keepAlive) release()
+        else if (scheduled && effectiveInViewport) requestLoad()
     }
     onEnabledChanged: {
         if (!enabled && !keepAlive) release()
