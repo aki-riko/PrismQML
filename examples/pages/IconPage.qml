@@ -84,6 +84,7 @@ Item {
                 delegate: Card {
                     cardType: Fluent.Enums.card.type_elevated
                     borderRadius: Fluent.Enums.radius.large
+                    clickEnabled: true  // Card ignores clicks unless enabled 卡片需显式启用点击
                     width: 100
                     height: 88
                     border.width: modelData === root.selectedIcon ? 1 : 0
