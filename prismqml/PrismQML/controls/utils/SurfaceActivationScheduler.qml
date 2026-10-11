@@ -14,7 +14,7 @@ Item {
     height: 0
 
     // ==================== Public Props 公开属性 ====================
-    property bool enabled: true
+    property bool schedulerEnabled: true
     property int tickInterval: 16
     property int maxConcurrentPerGroup: 1
     property int maxActivationsPerTick: 1
@@ -102,7 +102,7 @@ Item {
     }
 
     function _dispatch() {
-        if (!enabled || _queue.length === 0) return
+        if (!schedulerEnabled || _queue.length === 0) return
         var queue = _queue.slice()
         var started = 0
         for (var i = 0; i < queue.length && started < maxActivationsPerTick; i++) {
@@ -129,7 +129,7 @@ Item {
     Timer {
         interval: Math.max(1, scheduler.tickInterval)
         repeat: true
-        running: scheduler.enabled && scheduler._queue.length > 0
+        running: scheduler.schedulerEnabled && scheduler._queue.length > 0
         onTriggered: scheduler._dispatch()
     }
 }
