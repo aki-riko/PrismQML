@@ -132,7 +132,6 @@ NavigationViewItem navigation/NavigationViewItem.qml
 PipsPager navigation/PipsPager.qml
 StatusBar navigation/StatusBar.qml
 ToggleNavigationBar navigation/ToggleNavigationBar.qml
-#ToolBar navigation/ToolBar.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml

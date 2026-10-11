@@ -9,9 +9,6 @@ import QtQuick.Effects
 import PrismQML
 import PrismQML as Fluent
 import "_internal"
-// ToolBar is registered in the navigation subdirectory module only
-// ToolBar 仅注册在 navigation 子目录模块
-import "../../prismqml/PrismQML/navigation" as Nav
 
 // Navigation components page 导航组件页面
 Item {
@@ -560,22 +557,6 @@ Item {
                         message: Fluent.Translator.tr("gallery_b073db9c0bd6f2ed", Fluent.Translator._v)
                         leftItems: [{ "text": Fluent.Translator.tr("gallery_46bcd62dbbd12358", Fluent.Translator._v) }, { "text": "UTF-8" }]
                         rightItems: [{ "text": Fluent.Translator.tr("gallery_b249c970347ca6af", Fluent.Translator._v) }, { "text": "100%" }]
-                    }
-                }
-            }
-
-            // Tool bar 工具栏
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_3166d8af51f15eb6", Fluent.Translator._v)
-                description: Fluent.Translator.tr("gallery_16e18ddfe3ef6b15", Fluent.Translator._v)
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
-                    Nav.ToolBar {
-                        width: parent ? parent.width : 0
-                        Button { text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v) }
-                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v) }
-                        Button { text: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v) }
                     }
                 }
             }

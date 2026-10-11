@@ -64,7 +64,8 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 单词级内容标签（按钮/选项/图例）源化后新增 63 条：866 + 63 = 929。
     # 引号键导航/托盘/面板标签源化后新增 14 条：929 + 14 = 943。
     # 共享命令面板展示卡及其 7 条专用文案一并移除：940 - 7 = 933。
-    assert gallery_i18n.validate_catalogs() == 933
+    # 工具栏展示卡及其标题、描述文案一并移除：933 - 2 = 931。
+    assert gallery_i18n.validate_catalogs() == 931
 
 
 def test_gallery_sources_have_no_inline_untranslated_literals():

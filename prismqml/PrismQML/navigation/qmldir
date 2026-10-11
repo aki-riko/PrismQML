@@ -8,6 +8,5 @@ PipsPager PipsPager.qml
 StatusBar StatusBar.qml
 ToggleNavigationBar ToggleNavigationBar.qml
 ToggleNavigationBarItem ToggleNavigationBarItem.qml
-ToolBar ToolBar.qml
 
 # Command surface 命令面板
