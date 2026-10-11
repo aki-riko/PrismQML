@@ -147,7 +147,6 @@ Progress controls/feedback/Progress/Progress.qml
 ProgressCore controls/feedback/Progress/ProgressCore.qml
 ProgressBar controls/feedback/Progress/ProgressBar.qml
 ProgressRing controls/feedback/Progress/ProgressRing.qml
-EmptyState controls/feedback/State/EmptyState.qml
 EmptyDataState controls/feedback/State/EmptyDataState.qml
 OfflineState controls/feedback/State/OfflineState.qml
 ResultState controls/feedback/State/ResultState.qml
