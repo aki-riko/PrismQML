@@ -60,8 +60,7 @@ Item {
         Enums.accessibility.state_selected,
         Enums.accessibility.state_invalid
     ]
-    property real innerWidth: Enums.border.normal
-    property real outerWidth: Enums.border.thin
+    property real focusRingWidth: Enums.border.normal
 }
 """,
     )
@@ -76,12 +75,9 @@ Item {
             states = states.toVariant()
         assert list(states) == [0, 1, 3, 5]
 
-        # The ring reuses the border tokens, so both strokes must stay positive
-        # and the inner one must not be thinner than the outer one.
-        # 焦点环复用描边令牌：两圈都必须为正，且内圈不得比外圈更细。
-        assert instance.property("innerWidth") > 0
-        assert instance.property("outerWidth") > 0
-        assert instance.property("innerWidth") >= instance.property("outerWidth")
+        # The focus outline reuses the shared border width token.
+        # 焦点轮廓复用全局描边粗细令牌。
+        assert instance.property("focusRingWidth") > 0
     finally:
         instance.deleteLater()
 
@@ -136,15 +132,11 @@ Window {
     property var ringItem: ring
     property var areaItem: focusArea
     property bool drawn: ring.ringItem !== null
-    property real outerStroke: drawn ? ring.ringItem.children[0].border.width : -1
-    property real innerInset: drawn ? ring.ringItem.children[1].x : -1
+    property real drawnStrokeWidth: drawn ? ring.ringItem.children[0].border.width : -1
+    property int drawnStrokeCount: drawn ? ring.ringItem.children.length : 0
     property color themeAccentColor: Enums.accentColor
-    property color themeForegroundColor: Enums.foregroundColor
-    property color focusInnerColor: ring.innerColor
-    property color focusOuterColor: ring.outerColor
-    property color drawnInnerColor: drawn
-        ? ring.ringItem.children[1].border.color : Enums.transparent
-    property color drawnOuterColor: drawn
+    property color focusRingColor: ring.ringColor
+    property color drawnRingColor: drawn
         ? ring.ringItem.children[0].border.color : Enums.transparent
 }
 """,
@@ -181,17 +173,10 @@ Window {
             QCoreApplication.processEvents()
         assert instance.property("themeAccentColor").name() == "#fb923c"
         expected_accent = instance.property("themeAccentColor")
-        assert instance.property("focusInnerColor") == expected_accent
-        assert instance.property("drawnInnerColor") == expected_accent
-        expected_outline = instance.property("themeForegroundColor")
-        assert instance.property("focusOuterColor") == expected_outline
-        assert instance.property("drawnOuterColor") == expected_outline
-
-        outer_width = instance.property("outerStroke")
-        assert outer_width > 0
-        # The inner stroke is inset by the outer stroke plus the configured gap.
-        # 内圈内缩量为外圈粗细加配置间隔。
-        assert instance.property("innerInset") == ring.property("inset") + outer_width
+        assert instance.property("focusRingColor") == expected_accent
+        assert instance.property("drawnRingColor") == expected_accent
+        assert instance.property("drawnStrokeCount") == 1
+        assert instance.property("drawnStrokeWidth") == ring.property("ringWidth")
     finally:
         from PySide6.QtCore import QCoreApplication, QEvent
 

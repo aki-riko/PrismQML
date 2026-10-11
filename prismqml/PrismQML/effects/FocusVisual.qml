@@ -6,7 +6,7 @@ import QtQuick
 import ".."
 
 // FocusVisual - Fluent focus ring Fluent 焦点视觉环
-// Draw a Fluent double ring around an item that owns active focus.
+// Draw one theme-accent outline around an item that owns active focus.
 // It resolves its own visibility from the item it outlines, so adopting it is one
 // declaration and never a hand-written focus binding.
 // 自行从被描边的项目解析可见性，因此采用它只需一行声明，不必手写焦点绑定。
@@ -25,24 +25,13 @@ Item {
     // ==================== Public Props 公开属性 ====================
     // Corner radius of the ring; follow the surface it outlines. 环的圆角, 跟随被描边表面。
     property real radius: Enums.radius.small
-    // Gap between the ring and the surface edge. 环与表面边缘之间的间隔。
-    property int inset: 1
-    // Inner stroke follows the active theme accent like other focus indicators.
-    // 内圈跟随当前主题强调色，与其他焦点提示保持一致。
-    property color innerColor: Enums.accentColor
-    // Outer stroke uses the theme foreground to keep a clear contrast outline.
-    // 外圈使用主题前景色，维持清晰的高对比轮廓。
-    property color outerColor: Enums.foregroundColor
+    // Focus outline follows the active theme accent. 焦点轮廓跟随当前主题强调色。
+    property color ringColor: Enums.accentColor
     // Item whose active focus the ring tracks. Defaults to the parent.
     // 环所跟踪 activeFocus 的项目，默认为父级。
     property Item focusSource: parent
-    // Ring thickness reuses the existing border tokens so the ring matches every
-    // other stroke in the design system instead of inventing parallel metrics.
-    // 环的粗细复用既有描边令牌，使焦点环与设计系统其余描边一致，而非另造一套度量。
-    readonly property real innerWidth: Enums.border.normal
-    readonly property real outerWidth: Enums.border.thin
-    // Total width the ring occupies inside its bounds. 环在其边界内占用的总宽度。
-    readonly property real ringExtent: innerWidth + outerWidth
+    // Reuse the shared border width token. 复用全局描边粗细令牌。
+    readonly property real ringWidth: Enums.border.normal
 
     // ==================== Readonly State 只读状态 ====================
     // The ring follows the focus state owned by the source item. Input modality
@@ -78,25 +67,12 @@ Item {
         id: ringComponent
 
         Item {
-            // Outer stroke sits flush with the surface edge. 外圈贴合表面边缘。
             Rectangle {
                 anchors.fill: parent
                 radius: Math.max(0, control.radius)
                 color: Enums.transparent
-                border.color: control.outerColor
-                border.width: control.outerWidth
-                antialiasing: true
-            }
-
-            // Inner stroke is inset so the two strokes never overlap.
-            // 内圈内缩, 两圈不重叠。
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: control.inset + control.outerWidth
-                radius: Math.max(0, control.radius - control.inset - control.outerWidth)
-                color: Enums.transparent
-                border.color: control.innerColor
-                border.width: control.innerWidth
+                border.color: control.ringColor
+                border.width: control.ringWidth
                 antialiasing: true
             }
         }
