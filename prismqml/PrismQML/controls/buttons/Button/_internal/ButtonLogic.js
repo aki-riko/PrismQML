@@ -147,7 +147,9 @@ function effectiveIconColor(control) {
 }
 
 function effectiveBgColor(control, stateColor) {
-    if (!control._styleEffectiveEnabled) return stateColor.controlBgTransparent
+    // Disabled, loading, and countdown states keep the style-specific face. 禁用、加载和倒计时状态保留样式专属面色。
+    // Transparent styles already resolve to a transparent face, while solid styles must not expose only their shadow. 透明样式本身会解析为透明面色，实心样式不能只显示阴影。
+    if (!control._styleEffectiveEnabled) return control._styleBgColor
     if (control.pressed) {
         return hasPressedBgOverride(control) ? control.pressedBgColor
                                              : control._animatedBgColor

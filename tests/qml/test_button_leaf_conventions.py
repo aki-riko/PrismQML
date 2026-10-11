@@ -427,6 +427,24 @@ def test_button_leaf_runtime_defaults_remain_stable(button_leaf_scene):
     assert _new_visible_windows(windows_before) == []
 
 
+def test_disabled_button_keeps_style_surface_and_content(button_leaf_scene):
+    """Disabled solid buttons keep their face and readable content. 禁用实心按钮保留面色和可读内容。"""
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "contentButton")
+    assert button is not None
+    content = _button_content(button)
+    content_text = _button_content_text(content)
+
+    button.setProperty("enabled", False)
+    _pump(20)
+
+    assert button.property("_effectiveBgColor") == button.property("_styleBgColor")
+    assert button.property("_effectiveBgColor").alpha() > 0
+    assert content_text.property("text") == "Ready"
+    assert content_text.property("visible")
+    assert _new_visible_windows(windows_before) == []
+
+
 def test_close_style_button_honours_colour_and_focus_overrides(button_leaf_scene):
     """The override entry point reproduces the removed CloseButton contract.
 
