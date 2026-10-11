@@ -49,6 +49,7 @@ Item {
     property int maxSuggestions: 5
     property bool sectionHeaders: true   // Group results by entry.section 按 entry.section 分组显示标题
     property bool highlightMatches: true
+    property color highlightColor: Enums.accentColor  // Highlight color for matched text 命中文本高亮色
     property string emptyText: ''  // Defaults to i18n key 默认走 i18n no_results
 
     // Async suggestions 异步建议源
@@ -252,7 +253,6 @@ Item {
         anchors.fill: parent
         inputType: Enums.input.type_search
         placeholderText: control.placeholderText
-        clearButtonEnabled: true
 
         onTextEdited: function(text) {
             control._handleQueryEdited(text)
@@ -317,6 +317,7 @@ Item {
             maxSuggestions: control.maxSuggestions
             sectionHeaders: control.sectionHeaders
             highlightMatches: control.highlightMatches
+            highlightColor: control.highlightColor
             emptyText: {
                 Translator._v
                 return control.emptyText || Translator.tr('no_results')
