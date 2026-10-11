@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
-"""Waterfall and Separator runtime contracts. Waterfall 与 Separator 运行时合同。"""
+"""Separator runtime contracts. Separator 运行时合同。"""
 
 from pathlib import Path, PurePosixPath
 
@@ -18,7 +18,6 @@ from scripts.qml_conventions import scan_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATHS = (
-    ROOT / "prismqml" / "PrismQML" / "controls" / "containers" / "Waterfall.qml",
     ROOT
     / "prismqml"
     / "PrismQML"
@@ -39,31 +38,9 @@ Window {
     id: root
     objectName: "window"
 
-    readonly property real waterfallHeight: waterfall.contentHeight
-
     width: 640
     height: 360
     visible: true
-
-    Component {
-        id: waterfallDelegate
-        Rectangle {
-            width: parent ? parent.width : 0
-            height: modelData
-        }
-    }
-
-    Waterfall {
-        id: waterfall
-        objectName: "waterfall"
-        x: 20
-        y: 20
-        width: 220
-        columns: 2
-        spacing: 10
-        model: [50, 80, 40, 70]
-        delegate: waterfallDelegate
-    }
 
     Separator {
         id: horizontal
@@ -103,16 +80,6 @@ def _pump(milliseconds: int = 30) -> None:
     loop.exec()
 
 
-def _wait_for(predicate, timeout_ms: int = 1000) -> bool:
-    elapsed = 0
-    while elapsed < timeout_ms:
-        if predicate():
-            return True
-        _pump()
-        elapsed += 30
-    return predicate()
-
-
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -121,14 +88,6 @@ def _new_visible_windows(windows_before, *allowed):
         and not any(window is existing for existing in windows_before)
         and not any(window is accepted for accepted in allowed)
     ]
-
-
-def _visual_items(item):
-    result = []
-    for child in item.childItems():
-        result.append(child)
-        result.extend(_visual_items(child))
-    return result
 
 
 def _create_scene():
@@ -149,7 +108,6 @@ def _create_scene():
     items = {
         name: window.findChild(QQuickItem, name)
         for name in (
-            "waterfall",
             "horizontalSeparator",
             "verticalSeparator",
             "autoHorizontalSeparator",
@@ -182,90 +140,6 @@ def leaf_scene(qapp):
     finally:
         _dispose_scene(scene[0], scene[1], scene[2])
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
-
-
-def test_waterfall_places_items_in_shortest_columns(leaf_scene):
-    window, items, warnings, windows_before = leaf_scene
-    waterfall = items["waterfall"]
-    assert _wait_for(
-        lambda: len(
-            [
-                item
-                for item in _visual_items(waterfall)
-                if item.property("itemIndex") is not None
-            ]
-        )
-        == 4
-    )
-    loaders = sorted(
-        (
-            item
-            for item in _visual_items(waterfall)
-            if item.property("itemIndex") is not None
-        ),
-        key=lambda item: item.property("itemIndex"),
-    )
-    assert [loader.width() for loader in loaders] == pytest.approx([105] * 4)
-    assert [loader.x() for loader in loaders] == pytest.approx([0, 115, 0, 115]), (
-        [loader.property("targetColumn") for loader in loaders],
-        [loader.y() for loader in loaders],
-        waterfall.property("columnHeights"),
-        window.property("waterfallHeight"),
-    )
-    assert [loader.y() for loader in loaders] == pytest.approx([0, 0, 60, 90])
-    assert window.property("waterfallHeight") == pytest.approx(170)
-
-    waterfall.setWidth(320)
-    assert _wait_for(lambda: loaders[0].width() == pytest.approx(155))
-    assert [loader.x() for loader in loaders] == pytest.approx([0, 165, 0, 165])
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
-
-
-def test_waterfall_zero_columns_use_one_finite_column(leaf_scene):
-    window, items, warnings, windows_before = leaf_scene
-    waterfall = items["waterfall"]
-    waterfall.setProperty("columns", 0)
-    waterfall.setProperty("model", [52])
-    assert _wait_for(lambda: waterfall.property("_safeColumns") == 1)
-    assert _wait_for(
-        lambda: waterfall.property("contentHeight") == pytest.approx(62)
-    )
-    loaders = [
-        item
-        for item in _visual_items(waterfall)
-        if item.property("itemIndex") is not None
-    ]
-    assert len(loaders) == 1
-    assert loaders[0].x() == pytest.approx(0)
-    assert loaders[0].width() == pytest.approx(220)
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
-
-
-def test_waterfall_coalesces_bulk_loader_relayout(leaf_scene):
-    window, items, warnings, windows_before = leaf_scene
-    waterfall = items["waterfall"]
-    relayouts_before = waterfall.property("_relayoutCount")
-
-    waterfall.setProperty("model", [40 + index % 5 * 10 for index in range(100)])
-    assert _wait_for(
-        lambda: len(
-            [
-                item
-                for item in _visual_items(waterfall)
-                if item.property("itemIndex") is not None
-            ]
-        )
-        == 100
-    )
-    assert _wait_for(lambda: waterfall.property("_relayoutCount") > relayouts_before)
-    _pump(100)
-
-    assert waterfall.property("_relayoutCount") - relayouts_before <= 3
-    assert waterfall.property("contentHeight") > 0
-    assert warnings == []
-    assert _new_visible_windows(windows_before, window) == []
 
 
 def test_separator_fixed_and_auto_geometry(leaf_scene):

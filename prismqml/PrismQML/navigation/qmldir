@@ -12,8 +12,6 @@ ToolBar ToolBar.qml
 
 # Ribbon 功能区
 AppBarButton AppBarButton.qml
-AppBarSeparator AppBarSeparator.qml
-AppBarToggleButton AppBarToggleButton.qml
 RibbonBar RibbonBar.qml
 RibbonGroup RibbonGroup.qml
 RibbonTab RibbonTab.qml

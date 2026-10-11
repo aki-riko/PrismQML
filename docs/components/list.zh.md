@@ -20,7 +20,7 @@
 
 ## 容器
 
-`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
+`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Widget`
 
 ## 数据展示
 

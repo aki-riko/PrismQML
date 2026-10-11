@@ -370,38 +370,6 @@ Item {
                 }
             }
 
-            // ==================== Waterfall 瀑布流 ====================
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_9bd9267fe426ea05", Fluent.Translator._v)
-                description: "columns / spacing / model / delegate"
-                ComponentCard {
-                    label: Fluent.Translator.tr("gallery_fce5b87c0d1f98cd", Fluent.Translator._v)
-                    Item {
-                        width: 360
-                        height: 200
-
-                        Component {
-                            id: waterfallDelegate
-
-                            Rectangle {
-                                height: parent ? 40 + parent.itemIndex % 5 * 14 : 0
-                                color: Fluent.Enums.accentColor
-                                opacity: 0.35
-                                radius: Fluent.Enums.radius.small
-                            }
-                        }
-
-                        Waterfall {
-                            anchors.fill: parent
-                            columns: 3
-                            spacing: Fluent.Enums.spacing.m
-                            model: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                            delegate: waterfallDelegate
-                        }
-                    }
-                }
-            }
-
             // ==================== RowFit 自适应行 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_74bd5d7c9b3fdd5d", Fluent.Translator._v)

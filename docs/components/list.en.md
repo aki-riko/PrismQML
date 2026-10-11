@@ -20,7 +20,7 @@ A quick index of every QML type registered by the root module (including 6 singl
 
 ## Containers
 
-`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Waterfall` · `Widget`
+`Card` · `CommandBar` · `ComponentCard` · `Drawer` · `DropZone` · `ExampleCard` · `Expander` · `ExpanderCore` · `FlowLayout` · `GridLayout` · `GroupBox` · `HBoxLayout` · `RowFit` · `ScrollArea` · `ScrollBar` · `ScrollBarEntry` · `Separator` · `SkinScope` · `SplitPane` · `Timeline` · `TimelineCore` · `VBoxLayout` · `Widget`
 
 ## Data
 

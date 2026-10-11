@@ -16,7 +16,7 @@ ExampleCard {
     id: showcase
 
     title: Fluent.Translator.tr("gallery_06f15683ddc4c17a", Fluent.Translator._v)
-    description: "RibbonTab / RibbonGroup / AppBarButton / AppBarToggleButton / AppBarSeparator"
+    description: "RibbonTab / RibbonGroup / AppBarButton"
 
     Column {
         width: parent ? parent.width : 0
@@ -42,12 +42,11 @@ ExampleCard {
                         ]
                     }
 
-                    AppBarToggleButton {
+                    AppBarButton {
+                        checkable: true
                         text: Fluent.Translator.tr("gallery_5ceac65ed8ee2ca6", Fluent.Translator._v)
                         icon: Fluent.Enums.icon.text_bold
                     }
-
-                    AppBarSeparator { }
                 }
 
                 RibbonGroup {

@@ -51,7 +51,6 @@ ComponentCard controls/containers/ComponentCard.qml
 DropZone controls/containers/DropZone.qml
 Timeline controls/containers/Timeline.qml
 TimelineCore controls/containers/TimelineCore.qml
-Waterfall controls/containers/Waterfall.qml
 
 # Card 卡片
 Card controls/containers/Card/Card.qml
@@ -138,8 +137,6 @@ RibbonBar navigation/RibbonBar.qml
 RibbonTab navigation/RibbonTab.qml
 RibbonGroup navigation/RibbonGroup.qml
 AppBarButton navigation/AppBarButton.qml
-AppBarToggleButton navigation/AppBarToggleButton.qml
-AppBarSeparator navigation/AppBarSeparator.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml
@@ -253,9 +250,6 @@ MarkdownView controls/chat/MarkdownView.qml
 
 # ==================== Utils 工具 ====================
 singleton PopupUtils controls/utils/PopupUtils.qml
-singleton HeavyComponentScheduler controls/utils/HeavyComponentScheduler.qml
-singleton SurfaceActivationScheduler controls/utils/SurfaceActivationScheduler.qml
-HeavyComponentSlot controls/utils/HeavyComponentSlot.qml
 PopupWindowCore controls/utils/PopupWindowCore.qml
 ViewportMixin controls/utils/ViewportMixin.qml
 ViewportCulling controls/utils/ViewportCulling.qml

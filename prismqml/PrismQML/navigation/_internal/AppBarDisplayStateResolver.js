@@ -4,9 +4,9 @@
 // This file is part of PrismQML, licensed under MIT.
 // 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 
-// Pure helper shared by RibbonBar, RibbonGroup, RibbonTab, AppBarButton and
-// AppBarSeparator; it holds no state and never writes a host property.
-// 供功能区、功能分组、标签页、应用栏按钮与应用栏分隔线共用的纯辅助模块；
+// Pure helper shared by RibbonBar, RibbonGroup, RibbonTab and AppBarButton;
+// it holds no state and never writes a host property.
+// 供功能区、功能分组、标签页与应用栏按钮共用的纯辅助模块；
 // 不持有状态，也不写宿主属性。
 
 .pragma library

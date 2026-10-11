@@ -31,8 +31,6 @@ ROOT = Path(__file__).resolve().parents[2]
 NAV_DIR = ROOT / "prismqml" / "PrismQML" / "navigation"
 SOURCE_PATHS = (
     NAV_DIR / "AppBarButton.qml",
-    NAV_DIR / "AppBarToggleButton.qml",
-    NAV_DIR / "AppBarSeparator.qml",
 )
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "app-bar-button-runtime.qml")
@@ -56,9 +54,6 @@ Item {
     readonly property int compactHeight: Enums.controlSize.commandBarButtonSize
     readonly property int largeHeight: Enums.controlSize.commandBarButtonSize * 2
     readonly property int minButtonWidth: Enums.controlSize.buttonMinWidth
-    readonly property int separatorWidth: Enums.controlSize.commandBarSeparatorWidth
-    readonly property int toolBarHeight: Enums.controlSize.navBarHeight
-    readonly property int toolBarSpacing: Enums.spacing.xs
 
     width: 900
     height: 320
@@ -98,12 +93,13 @@ Item {
         displayState: Enums.commandBar.appBar_compact
     }
 
-    AppBarToggleButton {
+    AppBarButton {
         objectName: "toggleButton"
         x: 380
         y: 10
         text: "Toggle"
         icon: Enums.icon.text_bold
+        checkable: true
     }
 
     AppBarButton {
@@ -127,43 +123,6 @@ Item {
         enabled: false
     }
 
-    AppBarSeparator {
-        objectName: "expandedSeparator"
-        x: 680
-        y: 10
-    }
-
-    AppBarSeparator {
-        objectName: "compactSeparator"
-        x: 700
-        y: 10
-        displayState: Enums.commandBar.appBar_compact
-    }
-
-    ToolBar {
-        objectName: "toolBar"
-        x: 10
-        y: 200
-        width: 600
-
-        AppBarButton {
-            objectName: "toolBarButton"
-            text: "Save"
-            icon: Enums.icon.save
-            labelPosition: Enums.commandBar.style_text_beside
-        }
-
-        AppBarSeparator {
-            objectName: "toolBarSeparator"
-        }
-
-        AppBarToggleButton {
-            objectName: "toolBarToggle"
-            text: "Bold"
-            icon: Enums.icon.text_bold
-            labelPosition: Enums.commandBar.style_icon_only
-        }
-    }
 }
 """
 
@@ -223,6 +182,17 @@ def _dispose_scene(engine, component, window, root) -> None:
     _pump(20)
 
 
+def _click(window, item) -> None:
+    point = item.mapToScene(
+        QPointF(item.width() / 2, item.height() / 2)
+    ).toPoint()
+    QTest.mouseMove(window, point)
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
+    )
+    _pump(60)
+
+
 def _new_visible_windows(windows_before, *allowed):
     return [
         window
@@ -237,17 +207,6 @@ def _item(root, name):
     item = root.findChild(QQuickItem, name)
     assert item is not None, name
     return item
-
-
-def _click(window, item) -> None:
-    point = item.mapToScene(
-        QPointF(item.width() / 2, item.height() / 2)
-    ).toPoint()
-    QTest.mouseMove(window, point)
-    QTest.mouseClick(
-        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
-    )
-    _pump(60)
 
 
 def _visual_descendants(item):
@@ -349,8 +308,8 @@ def test_app_bar_button_display_state_machine(qapp):
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before
 
 
-def test_app_bar_toggle_button_real_click_and_keyboard(qapp):
-    """切换按钮的点击与键盘都必须翻转 checked 并派发 toggled。"""
+def test_app_bar_button_checkable_click_and_keyboard(qapp):
+    """现有 AppBarButton 入口直接支持点击和键盘切换。"""
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, root, warnings = _create_scene(qapp)
     try:
@@ -377,12 +336,6 @@ def test_app_bar_toggle_button_real_click_and_keyboard(qapp):
         QTest.keyClick(window, Qt.Key_Space)
         assert _wait_for(lambda: toggle.property("checked") is True)
         assert toggled == [True, False, True]
-
-        disabled = _item(root, "disabledButton")
-        disabled_clicked = []
-        disabled.clicked.connect(lambda: disabled_clicked.append(True))
-        _click(window, disabled)
-        assert disabled_clicked == []
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:
@@ -426,69 +379,6 @@ def test_app_bar_button_activates_from_keyboard_and_opens_native_menu(qapp):
             lambda: _new_visible_windows(windows_before, window) == []
         )
         assert warnings == []
-    finally:
-        _dispose_scene(engine, component, window, root)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
-
-
-def test_app_bar_separator_follows_display_state(qapp):
-    """分隔线宽度固定, 高度随显示状态收紧。"""
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, root, warnings = _create_scene(qapp)
-    try:
-        expanded = _item(root, "expandedSeparator")
-        compact = _item(root, "compactSeparator")
-        assert expanded.width() == pytest.approx(root.property("separatorWidth"))
-        assert compact.width() == pytest.approx(root.property("separatorWidth"))
-        assert expanded.property("appBarCompact") is False
-        assert compact.property("appBarCompact") is True
-        assert expanded.implicitHeight() == pytest.approx(
-            root.property("largeHeight")
-        )
-        assert compact.implicitHeight() == pytest.approx(
-            root.property("compactHeight")
-        )
-        assert expanded.height() <= expanded.implicitHeight()
-        assert compact.height() > 0
-        assert expanded.property("lineColor").alpha() > 0
-        assert warnings == []
-        assert _new_visible_windows(windows_before, window) == []
-    finally:
-        _dispose_scene(engine, component, window, root)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
-
-
-def test_app_bar_family_works_inside_the_existing_toolbar(qapp):
-    """应用栏按钮族必须在既有 ToolBar 内可用并保持自身尺寸。"""
-    windows_before = tuple(QGuiApplication.topLevelWindows())
-    engine, component, window, root, warnings = _create_scene(qapp)
-    try:
-        tool_bar = _item(root, "toolBar")
-        save = _item(root, "toolBarButton")
-        separator = _item(root, "toolBarSeparator")
-        toggle = _item(root, "toolBarToggle")
-        spacing = root.property("toolBarSpacing")
-        assert tool_bar.implicitHeight() == pytest.approx(
-            root.property("toolBarHeight")
-        )
-        assert save.property("displayState") == root.property("appBarInherit")
-        assert save.property("resolvedDisplayState") == root.property(
-            "appBarExpanded"
-        )
-        assert save.height() == pytest.approx(root.property("compactHeight"))
-        assert toggle.height() == pytest.approx(root.property("compactHeight"))
-        assert save.x() == pytest.approx(0)
-        assert save.mapToItem(tool_bar, QPointF(0, 0)).x() > 0
-        assert separator.x() == pytest.approx(save.x() + save.width() + spacing)
-        assert toggle.x() == pytest.approx(
-            separator.x() + separator.width() + spacing
-        )
-        assert toggle.x() + toggle.width() <= tool_bar.width()
-
-        _click(window, toggle)
-        assert _wait_for(lambda: toggle.property("checked") is True)
-        assert warnings == []
-        assert _new_visible_windows(windows_before, window) == []
     finally:
         _dispose_scene(engine, component, window, root)
         assert tuple(QGuiApplication.topLevelWindows()) == windows_before

@@ -227,7 +227,6 @@ Item {
     SettingsCard { id: _settingCard }
     Auth { id: _auth }
     IndicatorBar { id: _indicatorBar }
-    Media { id: _media }
     Accessibility { id: _accessibility }
 
     // ==================== Module Aliases 模块别名 ====================
@@ -275,7 +274,6 @@ Item {
     readonly property alias settingCard: _settingCard
     readonly property alias auth: _auth
     readonly property alias indicatorBar: _indicatorBar
-    readonly property alias media: _media
     // Icon Enums Icon枚举
     // QML usage: Enums.icon.chevron_up (snake_case) QML侧使用: Enums.icon.chevron_up (小写下划线)
     // Python usage: Icon.CHEVRON_UP (UPPER_SNAKE_CASE) Python侧使用: Icon.CHEVRON_UP (大写下划线)

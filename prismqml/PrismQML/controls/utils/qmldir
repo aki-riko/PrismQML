@@ -1,8 +1,5 @@
 module utils
 singleton PopupUtils PopupUtils.qml
-singleton HeavyComponentScheduler HeavyComponentScheduler.qml
-singleton SurfaceActivationScheduler SurfaceActivationScheduler.qml
-HeavyComponentSlot HeavyComponentSlot.qml
 PopupWindowCore PopupWindowCore.qml
 ViewportMixin ViewportMixin.qml
 ViewportCulling ViewportCulling.qml

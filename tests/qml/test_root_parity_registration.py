@@ -30,8 +30,6 @@ REQUIRED_ROOT_TYPES = (
     "RibbonTab",
     "RibbonGroup",
     "AppBarButton",
-    "AppBarToggleButton",
-    "AppBarSeparator",
     "FocusVisual",
     "AccessibilityHelper",
 )

@@ -10,7 +10,6 @@ ComponentCard ComponentCard.qml
 DropZone DropZone.qml
 Timeline Timeline.qml
 TimelineCore TimelineCore.qml
-Waterfall Waterfall.qml
 
 # Card 卡片
 Card Card/Card.qml

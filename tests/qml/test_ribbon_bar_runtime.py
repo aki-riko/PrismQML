@@ -92,8 +92,9 @@ Item {
                     ]
                 }
 
-                AppBarToggleButton {
+                AppBarButton {
                     objectName: "boldToggle"
+                    checkable: true
                     text: "Bold"
                     icon: Enums.icon.text_bold
                 }
@@ -105,9 +106,6 @@ Item {
                     displayState: Enums.commandBar.appBar_sticky
                 }
 
-                AppBarSeparator {
-                    objectName: "clipboardSeparator"
-                }
             }
 
             RibbonGroup {
@@ -329,14 +327,10 @@ def test_ribbon_bar_tab_strip_and_group_geometry(qapp):
         paste = _item(root, "pasteButton")
         bold = _item(root, "boldToggle")
         sticky = _item(root, "stickyButton")
-        separator = _item(root, "clipboardSeparator")
         spacing = root.property("groupSpacing")
         assert paste.x() == pytest.approx(0)
         assert bold.x() == pytest.approx(paste.x() + paste.width() + spacing)
         assert sticky.x() == pytest.approx(bold.x() + bold.width() + spacing)
-        assert separator.x() == pytest.approx(
-            sticky.x() + sticky.width() + spacing
-        )
         assert paste.height() == pytest.approx(root.property("largeHeight"))
         assert bold.height() == pytest.approx(root.property("largeHeight"))
 
