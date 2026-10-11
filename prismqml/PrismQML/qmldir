@@ -113,12 +113,6 @@ AudioWaveform controls/data/AudioWaveform.qml
 ChartView controls/data/Chart/ChartView.qml
 ChartDataZoom controls/data/Chart/ChartDataZoom.qml
 IndicatorBar controls/data/IndicatorBar.qml
-ItemsRepeater controls/data/List/ItemsRepeater.qml
-ItemsView controls/data/List/ItemsView.qml
-StandardUICommand controls/data/List/StandardUICommand.qml
-ItemsRepeaterLayout controls/data/List/_internal/ItemsRepeaterLayout.qml
-ItemsStackLayout controls/data/List/_internal/ItemsStackLayout.qml
-ItemsUniformGridLayout controls/data/List/_internal/ItemsUniformGridLayout.qml
 
 # ==================== Navigation 导航 ====================
 # controls/navigation
