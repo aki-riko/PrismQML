@@ -205,14 +205,15 @@ def test_icon_gallery_leads_the_grid_with_every_leaf_component(icon_gallery):
 
     left_scene = left.mapToScene(QPointF(0, 0))
     panel_scene = panel.mapToScene(QPointF(0, 0))
+    grid_scene = grid.mapToScene(QPointF(0, 0))
     for cell in leaves:
         cell_scene = cell.mapToScene(QPointF(0, 0))
         assert cell_scene.x() >= left_scene.x() - 0.5
         assert cell_scene.x() + cell.width() <= left_scene.x() + left.width() + 0.5
         assert cell_scene.x() + cell.width() <= panel_scene.x()
         # Inside the grid viewport, not floating above it. 位于网格视口内, 不悬浮在网格之上。
-        assert cell_scene.y() >= grid.mapToScene(QPointF(0, 0)).y() - 0.5
-        assert cell_scene.y() + cell.height() <= grid.height() + 0.5
+        assert cell_scene.y() >= grid_scene.y() - 0.5
+        assert cell_scene.y() + cell.height() <= grid_scene.y() + grid.height() + 0.5
 
     assert warnings == []
 

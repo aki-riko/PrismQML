@@ -13,13 +13,15 @@ Item {
     property var allIcons: []
     property string searchText: ""
     property string selectedIcon: Fluent.Enums.icon.calendar  // Default selected icon 默认选中
-    // Leaf icon components led by the grid cells 由网格最前面单元格承载的图标叶子组件
-    readonly property var leafComponentNames: [
-        "CheckIcon",
-        "ChevronIcon",
-        "ChevronIcon (open)",
-        "CloseIcon"
-    ]
+    // Leaf icon components led by the grid cells: name to glyph, single source of truth
+    // 由网格最前面单元格承载的图标叶子组件: 名称到图形的唯一数据源
+    readonly property var leafGlyphs: ({
+        "CheckIcon": checkIconGlyph,
+        "ChevronIcon": chevronIconGlyph,
+        "ChevronIcon (open)": chevronOpenGlyph,
+        "CloseIcon": closeIconGlyph
+    })
+    readonly property var leafComponentNames: Object.keys(leafGlyphs)
 
     Component.onCompleted: { allIcons = getIconList() }
 
@@ -38,15 +40,6 @@ Item {
     function toEnumName(name) {
         // CamelCase to UPPER_SNAKE_CASE
         return name.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '')
-    }
-
-    // Leaf glyph for a grid cell name, null for enum icons 单元格名称对应的叶子图形, 枚举图标返回 null
-    function leafGlyphFor(name) {
-        if (name === "CheckIcon") return checkIconGlyph
-        if (name === "ChevronIcon") return chevronIconGlyph
-        if (name === "ChevronIcon (open)") return chevronOpenGlyph
-        if (name === "CloseIcon") return closeIconGlyph
-        return null
     }
 
     // Leaf components lead the grid, enum icons follow; search filters both
@@ -106,7 +99,7 @@ Item {
                 delegate: Card {
                     id: gridCard
 
-                    readonly property bool leafComponent: root.leafGlyphFor(modelData) !== null
+                    readonly property bool leafComponent: root.leafGlyphs[modelData] !== undefined
 
                     objectName: gridCard.leafComponent ? "leafComponentCell" : ""
                     cardType: Fluent.Enums.card.type_elevated
@@ -141,7 +134,7 @@ Item {
 
                             Loader {
                                 anchors.centerIn: parent
-                                sourceComponent: gridCard.leafComponent ? root.leafGlyphFor(modelData) : null
+                                sourceComponent: gridCard.leafComponent ? root.leafGlyphs[modelData] : null
                             }
                         }
 
