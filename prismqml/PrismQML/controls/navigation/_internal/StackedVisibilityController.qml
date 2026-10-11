@@ -21,6 +21,7 @@ Item {
 
         if (!host.animationEnabled || host.animationType === Enums.animation.none) {
             updateVisibility(newIndex)
+            host.dynamicController.trimPendingPages()
             host.currentChanged(newIndex)
             return
         }

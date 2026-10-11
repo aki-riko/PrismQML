@@ -89,10 +89,16 @@ def test_retention_radius_releases_far_source_pages_and_reloads_on_return(qapp, 
         assert _evaluate(stack, "_isPageLoaded(0)") is False
         assert _evaluate(stack, "_loaders[0].item") is None
 
+        stack.setProperty(
+            "pageProperties",
+            [{"marker": 99}, {}, {}, {}],
+        )
+
         stack.setProperty("currentIndex", 0)
         _pump(300)
         assert _evaluate(stack, "_isPageLoaded(0)") is True
         assert _evaluate(stack, "_loaders[0].item.objectName") == "retention-page-0"
+        assert _evaluate(stack, "_loaders[0].item.marker") == 99
     finally:
         root.deleteLater()
         component.deleteLater()
