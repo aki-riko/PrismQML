@@ -135,5 +135,6 @@ Item {
                 child.opacity = j === newIndex ? 1 : 0
             }
         }
+        host._syncPageActivity(newIndex)
     }
 }

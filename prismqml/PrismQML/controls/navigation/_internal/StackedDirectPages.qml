@@ -33,6 +33,7 @@ Item {
             child.scale = 1
             child.transformOrigin = Item.Center
         }
+        host._syncPageActivity(host._displayIndex)
         host.profileTime("stackLayout Component.onCompleted done")
     }
 }

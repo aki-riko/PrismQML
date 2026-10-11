@@ -154,6 +154,7 @@ Item {
                 _loadOnce = true
                 sourceLoader._loadedSourceText = sourceLoader.source.toString()
                 sourceContainer.host.pageLoaded(index)
+                sourceContainer.host._syncPageActivity(sourceContainer.host._displayIndex)
                 sourceContainer.host.profileTime("sourceLoader onLoaded index=" + index)
                 sourceContainer.host._traceLazyStage(
                     "stacked.source_loader.loaded.done", index, "", sourceLoader)

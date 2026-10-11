@@ -274,6 +274,7 @@ Item {
         visibilityController.updateVisibility(newIndex)
     }
 
+    function _syncPageActivity(activeIndex) { pageActivityController.sync(activeIndex) }
     function getCurrentIndex() {
         return currentIndex
     }
@@ -398,11 +399,11 @@ Item {
         cardOpacity: control.cardOpacity
         onAnimationFinished: (idx) => {
             dynamicController.trimPendingPages()
+            control._syncPageActivity(idx)
             control.currentChanged(idx)
             control.animationFinished()
         }
     }
-
     EagerLoadingHelper {
         id: eagerActivationHelper
 
@@ -428,6 +429,7 @@ Item {
         id: directPages
         host: control
     }
+    StackedPageActivityController { id: pageActivityController; host: control; directContainer: directPages }
     StackedSourcePages {
         id: sourcePages
         anchors.fill: parent
@@ -444,7 +446,6 @@ Item {
         id: pageApi
         host: control
     }
-    
     // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器
     StackedLazyHelperLoader {
         id: lazyHelperLoader
