@@ -55,6 +55,8 @@ Item {
     LoginWindow {
         id: loginWindowDemo
 
+        anchors.fill: parent
+        z: Fluent.Enums.zIndex.modal
         visible: false
         onLoginRequested: function(username, password, rememberMe) { loginWindowDemo.visible = false }
         onRegisterRequested: function(username, email, password) { loginWindowDemo.visible = false }

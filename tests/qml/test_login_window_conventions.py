@@ -6,6 +6,7 @@
 
 from pathlib import Path, PurePosixPath
 
+import pytest
 from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
@@ -17,6 +18,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -258,3 +260,49 @@ def test_login_window_source_conventions():
     assert (
         "onEntered: control._prewarmAlternateModeContent()" in content_source
     )
+
+
+def test_auth_gallery_login_window_fills_page_overlay(qapp):
+    """Gallery 的登录覆盖层必须继承页面几何, 不能落在 0x0 原点。"""
+    page_url = QUrl.fromLocalFile(str(ROOT / "examples" / "pages" / "AuthPage.qml"))
+    engine = QQmlApplicationEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine, page_url)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    page = component.create()
+    assert page is not None, [error.toString() for error in component.errors()]
+    page.setWidth(1600)
+    page.setHeight(1000)
+    QCoreApplication.processEvents()
+    login = next(
+        item
+        for item in page.findChildren(QQuickItem)
+        if item.metaObject().className().startswith("LoginWindow")
+    )
+    login.setProperty("visible", True)
+    QCoreApplication.processEvents()
+    try:
+        assert login.width() == pytest.approx(page.width())
+        assert login.height() == pytest.approx(page.height())
+        assert login.x() == pytest.approx(0)
+        assert login.y() == pytest.approx(0)
+        assert login.z() > 0
+        assert "z: Fluent.Enums.zIndex.modal" in (
+            ROOT / "examples" / "pages" / "AuthPage.qml"
+        ).read_text(encoding="utf-8")
+        assert warnings == []
+    finally:
+        page.deleteLater()
+        component.deleteLater()
+        engine.collectGarbage()
+        engine.clearComponentCache()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
