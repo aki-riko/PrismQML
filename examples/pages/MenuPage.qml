@@ -570,52 +570,6 @@ Item {
                 }
             }
 
-            // Command bar flyout 锚定命令浮出层
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_0dc33e8e3ca2cb79", Fluent.Translator._v)
-                description: "primaryCommands / secondaryCommands / show(target)"
-                ComponentCard {
-                    label: "anchored flyout"
-                    Button {
-                        id: commandBarFlyoutTarget
-                        text: Fluent.Translator.tr("gallery_ed403729634282fe", Fluent.Translator._v)
-                        onClicked: commandBarFlyoutDemo.show(commandBarFlyoutTarget)
-                    }
-                    CommandBarFlyout {
-                        id: commandBarFlyoutDemo
-                        primaryCommands: [
-                            { "text": "Cut", "icon": Fluent.Enums.icon.cut },
-                            { "text": "Copy", "icon": Fluent.Enums.icon.copy },
-                            { "text": "Paste", "icon": Fluent.Enums.icon.clipboard }
-                        ]
-                        secondaryCommands: [
-                            { "text": "Select all", "icon": Fluent.Enums.icon.select_all_on },
-                            { "text": "Undo", "icon": Fluent.Enums.icon.arrow_undo }
-                        ]
-                    }
-                }
-            }
-
-            // Radio menu rows 单选菜单行
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_f4c685fc9919052d", Fluent.Translator._v)
-                description: "radioGroup / exclusive (single-choice rows)"
-                ComponentCard {
-                    label: "right click for radio rows"
-                    Rectangle {
-                        width: 200; height: 55; radius: Fluent.Enums.radius.small
-                        color: Fluent.Enums.stateColor.controlBgHover
-                        border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.stateColor.border
-                        Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_ea35da1a8ffa8b0d", Fluent.Translator._v); color: Fluent.Enums.textColor.secondary }
-                        ContextMenu {
-                            RadioMenuFlyoutItem { actionId: "align-left"; text: Fluent.Translator.tr("gallery_2bd74486069f0a3e", Fluent.Translator._v); checked: true }
-                            RadioMenuFlyoutItem { actionId: "align-center"; text: Fluent.Translator.tr("gallery_4cc3885c182e419c", Fluent.Translator._v) }
-                            RadioMenuFlyoutItem { actionId: "align-right"; text: Fluent.Translator.tr("gallery_331c711e0660cc48", Fluent.Translator._v) }
-                        }
-                    }
-                }
-            }
-
             // System tray menu 托盘菜单
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_d7413200538cd4e9", Fluent.Translator._v)
