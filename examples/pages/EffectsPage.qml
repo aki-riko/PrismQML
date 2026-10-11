@@ -411,15 +411,32 @@ Item {
                 GalleryFlow {
                     ComponentCard {
                         label: Fluent.Translator.tr("gallery_e3fd227593a14aa7", Fluent.Translator._v)
-                        Item {
-                            width: 180; height: 72
-                            TicketPaper { anchors.fill: parent; patternOriginX: 12; patternOriginY: 8 }
-                            Text {
-                                anchors.centerIn: parent
-                                text: "TicketPaper"
-                                color: Enums.textColor.primary
-                                font.family: Enums.fontFamily
-                                font.pixelSize: Enums.typography.body
+                        SkinScope {
+                            id: ticketPaperScope
+                            width: 180
+                            height: 72
+                            skin: "vintage_ticket"
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: ticketPaperScope.context.cardColor
+                                border.width: ticketPaperScope.context.border.thin
+                                border.color: ticketPaperScope.context.borderColor
+
+                                TicketPaper {
+                                    objectName: "effectsTicketPaper"
+                                    anchors.fill: parent
+                                    patternOriginX: 12
+                                    patternOriginY: 8
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "TicketPaper"
+                                    color: ticketPaperScope.context.textColor.primary
+                                    font.family: ticketPaperScope.context.fontFamily
+                                    font.pixelSize: ticketPaperScope.context.typography.body
+                                }
                             }
                         }
                     }
@@ -478,7 +495,7 @@ Item {
 
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_dd83ba7958d4a07e", Fluent.Translator._v)
-                description: "keyboard focus ring (focusSource / radius / keyboardOnly)"
+                description: "focus ring (focusSource / radius)"
                 GalleryFlow {
                     ComponentCard {
                         label: Fluent.Translator.tr("gallery_4bd3a78e64b8f16f", Fluent.Translator._v)
@@ -490,12 +507,10 @@ Item {
                             border.width: Enums.border.thin
                             border.color: Enums.borderColor
                             activeFocusOnTab: true
-                            MouseArea { anchors.fill: parent; onClicked: focusVisualTarget.forceActiveFocus() }
                             FocusVisual {
                                 anchors.fill: parent
                                 radius: Enums.radius.small
                                 focusSource: focusVisualTarget
-                                keyboardOnly: false
                             }
                         }
                     }

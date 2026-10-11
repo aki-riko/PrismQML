@@ -5,13 +5,13 @@
 import QtQuick
 import ".."
 
-// FocusVisual - Fluent keyboard focus ring 键盘焦点视觉环
-// Draw a Fluent double ring so keyboard users can always see where focus sits.
+// FocusVisual - Fluent focus ring Fluent 焦点视觉环
+// Draw a Fluent double ring around an item that owns active focus.
 // It resolves its own visibility from the item it outlines, so adopting it is one
 // declaration and never a hand-written focus binding.
 // 自行从被描边的项目解析可见性，因此采用它只需一行声明，不必手写焦点绑定。
 //
-// The ring is created lazily: while the item has no keyboard focus the visual
+// The ring is created lazily: while the item has no active focus the visual
 // tree holds a single inactive Loader, so default appearances and object counts
 // stay unchanged.
 // 焦点环惰性创建：项目没有键盘焦点时视觉树里只有一个未激活的 Loader，
@@ -33,12 +33,9 @@ Item {
     // Outer stroke colour; defaults to the surface so the ring separates from it.
     // 外圈颜色; 默认取表面色, 使环与表面分离。
     property color outerColor: Enums.cardColor
-    // Item whose keyboard focus the ring tracks. Defaults to the parent.
-    // 环所跟踪键盘焦点的项目，默认为父级。
+    // Item whose active focus the ring tracks. Defaults to the parent.
+    // 环所跟踪 activeFocus 的项目，默认为父级。
     property Item focusSource: parent
-    // Mouse focus must not raise the ring: Fluent only reveals keyboard focus.
-    // 鼠标焦点不显示焦点环：Fluent 只揭示键盘焦点。
-    property bool keyboardOnly: true
     // Ring thickness reuses the existing border tokens so the ring matches every
     // other stroke in the design system instead of inventing parallel metrics.
     // 环的粗细复用既有描边令牌，使焦点环与设计系统其余描边一致，而非另造一套度量。
@@ -48,11 +45,15 @@ Item {
     readonly property real ringExtent: innerWidth + outerWidth
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool keyboardFocused: focusSource !== null
+    // The ring follows the focus state owned by the source item. Input modality
+    // is intentionally left to the focus owner because QQuickItem does not
+    // expose a reliable focus-reason property.
+    // 焦点环跟随宿主项目已有的焦点状态；输入方式交由宿主决定，因为 QQuickItem
+    // 没有可靠的焦点原因属性可供组件读取。
+    readonly property bool focused: focusSource !== null
         && focusSource !== undefined
         && focusSource.activeFocus === true
-        && (!keyboardOnly || focusSource.focusReason !== Qt.MouseFocusReason)
-    // The loaded ring, or null while the item has no keyboard focus. Consumers
+    // The loaded ring, or null while the item has no active focus. Consumers
     // and tests read this instead of walking the visual tree.
     // 已加载的焦点环；项目无键盘焦点时为 null。消费者与测试读它，而不是遍历视觉树。
     readonly property Item ringItem: ringLoader.item
@@ -69,7 +70,7 @@ Item {
     Loader {
         id: ringLoader
         anchors.fill: parent
-        active: control.keyboardFocused
+        active: control.focused
         sourceComponent: ringComponent
     }
 

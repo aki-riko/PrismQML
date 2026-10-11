@@ -99,6 +99,12 @@ def _matrix_rain(page: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
+def _ticket_paper(page: QQuickItem) -> QQuickItem:
+    paper = page.findChild(QQuickItem, "effectsTicketPaper")
+    assert paper is not None
+    return paper
+
+
 def _default_handle(slider: QQuickItem) -> QQuickItem:
     matches = [
         item
@@ -188,6 +194,17 @@ def test_effects_page_does_not_expose_matrix_rain_api(effects_page_scene):
 
     assert "MatrixRain API" not in source
     assert "API说明 API documentation" not in source
+    assert warnings == []
+
+
+def test_ticket_paper_gallery_uses_a_visible_local_skin(effects_page_scene):
+    """票据纹理演示必须显式使用局部票据皮肤。"""
+    _, page, warnings = effects_page_scene
+    paper = _ticket_paper(page)
+    context = paper.property("effectiveSkinContext")
+
+    assert paper.property("visible") is True
+    assert context.property("skin") == "vintage_ticket"
     assert warnings == []
 
 
