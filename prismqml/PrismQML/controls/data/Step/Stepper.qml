@@ -46,7 +46,15 @@ Item {
         ? _safeCurrentStep / (_safeSteps.length - 1) : 0
     // Elastic advance geometry shared by the lift and the tilt 弹性推进共用的抬升与倾角
     readonly property real _advanceLift: Enums.spacing.xxs
-    readonly property real _tiltPeak: 6
+    readonly property real _tiltPeak: 4
+    // Rail thickness tracks the indicator scale: a hairline rail under a large
+    // indicator reads as a gap between the steps rather than a connector.
+    // 轨道粗细跟随指示器尺度：大圆点下的发丝细线读起来像步骤之间的断裂，而不是连接线。
+    readonly property real _railThickness: Math.max(Enums.border.thick, indicatorSize * 0.14)
+    // Completed steps keep a faint glow so the walked path stays lit
+    // 已完成步骤保留一层微光，让走过的路径保持发亮
+    readonly property real _completedGlowScale: 1.22
+    readonly property real _completedGlowOpacity: Enums.opacityLevel.faint
 
     // ==================== Signals 信号 ====================
     signal stepChanged(int step)
@@ -113,12 +121,12 @@ Item {
             id: track
 
             x: 0
-            y: control.indicatorSize / 2 - Enums.border.normal / 2
+            y: control.indicatorSize / 2 - control._railThickness / 2
             width: control.width
-            height: Enums.border.normal
+            height: control._railThickness
             lineStartX: control._lineStartX
             lineWidth: control._lineWidth
-            thickness: Enums.border.normal
+            thickness: control._railThickness
             progress: control._connectorProgress
             railColor: control._stepLineColor
             progressColor: control._stepActiveColor
@@ -194,6 +202,21 @@ Item {
                                 animated: motion.animated
                                 duration: motion.burst
                                 z: Enums.zIndex.content
+                            }
+
+                            // Completed step glow 完成节点微光
+                            Rectangle {
+                                id: completedGlow
+
+                                anchors.centerIn: parent
+                                width: control.indicatorSize * control._completedGlowScale
+                                height: width
+                                radius: width / 2
+                                color: control._stepActiveColor
+                                opacity: isCompleted ? control._completedGlowOpacity : Enums.opacityLevel.invisible
+                                visible: opacity > Enums.opacityLevel.invisible
+
+                                Behavior on opacity { NumberAnimation { duration: Enums.duration.fast } }
                             }
 
                             Rectangle {

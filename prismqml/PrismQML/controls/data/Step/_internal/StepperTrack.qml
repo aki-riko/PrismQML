@@ -6,12 +6,12 @@ import QtQuick
 import "../../../.."
 
 // StepperTrack - Showcase connector for the stepper 步骤进度条炫技连接线
-// Draws the faded base rail, the growing progress rail, a looping highlight band
-// and a dot trail flowing towards the pending end. Every layer animates plain
-// geometry or colour properties, so the render thread owns the motion and the
-// main thread only rebuilds the scene when the step actually changes.
-// 绘制两端淡出的底轨、生长的进度轨、循环流光带与流向未完成端的点阵。
-// 所有图层只动几何与颜色属性，动画由渲染线程驱动，主线程仅在步骤真正变化时更新场景。
+// A rounded rail whose thickness matches the indicator scale, a solid progress
+// rail, a narrow highlight that sweeps along it and a short-dash trail flowing
+// towards the pending end. The sweep is deliberately only a few rail widths long:
+// a wide band on a thin rail reads as a smeared wedge instead of light.
+// 圆角轨道，粗细与指示器尺度匹配；实色进度轨、沿轨扫过的窄流光，以及流向未完成端的短光条。
+// 流光刻意只做几个轨宽长：细轨上的宽光带会读成抹开的楔形色块，而不是光。
 Item {
     id: root
 
@@ -31,14 +31,15 @@ Item {
     // ==================== Readonly State 只读状态 ====================
     readonly property real _activeWidth: Math.max(0, Math.min(1, progress)) * lineWidth
     readonly property real _pendingWidth: Math.max(0, lineWidth - _activeWidth)
-    // Fade both rail ends so the connector reads as light instead of a hard rule
-    // 两端淡出，让连接线读起来是光而不是硬直线
-    readonly property real _railEdgeStop: 0.04
-    readonly property real _sweepWidth: Math.max(thickness * 6, lineWidth * 0.18)
-    readonly property real _sweepBandHeight: Math.max(thickness * 3, Enums.spacing.xs)
-    readonly property real _flowDotSize: Math.max(thickness * 2.5, Enums.spacing.xs)
-    readonly property real _flowGap: _flowDotSize * 4
-    readonly property int _flowDotCount: 4
+    readonly property real _radius: thickness / 2
+    readonly property real _sweepWidth: thickness * 4
+    // Small, closely spaced dashes read as a flowing dotted rule; a few long bars
+    // look like stray capsules stranded on the rail.
+    // 细小而密集的短条读作流动的点线；几根长条会像搁在轨道上的孤立胶囊。
+    readonly property real _dashWidth: thickness * 1.6
+    readonly property real _dashGap: thickness * 5
+    readonly property int _dashCount: 4
+    readonly property real _dashOpacity: Enums.opacityLevel.secondary
 
     // ==================== Content 内容 ====================
     // Base rail 底轨
@@ -46,17 +47,12 @@ Item {
         id: rail
 
         x: root.lineStartX
-        y: (root.height - root.thickness) / 2
+        y: 0
         width: root.lineWidth
         height: root.thickness
+        radius: root._radius
+        color: root.railColor
         visible: root.lineWidth > 0
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: Enums.transparent }
-            GradientStop { position: root._railEdgeStop; color: root.railColor }
-            GradientStop { position: 1.0 - root._railEdgeStop; color: root.railColor }
-            GradientStop { position: 1.0; color: Enums.transparent }
-        }
     }
 
     // Progress rail 进度轨
@@ -66,18 +62,15 @@ Item {
         // Elastic overshoot shared by the growth behaviour. Kept small: a larger
         // overshoot runs the rail past the next indicator and reads as a glitch.
         // 生长动画共用的弹性过冲。保持小值：过冲过大会让进度轨越过下一个指示器，读起来像故障。
-        readonly property real _growOvershoot: 1.08
+        readonly property real _growOvershoot: 1.05
 
         x: root.lineStartX
-        y: (root.height - root.thickness) / 2
+        y: 0
         width: root._activeWidth
         height: root.thickness
+        radius: root._radius
+        color: root.progressColor
         visible: root.lineWidth > 0
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: root.progressColor }
-            GradientStop { position: 1.0; color: root.highlightColor }
-        }
 
         Behavior on width {
             NumberAnimation {
@@ -88,15 +81,15 @@ Item {
         }
     }
 
-    // Highlight sweep inside the progress rail 进度轨内的流光带
+    // Highlight sweeping along the progress rail 沿进度轨扫过的流光
     Item {
         id: sweepClip
 
         x: root.lineStartX
-        y: (root.height - root._sweepBandHeight) / 2
+        y: 0
         width: root._activeWidth
-        height: root._sweepBandHeight
-        visible: root.animated && root._activeWidth > 0
+        height: root.thickness
+        visible: root.animated && root._activeWidth > root._sweepWidth
         clip: true
 
         Rectangle {
@@ -123,43 +116,43 @@ Item {
         }
     }
 
-    // Dot trail flowing towards the pending end 流向未完成端的点阵
+    // Short dashes flowing towards the pending end 流向未完成端的短光条
     Item {
         id: flowClip
 
         x: root.lineStartX + root._activeWidth
-        y: (root.height - root._flowDotSize) / 2
+        y: 0
         width: root._pendingWidth
-        height: root._flowDotSize
-        visible: root.animated && root._pendingWidth > root._flowGap
+        height: root.thickness
+        visible: root.animated && root._pendingWidth > root._dashGap
         clip: true
 
         Item {
             id: flowTrail
 
-            width: root._flowGap * root._flowDotCount
+            width: root._dashGap * root._dashCount
             height: flowClip.height
 
             NumberAnimation on x {
                 running: flowClip.visible
                 loops: Animation.Infinite
-                from: -root._flowGap
+                from: -root._dashGap
                 to: 0
                 duration: root.flowDuration
                 easing.type: Easing.Linear
             }
 
             Repeater {
-                model: root._flowDotCount
+                model: root._dashCount
 
                 Rectangle {
-                    x: index * root._flowGap
+                    x: index * root._dashGap
                     y: 0
-                    width: root._flowDotSize
-                    height: root._flowDotSize
-                    radius: width / 2
+                    width: root._dashWidth
+                    height: root.thickness
+                    radius: root._radius
                     color: root.progressColor
-                    opacity: Enums.opacityLevel.light
+                    opacity: root._dashOpacity
                 }
             }
         }

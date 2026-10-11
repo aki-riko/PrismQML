@@ -6,12 +6,13 @@ import QtQuick
 import "../../../.."
 
 // StepperHalo - Breathing halo and activation ripple 呼吸光晕与激活涟漪
-// Two stacked translucent discs breathe behind the active step, and a single ring
-// expands once when the step becomes current. Only the active instance runs its
-// loop, so the number of live animations stays constant no matter how many steps
-// the stepper holds.
-// 两层半透明圆盘在当前步骤背后呼吸，步骤变为当前时另有一圈环扩散一次。
-// 只有当前实例运行循环动画，因此活动动画数量与步骤总数无关。
+// Stacked translucent discs approximate a soft radial falloff: a two-ring halo
+// shows visible banding, so the glow is built from five progressively fainter
+// discs driven by a single breathing factor. Only the active instance runs its
+// loop, keeping the live animation count independent of the step count.
+// 多层半透明圆盘近似柔和径向衰减：两层光环会出现可见色带，因此光晕由五层
+// 逐级变淡的圆盘构成，并只用一个呼吸因子驱动。只有当前实例运行循环动画，
+// 活动动画数量与步骤总数无关。
 Item {
     id: root
 
@@ -25,18 +26,20 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property bool active: false  // Whether this step is the current one 是否为当前步骤
 
+    // ==================== Internal Props 内部属性 ====================
+    property real _breath: 0  // Shared breathing factor 共享呼吸因子
+
     // ==================== Readonly State 只读状态 ====================
-    readonly property real _outerDiameter: diameter * 1.8
-    readonly property real _innerDiameter: diameter * 1.35
-    readonly property real _outerMinOpacity: Enums.opacityLevel.faint
-    readonly property real _outerMaxOpacity: Enums.opacityLevel.faint * 2.2
-    readonly property real _innerMinOpacity: Enums.opacityLevel.faint * 1.6
-    readonly property real _innerMaxOpacity: Enums.opacityLevel.faint * 3.4
-    readonly property real _restOpacity: Enums.opacityLevel.invisible
+    readonly property var _haloScales: [1.0, 1.18, 1.38, 1.6, 1.85]
+    readonly property real _haloOpacity: Enums.opacityLevel.faint
+    readonly property real _haloFalloff: 0.2
+    readonly property real _minBreath: 0.55
+    readonly property real _maxBreath: 1.0
+    readonly property real _restBreath: Enums.opacityLevel.invisible
     readonly property real _rippleBorderWidth: Enums.border.normal
     readonly property real _rippleStartScale: 1.0
-    readonly property real _rippleEndScale: 2.1
-    readonly property real _rippleStartOpacity: Enums.opacityLevel.medium
+    readonly property real _rippleEndScale: 2.3
+    readonly property real _rippleStartOpacity: Enums.opacityLevel.light
 
     // ==================== Content 内容 ====================
     onActiveChanged: if (root.active && root.animated) rippleAnim.restart()
@@ -44,28 +47,18 @@ Item {
 
     visible: root.active
 
-    // Outer breathing disc 外层呼吸圆盘
-    Rectangle {
-        id: glowOuter
+    // Layered glow 分层光晕
+    Repeater {
+        model: root._haloScales
 
-        anchors.centerIn: parent
-        width: root._outerDiameter
-        height: width
-        radius: width / 2
-        color: root.haloColor
-        opacity: root._restOpacity
-    }
-
-    // Inner breathing disc 内层呼吸圆盘
-    Rectangle {
-        id: glowInner
-
-        anchors.centerIn: parent
-        width: root._innerDiameter
-        height: width
-        radius: width / 2
-        color: root.haloColor
-        opacity: root._restOpacity
+        Rectangle {
+            anchors.centerIn: parent
+            width: root.diameter * modelData
+            height: width
+            radius: width / 2
+            color: root.haloColor
+            opacity: root._haloOpacity * root._breath * (1 - index * root._haloFalloff)
+        }
     }
 
     // Activation ripple ring 激活涟漪环
@@ -79,7 +72,7 @@ Item {
         color: Enums.transparent
         border.width: root._rippleBorderWidth
         border.color: root.haloColor
-        opacity: root._restOpacity
+        opacity: root._restBreath
     }
 
     SequentialAnimation {
@@ -87,20 +80,10 @@ Item {
 
         running: root.animated && root.active
         loops: Animation.Infinite
-        onStopped: {
-            glowOuter.opacity = root._restOpacity
-            glowInner.opacity = root._restOpacity
-        }
+        onStopped: root._breath = root._restBreath
 
-        ParallelAnimation {
-            NumberAnimation { target: glowOuter; property: "opacity"; from: root._outerMinOpacity; to: root._outerMaxOpacity; duration: root.breatheDuration; easing.type: Easing.InOutSine }
-            NumberAnimation { target: glowInner; property: "opacity"; from: root._innerMinOpacity; to: root._innerMaxOpacity; duration: root.breatheDuration; easing.type: Easing.InOutSine }
-        }
-
-        ParallelAnimation {
-            NumberAnimation { target: glowOuter; property: "opacity"; from: root._outerMaxOpacity; to: root._outerMinOpacity; duration: root.breatheDuration; easing.type: Easing.InOutSine }
-            NumberAnimation { target: glowInner; property: "opacity"; from: root._innerMaxOpacity; to: root._innerMinOpacity; duration: root.breatheDuration; easing.type: Easing.InOutSine }
-        }
+        NumberAnimation { target: root; property: "_breath"; from: root._minBreath; to: root._maxBreath; duration: root.breatheDuration; easing.type: Easing.InOutSine }
+        NumberAnimation { target: root; property: "_breath"; from: root._maxBreath; to: root._minBreath; duration: root.breatheDuration; easing.type: Easing.InOutSine }
     }
 
     ParallelAnimation {

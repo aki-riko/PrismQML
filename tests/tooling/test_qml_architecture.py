@@ -626,6 +626,17 @@ def test_stepper_keeps_showcase_layers_modularized():
     assert "readonly property bool animated: !Enums.reduceMotion" in motion_source
     assert "property bool _burstArmed: false" in source
     assert "if (isCompleted && _burstArmed) burst.burst()" in source
+    # The highlight must scale with the rail, never with the rail length: a band
+    # proportional to lineWidth smears into a wedge on a thin rail.
+    # 流光宽度必须跟随轨宽而不是轨长：与 lineWidth 成比例的光带会在细轨上抹成楔形。
+    assert "readonly property real _sweepWidth: thickness * 4" in track_source
+    assert "lineWidth *" not in track_source.split("_sweepWidth", 1)[1].split("\n", 1)[0]
+    # The rail thickness follows the indicator scale instead of a hairline token.
+    # 轨道粗细跟随指示器尺度，而不是固定发丝线宽。
+    assert (
+        "readonly property real _railThickness: Math.max(Enums.border.thick, "
+        "indicatorSize * 0.14)" in source
+    )
     # Showcase layers stay property-driven: no canvas painting, no timers and no
     # offscreen layers, so the render thread owns every frame.
     # 炫技层保持属性驱动：无画布绘制、无定时器、无离屏层，每一帧都由渲染线程负责。
