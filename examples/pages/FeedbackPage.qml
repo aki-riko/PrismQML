@@ -291,47 +291,47 @@ Item {
 
             // ==================== Dialog family 对话框家族 ====================
             ExampleCard {
-                title: "ConfirmDialog"
+                title: Fluent.Translator.tr("gallery_4c5194a588b48adb", Fluent.Translator._v)
                 description: "level / title / message / countdown"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
                         label: "level: warning"
-                        Button { text: "Open"; onClicked: warningConfirmDialog.open() }
+                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: warningConfirmDialog.open() }
                     }
                     ComponentCard {
                         label: "level: error"
-                        Button { text: "Open"; onClicked: errorConfirmDialog.open() }
+                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: errorConfirmDialog.open() }
                     }
                 }
             }
 
             ExampleCard {
-                title: "MaskedDialog"
+                title: Fluent.Translator.tr("gallery_429f28bc9c81768b", Fluent.Translator._v)
                 description: "body / overlayTarget"
                 ComponentCard {
                     label: "custom body"
-                    Button { text: "Open"; onClicked: maskedDialogDemo.open() }
+                    Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: maskedDialogDemo.open() }
                 }
             }
 
             ExampleCard {
-                title: "UpdateDialog"
+                title: Fluent.Translator.tr("gallery_f98f28222b5db539", Fluent.Translator._v)
                 description: "version / currentVersion / notes"
                 ComponentCard {
                     label: "release notes"
-                    Button { text: "Open"; onClicked: updateDialogDemo.open() }
+                    Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v); onClicked: updateDialogDemo.open() }
                 }
             }
 
             ExampleCard {
-                title: "FlyoutSheet"
+                title: Fluent.Translator.tr("gallery_d7c4b785fe5dcdac", Fluent.Translator._v)
                 description: "contentItem / confirmText / open(target)"
                 ComponentCard {
                     label: "floating sheet"
                     Button {
                         id: flyoutSheetTarget
-                        text: "Open"
+                        text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v)
                         onClicked: {
                             var sheet = flyoutSheetComponent.createObject(null)
                             if (sheet) sheet.open(flyoutSheetTarget)
@@ -341,12 +341,12 @@ Item {
             }
 
             ExampleCard {
-                title: "DesktopNotification"
+                title: Fluent.Translator.tr("gallery_717084d927081995", Fluent.Translator._v)
                 description: "title / message / severity / show()"
                 ComponentCard {
                     label: "bottom right banner"
                     Button {
-                        text: "Show"
+                        text: Fluent.Translator.tr("gallery_4e1449e7d5e50593", Fluent.Translator._v)
                         onClicked: {
                             var notification = desktopNotificationComponent.createObject(null)
                             if (notification) notification.show()
@@ -356,7 +356,7 @@ Item {
             }
 
             ExampleCard {
-                title: "QMLPage"
+                title: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
                 description: "text / running / finish()"
                 ComponentCard {
                     label: "loading page"
@@ -365,7 +365,7 @@ Item {
                         height: 160
                         QMLPage {
                             anchors.fill: parent
-                            text: "Loading"
+                            text: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
                             backgroundColor: Fluent.Enums.transparent
                         }
                     }
@@ -373,7 +373,7 @@ Item {
             }
 
             ExampleCard {
-                title: "SplashScreen"
+                title: Fluent.Translator.tr("gallery_864c1ea9ab901edf", Fluent.Translator._v)
                 description: "title / subtitle / showProgress / finish()"
                 ComponentCard {
                     label: "inline splash"
@@ -383,7 +383,7 @@ Item {
                         SplashScreen {
                             anchors.fill: parent
                             title: "PrismQML"
-                            subtitle: "Loading workspace"
+                            subtitle: Fluent.Translator.tr("gallery_df2e168f7e89a7a4", Fluent.Translator._v)
                             showProgress: true
                         }
                     }
@@ -391,7 +391,7 @@ Item {
             }
 
             ExampleCard {
-                title: "EmptyState"
+                title: Fluent.Translator.tr("gallery_44af640822bd3c0d", Fluent.Translator._v)
                 description: "icon / title / description / actionText"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
@@ -400,21 +400,21 @@ Item {
                         EmptyState {
                             width: 200
                             height: 180
-                            title: "Nothing here"
-                            description: "Items you create will appear here."
-                            actionText: "Create"
+                            title: Fluent.Translator.tr("gallery_7d77a938e62bb28b", Fluent.Translator._v)
+                            description: Fluent.Translator.tr("gallery_6e3c4a4dec6733b4", Fluent.Translator._v)
+                            actionText: Fluent.Translator.tr("gallery_cde2cd071d25bbab", Fluent.Translator._v)
                         }
                     }
                 }
             }
 
             ExampleCard {
-                title: "HintIcon"
+                title: Fluent.Translator.tr("gallery_dbed7f755fd4416d", Fluent.Translator._v)
                 description: "icon / iconSize / toolTipText"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "Info"; HintIcon { toolTipText: "Shown on hover" } }
-                    ComponentCard { label: "Question"; HintIcon { icon: "Question"; iconSize: 18; toolTipText: "Help text" } }
+                    ComponentCard { label: "Info"; HintIcon { toolTipText: Fluent.Translator.tr("gallery_14a5e44c26c76658", Fluent.Translator._v) } }
+                    ComponentCard { label: "Question"; HintIcon { icon: "Question"; iconSize: 18; toolTipText: Fluent.Translator.tr("gallery_7d1060dd33fbbcfc", Fluent.Translator._v) } }
                 }
             }
 
@@ -455,7 +455,6 @@ Item {
         id: flyoutSheetComponent
 
         FlyoutSheet {
-            confirmText: "OK"
             showCancelButton: true
             onAccepted: close()
             onRejected: close()

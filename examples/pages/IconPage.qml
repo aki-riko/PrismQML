@@ -253,7 +253,7 @@ Item {
                     spacing: Fluent.Enums.spacing.s
 
                     Text {
-                        text: "Icon components"
+                        text: Fluent.Translator.tr("gallery_4fd513e48bb1fd12", Fluent.Translator._v)
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
                         font.family: Fluent.Enums.fontFamily

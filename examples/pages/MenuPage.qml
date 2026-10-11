@@ -572,13 +572,13 @@ Item {
 
             // Command bar flyout 锚定命令浮出层
             ExampleCard {
-                title: "CommandBarFlyout"
+                title: Fluent.Translator.tr("gallery_0dc33e8e3ca2cb79", Fluent.Translator._v)
                 description: "primaryCommands / secondaryCommands / show(target)"
                 ComponentCard {
                     label: "anchored flyout"
                     Button {
                         id: commandBarFlyoutTarget
-                        text: "Open flyout"
+                        text: Fluent.Translator.tr("gallery_ed403729634282fe", Fluent.Translator._v)
                         onClicked: commandBarFlyoutDemo.show(commandBarFlyoutTarget)
                     }
                     CommandBarFlyout {
@@ -598,7 +598,7 @@ Item {
 
             // Radio menu rows 单选菜单行
             ExampleCard {
-                title: "RadioMenuFlyoutItem"
+                title: Fluent.Translator.tr("gallery_f4c685fc9919052d", Fluent.Translator._v)
                 description: "radioGroup / exclusive (single-choice rows)"
                 ComponentCard {
                     label: "right click for radio rows"
@@ -606,11 +606,11 @@ Item {
                         width: 200; height: 55; radius: Fluent.Enums.radius.small
                         color: Fluent.Enums.stateColor.controlBgHover
                         border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.stateColor.border
-                        Text { anchors.centerIn: parent; text: "Right click"; color: Fluent.Enums.textColor.secondary }
+                        Text { anchors.centerIn: parent; text: Fluent.Translator.tr("gallery_ea35da1a8ffa8b0d", Fluent.Translator._v); color: Fluent.Enums.textColor.secondary }
                         ContextMenu {
-                            RadioMenuFlyoutItem { actionId: "align-left"; text: "Left"; checked: true }
-                            RadioMenuFlyoutItem { actionId: "align-center"; text: "Center" }
-                            RadioMenuFlyoutItem { actionId: "align-right"; text: "Right" }
+                            RadioMenuFlyoutItem { actionId: "align-left"; text: Fluent.Translator.tr("gallery_2bd74486069f0a3e", Fluent.Translator._v); checked: true }
+                            RadioMenuFlyoutItem { actionId: "align-center"; text: Fluent.Translator.tr("gallery_4cc3885c182e419c", Fluent.Translator._v) }
+                            RadioMenuFlyoutItem { actionId: "align-right"; text: Fluent.Translator.tr("gallery_331c711e0660cc48", Fluent.Translator._v) }
                         }
                     }
                 }
@@ -618,12 +618,12 @@ Item {
 
             // System tray menu 托盘菜单
             ExampleCard {
-                title: "SystemTrayMenu"
+                title: Fluent.Translator.tr("gallery_d7413200538cd4e9", Fluent.Translator._v)
                 description: "initialActions / showAtPosition(x, y)"
                 ComponentCard {
                     label: "tray actions"
                     Button {
-                        text: "Show tray menu"
+                        text: Fluent.Translator.tr("gallery_37d0fee07c326818", Fluent.Translator._v)
                         onClicked: {
                             var origin = mapToGlobal(0, 0)
                             systemTrayMenuDemo.showAtPosition(origin.x, origin.y)

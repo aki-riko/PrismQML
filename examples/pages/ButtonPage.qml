@@ -486,7 +486,7 @@ Item {
 
             // ==================== Leaf button variants 独立按钮变体 ====================
             ExampleCard {
-                title: "CloseButton"
+                title: Fluent.Translator.tr("gallery_131bdbe2b285c116", Fluent.Translator._v)
                 description: "size / iconSizeValue / normalIconColor"
                 Flow {
                     width: parent ? parent.width : 0
@@ -498,18 +498,18 @@ Item {
             }
 
             ExampleCard {
-                title: "RepeatButton"
+                title: Fluent.Translator.tr("gallery_143457a32f8499fb", Fluent.Translator._v)
                 description: "autoRepeat / repeatDelay / repeatInterval"
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
                     ComponentCard {
                         label: "autoRepeat (hold)"
-                        RepeatButton { text: "Hold"; onRepeated: root._repeatCount++ }
+                        RepeatButton { text: Fluent.Translator.tr("gallery_5e221613dfbdcb3f", Fluent.Translator._v); onRepeated: root._repeatCount++ }
                     }
                     ComponentCard {
                         label: "autoRepeat false"
-                        RepeatButton { text: "Single"; autoRepeat: false }
+                        RepeatButton { text: Fluent.Translator.tr("gallery_1a72890352235570", Fluent.Translator._v); autoRepeat: false }
                     }
                     ComponentCard {
                         label: "repeated " + root._repeatCount
@@ -524,7 +524,7 @@ Item {
             }
 
             ExampleCard {
-                title: "CustomButtonCore"
+                title: Fluent.Translator.tr("gallery_4f9c612da866ec55", Fluent.Translator._v)
                 description: "getBackgroundColor / getBorderColor / getTextColor"
                 Flow {
                     width: parent ? parent.width : 0
@@ -532,7 +532,7 @@ Item {
                     ComponentCard {
                         label: "accent colors"
                         CustomButtonCore {
-                            text: "Custom"
+                            text: Fluent.Translator.tr("gallery_4eafa9e925b30bcd", Fluent.Translator._v)
                             getBackgroundColor: function() { return Fluent.Enums.accentColorLight }
                             getBorderColor: function() { return Fluent.Enums.accentColorDark }
                             getTextColor: function() { return Fluent.Enums.foregroundColor }
@@ -541,7 +541,7 @@ Item {
                     ComponentCard {
                         label: "flat outline"
                         CustomButtonCore {
-                            text: "Outline"
+                            text: Fluent.Translator.tr("gallery_adcb8080365dd1a5", Fluent.Translator._v)
                             flat: true
                             getBackgroundColor: function() { return Fluent.Enums.transparent }
                             getBorderColor: function() { return Fluent.Enums.accentColor }

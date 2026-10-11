@@ -593,14 +593,14 @@ Item {
 
             // ==================== Local Search Bar 本地搜索栏 ====================
             ExampleCard {
-                title: "LocalSearchBar"
+                title: Fluent.Translator.tr("gallery_e65e82da1ed9b76d", Fluent.Translator._v)
                 description: "entries / popupMode / fuzzyMatch / onEntrySelected"
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Enums.spacing.l
                     LocalSearchBar {
                         width: 320
-                        placeholderText: "Search settings..."
+                        placeholderText: Fluent.Translator.tr("gallery_89940594eac1efea", Fluent.Translator._v)
                         entries: [
                             { title: "Mica", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["mica", "material"] },
                             { title: "Accent color", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["accent", "theme"] },
@@ -610,7 +610,7 @@ Item {
                     }
                     Text {
                         id: searchSelection
-                        text: "No entry selected"
+                        text: Fluent.Translator.tr("gallery_2975455ac6a45dcc", Fluent.Translator._v)
                         font.pixelSize: Enums.typography.caption
                         color: Enums.textColor.secondary
                         font.family: Enums.fontFamily
@@ -620,7 +620,7 @@ Item {
 
             // ==================== Password Strength 密码强度指示器 ====================
             ExampleCard {
-                title: "PasswordStrengthIndicator"
+                title: Fluent.Translator.tr("gallery_23b69a8e96e7d454", Fluent.Translator._v)
                 description: "password / strength (0-4)"
                 Column {
                     width: parent ? parent.width : 0
@@ -629,7 +629,7 @@ Item {
                         id: passwordStrengthProbe
                         width: 260
                         inputType: Enums.input.type_password
-                        placeholderText: "Type a password"
+                        placeholderText: Fluent.Translator.tr("gallery_7673702e6ff62144", Fluent.Translator._v)
                     }
                     PasswordStrengthIndicator {
                         width: 260

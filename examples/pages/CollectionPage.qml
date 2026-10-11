@@ -53,12 +53,12 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "Collection"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_528e5174c2d4e5c8", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
             }
 
             // ItemsView 集合视图
             ExampleCard {
-                title: "ItemsView"
+                title: Fluent.Translator.tr("gallery_87877acbacde82be", Fluent.Translator._v)
                 description: "selectionMode / layout / delegate"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl
@@ -89,7 +89,7 @@ Item {
 
             // ItemsRepeater 虚拟化重复器
             ExampleCard {
-                title: "ItemsRepeater"
+                title: Fluent.Translator.tr("gallery_ab3bf40c6b190cd8", Fluent.Translator._v)
                 description: "layout: ItemsStackLayout / ItemsUniformGridLayout"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl
@@ -118,7 +118,7 @@ Item {
 
             // StandardUICommand 标准命令
             ExampleCard {
-                title: "StandardUICommand"
+                title: Fluent.Translator.tr("gallery_670e50d7d0ba9c9b", Fluent.Translator._v)
                 description: "kind / text / shortcut / trigger()"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.xl

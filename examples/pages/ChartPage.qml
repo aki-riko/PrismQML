@@ -313,7 +313,7 @@ Item {
 
             // ==================== Circular Gauge 环形仪表盘 ====================
             ExampleCard {
-                title: "CircularGauge"
+                title: Fluent.Translator.tr("gallery_55507e1dd15f61bd", Fluent.Translator._v)
                 description: "value / minValue / maxValue / unit"
                 GalleryFlow {
                     ComponentCard { label: "value 60"; CircularGauge { width: 110; height: 110; value: 60; unit: "%" } }
@@ -324,7 +324,7 @@ Item {
 
             // ==================== Chart Data Zoom 图表视窗缩放 ====================
             ExampleCard {
-                title: "ChartDataZoom"
+                title: Fluent.Translator.tr("gallery_1f0b5c05e2e3077d", Fluent.Translator._v)
                 description: "viewportStart / viewportEnd (dual-handle selector)"
                 ComponentCard {
                     label: "viewport 0.2 - 0.8"

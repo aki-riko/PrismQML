@@ -372,7 +372,7 @@ Item {
 
             // ==================== Waterfall 瀑布流 ====================
             ExampleCard {
-                title: "Waterfall"
+                title: Fluent.Translator.tr("gallery_9bd9267fe426ea05", Fluent.Translator._v)
                 description: "columns / spacing / model / delegate"
                 ComponentCard {
                     label: "columns 3"
@@ -404,7 +404,7 @@ Item {
 
             // ==================== RowFit 自适应行 ====================
             ExampleCard {
-                title: "RowFit"
+                title: Fluent.Translator.tr("gallery_74bd5d7c9b3fdd5d", Fluent.Translator._v)
                 description: "autoFit / minScale / horizontalAlign"
                 GalleryFlow {
                     ComponentCard {
@@ -432,7 +432,7 @@ Item {
 
             // ==================== Viewbox 等比缩放 ====================
             ExampleCard {
-                title: "Viewbox"
+                title: Fluent.Translator.tr("gallery_a3a48b276fd27818", Fluent.Translator._v)
                 description: "stretch: Image.PreserveAspectFit / Image.Stretch"
                 GalleryFlow {
                     ComponentCard {
@@ -458,7 +458,7 @@ Item {
 
             // ==================== RelativePanel 关系式布局 ====================
             ExampleCard {
-                title: "RelativePanel"
+                title: Fluent.Translator.tr("gallery_700ecb68506da267", Fluent.Translator._v)
                 description: "relations: below / alignLeftWith / alignRightWithPanel"
                 ComponentCard {
                     label: "declarative relations"
@@ -479,7 +479,7 @@ Item {
 
             // ==================== ParallaxView 视差滚动 ====================
             ExampleCard {
-                title: "ParallaxView"
+                title: Fluent.Translator.tr("gallery_aaaf094084d28675", Fluent.Translator._v)
                 description: "source / verticalShift (scroll driven background)"
                 ComponentCard {
                     label: "scroll the source"
@@ -521,7 +521,7 @@ Item {
 
             // ==================== SplitView 可折叠分栏 ====================
             ExampleCard {
-                title: "SplitView"
+                title: Fluent.Translator.tr("gallery_821c44166e9eb5a9", Fluent.Translator._v)
                 description: "paneOpen / openPaneLength / paneContent"
                 ComponentCard {
                     label: "paneOpen true"
@@ -542,7 +542,7 @@ Item {
 
             // ==================== SkinScope 局部皮肤 ====================
             ExampleCard {
-                title: "SkinScope"
+                title: Fluent.Translator.tr("gallery_2ad219a2e64d39fa", Fluent.Translator._v)
                 description: "skin: fluent / neobrutalism / vintage_ticket"
                 GalleryFlow {
                     ComponentCard {

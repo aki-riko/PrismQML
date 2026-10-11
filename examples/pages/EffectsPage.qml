@@ -228,7 +228,7 @@ Item {
 
             // ShadowedRectangle elevation levels 阴影矩形层级
             ExampleCard {
-                title: "ShadowedRectangle"
+                title: Fluent.Translator.tr("gallery_505a22b51f382d76", Fluent.Translator._v)
                 description: "shadowLevel: level2 / level4 / level8 / level16 / level28"
                 GalleryFlow {
                     ComponentCard { label: "level2"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level2 } }
@@ -241,7 +241,7 @@ Item {
 
             // MultiEffect based layer effects 基于 MultiEffect 的图层效果
             ExampleCard {
-                title: "Shadow"
+                title: Fluent.Translator.tr("gallery_a0fb1c62d0e8ce9e", Fluent.Translator._v)
                 description: "layer.effect: Shadow (blur / color / verticalOffset)"
                 GalleryFlow {
                     ComponentCard {
@@ -268,7 +268,7 @@ Item {
             }
 
             ExampleCard {
-                title: "GaussianBlur"
+                title: Fluent.Translator.tr("gallery_0e134f5a85ab8047", Fluent.Translator._v)
                 description: "layer.effect: GaussianBlur (radius / samples)"
                 GalleryFlow {
                     ComponentCard {
@@ -291,7 +291,7 @@ Item {
             }
 
             ExampleCard {
-                title: "ColorOverlay"
+                title: Fluent.Translator.tr("gallery_660b0a6eaaca9866", Fluent.Translator._v)
                 description: "layer.effect: ColorOverlay (color)"
                 GalleryFlow {
                     ComponentCard {
@@ -314,7 +314,7 @@ Item {
             }
 
             ExampleCard {
-                title: "OpacityMask"
+                title: Fluent.Translator.tr("gallery_d635541163c14bd3", Fluent.Translator._v)
                 description: "layer.effect: OpacityMask (mask / invert)"
                 GalleryFlow {
                     ComponentCard {
@@ -342,7 +342,7 @@ Item {
             }
 
             ExampleCard {
-                title: "NeumorphicShadow"
+                title: Fluent.Translator.tr("gallery_a206505aaa32a7d7", Fluent.Translator._v)
                 description: "inset: false / true (target / blur / offset)"
                 GalleryFlow {
                     ComponentCard {
@@ -369,7 +369,7 @@ Item {
             }
 
             ExampleCard {
-                title: "NeoShadow"
+                title: Fluent.Translator.tr("gallery_f1c14011f0d5e40a", Fluent.Translator._v)
                 description: "neobrutalism hard shadow (target / accent / offset)"
                 GalleryFlow {
                     ComponentCard {
@@ -406,7 +406,7 @@ Item {
             }
 
             ExampleCard {
-                title: "TicketPaper"
+                title: Fluent.Translator.tr("gallery_33b842f6a1293354", Fluent.Translator._v)
                 description: "vintage ticket surface (patternOriginX / patternOriginY)"
                 GalleryFlow {
                     ComponentCard {
@@ -427,7 +427,7 @@ Item {
             }
 
             ExampleCard {
-                title: "HoverBehavior"
+                title: Fluent.Translator.tr("gallery_d0c45db5a7a82f27", Fluent.Translator._v)
                 description: "HoverBehavior on color (active / enterDuration)"
                 GalleryFlow {
                     ComponentCard {
@@ -447,7 +447,7 @@ Item {
             }
 
             ExampleCard {
-                title: "ToggleAnimation"
+                title: Fluent.Translator.tr("gallery_7459e7da0ad47fc7", Fluent.Translator._v)
                 description: "target / running (transition on state change)"
                 GalleryFlow {
                     ComponentCard {
@@ -477,7 +477,7 @@ Item {
             }
 
             ExampleCard {
-                title: "FocusVisual"
+                title: Fluent.Translator.tr("gallery_dd83ba7958d4a07e", Fluent.Translator._v)
                 description: "keyboard focus ring (focusSource / radius / keyboardOnly)"
                 GalleryFlow {
                     ComponentCard {

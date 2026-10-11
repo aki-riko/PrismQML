@@ -24,12 +24,12 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "Media"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_fa33e10009759859", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
             }
 
             // WebView2 内嵌浏览器
             ExampleCard {
-                title: "WebView2"
+                title: Fluent.Translator.tr("gallery_0506edd0a8599034", Fluent.Translator._v)
                 description: "url / autoActivate / available / degraded"
                 ComponentCard {
                     label: "embedded browser"
@@ -52,7 +52,7 @@ Item {
 
             // MediaPlayerElement 媒体播放面
             ExampleCard {
-                title: "MediaPlayerElement"
+                title: Fluent.Translator.tr("gallery_42c70bfa9d036321", Fluent.Translator._v)
                 description: "source / showControls / volume"
                 ComponentCard {
                     label: "media surface"
@@ -77,7 +77,7 @@ Item {
 
             // MapControl 地图面
             ExampleCard {
-                title: "MapControl"
+                title: Fluent.Translator.tr("gallery_d1d9180e72905c59", Fluent.Translator._v)
                 description: "pluginName / latitude / longitude / zoomLevel"
                 ComponentCard {
                     label: "map surface"

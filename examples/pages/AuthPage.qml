@@ -24,23 +24,23 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "Auth"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_d2d648bd1c94b7f9", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
             }
 
             // LoginWindow 登录窗口
             ExampleCard {
-                title: "LoginWindow"
+                title: Fluent.Translator.tr("gallery_bbf70d40c7b0af6a", Fluent.Translator._v)
                 description: "mode / oauthProviders / onLoginRequested / onRegisterRequested"
                 ComponentCard {
                     label: "top-level login window"
                     Column {
                         spacing: Fluent.Enums.spacing.s
                         Button {
-                            text: "Open LoginWindow"
+                            text: Fluent.Translator.tr("gallery_86f1b8e676e219eb", Fluent.Translator._v)
                             onClicked: loginWindowDemo.visible = true
                         }
                         Text {
-                            text: "LoginWindow is a top-level Window and stays hidden until opened"
+                            text: Fluent.Translator.tr("gallery_e6fdcfb8a83eac0f", Fluent.Translator._v)
                             color: Fluent.Enums.textColor.secondary
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.caption

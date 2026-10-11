@@ -135,11 +135,9 @@ def test_gallery_does_not_override_persisted_language():
 
 def test_gallery_navigation_order_matches_page_sources():
     source = GALLERY_QML.read_text(encoding="utf-8")
-    # Localized entries keep their translation key. The component-collection pages
-    # added later use plain ASCII labels on purpose: the Gallery i18n contract only
-    # localizes user-visible literals, and these labels are the component names.
-    # 本地化项保留翻译键；后补的组件集合页刻意使用 ASCII 标签：画廊 i18n 合同只本地化
-    # 用户可见文案，而这些标签就是组件名本身。
+    # Every navigation entry is a localized label, so the contract pins the
+    # translation key that each page is announced with.
+    # 每个导航项都是本地化标签，因此合同钉住每个页面所用的翻译键。
     expected_navigation = [
         ("gallery_ad1c50c9367c756d", "ButtonPage.qml"),
         ("gallery_2087c777c06fefe5", "InputPage.qml"),
@@ -150,14 +148,14 @@ def test_gallery_navigation_order_matches_page_sources():
         ("gallery_e72622fe470d04bc", "NavigationPage.qml"),
         ("gallery_4ce4cafdd0561280", "MenuPage.qml"),
         ("gallery_85f05ecc2a4f3f5d", "CarouselPage.qml"),
-        ("Collection", "CollectionPage.qml"),
+        ("gallery_528e5174c2d4e5c8", "CollectionPage.qml"),
         ("gallery_8cb443ab83797881", "ChartPage.qml"),
         ("gallery_8b2106ca13719cb2", "FeedbackPage.qml"),
         ("gallery_8829dbcbcfce6e54", "EffectsPage.qml"),
         ("gallery_1b0049fcfd4163fe", "AIAssistantPage.qml"),
-        ("Chat", "ChatPage.qml"),
-        ("Media", "MediaPage.qml"),
-        ("Auth", "AuthPage.qml"),
+        ("gallery_4b3510b8d86ea785", "ChatPage.qml"),
+        ("gallery_fa33e10009759859", "MediaPage.qml"),
+        ("gallery_d2d648bd1c94b7f9", "AuthPage.qml"),
         ("gallery_736cff237d7d9255", "AutoUpdatePage.qml"),
     ]
 
@@ -168,12 +166,8 @@ def test_gallery_navigation_order_matches_page_sources():
     )
     page_names = re.findall(r'pages/([^"]+\.qml)', page_source)
 
-    expected_keys = [key for key, _ in expected_navigation if key.startswith("gallery_")]
     expected_page_names = [page_name for _, page_name in expected_navigation]
-    assert translation_keys == expected_keys
-    for label, _ in expected_navigation:
-        if not label.startswith("gallery_"):
-            assert f'"text": "{label}"' in navigation_source
+    assert translation_keys == [key for key, _ in expected_navigation]
     assert page_names == expected_page_names + ["SettingsPage.qml"]
 
 

@@ -24,12 +24,12 @@ Item {
             Column {
                 width: parent ? parent.width : 0
                 spacing: Fluent.Enums.spacing.xs
-                Text { text: "Chat"; font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
+                Text { text: Fluent.Translator.tr("gallery_4b3510b8d86ea785", Fluent.Translator._v); font.pixelSize: Fluent.Enums.typography.displayLarge; font.bold: true; color: Fluent.Enums.textColor.primary; font.family: Fluent.Enums.fontFamily }
             }
 
             // Chat bubbles 聊天气泡
             ExampleCard {
-                title: "ChatBubble"
+                title: Fluent.Translator.tr("gallery_3b83a72ced370e25", Fluent.Translator._v)
                 description: "role / content / timestamp / avatarText"
                 Column {
                     width: parent ? parent.width : 0
@@ -37,20 +37,20 @@ Item {
                     ChatBubble {
                         width: 420
                         role: "assistant"
-                        content: "Assistant reply rendered by ChatBubble."
+                        content: Fluent.Translator.tr("gallery_88a5b4642ba7c968", Fluent.Translator._v)
                         timestamp: "10:24"
                         avatarText: "P"
                     }
                     ChatBubble {
                         width: 420
                         role: "user"
-                        content: "User message uses the accent surface."
+                        content: Fluent.Translator.tr("gallery_00860ffb26e02643", Fluent.Translator._v)
                         timestamp: "10:25"
                     }
                     ChatBubble {
                         width: 420
                         role: "system"
-                        content: "System notice row."
+                        content: Fluent.Translator.tr("gallery_1cec8d0ab7e9448e", Fluent.Translator._v)
                         timestamp: "10:26"
                     }
                 }
@@ -58,7 +58,7 @@ Item {
 
             // Code block 代码块
             ExampleCard {
-                title: "CodeBlock"
+                title: Fluent.Translator.tr("gallery_ddb4a628815d1385", Fluent.Translator._v)
                 description: "code / language"
                 ComponentCard {
                     label: "language: qml"
@@ -72,7 +72,7 @@ Item {
 
             // Markdown view Markdown 渲染
             ExampleCard {
-                title: "MarkdownView"
+                title: Fluent.Translator.tr("gallery_c0b6fe57e6a0a585", Fluent.Translator._v)
                 description: "markdown: headings / lists / fenced code"
                 ComponentCard {
                     label: "markdown document"

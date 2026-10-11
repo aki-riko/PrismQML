@@ -555,39 +555,39 @@ Item {
 
             // Status bar 状态栏
             ExampleCard {
-                title: "StatusBar"
+                title: Fluent.Translator.tr("gallery_c8592da567d69005", Fluent.Translator._v)
                 description: "message / leftItems / rightItems"
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
                     StatusBar {
                         width: parent ? parent.width : 0
-                        message: "Ready"
-                        leftItems: [{ "text": "Ln 12, Col 4" }, { "text": "UTF-8" }]
-                        rightItems: [{ "text": "Spaces 4" }, { "text": "100%" }]
+                        message: Fluent.Translator.tr("gallery_b073db9c0bd6f2ed", Fluent.Translator._v)
+                        leftItems: [{ "text": Fluent.Translator.tr("gallery_46bcd62dbbd12358", Fluent.Translator._v) }, { "text": "UTF-8" }]
+                        rightItems: [{ "text": Fluent.Translator.tr("gallery_b249c970347ca6af", Fluent.Translator._v) }, { "text": "100%" }]
                     }
                 }
             }
 
             // Tool bar 工具栏
             ExampleCard {
-                title: "ToolBar"
+                title: Fluent.Translator.tr("gallery_3166d8af51f15eb6", Fluent.Translator._v)
                 description: "simple horizontal toolbar"
                 Column {
                     width: parent ? parent.width : 0
                     spacing: Fluent.Enums.spacing.l
                     Nav.ToolBar {
                         width: parent ? parent.width : 0
-                        Button { text: "New" }
-                        Button { text: "Open" }
-                        Button { text: "Save" }
+                        Button { text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v) }
+                        Button { text: Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v) }
+                        Button { text: Fluent.Translator.tr("gallery_a3030bf8f16dc63c", Fluent.Translator._v) }
                     }
                 }
             }
 
             // Navigation profile card 导航资料卡
             ExampleCard {
-                title: "NavigationProfileCard"
+                title: Fluent.Translator.tr("gallery_1e525ec22ad19d51", Fluent.Translator._v)
                 description: "avatar / title / subtitle / isCompacted"
                 GalleryFlow {
                     ComponentCard {
@@ -595,7 +595,7 @@ Item {
                         NavigationProfileCard {
                             width: 200
                             title: "Ada Lovelace"
-                            subtitle: "Design systems"
+                            subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
                             isCompacted: true
                         }
                     }
@@ -604,7 +604,7 @@ Item {
                         NavigationProfileCard {
                             width: 200
                             title: "Ada Lovelace"
-                            subtitle: "Design systems"
+                            subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
                             isCompacted: false
                         }
                     }
