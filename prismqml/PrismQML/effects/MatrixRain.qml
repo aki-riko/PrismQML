@@ -20,6 +20,7 @@ Rectangle {
     // Basic 基础属性
     property bool running: true                         // Animation running 动画运行
     property bool paused: false                         // Animation paused 动画暂停
+    property bool schedulerActive: true                 // Runtime scheduler gate 运行时调度门控
     property real speed: 1.0                            // Fall speed (0.1-5.0) 下落速度
     property int fontSize: 14                           // Character size 字符大小
     property real density: 1.0                          // Column density (0.5-2.0) 列密度

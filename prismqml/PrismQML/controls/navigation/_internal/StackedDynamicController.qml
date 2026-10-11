@@ -21,7 +21,7 @@ Item {
 
     // ==================== Public Methods 公开方法 ====================
     function push(source, properties) {
-        if (!host.dynamicStack || !host._useSourceMode || !source) return -1
+        if (!host.dynamicStack || !host._useUrlSourceMode || !source) return -1
 
         var logicalDepth = host._dynamicDepth >= 0 ? host._dynamicDepth : host.count
         var nextProperties = properties && typeof properties === "object"

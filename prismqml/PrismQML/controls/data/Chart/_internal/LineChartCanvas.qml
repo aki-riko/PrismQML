@@ -25,6 +25,16 @@ Canvas {
         return baselineY + (targetY - baselineY) * animProgress
     }
 
+    function syncSchedulerActive() {
+        if (!control.schedulerActive) {
+            if (lineAnimation.running) lineAnimation.pause()
+            return
+        }
+        if (lineAnimation.paused) lineAnimation.resume()
+        else if (control.animated && animProgress < 1) lineAnimation.start()
+        requestPaint()
+    }
+
     function paintSingleSeries(ctx, region, fullPaint) {
         if (control.chartData.length < 2) return 0
 
@@ -151,6 +161,7 @@ Canvas {
     anchors.fill: parent
 
     onPaint: (region) => {
+        if (!control.schedulerActive) return
         var ctx = getContext("2d")
         var fullPaint = control._lineGeometryDirty || !region ||
                 (region.x <= 0 && region.y <= 0 &&
@@ -180,15 +191,15 @@ Canvas {
     }
 
     Component.onCompleted: {
-        if (control.animated) {
+        if (control.animated && control.schedulerActive) {
             animProgress = 0
             lineAnimation.restart()
-        } else {
+        } else if (control.schedulerActive) {
             requestPaint()
         }
     }
-    onVisibleChanged: if (visible) requestPaint()
-    onAnimProgressChanged: requestPaint()
+    onVisibleChanged: if (visible && control.schedulerActive) requestPaint()
+    onAnimProgressChanged: if (control.schedulerActive) requestPaint()
     onWidthChanged: control._invalidateLineGeometry()
     onHeightChanged: control._invalidateLineGeometry()
 

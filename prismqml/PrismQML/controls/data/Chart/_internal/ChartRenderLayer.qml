@@ -34,6 +34,7 @@ Item {
 
         sourceComponent: Component {
             XYChartCore {
+                enabled: chartControl.schedulerActive
                 chartData: chartControl._viewChartData
                 maxValue: chartControl.maxValue
                 showLabels: chartControl.showLabels
@@ -59,8 +60,10 @@ Item {
                 categoryProjection: chartControl._viewChartDataProjection
                 viewportStart: chartControl._visualStart
                 viewportEnd: chartControl._visualEnd
+                schedulerActive: chartControl.schedulerActive
                 animateValueRange: chartControl.chartType === Enums.chart.type_line
                                    && chartControl.animated
+                                   && chartControl.schedulerActive
 
                 onXLabelHovered: (index) => {
                     if (chartControl.chartType === Enums.chart.type_bar)
@@ -109,6 +112,7 @@ Item {
                         series: chartControl._viewSeries
                         maxValue: chartControl.maxValue
                         animated: chartControl.animated
+                        schedulerActive: chartControl.schedulerActive
                         showValues: chartControl.showValues
                         showAverage: chartControl.showAverage
                         showMinMax: chartControl.showMinMax
@@ -147,7 +151,9 @@ Item {
                         primaryColor: chartControl.primaryColor
                         smoothLine: chartControl.smoothLine
                         animated: chartControl.animated
+                        schedulerActive: chartControl.schedulerActive
                         hoverDetectEnabled: chartControl.showTooltip
+                                             && chartControl.schedulerActive
                                              && !chartControl._viewportTransitionActive
                         showAverage: chartControl.showAverage
                         showMinMax: chartControl.showMinMax
@@ -187,6 +193,7 @@ Item {
                                    ? chartControl._xyChartBase.scatterDataRange
                                    : ({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 })
                         animated: chartControl.animated
+                        schedulerActive: chartControl.schedulerActive
                         showGrid: chartControl.showGrid
                         hoveredSeriesIndex: chartControl._hoveredScatterSeriesIndex
                         hoveredPointIndex: chartControl._hoveredScatterPointIndex
@@ -236,6 +243,7 @@ Item {
                 getSeriesColor: barContentLoader.item
                                 ? barContentLoader.item.getSeriesColor
                                 : function(index) { return Enums.accentColor }
+                enabled: chartControl.schedulerActive
             }
 
             LineChartMarkers {
@@ -253,6 +261,7 @@ Item {
                 valueToY: lineContentLoader.item
                           ? lineContentLoader.item.valueToY
                           : function(value) { return 0 }
+                enabled: chartControl.schedulerActive
             }
         }
     }
@@ -261,11 +270,13 @@ Item {
     XYSingleTooltip {
         chart: chartControl
         chartBase: chartControl._xyChartBase
+        enabled: chartControl.schedulerActive
     }
 
     XYMultiTooltip {
         chart: chartControl
         chartBase: chartControl._xyChartBase
+        enabled: chartControl.schedulerActive
     }
 
     // XY chart legend; load only the active type with renderable data XY 图表图例；仅加载当前类型且有可渲染数据的图例
@@ -283,6 +294,7 @@ Item {
                     : (chartControl._isScatter && chartControl._hasScatterData))
         sourceComponent: Component {
             ChartBottomLegend {
+                enabled: chartControl.schedulerActive
                 legendData: chartControl._series
                 legendStyle: chartControl.chartType === Enums.chart.type_line ? "line" :
                              chartControl.chartType === Enums.chart.type_bar ? "bar" : "dot"
@@ -320,6 +332,7 @@ Item {
                 chartData: chartControl._chartData
                 totalValue: chartControl.totalValue
                 animated: chartControl.animated
+                schedulerActive: chartControl.schedulerActive
                 showValues: chartControl.showValues
                 showLegend: chartControl.showLegend
                 getColor: chartControl.getColor
@@ -349,6 +362,7 @@ Item {
                 indicators: chartControl._indicators
                 series: chartControl._series
                 animated: chartControl.animated
+                schedulerActive: chartControl.schedulerActive
                 showLabels: chartControl.showLabels
                 showLegend: chartControl.showLegend
                 rings: chartControl.rings
@@ -377,6 +391,7 @@ Item {
             BoxplotChartArea {
                 boxplotData: chartControl._boxplotData
                 animated: chartControl.animated
+                schedulerActive: chartControl.schedulerActive
                 showValues: chartControl.showValues
                 showGrid: chartControl.showGrid
                 isHorizontal: chartControl.barOrientation === Enums.chart.orientation_horizontal
@@ -395,6 +410,7 @@ Item {
     ChartDataZoomLayer {
         id: dataZoomBar
         chart: chartControl
+        enabled: chartControl.schedulerActive
     }
 
     // Chart panning interaction 主图拖动平移交互

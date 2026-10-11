@@ -20,7 +20,6 @@ SOURCE_PATHS = (
     ROOT / "prismqml/PrismQML/controls/buttons/Button/CustomButtonCore.qml",
     ROOT / "prismqml/PrismQML/controls/navigation/TabWidget.qml",
     ROOT / "prismqml/PrismQML/controls/feedback/State/StateWidget.qml",
-    ROOT / "prismqml/PrismQML/controls/feedback/State/EmptyState.qml",
     ROOT / "prismqml/PrismQML/controls/feedback/State/ResultState.qml",
     ROOT / "prismqml/PrismQML/controls/feedback/State/OfflineState.qml",
 )
@@ -74,15 +73,6 @@ Window {
         width: 240
         height: 220
         actionText: "Retry"
-    }
-
-    EmptyState {
-        objectName: "interactiveEmptyState"
-        x: 300
-        y: 340
-        width: 240
-        height: 220
-        actionText: "Open"
     }
 
     ResultState {
@@ -223,7 +213,6 @@ def test_interactive_surfaces_follow_neumorphic_geometry_and_shadow_contract(qap
 
         for object_name in (
             "stateActionSurface",
-            "emptyStateActionSurface",
             "resultStateActionSurface",
             "offlineStateActionSurface",
         ):

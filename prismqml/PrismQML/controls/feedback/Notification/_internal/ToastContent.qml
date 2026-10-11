@@ -264,15 +264,21 @@ Item {
         }
 
         // Close button 关闭按钮
-        CloseButton {
+        Button {
             id: closeBtn
+            objectName: "closeBtn"
             anchors.right: parent.right
             anchors.rightMargin: Enums.spacing.l
             anchors.top: toast._isVertical ? parent.top : undefined
             anchors.topMargin: toast._isVertical ? Enums.spacing.l : 0
             anchors.verticalCenter: toast._isVertical ? undefined : parent.verticalCenter
-            size: Enums.controlSize.inputHeightCompact
-            iconSizeValue: Enums.iconSize.s
+            style: Enums.button.style_transparent
+            icon: Enums.icon.dismiss
+            width: Enums.controlSize.inputHeightCompact
+            height: Enums.controlSize.inputHeightCompact
+            radius: width / 2
+            iconSize: Enums.iconSize.s
+            focusOnPress: false
             visible: toast.closable
             onClicked: toast.hide()
         }

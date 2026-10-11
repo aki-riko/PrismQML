@@ -423,7 +423,7 @@ Item {
                                     Repeater {
                                         model: 15
                                         Text { 
-                                            text: "Item " + (index + 1)
+                                            text: Fluent.Translator.tr("gallery_a5c0011b8fb8c6b9", Fluent.Translator._v) + (index + 1)
                                             color: Enums.textColor.primary
                                             font.pixelSize: Enums.typography.caption
                                             leftPadding: 8
@@ -529,7 +529,7 @@ Item {
             // Swipe actions 滑动操作: drag a row sideways to reveal actions
             ExampleCard {
                 title: "SwipeControl"
-                description: "Swipe / drag a row to reveal actions"
+                description: Fluent.Translator.tr("gallery_669104cdf8c6fa58", Fluent.Translator._v)
                 Column {
                     spacing: Enums.spacing.s
 
@@ -537,13 +537,13 @@ Item {
                         width: 420
                         height: 52
                         leftActions: [
-                            { key: "flag", text: "Flag", icon: iconPath("Flag"), level: Enums.statusLevel.info }
+                            { key: "flag", text: Fluent.Translator.tr("gallery_269635727321c64f", Fluent.Translator._v), icon: iconPath("Flag"), level: Enums.statusLevel.info }
                         ]
                         rightActions: [
-                            { key: "archive", text: "Archive", icon: iconPath("Archive"), level: Enums.statusLevel.warning },
-                            { key: "delete", text: "Delete", icon: iconPath("Delete"), level: Enums.statusLevel.error }
+                            { key: "archive", text: Fluent.Translator.tr("gallery_5292ab1a36c56a6b", Fluent.Translator._v), icon: iconPath("Archive"), level: Enums.statusLevel.warning },
+                            { key: "delete", text: Fluent.Translator.tr("gallery_2f9daa828907b93f", Fluent.Translator._v), icon: iconPath("Delete"), level: Enums.statusLevel.error }
                         ]
-                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
                             anchors.fill: parent
                             color: Enums.cardColor
@@ -554,7 +554,7 @@ Item {
                                 anchors.leftMargin: Enums.spacing.m
                                 anchors.verticalCenter: parent.verticalCenter
                                 type: Enums.label.type_body
-                                text: "Flag / Archive / Delete this row"
+                                text: Fluent.Translator.tr("gallery_6fbc64dfd85f39a0", Fluent.Translator._v)
                             }
                         }
                     }
@@ -563,9 +563,9 @@ Item {
                         width: 420
                         height: 52
                         rightActions: [
-                            { key: "mail", text: "Mail", icon: iconPath("Mail"), level: Enums.statusLevel.success }
+                            { key: "mail", text: Fluent.Translator.tr("gallery_3d708e8e8b1f9247", Fluent.Translator._v), icon: iconPath("Mail"), level: Enums.statusLevel.success }
                         ]
-                        onActionTriggered: (key, side) => swipeStatus.text = "Swiped: " + key + " (" + side + ")"
+                        onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
                             anchors.fill: parent
                             color: Enums.cardColor
@@ -576,17 +576,64 @@ Item {
                                 anchors.leftMargin: Enums.spacing.m
                                 anchors.verticalCenter: parent.verticalCenter
                                 type: Enums.label.type_body
-                                text: "One action on the right only"
+                                text: Fluent.Translator.tr("gallery_4670d3316f825157", Fluent.Translator._v)
                             }
                         }
                     }
 
                     Text {
                         id: swipeStatus
-                        text: "No swipe action yet"
+                        text: Fluent.Translator.tr("gallery_b48c23fa0a362d90", Fluent.Translator._v)
                         font.pixelSize: Enums.typography.caption
                         color: Enums.textColor.secondary
                         font.family: Enums.fontFamily
+                    }
+                }
+            }
+
+            // ==================== Local Search Bar 本地搜索栏 ====================
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_e65e82da1ed9b76d", Fluent.Translator._v)
+                description: "entries / popupMode / fuzzyMatch / onEntrySelected"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Enums.spacing.l
+                    LocalSearchBar {
+                        width: 320
+                        placeholderText: Fluent.Translator.tr("gallery_89940594eac1efea", Fluent.Translator._v)
+                        entries: [
+                            { title: "Mica", subtitle: Fluent.Translator.tr("gallery_38c043e08502e710", Fluent.Translator._v), icon: "Color", section: Fluent.Translator.tr("gallery_86a63f23a076b11e", Fluent.Translator._v), keywords: ["mica", "material"] },
+                            { title: Fluent.Translator.tr("gallery_f84e05423960c3a4", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_38c043e08502e710", Fluent.Translator._v), icon: "Color", section: Fluent.Translator.tr("gallery_86a63f23a076b11e", Fluent.Translator._v), keywords: ["accent", "theme"] },
+                            { title: Fluent.Translator.tr("gallery_b41f4fa6f5efb208", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_5b50d7c4b5950dc5", Fluent.Translator._v), icon: "Alert", section: Fluent.Translator.tr("gallery_5b50d7c4b5950dc5", Fluent.Translator._v), keywords: ["toast", "banner"] }
+                        ]
+                        onEntrySelected: function(entry) { searchSelection.text = entry.title }
+                    }
+                    Text {
+                        id: searchSelection
+                        text: Fluent.Translator.tr("gallery_2975455ac6a45dcc", Fluent.Translator._v)
+                        font.pixelSize: Enums.typography.caption
+                        color: Enums.textColor.secondary
+                        font.family: Enums.fontFamily
+                    }
+                }
+            }
+
+            // ==================== Password Strength 密码强度指示器 ====================
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_23b69a8e96e7d454", Fluent.Translator._v)
+                description: "password / strength (0-4)"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Enums.spacing.l
+                    LineEdit {
+                        id: passwordStrengthProbe
+                        width: 260
+                        inputType: Enums.input.type_password
+                        placeholderText: Fluent.Translator.tr("gallery_7673702e6ff62144", Fluent.Translator._v)
+                    }
+                    PasswordStrengthIndicator {
+                        width: 260
+                        password: passwordStrengthProbe.text
                     }
                 }
             }

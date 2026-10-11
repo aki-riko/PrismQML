@@ -122,3 +122,41 @@ function startCountdown(control) {
     control._countdownRemaining = control.countdown
     control._countdownActive = true
 }
+
+// ==================== Appearance overrides 外观覆盖 ====================
+
+// A supplied face override switches the caller to an instant face change, so the
+// animated colour is bypassed entirely.
+// 提供面色覆盖时，调用方同时要求即时切换面色，因此完全绕过动画色。
+function hasPressedBgOverride(control) {
+    return control.pressedBgColor !== null && control.pressedBgColor !== undefined
+}
+
+function hasHoverBgOverride(control) {
+    return control.hoverBgColor !== null && control.hoverBgColor !== undefined
+}
+
+// Overrides resolve against the shared disabled state so a disabled icon button never
+// keeps a hover tint. The disabled branch falls back to the style snapshot instead of a
+// token, because each style derives its own disabled foreground.
+// 覆盖值结合共享禁用态解析，确保禁用图标按钮不残留悬浮底色。禁用分支回退到样式快照
+// 而不是固定 token，因为各样式有自己的禁用前景推导。
+function effectiveIconColor(control) {
+    if (!control._styleEffectiveEnabled) return control._styleTextColor
+    return control._touchActive ? control.iconHoverColor : control.iconColor
+}
+
+function effectiveBgColor(control, stateColor) {
+    // Disabled, loading, and countdown states keep the style-specific face. 禁用、加载和倒计时状态保留样式专属面色。
+    // Transparent styles already resolve to a transparent face, while solid styles must not expose only their shadow. 透明样式本身会解析为透明面色，实心样式不能只显示阴影。
+    if (!control._styleEffectiveEnabled) return control._styleBgColor
+    if (control.pressed) {
+        return hasPressedBgOverride(control) ? control.pressedBgColor
+                                             : control._animatedBgColor
+    }
+    if (hasHoverBgOverride(control)) {
+        return control._touchActive ? control.hoverBgColor : control._styleBgColor
+    }
+    return hasPressedBgOverride(control) ? control._styleBgColor
+                                         : control._animatedBgColor
+}

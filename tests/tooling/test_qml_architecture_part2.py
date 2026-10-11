@@ -145,7 +145,10 @@ def test_button_core_keeps_content_layer_modularized():
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 370
+    # 370 -> 385: ButtonCore 新增仅图标按钮的外观覆盖入口 (iconColor / iconHoverColor /
+    # pressedBgColor / focusOnPress) 与其解析属性, 用于替代被移除的公开 CloseButton 组件。
+    # 该公开 API 必须留在 ButtonCore 本体, 否则 QML 分组属性语法无法从外部赋值。
+    assert len(source.splitlines()) < 385
     assert helper.exists()
     assert len(helper_source.splitlines()) < 150
     assert "ButtonInternal.ButtonContentLayer {" in source

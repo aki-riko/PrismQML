@@ -20,7 +20,7 @@ from PySide6.QtCore import (
     Qt,
     QUrl,
 )
-from PySide6.QtGui import QGuiApplication, QInputMethodEvent, QKeyEvent
+from PySide6.QtGui import QColor, QGuiApplication, QInputMethodEvent, QKeyEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -617,6 +617,38 @@ def test_search_popup_anchored_mode_keeps_input_focus(qapp):
         _dispose_scene(engine, component, window, search)
 
 
+def test_local_search_bar_forwards_highlight_color(qapp):
+    """命中高亮色必须透传到结果列表，且懒创建前后都生效。"""
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, search, warnings = _create_scene()
+    try:
+        # The result surface is created on first open, so a colour set before that
+        # must already reach the list. 结果面首次打开才创建, 在此之前设置的颜色必须
+        # 已经透传到列表。
+        assert search.setProperty("highlightColor", QColor("#ff8800"))
+        assert QMetaObject.invokeMethod(
+            search, "setQuery", Q_ARG("QVariant", "build")
+        )
+        assert _wait_for(lambda: search.property("isOpen"))
+        popup_core = _popup_core(_search_popup(search))
+        result_list = _search_surface(search, "SearchResultList")[0]
+        assert result_list.property("highlightColor").name() == "#ff8800"
+
+        # Live edits keep flowing into the existing surface 结果面存在后继续实时同步
+        assert search.setProperty("highlightColor", QColor("#00aa88"))
+        assert _wait_for(
+            lambda: result_list.property("highlightColor").name() == "#00aa88"
+        )
+
+        assert QMetaObject.invokeMethod(search, "dismiss")
+        assert _wait_for(lambda: not search.property("isOpen"))
+        assert _wait_for(lambda: not popup_core.property("isClosing"))
+        assert warnings == []
+        assert _visible_popup_windows(windows_before, window) == []
+    finally:
+        _dispose_scene(engine, component, window, search)
+
+
 def test_search_popup_source_conventions():
     source = POPUP_SOURCE_PATH.read_text(encoding="utf-8")
     path = PurePosixPath(POPUP_SOURCE_PATH.relative_to(ROOT).as_posix())
@@ -655,6 +687,11 @@ def test_local_search_bar_source_conventions():
     assert [
         item for item in violations if item.rule in {"QML008", "QML009"}
     ] == []
+    # LineEditNormal never shows the clear button for type_search, so the search bar
+    # must not declare a clearButtonEnabled binding that can never take effect.
+    # type_search 下 LineEditNormal 的清除按钮恒不可见, 这里不得再声明永不生效的
+    # clearButtonEnabled 配置。
+    assert "clearButtonEnabled" not in source
 
 
 def test_search_popup_and_result_items_use_shared_metrics():

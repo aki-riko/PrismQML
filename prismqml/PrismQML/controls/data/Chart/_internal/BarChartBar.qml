@@ -125,23 +125,23 @@ Item {
             ctx.fill()
         }
 
-        onBarColorChanged: requestPaint()
-        onBarHoveredChanged: requestPaint()
-        onHeightChanged: if (!control.horizontal) requestPaint()
-        onWidthChanged: if (control.horizontal) requestPaint()
+        onBarColorChanged: if (control.chart.schedulerActive) requestPaint()
+        onBarHoveredChanged: if (control.chart.schedulerActive) requestPaint()
+        onHeightChanged: if (!control.horizontal && control.chart.schedulerActive) requestPaint()
+        onWidthChanged: if (control.horizontal && control.chart.schedulerActive) requestPaint()
 
         Behavior on height {
-            enabled: control.chart.animated && !control.horizontal
+            enabled: control.chart.animated && control.chart.schedulerActive && !control.horizontal
             NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutQuint }
         }
 
         Behavior on width {
-            enabled: control.chart.animated && control.horizontal
+            enabled: control.chart.animated && control.chart.schedulerActive && control.horizontal
             NumberAnimation { duration: Enums.duration.slow; easing.type: Easing.OutQuint }
         }
 
         Component.onCompleted: {
-            if (!control.chart.animated) return
+            if (!control.chart.animated || !control.chart.schedulerActive) return
             if (control.horizontal) {
                 Qt.callLater(function() {
                     barCanvas.width = control.barRatio * control.width
@@ -181,6 +181,7 @@ Item {
         id: barArea
         anchors.fill: parent
         hoverEnabled: true
+        enabled: control.chart.schedulerActive
         onEntered: control.barHovered(control.index)
         onExited: control.barHovered(-1)
         onClicked: control.barClicked(control.index, control.modelData)

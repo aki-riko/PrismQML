@@ -8,6 +8,9 @@ import QtQuick.Effects
 // Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
+// NeoShadow is registered in the effects subdirectory module only
+// NeoShadow 仅注册在 effects 子目录模块
+import "../../prismqml/PrismQML/effects" as Effects
 
 // Effects showcase page 特效展示页面
 Item {
@@ -222,7 +225,302 @@ Item {
                     }
                 }
             }
-            
+
+            // ShadowedRectangle elevation levels 阴影矩形层级
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_505a22b51f382d76", Fluent.Translator._v)
+                description: "shadowLevel: level2 / level4 / level8 / level16 / level28"
+                GalleryFlow {
+                    ComponentCard { label: "level2"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level2 } }
+                    ComponentCard { label: "level4"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level4 } }
+                    ComponentCard { label: "level8"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level8 } }
+                    ComponentCard { label: "level16"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level16 } }
+                    ComponentCard { label: "level28"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level28 } }
+                }
+            }
+
+            // MultiEffect based layer effects 基于 MultiEffect 的图层效果
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_a0fb1c62d0e8ce9e", Fluent.Translator._v)
+                description: "layer.effect: Shadow (blur / color / verticalOffset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "blur 0.35"
+                        Rectangle {
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            layer.enabled: true
+                            layer.effect: Shadow { blur: 0.35; color: Enums.shadow.level8.color; verticalOffset: 6 }
+                        }
+                    }
+                    ComponentCard {
+                        label: "blur 0.8"
+                        Rectangle {
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            layer.enabled: true
+                            layer.effect: Shadow { blur: 0.8; color: Enums.shadow.level16.color; verticalOffset: 12 }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_0e134f5a85ab8047", Fluent.Translator._v)
+                description: "layer.effect: GaussianBlur (radius / samples)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "source"
+                        Image { source: iconPath("Image"); sourceSize.width: 56; sourceSize.height: 56; width: 56; height: 56 }
+                    }
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_1a352ad76d7df01f", Fluent.Translator._v)
+                        Image {
+                            source: iconPath("Image")
+                            sourceSize.width: 56
+                            sourceSize.height: 56
+                            width: 56
+                            height: 56
+                            layer.enabled: true
+                            layer.effect: GaussianBlur { radius: 8 }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_660b0a6eaaca9866", Fluent.Translator._v)
+                description: "layer.effect: ColorOverlay (color)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "source"
+                        Image { source: iconPath("Color"); sourceSize.width: 56; sourceSize.height: 56; width: 56; height: 56 }
+                    }
+                    ComponentCard {
+                        label: "accentColor"
+                        Image {
+                            source: iconPath("Color")
+                            sourceSize.width: 56
+                            sourceSize.height: 56
+                            width: 56
+                            height: 56
+                            layer.enabled: true
+                            layer.effect: ColorOverlay { color: Enums.accentColor }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_d635541163c14bd3", Fluent.Translator._v)
+                description: "layer.effect: OpacityMask (mask / invert)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_82960027b0d5bcb9", Fluent.Translator._v)
+                        Item {
+                            width: 120; height: 56
+                            Rectangle {
+                                id: opacityMaskSource
+                                width: 120
+                                height: 56
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: Enums.accentColor }
+                                    GradientStop { position: 1.0; color: Enums.transparent }
+                                }
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Enums.accentColor
+                                layer.enabled: true
+                                layer.effect: OpacityMask { mask: opacityMaskSource }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_a206505aaa32a7d7", Fluent.Translator._v)
+                description: "inset: false / true (target / blur / offset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "raised"
+                        Rectangle {
+                            id: neumorphicRaised
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            NeumorphicShadow { target: neumorphicRaised }
+                        }
+                    }
+                    ComponentCard {
+                        label: "inset"
+                        Rectangle {
+                            id: neumorphicInset
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            NeumorphicShadow { target: neumorphicInset; inset: true }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_f1c14011f0d5e40a", Fluent.Translator._v)
+                description: "neobrutalism hard shadow (target / accent / offset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_efcbe79b09214efa", Fluent.Translator._v)
+                        Item {
+                            width: 104; height: 60
+                            Effects.NeoShadow { target: neoShadowSurface }
+                            Rectangle {
+                                id: neoShadowSurface
+                                width: 88; height: 48
+                                radius: Enums.radius.small
+                                color: Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderStrongColor
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "accent"
+                        Item {
+                            width: 104; height: 60
+                            Effects.NeoShadow { target: neoShadowAccentSurface; accent: true }
+                            Rectangle {
+                                id: neoShadowAccentSurface
+                                width: 88; height: 48
+                                radius: Enums.radius.small
+                                color: Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderStrongColor
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_33b842f6a1293354", Fluent.Translator._v)
+                description: "vintage ticket surface (patternOriginX / patternOriginY)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_e3fd227593a14aa7", Fluent.Translator._v)
+                        SkinScope {
+                            id: ticketPaperScope
+                            width: 180
+                            height: 72
+                            skin: "vintage_ticket"
+
+                            Rectangle {
+                                anchors.fill: parent
+                                color: ticketPaperScope.context.cardColor
+                                border.width: ticketPaperScope.context.border.thin
+                                border.color: ticketPaperScope.context.borderColor
+
+                                TicketPaper {
+                                    objectName: "effectsTicketPaper"
+                                    anchors.fill: parent
+                                    patternOriginX: 12
+                                    patternOriginY: 8
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "TicketPaper"
+                                    color: ticketPaperScope.context.textColor.primary
+                                    font.family: ticketPaperScope.context.fontFamily
+                                    font.pixelSize: ticketPaperScope.context.typography.body
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_d0c45db5a7a82f27", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_f44b8cddc2aec745", Fluent.Translator._v)
+                GalleryFlow {
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_1fc0c0492445b92a", Fluent.Translator._v)
+                        Rectangle {
+                            id: hoverBehaviorSurface
+                            width: 120; height: 52
+                            radius: Enums.radius.small
+                            color: hoverBehaviorArea.containsMouse ? Enums.accentColor : Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            HoverBehavior on color { active: hoverBehaviorArea.containsMouse }
+                            MouseArea { id: hoverBehaviorArea; anchors.fill: parent; hoverEnabled: true }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_7459e7da0ad47fc7", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_a93f090d345176ea", Fluent.Translator._v)
+                GalleryFlow {
+                    ComponentCard {
+                        label: "toggle"
+                        Item {
+                            width: 120; height: 68
+                            Rectangle {
+                                id: toggleAnimationTarget
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                y: 4
+                                width: 88; height: 36
+                                radius: Enums.radius.small
+                                color: toggleAnimationSwitch.checked ? Enums.accentColor : Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderColor
+                            }
+                            ToggleAnimation { target: toggleAnimationTarget; running: toggleAnimationSwitch.checked }
+                            Toggle {
+                                id: toggleAnimationSwitch
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                controlType: Enums.toggle.control_switch
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_dd83ba7958d4a07e", Fluent.Translator._v)
+                description: "focus ring (focusSource / radius)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: Fluent.Translator.tr("gallery_4bd3a78e64b8f16f", Fluent.Translator._v)
+                        Rectangle {
+                            id: focusVisualTarget
+                            width: 120; height: 52
+                            radius: Enums.radius.small
+                            color: Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            activeFocusOnTab: true
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: focusVisualTarget.forceActiveFocus()
+                            }
+                            FocusVisual {
+                                anchors.fill: parent
+                                radius: Enums.radius.small
+                                focusSource: focusVisualTarget
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

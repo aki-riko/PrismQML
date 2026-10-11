@@ -15,9 +15,11 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QObject,
     QPoint,
     QPointF,
+    Q_ARG,
     QTimer,
     Qt,
     QUrl,
@@ -97,6 +99,33 @@ def _matrix_rain(page: QQuickItem) -> QQuickItem:
             matches.append(obj)
     assert len(matches) == 1
     return matches[0]
+
+
+def _ticket_paper(page: QQuickItem) -> QQuickItem:
+    paper = page.findChild(QQuickItem, "effectsTicketPaper")
+    assert paper is not None
+    return paper
+
+
+def _focus_visual(page: QQuickItem) -> QQuickItem:
+    matches = [
+        item
+        for item in page.findChildren(QObject)
+        if isinstance(item, QQuickItem)
+        and item.metaObject().indexOfProperty("focusSource") >= 0
+        and item.metaObject().indexOfProperty("ringItem") >= 0
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
+def _scroll_area_for(item: QQuickItem) -> QQuickItem:
+    current = item
+    while current is not None:
+        if current.metaObject().indexOfProperty("flickableItem") >= 0:
+            return current
+        current = current.parentItem()
+    raise AssertionError("focus visual is not inside a ScrollArea")
 
 
 def _default_handle(slider: QQuickItem) -> QQuickItem:
@@ -188,6 +217,56 @@ def test_effects_page_does_not_expose_matrix_rain_api(effects_page_scene):
 
     assert "MatrixRain API" not in source
     assert "API说明 API documentation" not in source
+    assert warnings == []
+
+
+def test_ticket_paper_gallery_uses_a_visible_local_skin(effects_page_scene):
+    """票据纹理演示必须显式使用局部票据皮肤。"""
+    _, page, warnings = effects_page_scene
+    paper = _ticket_paper(page)
+    context = paper.property("effectiveSkinContext")
+
+    assert paper.property("visible") is True
+    assert context.property("skin") == "vintage_ticket"
+    assert warnings == []
+
+
+def test_focus_visual_gallery_click_activates_the_ring(effects_page_scene):
+    """点击焦点预览项后必须取焦并显示焦点环。"""
+    window, page, warnings = effects_page_scene
+    ring = _focus_visual(page)
+    target = ring.property("focusSource")
+
+    assert isinstance(target, QQuickItem)
+    assert target.property("activeFocus") is False
+    assert ring.property("focused") is False
+    scroll_area = _scroll_area_for(target)
+    content_holder = scroll_area.findChild(QQuickItem, "contentHolder")
+    assert isinstance(content_holder, QQuickItem)
+    content_item = content_holder.parentItem()
+    assert isinstance(content_item, QQuickItem)
+    flickable = content_item.parentItem()
+    assert isinstance(flickable, QQuickItem)
+    center = target.mapToItem(
+        flickable, QPointF(target.width() / 2, target.height() / 2)
+    )
+    assert QMetaObject.invokeMethod(
+        scroll_area,
+        "smoothScrollTo",
+        Q_ARG("QVariant", center.y() - flickable.height() / 2),
+    )
+    assert _wait_for(
+        lambda: 0 <= _window_point(
+            window, target, target.width() / 2, target.height() / 2
+        ).y()
+        < window.height()
+    )
+    point = _window_point(window, target, target.width() / 2, target.height() / 2)
+    QTest.mouseClick(window, Qt.MouseButton.LeftButton, pos=point)
+
+    assert _wait_for(lambda: bool(target.property("activeFocus")))
+    assert ring.property("focused") is True
+    assert ring.property("ringItem") is not None
     assert warnings == []
 
 

@@ -13,7 +13,14 @@ Enums.border 描边令牌，因此 Metrics.qml 无需新增任何度量（保持
 
 from PySide6.QtQml import QQmlApplicationEngine
 
-from prismqml import register_types
+from prismqml import (
+    Skin,
+    getAccentColor,
+    getSkin,
+    register_types,
+    setAccentColor,
+    setSkin,
+)
 
 
 def _create(engine, source: bytes, expect_window: bool = False):
@@ -53,8 +60,7 @@ Item {
         Enums.accessibility.state_selected,
         Enums.accessibility.state_invalid
     ]
-    property real innerWidth: Enums.border.normal
-    property real outerWidth: Enums.border.thin
+    property real focusRingWidth: Enums.border.normal
 }
 """,
     )
@@ -69,27 +75,21 @@ Item {
             states = states.toVariant()
         assert list(states) == [0, 1, 3, 5]
 
-        # The ring reuses the border tokens, so both strokes must stay positive
-        # and the inner one must not be thinner than the outer one.
-        # 焦点环复用描边令牌：两圈都必须为正，且内圈不得比外圈更细。
-        assert instance.property("innerWidth") > 0
-        assert instance.property("outerWidth") > 0
-        assert instance.property("innerWidth") >= instance.property("outerWidth")
+        # The focus outline reuses the shared border width token.
+        # 焦点轮廓复用全局描边粗细令牌。
+        assert instance.property("focusRingWidth") > 0
     finally:
         instance.deleteLater()
 
 
-def test_focus_visual_tracks_keyboard_focus_and_defers_drawing(qapp):
-    """The ring appears for keyboard focus and is created lazily.
+def test_focus_visual_tracks_active_focus_and_defers_drawing(qapp):
+    """The ring appears for active focus and is created lazily.
 
-    焦点环对键盘焦点出现，且绘制是惰性创建的。
+    焦点环跟随 activeFocus 出现，且绘制是惰性创建的。
 
-    Note 说明: the offscreen platform plugin does not forward a mouse
-    ``focusReason`` to a programmatic ``forceActiveFocus``, so the
-    mouse-focus exclusion is a documented contract on ``keyboardOnly`` rather
-    than a runtime assertion here.
-    离屏平台插件不会把鼠标 focusReason 转发给程序化的 forceActiveFocus，
-    因此鼠标焦点排除只是 keyboardOnly 上的文档化契约，不在此做运行时断言。
+    Note 说明: FocusVisual follows activeFocus only; keyboard reachability and
+    input modality remain contracts of the focus owner.
+    FocusVisual 只跟随 activeFocus；键盘可达性和输入方式仍由焦点宿主负责。
     """
     engine = QQmlApplicationEngine()
     register_types(engine)
@@ -102,52 +102,92 @@ Window {
     height: 40
     visible: true
     FocusScope {
-        id: focusArea
+        id: scope
         anchors.fill: parent
+        focus: true
+        TextInput {
+            id: firstTarget
+            width: 80
+            height: parent.height
+            focus: true
+            activeFocusOnTab: true
+        }
+        TextInput {
+            id: focusArea
+            x: 100
+            width: 80
+            height: parent.height
+            activeFocusOnTab: true
+            color: Enums.cardColor
+        }
         FocusVisual {
             id: ring
-            anchors.fill: parent
+            x: focusArea.x
+            width: focusArea.width
+            height: focusArea.height
             radius: Enums.radius.small
+            focusSource: focusArea
         }
     }
     property var ringItem: ring
     property var areaItem: focusArea
     property bool drawn: ring.ringItem !== null
-    property real outerStroke: drawn ? ring.ringItem.children[0].border.width : -1
-    property real innerInset: drawn ? ring.ringItem.children[1].x : -1
-    function focusByKeyboard() { focusArea.forceActiveFocus(Qt.TabFocusReason) }
+    property real drawnStrokeWidth: drawn ? ring.ringItem.children[0].border.width : -1
+    property int drawnStrokeCount: drawn ? ring.ringItem.children.length : 0
+    property color themeAccentColor: Enums.accentColor
+    property color focusRingColor: ring.ringColor
+    property color drawnRingColor: drawn
+        ? ring.ringItem.children[0].border.color : Enums.transparent
 }
 """,
         expect_window=True,
     )
+    previous_skin = getSkin()
+    previous_accent = getAccentColor()
     try:
+        setSkin(Skin.FLUENT)
         ring = instance.property("ringItem")
         area = instance.property("areaItem")
-        # Before keyboard focus the ring is dormant: nothing is drawn yet.
-        # 键盘焦点到来前焦点环处于休眠：尚未绘制任何内容。
+        # Before active focus the ring is dormant: nothing is drawn yet.
+        # activeFocus 到来前焦点环处于休眠：尚未绘制任何内容。
         assert ring.property("enabled") is False
         assert instance.property("drawn") is False
-        assert ring.property("keyboardFocused") is False
+        assert ring.property("focused") is False
 
-        from PySide6.QtCore import QCoreApplication, QMetaObject
+        from PySide6.QtCore import QCoreApplication, Qt
+        from PySide6.QtTest import QTest
 
-        QMetaObject.invokeMethod(instance, "focusByKeyboard")
-        # Focus propagation and the Loader's materialisation both need the event
-        # loop to turn over before the ring can be observed.
-        # 焦点传播与 Loader 实例化都需要事件循环推进一轮后才能观察到焦点环。
+        instance.requestActivate()
+        for _ in range(10):
+            QCoreApplication.processEvents()
+        assert instance.activeFocusItem() is not area
+        QTest.keyClick(instance, Qt.Key.Key_Tab)
         for _ in range(4):
             QCoreApplication.processEvents()
         assert area.property("activeFocus") is True
-        assert ring.property("keyboardFocused") is True
+        assert ring.property("focused") is True
         assert instance.property("drawn") is True
 
-        outer_width = instance.property("outerStroke")
-        assert outer_width > 0
-        # The inner stroke is inset by the outer stroke plus the configured gap.
-        # 内圈内缩量为外圈粗细加配置间隔。
-        assert instance.property("innerInset") == ring.property("inset") + outer_width
+        setAccentColor("#fb923c")
+        for _ in range(4):
+            QCoreApplication.processEvents()
+        assert instance.property("themeAccentColor").name() == "#fb923c"
+        expected_accent = instance.property("themeAccentColor")
+        assert instance.property("focusRingColor") == expected_accent
+        assert instance.property("drawnRingColor") == expected_accent
+        assert instance.property("drawnStrokeCount") == 1
+        assert instance.property("drawnStrokeWidth") == ring.property("ringWidth")
     finally:
+        from PySide6.QtCore import QCoreApplication, QEvent
+
+        setAccentColor(previous_accent)
+        setSkin(previous_skin)
+        instance.close()
         instance.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
 
 def test_accessibility_helper_maps_roles_and_builds_names(qapp):

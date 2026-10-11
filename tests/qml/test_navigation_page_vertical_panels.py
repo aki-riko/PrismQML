@@ -192,7 +192,7 @@ def test_gallery_navigation_page_documents_vertical_panels():
         "NavigationView {",
         "NavigationBar {",
         "ToggleNavigationBar {",
-        "Vertical navigation",
+        "Fluent.Translator.tr(\"gallery_bafa04ec14a6b82b\"",
         "SegmentedControl (orientation: Qt.Vertical)",
         "Pivot (orientation: Qt.Vertical)",
     ):
@@ -675,9 +675,10 @@ def test_gallery_navigation_pane_collapse_is_animated(qapp):
         source = str(showcase[0].property("_paneAcrylicSource") or "")
         state_label = page.findChild(QObject, "galleryNavPaneAcrylicState")
         assert state_label is not None
-        assert str(state_label.property("text")) == (
-            "acrylic: on" if ready else "acrylic: off"
-        )
+        # The label prefix is localized; the state token stays a technical word.
+        # 标签前缀已本地化, 状态词保持技术口径。
+        state_text = str(state_label.property("text"))
+        assert state_text.endswith("on" if ready else "off"), state_text
         if ready:
             assert source != "", "acrylic reported ready without a source"
             assert pane.property("acrylicImageSource") == source

@@ -25,7 +25,7 @@ Fluent.Card { /* ... */ }
 
 | Category | Main controls |
 |----------|---------------|
-| [Buttons](buttons.md) | Button · CustomButtonCore · CloseButton |
+| [Buttons](buttons.md) | Button · CustomButtonCore |
 | [Inputs](inputs.md) | LineEdit · ComboBox · Slider · SpinBox · CheckBox · RadioButton · ToggleSwitch · PinInput |
 | [Cards](cards.md) | Card · ExampleCard · Expander |
 | [Data](data.md) | TableView · ListView · TreeView · Carousel · Avatar |
@@ -38,6 +38,6 @@ Fluent.Card { /* ... */ }
 | [Menus](menus.md) | ContextMenu · MenuBar |
 | [Badges](badges.md) | Badge · Tag · Chip |
 | [Effects](effects.md) | Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur |
-| Auth / Chat / Settings | LoginWindow · ChatBubble · ChatMessageList · SettingsCard, etc. (no dedicated pages yet; see the [cheat sheet](list.md) for the full list) |
+| Chat / Settings | ChatBubble · ChatMessageList · SettingsCard, etc. (no dedicated pages yet; see the [cheat sheet](list.md) for the full list) |
 
 > Full list in each `controls/` subdirectory's `qmldir`.

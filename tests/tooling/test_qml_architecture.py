@@ -232,28 +232,6 @@ def test_matrix_rain_keeps_canvas_rendering_modularized():
     assert "function clearCanvas()" in helper_source
     assert "\n    Canvas {" not in source
 
-def test_login_window_keeps_visual_content_modularized():
-    entry = _source(
-        "prismqml/PrismQML/controls/auth/LoginWindow.qml"
-    )
-    helper = _source(
-        "prismqml/PrismQML/controls/auth/_internal/LoginWindowContent.qml"
-    )
-    source = entry.read_text(encoding="utf-8")
-    helper_source = helper.read_text(encoding="utf-8")
-
-    assert len(source.splitlines()) < 300
-    assert helper.exists()
-    assert len(helper_source.splitlines()) < 500
-    assert 'import "_internal"' in source
-    assert "LoginWindowContent {" in source
-    assert "required property var loginControl" in helper_source
-    assert "property alias usernameInput: usernameInput" in helper_source
-    assert "property alias passwordInput: passwordInput" in helper_source
-    assert "MatrixRain {" not in source
-    assert "ShadowedRectangle {" not in source
-    assert 'objectName: "loginModeToggleArea"' not in source
-
 def test_data_widget_core_keeps_visual_content_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/data/DataWidgetCore.qml"
@@ -588,3 +566,61 @@ def test_toggle_navigation_bar_keeps_indicator_timers_modularized():
     assert "Enums.duration.fast" in scroll_stop_source
     assert "tracker._scrolling = false" in scroll_stop_source
     assert "\n    Timer {" not in source
+
+def test_stepper_keeps_showcase_layers_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/Step/Stepper.qml")
+    motion = _source(
+        "prismqml/PrismQML/controls/data/Step/_internal/StepperMotion.qml"
+    )
+    track = _source(
+        "prismqml/PrismQML/controls/data/Step/_internal/StepperTrack.qml"
+    )
+    halo = _source(
+        "prismqml/PrismQML/controls/data/Step/_internal/StepperHalo.qml"
+    )
+    burst = _source(
+        "prismqml/PrismQML/controls/data/Step/_internal/StepperBurst.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    motion_source = motion.read_text(encoding="utf-8")
+    track_source = track.read_text(encoding="utf-8")
+    halo_source = halo.read_text(encoding="utf-8")
+    burst_source = burst.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 400
+    for helper in (motion, track, halo, burst):
+        assert helper.exists()
+    for helper_source in (motion_source, track_source, halo_source, burst_source):
+        assert len(helper_source.splitlines()) < 300
+    assert 'import "_internal"' in source
+    assert "StepperMotion {" in source
+    assert "StepperTrack {" in source
+    assert "StepperHalo {" in source
+    assert "StepperBurst {" in source
+    assert "required property real lineStartX" in track_source
+    assert "required property real lineWidth" in track_source
+    assert "required property real diameter" in halo_source
+    assert "required property real diameter" in burst_source
+    assert "readonly property bool animated: !Enums.reduceMotion" in motion_source
+    assert "property bool _burstArmed: false" in source
+    assert "if (isCompleted && _burstArmed) burst.burst()" in source
+    # The highlight must scale with the rail, never with the rail length: a band
+    # proportional to lineWidth smears into a wedge on a thin rail.
+    # 流光宽度必须跟随轨宽而不是轨长：与 lineWidth 成比例的光带会在细轨上抹成楔形。
+    assert "readonly property real _sweepWidth: thickness * 4" in track_source
+    assert "lineWidth *" not in track_source.split("_sweepWidth", 1)[1].split("\n", 1)[0]
+    # The rail thickness follows the indicator scale instead of a hairline token.
+    # 轨道粗细跟随指示器尺度，而不是固定发丝线宽。
+    assert (
+        "readonly property real _railThickness: Math.max(Enums.border.thick,\n"
+        "        indicatorSize * Enums.stepper.railThicknessRatio)" in source
+    )
+    # Showcase layers stay property-driven: no canvas painting, no timers and no
+    # offscreen layers, so the render thread owns every frame.
+    # 炫技层保持属性驱动：无画布绘制、无定时器、无离屏层，每一帧都由渲染线程负责。
+    for helper_source in (motion_source, track_source, halo_source, burst_source):
+        assert "Timer {" not in helper_source
+        assert "Canvas {" not in helper_source
+        assert "ShaderEffect" not in helper_source
+        assert "layer.enabled" not in helper_source
+        assert "Qt.rgba" not in helper_source

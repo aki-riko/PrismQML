@@ -96,6 +96,10 @@ def _parts(root):
         for item in target.childItems()
         if item.metaObject().indexOfProperty("radius") >= 0
         and item.metaObject().indexOfProperty("color") >= 0
+        # The tab's own close affordance is also a rounded coloured item; it is not
+        # the strip background this contract covers.
+        # 标签自身的关闭入口同样是圆角色块，不是本契约要测的条带背景。
+        and item.objectName() != "closeBtn"
     ]
     assert len(backgrounds) == 1
     return tab, target, backgrounds[0]

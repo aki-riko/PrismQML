@@ -145,7 +145,6 @@ Item {
     readonly property alias label: _label
     readonly property alias carousel: _carousel
     readonly property alias settingCard: _settingCard
-    readonly property alias auth: _auth
     readonly property alias indicatorBar: _indicatorBar
 
     // Icon registries are global resources; scopes reuse them instead of
@@ -372,6 +371,5 @@ Item {
     Label { id: _label }
     Carousel { id: _carousel }
     SettingsCard { id: _settingCard }
-    Auth { id: _auth }
     IndicatorBar { id: _indicatorBar }
 }

@@ -141,14 +141,16 @@ def _normal_module(line_edit: QQuickItem) -> QQuickItem:
 
 
 def _clear_button(normal_module: QQuickItem) -> QQuickItem:
+    # Located by objectName: the clear affordance is now a transparent Button.
+    # 按 objectName 定位：清除入口现在是透明 Button。
     matches = [
         child
         for child in _descendants(normal_module)
         if isinstance(child, QQuickItem)
-        and child.metaObject().className().startswith("CloseButton")
-        and child.metaObject().indexOfProperty("iconSizeValue") >= 0
+        and child.objectName() == "closeBtn"
+        and child.metaObject().indexOfProperty("iconSize") >= 0
     ]
-    assert len(matches) == 1, [item.metaObject().className() for item in matches]
+    assert len(matches) == 1, [item.objectName() for item in matches]
     return matches[0]
 
 
@@ -257,7 +259,12 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         clear_button = _clear_button(normal)
         cleared = []
         inputs["normalInput"].cleared.connect(lambda: cleared.append(True))
-        assert clear_button.property("size") == window.property("expectedClearButtonSize")
+        # The clear affordance is now a transparent Button, so its geometry is the
+        # contract rather than CloseButton's `size` property.
+        # 清除入口现在是透明 Button，契约是其几何而不是 CloseButton 的 size 属性。
+        expected_size = window.property("expectedClearButtonSize")
+        assert clear_button.property("width") == expected_size
+        assert clear_button.property("height") == expected_size
         assert clear_button.property("visible")
         _click(window, clear_button)
         _pump()
@@ -376,7 +383,7 @@ def test_line_edit_normal_source_conventions_and_clear_button_token():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert "size: Enums.controlSize.lineEditClearButtonSize" in source
+    assert "width: Enums.controlSize.lineEditClearButtonSize" in source
     assert "size: 20" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int lineEditClearButtonSize: 20" in metrics

@@ -9,7 +9,8 @@ import "../../buttons"
 import "../../data/Label"
 
 // StateWidget - Unified state display component 统一状态展示组件
-// Integrates EmptyState, ResultState, EmptyDataState, OfflineState 整合所有状态组件
+// Unifies no-data, result and offline state variants through stateType and severity.
+// 通过 stateType 与 severity 统一无数据、结果和离线状态变体。
 Item {
     id: control
     

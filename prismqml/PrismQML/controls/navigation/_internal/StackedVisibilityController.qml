@@ -14,6 +14,7 @@ Item {
     required property Item host
     required property Item animations
     required property Item container
+    required property Item dynamicStackController
 
     // ==================== Public Methods 公开方法 ====================
     function doAnimation(oldIndex, newIndex) {
@@ -21,6 +22,7 @@ Item {
 
         if (!host.animationEnabled || host.animationType === Enums.animation.none) {
             updateVisibility(newIndex)
+            dynamicStackController.trimPendingPages()
             host.currentChanged(newIndex)
             return
         }
@@ -135,5 +137,6 @@ Item {
                 child.opacity = j === newIndex ? 1 : 0
             }
         }
+        host._syncPageActivity(newIndex)
     }
 }

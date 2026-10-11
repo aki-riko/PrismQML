@@ -33,7 +33,7 @@ FrameAnimation {
     }
 
     objectName: "matrixRainAnimationTimer"
-    running: host.running && !host.paused && host.visible
+    running: host.running && !host.paused && host.schedulerActive && host.visible
     onRunningChanged: if (!running) {
         _elapsedMilliseconds = 0
         _pendingStepScale = 0

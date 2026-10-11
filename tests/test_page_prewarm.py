@@ -9,6 +9,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from prismqml.python.window import _page_manager
+from prismqml.python.window import _page_prewarm
 from prismqml.python.window._page_prewarm import initialize_page_prewarm_state
 
 
@@ -201,3 +202,43 @@ def test_duplicate_or_current_prewarm_request_is_ignored(monkeypatch):
     assert manager.prewarmPage(1) is True
     assert manager.prewarmPage(1) is False
     assert timers.calls == []
+
+
+def test_cancelled_prewarm_invalidates_stale_timer(monkeypatch):
+    manager = _Manager()
+    timers = _install_timer(monkeypatch)
+    manager._begin_startup_page_guard()
+    manager._complete_startup_page_guard(0)
+
+    assert manager.prewarmPage(1) is True
+    assert manager.cancelPagePrewarm(1) is True
+    assert manager._page_prewarm_queue == []
+    assert manager._page_prewarm_scheduled is False
+
+    # The fake timer still invokes the old callback; the generation guard
+    # must make it a no-op after cancellation.
+    timers.run_next()
+
+    assert manager.created == []
+    assert manager.pagePrewarmState()["status"] == "idle"
+
+
+def test_prewarm_records_budget_overrun_and_backs_off(monkeypatch):
+    manager = _Manager()
+    timers = _install_timer(monkeypatch)
+    manager._begin_startup_page_guard()
+    manager._complete_startup_page_guard(0)
+    clock = iter((0.0, 0.020))
+    monkeypatch.setattr(_page_prewarm, "perf_counter", lambda: next(clock))
+
+    assert manager.prewarmPage(1) is True
+    assert manager.prewarmPage(2) is True
+    timers.run_next()
+
+    state = manager.pagePrewarmState()
+    assert state["lastIndex"] == 1
+    assert state["lastResult"] == "completed"
+    assert state["lastElapsedMs"] == 20.0
+    assert state["lastOverBudget"] is True
+    assert state["overrunCount"] == 1
+    assert [delay for delay, _callback in timers.calls] == [500]

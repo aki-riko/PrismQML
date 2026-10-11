@@ -46,7 +46,10 @@ MouseArea {
 
     onPressed: {
         // Give the button focus so other inputs lose focus. 让按钮获得焦点，使其它输入控件失焦。
-        button.forceActiveFocus()
+        // Icon-only close/remove hosts opt out so they never steal focus from the
+        // input or tab that owns them. 仅图标关闭/删除宿主可关闭该行为，避免抢走
+        // 所属输入框或标签页的焦点。
+        if (button.focusOnPress) button.forceActiveFocus()
         button.buttonPressed()
     }
     onReleased: button.released()

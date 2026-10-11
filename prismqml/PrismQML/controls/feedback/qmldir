@@ -19,7 +19,6 @@ ProgressBar Progress/ProgressBar.qml
 ProgressRing Progress/ProgressRing.qml
 
 # State 状态
-EmptyState State/EmptyState.qml
 EmptyDataState State/EmptyDataState.qml
 OfflineState State/OfflineState.qml
 ResultState State/ResultState.qml

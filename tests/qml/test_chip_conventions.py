@@ -137,12 +137,15 @@ def _background(chip):
 
 
 def _close_button(chip):
+    # The transparent icon button that replaced CloseButton is a plain Button, so it
+    # is located by its objectName instead of by class name.
+    # 取代 CloseButton 的透明图标按钮是普通 Button，因此按 objectName 而非类名定位。
     matches = [
         item
         for item in _visual_descendants(chip)
-        if item.metaObject().className().startswith("CloseButton")
+        if item.objectName() == "closeBtn"
     ]
-    assert len(matches) == 1
+    assert len(matches) == 1, [item.objectName() for item in matches]
     return matches[0]
 
 

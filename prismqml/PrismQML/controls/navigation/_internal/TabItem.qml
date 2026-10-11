@@ -276,15 +276,21 @@ Item {
         }
     }
 
-    CloseButton {
+    Button {
         id: closeBtn
+        objectName: "closeBtn"
 
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.s
         anchors.verticalCenter: parent.verticalCenter
-        size: Enums.iconSize.xxl
-        iconSizeValue: Enums.iconSize.tiny
-        normalIconColor: Enums.secondaryForeground
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        width: Enums.iconSize.xxl
+        height: Enums.iconSize.xxl
+        radius: width / 2
+        iconSize: Enums.iconSize.tiny
+        iconColor: Enums.secondaryForeground
+        focusOnPress: false
         // Hover only reveals the close affordance on desktop; with no hover preview on
         // touch it must stay reachable, so closable tabs keep it visible there
         // 桌面端仅由 hover 揭示关闭入口; 触摸端没有 hover 预览, 可关闭标签需常显该入口

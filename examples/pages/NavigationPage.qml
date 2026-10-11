@@ -141,7 +141,7 @@ Item {
             // 无边框条带: 只有选中项带滑动胶囊。
             ExampleCard {
                 title: "SelectorBar"
-                description: "Flat selector with a sliding pill"
+                description: Fluent.Translator.tr("gallery_5637778aca97fc34", Fluent.Translator._v)
                 Column {
                     spacing: Fluent.Enums.spacing.l
 
@@ -150,19 +150,19 @@ Item {
                         SelectorBar {
                             objectName: "gallerySelectorBar"
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "settings", text: "Settings", icon: "Settings" },
-                                { key: "about", text: "About" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "settings", text: Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), icon: "Settings" },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) }
                             ]
-                            onItemClicked: (index, byUser) => selectorStatus.text = "invoked " + index
-                            onCurrentItemChanged: (key) => selectorStatus.text = "selected " + key
+                            onItemClicked: (index, byUser) => selectorStatus.text = Fluent.Translator.tr("gallery_efd79829280946de") + index
+                            onCurrentItemChanged: (key) => selectorStatus.text = Fluent.Translator.tr("gallery_3b2ee82dd97c5c96") + key
                         }
                     }
 
                     Text {
                         id: selectorStatus
-                        text: "selected overview"
+                        text: Fluent.Translator.tr("gallery_5a3889af9e0aac4c", Fluent.Translator._v)
                         font.family: Fluent.Enums.fontFamily
                         font.pixelSize: Fluent.Enums.typography.caption
                         color: Fluent.Enums.textColor.secondary
@@ -177,9 +177,9 @@ Item {
                             objectName: "gallerySelectorBarVertical"
                             orientation: Qt.Vertical
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "about", text: "About" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) }
                             ]
                         }
                     }
@@ -194,11 +194,11 @@ Item {
                             objectName: "gallerySelectorBarNarrow"
                             width: 272
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "settings", text: "Settings" },
-                                { key: "about", text: "About" },
-                                { key: "extra", text: "Extra" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "settings", text: Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v) },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) },
+                                { key: "extra", text: Fluent.Translator.tr("gallery_d79888094569b2a3", Fluent.Translator._v) }
                             ]
                         }
                     }
@@ -536,10 +536,67 @@ Item {
                         }
                         Text {
                             id: galleryPaletteStatus
-                            text: "No command ran yet"
+                            text: Fluent.Translator.tr("gallery_7291782dad44666d", Fluent.Translator._v)
                             font.pixelSize: Fluent.Enums.typography.caption
                             color: Fluent.Enums.textColor.secondary
                             font.family: Fluent.Enums.fontFamily
+                        }
+                    }
+                }
+            }
+
+            // Status bar 状态栏
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_c8592da567d69005", Fluent.Translator._v)
+                description: "message / structured items / progress"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Fluent.Enums.spacing.l
+                    StatusBar {
+                        width: parent ? parent.width : 0
+                        message: Fluent.Translator.tr("gallery_b073db9c0bd6f2ed", Fluent.Translator._v)
+                        level: Fluent.Enums.statusLevel.success
+                        progress: 0.68
+                        leftItems: [
+                            {
+                                "text": Fluent.Translator.tr("gallery_46bcd62dbbd12358", Fluent.Translator._v),
+                                "icon": Fluent.Enums.icon.document,
+                                "level": Fluent.Enums.statusLevel.info
+                            },
+                            { "text": "UTF-8", "clickable": true }
+                        ]
+                        rightItems: [
+                            {
+                                "text": Fluent.Translator.tr("gallery_b249c970347ca6af", Fluent.Translator._v),
+                                "level": Fluent.Enums.statusLevel.info
+                            },
+                            { "text": "100%", "clickable": true }
+                        ]
+                    }
+                }
+            }
+
+            // Navigation profile card 导航资料卡
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_1e525ec22ad19d51", Fluent.Translator._v)
+                description: "avatar / title / subtitle / isCompacted"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "isCompacted true"
+                        NavigationProfileCard {
+                            width: 200
+                            title: Fluent.Translator.tr("gallery_18378af80ed97854", Fluent.Translator._v)
+                            subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
+                            isCompacted: true
+                        }
+                    }
+                    ComponentCard {
+                        label: "isCompacted false"
+                        NavigationProfileCard {
+                            width: 200
+                            title: Fluent.Translator.tr("gallery_18378af80ed97854", Fluent.Translator._v)
+                            subtitle: Fluent.Translator.tr("gallery_4f409346d77a309b", Fluent.Translator._v)
+                            isCompacted: false
                         }
                     }
                 }
@@ -555,23 +612,23 @@ Item {
         id: galleryPalette
         objectName: "galleryCommandPalette"
         shortcut: "Ctrl+K"
-        placeholderText: "Type a command"
+        placeholderText: Fluent.Translator.tr("gallery_a80c8eaa7a2ad70d", Fluent.Translator._v)
         hintText: "Up/Down navigate  Enter run  Esc close"
         items: [
-            { key: "open-file", title: "Open File", subtitle: "Ctrl+O",
-              section: "File", icon: iconPath("FolderOpen") },
-            { key: "save-file", title: "Save File", subtitle: "Ctrl+S",
-              section: "File", icon: iconPath("Save") },
-            { key: "toggle-theme", title: "Toggle Theme", subtitle: "View",
-              section: "View", icon: iconPath("DarkTheme"),
+            { key: "open-file", title: Fluent.Translator.tr("gallery_4c8a4e3da39e5c2a", Fluent.Translator._v), subtitle: "Ctrl+O",
+              section: Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), icon: iconPath("FolderOpen") },
+            { key: "save-file", title: Fluent.Translator.tr("gallery_4d8dc23ed6e1e690", Fluent.Translator._v), subtitle: "Ctrl+S",
+              section: Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), icon: iconPath("Save") },
+            { key: "toggle-theme", title: Fluent.Translator.tr("gallery_7a1604323e8bf3f2", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_1c5c067138704dda", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_1c5c067138704dda", Fluent.Translator._v), icon: iconPath("DarkTheme"),
               keywords: ["dark", "light", "appearance"] },
-            { key: "goto-navigation", title: "Go to Navigation", subtitle: "Go",
-              section: "Navigate", icon: iconPath("Navigation") },
-            { key: "open-settings", title: "Open Settings", subtitle: "Go",
-              section: "Navigate", icon: iconPath("Settings") }
+            { key: "goto-navigation", title: Fluent.Translator.tr("gallery_dbe2fecffbbca250", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_fa96079c3b2f7341", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_afd0b9482dfa57f0", Fluent.Translator._v), icon: iconPath("Navigation") },
+            { key: "open-settings", title: Fluent.Translator.tr("gallery_37aa6ad6a36d46fa", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_fa96079c3b2f7341", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_afd0b9482dfa57f0", Fluent.Translator._v), icon: iconPath("Settings") }
         ]
         onCommandTriggered: (key, item) => {
-            galleryPaletteStatus.text = "Ran: " + key
+            galleryPaletteStatus.text = Fluent.Translator.tr("gallery_120721c3f1b49aab") + key
         }
     }
 }

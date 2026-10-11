@@ -8,12 +8,5 @@ PipsPager PipsPager.qml
 StatusBar StatusBar.qml
 ToggleNavigationBar ToggleNavigationBar.qml
 ToggleNavigationBarItem ToggleNavigationBarItem.qml
-ToolBar ToolBar.qml
 
-# Ribbon 功能区
-AppBarButton AppBarButton.qml
-AppBarSeparator AppBarSeparator.qml
-AppBarToggleButton AppBarToggleButton.qml
-RibbonBar RibbonBar.qml
-RibbonGroup RibbonGroup.qml
-RibbonTab RibbonTab.qml
+# Command surface 命令面板

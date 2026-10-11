@@ -57,7 +57,7 @@ Item {
                         ComponentCard { label: "paused"; Progress { type: Fluent.Enums.progress.type_bar; width: 100; value: 40; paused: true } }
                         ComponentCard { label: "error"; Progress { type: Fluent.Enums.progress.type_bar; width: 100; value: 70; error: true } }
                         ComponentCard { label: "type_ring"; Progress { type: Fluent.Enums.progress.type_ring; value: 75; width: 60; height: 60 } }
-                        ComponentCard { label: "ring indeterminate"; Progress { type: Fluent.Enums.progress.type_ring; indeterminate: true; width: 60; height: 60 } }
+                        ComponentCard { label: Fluent.Translator.tr("gallery_c26d328b7d3f7bab", Fluent.Translator._v); Progress { type: Fluent.Enums.progress.type_ring; indeterminate: true; width: 60; height: 60 } }
                     }
                 }
             }
@@ -230,22 +230,22 @@ Item {
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
-                        label: "Bottom"
+                        label: Fluent.Translator.tr("gallery_3f049887991b880c", Fluent.Translator._v)
                         Button { id: tipBtn1; text: Fluent.Translator.tr("gallery_3f049887991b880c", Fluent.Translator._v); onClicked: tip1.show() }
                         TeachingTip { id: tip1; target: tipBtn1; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_96a13a16b9f46d25", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Top"
+                        label: Fluent.Translator.tr("gallery_6f2a4a02e60e067c", Fluent.Translator._v)
                         Button { id: tipBtn2; text: Fluent.Translator.tr("gallery_6f2a4a02e60e067c", Fluent.Translator._v); onClicked: tip2.show() }
                         TeachingTip { id: tip2; target: tipBtn2; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c6505f122d94191b", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_top; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Left"
+                        label: Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v)
                         Button { id: tipBtn3; text: Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v); onClicked: tip3.show() }
                         TeachingTip { id: tip3; target: tipBtn3; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c115c0dde27a7b9a", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_left; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Right"
+                        label: Fluent.Translator.tr("gallery_1cf1d4d0b24b0b16", Fluent.Translator._v)
                         Button { id: tipBtn4; text: Fluent.Translator.tr("gallery_1cf1d4d0b24b0b16", Fluent.Translator._v); onClicked: tip4.show() }
                         TeachingTip { id: tip4; target: tipBtn4; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_e8f5dd6d4b0a27b7", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_right; deleteOnClose: false }
                     }
@@ -288,11 +288,57 @@ Item {
                     }
                 }
             }
-            
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
+                description: "text / running / finish()"
+                ComponentCard {
+                    label: Fluent.Translator.tr("gallery_56a1ff1da3a57a6f", Fluent.Translator._v)
+                    Item {
+                        width: 260
+                        height: 160
+                        QMLPage {
+                            anchors.fill: parent
+                            text: Fluent.Translator.tr("gallery_d04fcbda737fc0c6", Fluent.Translator._v)
+                            backgroundColor: Fluent.Enums.transparent
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_864c1ea9ab901edf", Fluent.Translator._v)
+                description: "title / subtitle / showProgress / finish()"
+                ComponentCard {
+                    label: Fluent.Translator.tr("gallery_e5b45207232ca077", Fluent.Translator._v)
+                    Item {
+                        width: 320
+                        height: 200
+                        SplashScreen {
+                            objectName: "gallerySplashScreen"
+                            anchors.fill: parent
+                            iconSource: Qt.resolvedUrl("../resources/app_icon.svg")
+                            title: "PrismQML"
+                            subtitle: Fluent.Translator.tr("gallery_df2e168f7e89a7a4", Fluent.Translator._v)
+                            showProgress: true
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_dbed7f755fd4416d", Fluent.Translator._v)
+                description: "icon / iconSize / toolTipText"
+                GalleryFlow {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard { label: Fluent.Translator.tr("gallery_d1d5597337b36ff4", Fluent.Translator._v); HintIcon { toolTipText: Fluent.Translator.tr("gallery_14a5e44c26c76658", Fluent.Translator._v) } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_fd5fd3c4567938c7", Fluent.Translator._v); HintIcon { icon: "Question"; iconSize: 18; toolTipText: Fluent.Translator.tr("gallery_7d1060dd33fbbcfc", Fluent.Translator._v) } }
+                }
+            }
+
         }
     }
-    
-    // Dialog components - keep at root level so they fill the window 对话框组件 - 必须放在root级别以正确填充窗口
+
     MessageBox { id: demoMessageBox; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_200bf3564876553e", Fluent.Translator._v) }
     MessageBox { 
         id: confirmBox; title: Fluent.Translator.tr("gallery_36f33adaf0942634", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_7fa2094884a8778a", Fluent.Translator._v)

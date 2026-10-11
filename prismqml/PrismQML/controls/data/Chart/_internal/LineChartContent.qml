@@ -33,6 +33,7 @@ Item {
     property bool showAreaGradient: false // Show gradient fill under line 渐变填充
     property bool stacked: false         // Stacked area chart 堆叠面积图
     property bool animated: false        // Line drawing animation 折线绘制动画
+    property bool schedulerActive: true  // Runtime scheduler gate 运行时调度门控
     // Enable pointer hover detection; disable it for dense data to reduce frame drops 启用鼠标悬停检测，密集数据可关闭以减少掉帧
     property bool hoverDetectEnabled: true
     // Source projection metadata keeps sliced points on original X coordinates 源投影元数据保证切片前后的点保持原始X坐标
@@ -260,10 +261,11 @@ Item {
 
     function _invalidateLineGeometry() {
         _lineGeometryDirty = true
-        canvas.requestPaint()
+        if (schedulerActive) canvas.requestPaint()
     }
 
     function _requestHoverPaint() {
+        if (!schedulerActive) return
         if (_lineGeometryDirty || (animated && canvas.animProgress < 1) ||
                 (isMultiSeries && hoveredSeriesIndex !== _paintedHoverSeriesIndex)) {
             canvas.requestPaint()
@@ -303,10 +305,10 @@ Item {
     onRenderViewportEndChanged: _invalidateLineGeometry()
     on_DisplayRangeMinChanged: _invalidateLineGeometry()
     on_DisplayRangeMaxChanged: _invalidateLineGeometry()
-    onShowAverageChanged: canvas.requestPaint()
-    onShowMinMaxChanged: canvas.requestPaint()
+    onShowAverageChanged: if (schedulerActive) canvas.requestPaint()
+    onShowMinMaxChanged: if (schedulerActive) canvas.requestPaint()
     onBoundaryGapChanged: _invalidateLineGeometry()
-    onShowAreaGradientChanged: canvas.requestPaint()
+    onShowAreaGradientChanged: if (schedulerActive) canvas.requestPaint()
     onStackedChanged: _invalidateLineGeometry()
 
     // ==================== Content 内容 ====================
@@ -317,6 +319,8 @@ Item {
         lineControl: root
     }
 
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
+
     // Mouse area 鼠标区域
     MouseArea {
         anchors.fill: parent
@@ -326,6 +330,7 @@ Item {
         cursorShape: Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton
         propagateComposedEvents: true
+        enabled: root.schedulerActive
 
         // Emit pointer-anchored wheel zoom to the parent 向父级发送鼠标锚定滚轮缩放
         onWheel: (wheel) => {
@@ -396,7 +401,7 @@ Item {
     }
 
     Behavior on _displayRangeMin {
-        enabled: root.animated
+        enabled: root.animated && root.schedulerActive
 
         NumberAnimation {
             duration: Enums.duration.normal
@@ -405,7 +410,7 @@ Item {
     }
 
     Behavior on _displayRangeMax {
-        enabled: root.animated
+        enabled: root.animated && root.schedulerActive
 
         NumberAnimation {
             duration: Enums.duration.normal

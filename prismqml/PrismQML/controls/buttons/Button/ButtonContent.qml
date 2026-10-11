@@ -7,11 +7,12 @@ import "../../.."
 import "../../icons"
 import "../../feedback"
 
-// ButtonContent - Content area (icon + text + rings) 内容区域
-// Internal module for Button Button内部模块
-Row {
+// ButtonContent - Shared axis-aware content layout 共享轴向内容布局
+// style_text_under is the only vertical presentation; all other styles stay inline.
+// style_text_under 是唯一的纵向展示, 其它样式保持横向。
+Item {
     id: content
-    
+
     // ==================== Required Props 必需属性 ====================
     required property int feature
     required property int style
@@ -23,127 +24,156 @@ Row {
     required property real progress
     required property color textColor
     required property int fontSize
-    // Public component fallback: direct users of ButtonContent predate local
-    // skin scopes, so keep their global Enums behavior unless a host supplies
-    // an explicit context.
-    // 公开组件回退：直接使用 ButtonContent 的调用方早于局部皮肤范围，未传上下文时
-    // 必须继续保持全局 Enums 行为。
-    property var skinContext: Enums
 
     // ==================== Public Props 公开属性 ====================
-    // Optional font flags 可选字体修饰
     property bool fontBold: false
     property bool fontItalic: false
     property bool fontUnderline: false
     property bool fontStrikeout: false
-    // Countdown props 倒计时属性
     property bool countdownActive: false
     property int countdownRemaining: 0
     property string countdownText: "s"
+    property var skinContext: Enums
+    property bool _verticalContent: false
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool hasIcon: icon !== "" ||
-                                    loading ||
-                                    feature === skinContext.button.feature_progress_ring ||
-                                    feature === skinContext.button.feature_indeterminate_ring
-    readonly property bool _useForegroundColor: style === skinContext.button.style_primary ||
-                                                style === skinContext.button.style_filled ||
-                                                style === skinContext.button.style_gradient
-    readonly property color _ringColor: _useForegroundColor ? skinContext.accentForeground : skinContext.accentColor
-    readonly property color _ringBorderColor: _useForegroundColor ? skinContext.stateColor.onAccentOverlay : skinContext.stateColor.loadingBorder
+    readonly property bool verticalLayout: _verticalContent
+    readonly property bool hasIcon: icon !== "" || loading
+        || feature === skinContext.button.feature_progress_ring
+        || feature === skinContext.button.feature_indeterminate_ring
+    readonly property bool _useForegroundColor: style === skinContext.button.style_primary
+        || style === skinContext.button.style_filled
+        || style === skinContext.button.style_gradient
+    readonly property color _ringColor: _useForegroundColor
+        ? skinContext.accentForeground : skinContext.accentColor
+    readonly property color _ringBorderColor: _useForegroundColor
+        ? skinContext.stateColor.onAccentOverlay : skinContext.stateColor.loadingBorder
     readonly property bool _hasDeterminateRing:
         feature === skinContext.button.feature_progress_ring
     readonly property bool _hasIndeterminateRing:
         feature === skinContext.button.feature_indeterminate_ring
     readonly property bool _hasFeatureRing: _hasDeterminateRing || _hasIndeterminateRing
+    readonly property string _displayText: {
+        if (countdownActive) return countdownRemaining + countdownText
+        if (loading && loadingText !== "") return loadingText
+        return text
+    }
 
     // ==================== Size 尺寸 ====================
-    spacing: hasIcon ? 6 : 0
+    implicitWidth: verticalLayout
+        ? Math.max(iconSize, contentText.implicitWidth)
+        : iconSize * (hasIcon ? 1 : 0)
+          + Enums.spacing.xs * (hasIcon && contentText.visible ? 1 : 0)
+          + contentText.implicitWidth
+    implicitHeight: verticalLayout
+        ? (hasIcon ? iconSize + Enums.spacing.xxs : 0) + contentText.implicitHeight
+        : Math.max(iconSize, contentText.implicitHeight)
 
     // ==================== Content 内容 ====================
-    // Loading ring 加载环
     Loader {
         id: loadingRingLoader
+
+        active: content.loading
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
-        active: content.loading
-        anchors.verticalCenter: parent.verticalCenter
+        x: content.verticalLayout
+            ? (content.width - width) / 2 : 0
+        y: content.verticalLayout
+            ? 0 : (content.height - height) / 2
+        sourceComponent: loadingComponent
+    }
 
-        sourceComponent: ProgressRing {
+    Loader {
+        id: featureRingLoader
+
+        active: content._hasFeatureRing
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        x: content.verticalLayout
+            ? (content.width - width) / 2 : 0
+        y: content.verticalLayout
+            ? 0 : (content.height - height) / 2
+        sourceComponent: featureRingComponent
+    }
+
+    Loader {
+        id: iconLoader
+
+        objectName: "buttonContentVisual"
+        active: !content.loading && content.icon !== ""
+        width: active ? content.iconSize : 0
+        height: active ? content.iconSize : 0
+        x: content.verticalLayout
+            ? (content.width - width) / 2 : 0
+        y: content.verticalLayout
+            ? 0 : (content.height - height) / 2
+        sourceComponent: iconComponent
+    }
+
+    Text {
+        id: contentText
+
+        objectName: "buttonContentText"
+        x: content.verticalLayout
+            ? (content.width - implicitWidth) / 2
+            : (content.hasIcon ? iconLoader.width + Enums.spacing.xs : 0)
+        y: content.verticalLayout
+            ? (content.hasIcon ? iconLoader.height + Enums.spacing.xxs : 0)
+            : (content.height - implicitHeight) / 2
+        text: content._displayText
+        font.family: content.skinContext.fontFamily
+        font.pixelSize: content.fontSize
+        font.bold: content.fontBold
+        font.italic: content.fontItalic
+        font.underline: content.fontUnderline
+            || content.style === content.skinContext.button.style_hyperlink
+        font.strikeout: content.fontStrikeout
+        color: content.textColor
+        wrapMode: Text.WordWrap
+        visible: text !== ""
+    }
+
+    Component {
+        id: loadingComponent
+
+        ProgressRing {
             anchors.fill: parent
-            strokeWidth: skinContext.border.normal
+            strokeWidth: content.skinContext.border.normal
             color: content.textColor
             indeterminate: true
         }
     }
 
-    // Feature ring modes are mutually exclusive and share one loader. 功能进度环模式互斥并复用同一个加载器。
-    Loader {
-        id: featureRingLoader
-        width: active ? content.iconSize : 0
-        height: active ? content.iconSize : 0
-        active: content._hasFeatureRing
-        anchors.verticalCenter: parent.verticalCenter
+    Component {
+        id: featureRingComponent
 
-        sourceComponent: ProgressRing {
+        ProgressRing {
             anchors.fill: parent
             from: 0
             to: 1
             value: content.progress
-            strokeWidth: skinContext.border.normal
+            strokeWidth: content.skinContext.border.normal
             indeterminate: content._hasIndeterminateRing
             color: content._ringColor
             trackColorLight: content._hasDeterminateRing
-                             ? content._ringBorderColor
-                             : skinContext.stateColor.track
+                ? content._ringBorderColor : content.skinContext.stateColor.track
             trackColorDark: content._hasDeterminateRing
-                            ? content._ringBorderColor
-                            : (skinContext.isVintageTicket
-                               ? skinContext.stateColor.progressTrack
-                               : skinContext.stateColor.whiteOverlay)
+                ? content._ringBorderColor
+                : (content.skinContext.isVintageTicket
+                   ? content.skinContext.stateColor.progressTrack
+                   : content.skinContext.stateColor.whiteOverlay)
         }
     }
 
-    // Icon 图标
-    Loader {
-        id: iconLoader
-        width: active ? content.iconSize : 0
-        height: active ? content.iconSize : 0
-        active: !content.loading && content.icon !== ""
-        anchors.verticalCenter: parent.verticalCenter
+    Component {
+        id: iconComponent
 
-        sourceComponent: Icon {
+        Icon {
+            objectName: "buttonContentIcon"
             anchors.centerIn: parent
             icon: content.icon
             iconSize: content.iconSize
             color: content.textColor
         }
-    }
-
-    // Text 文字
-    Text {
-        id: contentText
-        text: {
-            if (content.countdownActive) {
-                return content.countdownRemaining + content.countdownText
-            }
-            if (content.loading && content.loadingText !== "") {
-                return content.loadingText
-            }
-            return content.text
-        }
-        font.family: skinContext.fontFamily
-        font.pixelSize: content.fontSize
-        font.bold: content.fontBold
-        font.italic: content.fontItalic
-        font.underline: content.fontUnderline || style === skinContext.button.style_hyperlink
-        font.strikeout: content.fontStrikeout
-        // Bind textColor directly without a Behavior animation. 直接绑定 textColor，不添加 Behavior 动画。
-        // A toggle button changes its background immediately when checked. toggle 类按钮从 unchecked 切换到 checked 时背景色会突变。
-        // A 300 ms ColorAnimation passes through gray and nearly disappears on a light background. 300ms 的 ColorAnimation 会经过灰色中间态，在浅色背景上几乎不可见，表现为“切换后文字消失”。
-        color: content.textColor
-        wrapMode: Text.WordWrap
-        visible: text !== ""
-        anchors.verticalCenter: parent.verticalCenter
     }
 }

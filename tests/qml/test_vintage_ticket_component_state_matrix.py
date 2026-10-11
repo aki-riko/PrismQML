@@ -77,13 +77,12 @@ def test_ticket_focus_and_selected_states_use_ink_contract(ticket_scene):
     assert warnings == []
 
 
-def test_ticket_tooltips_login_and_effects_use_ticket_visual_contract(ticket_scene):
+def test_ticket_tooltips_and_effects_use_ticket_visual_contract(ticket_scene):
     root, warnings = ticket_scene
-    login_matrix = root.findChild(QObject, "loginMatrixRain")
     splash_icon = root.findChild(QObject, "splashIconContainer")
     boxplot_tooltip = root.findChild(QObject, "boxplotTooltip")
     chart_tooltip = root.findChild(QObject, "chartTooltip")
-    assert all((login_matrix, splash_icon, boxplot_tooltip, chart_tooltip))
+    assert all((splash_icon, boxplot_tooltip, chart_tooltip))
     for theme, palette in PALETTES.items():
         setTheme(theme)
         _pump()
@@ -99,9 +98,6 @@ def test_ticket_tooltips_login_and_effects_use_ticket_visual_contract(ticket_sce
         assert _color(labels["42"].property("color")) == _color(palette["foreground"])
         assert _color(root.property("tipBackground")) == _color(palette["surface"])
         assert _color(root.property("tipBorder")) == _color(palette["border"])
-        assert _color(root.property("loginBackground")) == _color(palette["background"])
-        assert login_matrix.property("visible") is False
-        assert login_matrix.property("running") is False
         assert QQmlProperty(splash_icon, "layer.enabled").read() is False
         assert QQmlProperty(boxplot_tooltip, "layer.enabled").read() is False
         assert _color(root.property("matrixMain")) == _color(palette["divider"])

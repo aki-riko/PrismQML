@@ -85,13 +85,14 @@ Item {
             skinContext: _skin
             feature: contentLayer.buttonControl.feature
             style: contentLayer.buttonControl.style
+            _verticalContent: contentLayer.buttonControl._verticalContent
             text: contentLayer.buttonControl.text
             icon: contentLayer.buttonControl.icon
             iconSize: contentLayer.buttonControl.iconSize
             loading: contentLayer.buttonControl.loading
             loadingText: contentLayer.buttonControl.loadingText
             progress: contentLayer.buttonControl.progress
-            textColor: contentLayer.buttonControl.getTextColor()
+            textColor: contentLayer.buttonControl._effectiveIconColor
             fontSize: contentLayer.buttonControl.fontSize
             fontBold: contentLayer.buttonControl.fontBold
             fontItalic: contentLayer.buttonControl.fontItalic

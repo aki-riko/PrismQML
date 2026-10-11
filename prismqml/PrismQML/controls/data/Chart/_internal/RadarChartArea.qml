@@ -19,6 +19,7 @@ Item {
     required property bool showLabels
     required property bool showLegend
     required property int rings
+    property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
     
     // ==================== Public Props 公开属性 ====================
     property string title: ""
@@ -67,6 +68,7 @@ Item {
             indicators: root.indicators
             series: root.series
             animated: root.animated
+            schedulerActive: root.schedulerActive
             showLabels: root.showLabels
             rings: root.rings
             hoveredSeriesIndex: root.hoveredSeriesIndex
@@ -80,6 +82,7 @@ Item {
     // Tooltip 提示框
     // Tooltip follows mouse position 提示框跟随鼠标位置
     ChartTooltip {
+        enabled: root.schedulerActive
         visible: root.hoveredSeriesIndex >= 0 && root.hoveredPointIndex >= 0 && root.indicators.length > 2
         x: chartArea.x + Math.min(Math.max(radarContent.mouseX + Enums.spacing.m, 0), chartArea.width - width - Enums.spacing.m)
         y: chartArea.y + Math.max(radarContent.mouseY - height - Enums.spacing.m, Enums.spacing.m)
@@ -111,6 +114,7 @@ Item {
         active: root.showLegend && root.series.length > 0
         sourceComponent: Component {
             ChartBottomLegend {
+                enabled: root.schedulerActive
                 legendData: root.series
                 legendStyle: "bar"
                 hoveredIndex: root.hoveredSeriesIndex

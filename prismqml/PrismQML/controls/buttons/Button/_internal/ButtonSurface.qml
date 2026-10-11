@@ -71,7 +71,7 @@ Item {
 
         anchors.fill: parent
         radius: surface.buttonControl.radius
-        color: surface.buttonControl._animatedBgColor
+        color: surface.buttonControl._effectiveBgColor
         border.width: surface.buttonControl.flat ? 0 : _skin.surfaceBorderWidth(
             (surface.buttonControl._styleToggleChecked
              && surface.buttonControl.style === _skin.button.style_primary)

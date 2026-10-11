@@ -16,6 +16,16 @@ Canvas {
     // ==================== Internal Props 内部属性 ====================
     property real animProgress: boxplotControl.animated ? 0 : 1
 
+    function syncSchedulerActive() {
+        if (!control.schedulerActive) {
+            if (chartAnimation.running) chartAnimation.pause()
+            return
+        }
+        if (chartAnimation.paused) chartAnimation.resume()
+        else if (control.animated && animProgress < 1) chartAnimation.start()
+        requestPaint()
+    }
+
     // ==================== Readonly State 只读状态 ====================
     readonly property var control: boxplotControl
 
@@ -245,6 +255,7 @@ Canvas {
     anchors.fill: parent
 
     onPaint: (region) => {
+        if (!control.schedulerActive) return
         var ctx = getContext("2d")
         var fullPaint = control._boxGeometryDirty || !region ||
                 (region.x <= 0 && region.y <= 0 &&
@@ -288,14 +299,14 @@ Canvas {
     onHeightChanged: control._invalidateBoxGeometry()
 
     Component.onCompleted: {
-        if (control.animated) {
+        if (control.animated && control.schedulerActive) {
             animProgress = 0
             chartAnimation.restart()
-        } else {
+        } else if (control.schedulerActive) {
             requestPaint()
         }
     }
-    onAnimProgressChanged: requestPaint()
+    onAnimProgressChanged: if (control.schedulerActive) requestPaint()
 
     NumberAnimation {
         id: chartAnimation

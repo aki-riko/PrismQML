@@ -310,7 +310,7 @@ def test_line_edit_core_tag_buttons_accept_real_mouse_click(qapp):
     tag_control.tagRemoved.connect(lambda index, tag: removed.append((index, tag)))
     tag_control.searched.connect(searched.append)
     try:
-        close_button = _visible_descendant(tag_control, "CloseButton")
+        close_button = _visible_descendant(tag_control, "ButtonCore")
         search_button = _visible_descendant(tag_control, "SearchButton")
         _click(window, close_button)
         assert _wait_for(lambda: removed == [(0, "one")])

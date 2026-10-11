@@ -64,13 +64,18 @@ Rectangle {
         }
 
         // Remove button 删除按钮
-        CloseButton {
-            size: Enums.typography.body
-            iconSizeValue: Enums.iconSize.tiny
-            normalIconColor: Enums.accentColor
-            hoverIconColor: Enums.accentColor
-            hoverBgColor: Enums.stateColor.chipCloseHover
+        Button {
+            objectName: "closeBtn"
+            style: Enums.button.style_transparent
+            icon: Enums.icon.dismiss
+            width: Enums.typography.body
+            height: Enums.typography.body
+            radius: width / 2
+            iconSize: Enums.iconSize.tiny
+            iconColor: Enums.accentColor
+            iconHoverColor: Enums.accentColor
             pressedBgColor: Enums.stateColor.chipClosePressed
+            focusOnPress: false
             anchors.verticalCenter: parent.verticalCenter
             onClicked: token.removeClicked(token.tokenIndex)
         }

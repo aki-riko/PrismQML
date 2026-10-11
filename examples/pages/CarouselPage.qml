@@ -15,10 +15,10 @@ Item {
     
     // Test data 测试数据
     property var testModel: [
-        { color: Fluent.Enums.examplePageColors.carouselRed, text: "Banner 1" },
-        { color: Fluent.Enums.examplePageColors.carouselBlue, text: "Banner 2" },
-        { color: Fluent.Enums.examplePageColors.carouselGreen, text: "Banner 3" },
-        { color: Fluent.Enums.examplePageColors.carouselPurple, text: "Banner 4" }
+        { color: Fluent.Enums.examplePageColors.carouselRed, text: Fluent.Translator.tr("gallery_b707a6d5c5193a46", Fluent.Translator._v) },
+        { color: Fluent.Enums.examplePageColors.carouselBlue, text: Fluent.Translator.tr("gallery_e1ca0710b4f63b99", Fluent.Translator._v) },
+        { color: Fluent.Enums.examplePageColors.carouselGreen, text: Fluent.Translator.tr("gallery_c26ac4e3e8076d8d", Fluent.Translator._v) },
+        { color: Fluent.Enums.examplePageColors.carouselPurple, text: Fluent.Translator.tr("gallery_42f8954c47beb52e", Fluent.Translator._v) }
     ]
     
     ScrollArea {

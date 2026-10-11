@@ -407,7 +407,7 @@ QtObject {
  readonly property int tablePaginationHeight: 50 // Table pagination height 分页高度
  // Feedback controls 反馈控件
  readonly property int resultStateIconSize: 80 // ResultState icon container 结果状态图标容器
- readonly property int emptyStateButtonHeight: Math.max(32, root.touchTargetFloor) // EmptyState button height 空状态按钮高度
+ readonly property int emptyStateButtonHeight: Math.max(32, root.touchTargetFloor) // StateWidget empty button height StateWidget 空状态按钮高度
  readonly property int stateDescMaxWidth: 280 // StateWidget result description max width 结果描述最大宽度
  readonly property int stateDescEmptyWidth: 260 // StateWidget empty description max width 空状态描述最大宽度
  readonly property int stateButtonPaddingLarge: 32 // StateWidget result button padding 结果按钮内边距
@@ -622,6 +622,26 @@ QtObject {
  readonly property real baseAlphaDark: 0.08
  readonly property real shimmerAlphaLight: 0.04
  readonly property real shimmerAlphaDark: 0.12
+ }
+
+ // ==================== Stepper 步骤条度量 ====================
+ readonly property QtObject stepper: QtObject {
+  readonly property real baseScale: 1.0
+  readonly property real tiltPeak: 4
+  readonly property real railThicknessRatio: 0.14
+  readonly property real completedGlowScale: 1.22
+  readonly property real hoverScale: 1.08
+  readonly property var haloScales: [1.0, 1.18, 1.38, 1.6, 1.85]
+  readonly property real haloFalloff: 0.2
+  readonly property real minBreath: 0.55
+  readonly property real maxBreath: 1.0
+  readonly property real rippleStartScale: 1.0
+  readonly property real rippleEndScale: 2.3
+  readonly property real particleSizeRatio: 0.12
+  readonly property real particleDistanceRatio: 0.85
+  readonly property real ringStartScale: 0.7
+  readonly property real ringEndScale: 1.9
+  readonly property real particleEndScale: 0.4
  }
 
  // ==================== ImageCropperDialog 裁剪窗口度量 ====================

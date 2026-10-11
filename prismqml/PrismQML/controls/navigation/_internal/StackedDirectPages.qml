@@ -17,7 +17,7 @@ Item {
     // ==================== Size 尺寸 ====================
     objectName: "stackLayout"
     anchors.fill: parent
-    visible: !host._useSourceMode
+    visible: !host._useSourceMode && !host.pageModeConflict
 
     // ==================== Content 内容 ====================
     Component.onCompleted: {
@@ -33,6 +33,7 @@ Item {
             child.scale = 1
             child.transformOrigin = Item.Center
         }
+        host._syncPageActivity(host._displayIndex)
         host.profileTime("stackLayout Component.onCompleted done")
     }
 }

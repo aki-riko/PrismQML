@@ -5,7 +5,5 @@ TreeMenuDelegate TreeMenuDelegate.qml
 ContextMenu ContextMenu.qml
 Menu Menu.qml
 Action Action.qml
-RadioMenuFlyoutItem RadioMenuFlyoutItem.qml
-CommandBarFlyout CommandBarFlyout.qml
 MenuSeparator MenuSeparator.qml
 SystemTrayMenu SystemTrayMenu.qml

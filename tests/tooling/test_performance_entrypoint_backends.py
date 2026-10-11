@@ -23,6 +23,8 @@ PERFORMANCE_ENTRYPOINTS = (
     ROOT / "tests" / "qml" / "bench_windows_bar_content.py",
     ROOT / "tests" / "qml" / "bench_progress_ring_visibility.py",
     ROOT / "tests" / "qml" / "bench_hidden_loop_visibility.py",
+    ROOT / "tests" / "qml" / "bench_heavy_component_scheduler.py",
+    ROOT / "tests" / "qml" / "bench_stacked_page_retention.py",
 )
 
 

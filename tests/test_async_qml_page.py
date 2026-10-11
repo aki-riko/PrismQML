@@ -126,6 +126,43 @@ def test_async_qml_page_injects_backend_before_completed(qapp, tmp_path):
     EngineManager.reset()
 
 
+def test_async_qml_page_host_respects_shared_incubation_safety_gate(qapp, tmp_path):
+    page_path = tmp_path / "SynchronousFallbackPage.qml"
+    _write_page(page_path)
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty(
+        "PrismQmlAsynchronousPageLoaderEnabled", False
+    )
+    EngineManager.set_engine(engine)
+    page = AsyncQmlPage(page_path)
+    loader = page._qml_host.findChild(QObject, "asyncQmlPageContentLoader")
+    assert loader is not None
+    assert loader.property("asynchronous") is False
+
+    page.start_loading()
+    assert _pump_until(lambda: page.is_ready)
+    EngineManager.reset()
+
+
+def test_async_qml_page_reuses_compiled_host_per_engine(qapp, tmp_path):
+    first_path = tmp_path / "FirstPage.qml"
+    second_path = tmp_path / "SecondPage.qml"
+    _write_page(first_path)
+    _write_page(second_path)
+    engine = QQmlApplicationEngine()
+    EngineManager.set_engine(engine)
+    first = AsyncQmlPage(first_path)
+    second = AsyncQmlPage(second_path)
+
+    assert first._qml_component is second._qml_component
+    assert first._qml_host is not second._qml_host
+
+    first.start_loading()
+    second.start_loading()
+    assert _pump_until(lambda: first.is_ready and second.is_ready)
+    EngineManager.reset()
+
+
 def test_async_qml_page_waits_for_optional_target_ready_gate(qapp, tmp_path):
     page_path = tmp_path / "GatedPage.qml"
     _write_page(page_path, gated=True)

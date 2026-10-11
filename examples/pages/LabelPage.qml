@@ -38,7 +38,7 @@ Item {
                 description: "Label + type"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.s
-                    ComponentCard { label: "type_display"; Label { type: Fluent.Enums.label.type_display; text: "Display" } }
+                    ComponentCard { label: "type_display"; Label { type: Fluent.Enums.label.type_display; text: Fluent.Translator.tr("gallery_c742537502dc9a31", Fluent.Translator._v) } }
                     ComponentCard { label: "type_title_large"; Label { type: Fluent.Enums.label.type_title_large; text: Fluent.Translator.tr("gallery_dfab9636ca22e6df", Fluent.Translator._v) } }
                     ComponentCard { label: "type_title"; Label { type: Fluent.Enums.label.type_title; text: Fluent.Translator.tr("gallery_c3405f8c7d9d392a", Fluent.Translator._v) } }
                     ComponentCard { label: "type_subtitle"; Label { type: Fluent.Enums.label.type_subtitle; text: Fluent.Translator.tr("gallery_7370212371b50c9a", Fluent.Translator._v) } }
@@ -63,7 +63,7 @@ Item {
                     }
                     GalleryFlow {
                         spacing: Fluent.Enums.spacing.l
-                        ComponentCard { label: "info"; Badge { text: "New"; level: Fluent.Enums.statusLevel.info } }
+                        ComponentCard { label: "info"; Badge { text: Fluent.Translator.tr("gallery_50ef2f4cf6a46924", Fluent.Translator._v); level: Fluent.Enums.statusLevel.info } }
                         ComponentCard { label: "attention"; Badge { text: Fluent.Translator.tr("gallery_4ffef8f3113a3a11", Fluent.Translator._v); level: Fluent.Enums.statusLevel.attention } }
                         ComponentCard { label: "success"; Badge { text: Fluent.Translator.tr("gallery_053461ce86d26572", Fluent.Translator._v); level: Fluent.Enums.statusLevel.success } }
                         ComponentCard { label: "error"; Badge { text: Fluent.Translator.tr("gallery_0bc1fb72ae1be5c5", Fluent.Translator._v); level: Fluent.Enums.statusLevel.error } }
@@ -114,8 +114,8 @@ Item {
                 description: Fluent.Translator.tr("gallery_e2040891d0422823", Fluent.Translator._v)
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.m
-                    ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); Chip { text: "Attach camera"; icon: Fluent.Enums.icon.camera } }
-                    ComponentCard { label: Fluent.Translator.tr("gallery_45c21a9e1fe271db", Fluent.Translator._v); Chip { text: "Add friend"; icon: Fluent.Enums.icon.people; checked: true } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_206765db37265738", Fluent.Translator._v); icon: Fluent.Enums.icon.camera } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_45c21a9e1fe271db", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_fac9062e9065b399", Fluent.Translator._v); icon: Fluent.Enums.icon.people; checked: true } }
                     ComponentCard { label: Fluent.Translator.tr("gallery_eb6bb0da552629b5", Fluent.Translator._v); Chip { text: Fluent.Translator.tr("gallery_1d0fd5f9336d9103", Fluent.Translator._v); closable: false } }
                 }
             }

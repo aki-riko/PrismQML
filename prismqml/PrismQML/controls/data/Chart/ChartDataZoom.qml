@@ -37,6 +37,7 @@ Item {
     // Current selected range 当前选中范围
     property real viewportStart: 0
     property real viewportEnd: 1
+    property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
 
     // ==================== Internal Props 内部属性 ====================
     property bool _suppressSliderUpdate: false
@@ -63,11 +64,22 @@ Item {
                 ? Math.max(0, Math.min(1, value)) : fallback
     }
 
+    function _rebuildThumbnailFrame() {
+        if (!schedulerActive || !thumbCanvas) return
+        thumbCanvas.rebuildDrawFrame()
+    }
+
     implicitWidth: Enums.controlSize.chartDataZoomDefaultWidth
     implicitHeight: Enums.controlSize.chartDataZoomDefaultHeight
 
-    onChartDataChanged: if (thumbCanvas) thumbCanvas.requestPaint()
-    onSeriesChanged: if (thumbCanvas) thumbCanvas.requestPaint()
+    onChartDataChanged: {
+        _rebuildThumbnailFrame()
+        if (schedulerActive && thumbCanvas) thumbCanvas.requestPaint()
+    }
+    onSeriesChanged: {
+        _rebuildThumbnailFrame()
+        if (schedulerActive && thumbCanvas) thumbCanvas.requestPaint()
+    }
     onViewportStartChanged: {
         if (!rangeSlider) return
         _suppressSliderUpdate = true
@@ -96,7 +108,10 @@ Item {
         id: thumbCanvas
 
         property int _drawFrameBuildCount: 0
-        property var _drawFrame: {
+        property var _drawFrame: ({ values: [], minimum: 0, maximum: 0 })
+
+        function rebuildDrawFrame() {
+            if (!control.schedulerActive) return
             var source = []
             var series = control.series
             if (series && typeof series.length === "number" && series.length > 0) {
@@ -114,7 +129,7 @@ Item {
                     }
                 }
             }
-            return _buildDrawFrame(source)
+            _drawFrame = _buildDrawFrame(source)
         }
         readonly property var _drawValues: _drawFrame.values
         readonly property real _drawMinimum: _drawFrame.minimum
@@ -144,6 +159,7 @@ Item {
         on_DrawFrameChanged: _drawFrameBuildCount++
 
         onPaint: {
+            if (!control.schedulerActive) return
             var ctx = getContext('2d')
             ctx.clearRect(0, 0, width, height)
             var vals = _drawValues
@@ -186,7 +202,10 @@ Item {
             ctx.stroke()
         }
 
-        Component.onCompleted: requestPaint()
+        Component.onCompleted: {
+            rebuildDrawFrame()
+            requestPaint()
+        }
     }
 
     // Overlay the dual-handle range slider on the thumbnail 将双手柄范围滑块叠加在缩略图上
@@ -194,6 +213,7 @@ Item {
         id: rangeSlider
         anchors.fill: parent
         type: Enums.slider.type_range
+        enabled: control.schedulerActive
         from: 0
         to: Enums.chart.viewport_slider_steps
         firstValue: Math.round(control._safeViewportStart * Enums.chart.viewport_slider_steps)
@@ -223,5 +243,15 @@ Item {
         id: _dragEndTimer
 
         host: control
+    }
+
+    onSchedulerActiveChanged: {
+        if (!schedulerActive) {
+            _dragEndTimer.stop()
+            _dragging = false
+        } else if (thumbCanvas) {
+            _rebuildThumbnailFrame()
+            thumbCanvas.requestPaint()
+        }
     }
 }

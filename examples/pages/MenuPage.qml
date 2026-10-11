@@ -570,6 +570,31 @@ Item {
                 }
             }
 
+            // System tray menu 托盘菜单
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_d7413200538cd4e9", Fluent.Translator._v)
+                description: "initialActions / showAtPosition(x, y)"
+                ComponentCard {
+                    label: Fluent.Translator.tr("gallery_ae6b36295790621a", Fluent.Translator._v)
+                    Button {
+                        text: Fluent.Translator.tr("gallery_37d0fee07c326818", Fluent.Translator._v)
+                        onClicked: {
+                            var origin = mapToGlobal(0, 0)
+                            systemTrayMenuDemo.showAtPosition(origin.x, origin.y)
+                        }
+                    }
+                    SystemTrayMenu {
+                        id: systemTrayMenuDemo
+                        initialActions: [
+                            { "text": Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_498e1d59b4d787ee", Fluent.Translator._v) }
+                        ]
+                    }
+                }
+            }
+
         }
     }
 }

@@ -1,11 +1,5 @@
 module List
 ListWidget ListWidget.qml
 ListWidgetItem ListWidgetItem.qml
-ItemsRepeater ItemsRepeater.qml
-ItemsView ItemsView.qml
-StandardUICommand StandardUICommand.qml
-ItemsRepeaterLayout _internal/ItemsRepeaterLayout.qml
-ItemsStackLayout _internal/ItemsStackLayout.qml
-ItemsUniformGridLayout _internal/ItemsUniformGridLayout.qml
 TreeWidget TreeWidget/TreeWidget.qml
 TreeView TreeWidget/TreeView.qml

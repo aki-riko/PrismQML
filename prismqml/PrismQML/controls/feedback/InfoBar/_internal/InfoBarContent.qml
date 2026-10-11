@@ -229,15 +229,21 @@ Item {
     }
 
     // Close button - 自适应高度 关闭按钮-右侧
-    CloseButton {
+    Button {
         id: closeBtn
+        objectName: "closeBtn"
         anchors.right: parent.right
         anchors.rightMargin: Enums.infoBarMetrics.margin
         anchors.top: infoBar._isVertical ? parent.top : undefined
         anchors.topMargin: infoBar._isVertical ? Enums.spacing.m : 0
         anchors.verticalCenter: infoBar._isVertical ? undefined : parent.verticalCenter
-        size: Math.min(infoBar.height - Enums.spacing.xs * 2, Enums.infoBarMetrics.closeButtonSize)
-        iconSizeValue: Enums.infoBarMetrics.closeIconSize
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        width: Math.min(infoBar.height - Enums.spacing.xs * 2, Enums.infoBarMetrics.closeButtonSize)
+        height: width
+        radius: width / 2
+        iconSize: Enums.infoBarMetrics.closeIconSize
+        focusOnPress: false
         visible: infoBar.closable
         onClicked: infoBar.hide()
     }

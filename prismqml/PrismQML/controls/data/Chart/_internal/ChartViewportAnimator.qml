@@ -14,6 +14,7 @@ Item {
     property real viewportStart: 0
     property real viewportEnd: 1
     property bool animated: true
+    property bool schedulerActive: true
     property bool interactive: false
     property bool transitionEnabled: true
 
@@ -26,7 +27,7 @@ Item {
     )
     readonly property real visualStart: visualViewport.start
     readonly property real visualEnd: visualViewport.end
-    readonly property bool active: viewportAnimation.running
+    readonly property bool active: viewportAnimation.running && schedulerActive
 
     // ==================== Internal Props 内部属性 ====================
     property var _renderViewport: ({ start: viewportStart, end: viewportEnd })
@@ -59,8 +60,8 @@ Item {
     }
 
     function _applyTransition() {
+        if (!_ready || !schedulerActive) return
         _transitionPending = false
-        if (!_ready) return
         var transitionPlan = ViewportTransition.plan(
             renderStart, renderEnd, scaleValue, offsetRatio,
             viewportStart, viewportEnd, Enums.chart.viewport_epsilon
@@ -104,6 +105,16 @@ Item {
     onViewportEndChanged: _scheduleTransition()
     onAnimatedChanged: if (_ready && !animated) _snapToTarget()
     onTransitionEnabledChanged: if (_ready && !transitionEnabled) _snapToTarget()
+    onSchedulerActiveChanged: {
+        if (!_ready) return
+        if (!schedulerActive) {
+            if (viewportAnimation.running) viewportAnimation.pause()
+        } else if (_transitionPending) {
+            _applyTransition()
+        } else if (viewportAnimation.paused) {
+            viewportAnimation.resume()
+        }
+    }
     Component.onCompleted: {
         _ready = true
         _snapToTarget()

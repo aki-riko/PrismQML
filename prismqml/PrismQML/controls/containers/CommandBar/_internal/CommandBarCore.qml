@@ -242,8 +242,9 @@ Item {
                 flat: true
                 enabled: !commandData || commandData.enabled !== false
                 icon: commandData ? (commandData.icon || "") : ""
-                text: buttonStyle === Enums.commandBar.style_text_beside
-                      ? (commandData ? (commandData.text || "") : "") : ""
+                _verticalContent: buttonStyle === Enums.commandBar.style_text_under
+                text: buttonStyle === Enums.commandBar.style_icon_only
+                      ? "" : (commandData ? (commandData.text || "") : "")
                 iconSize: control.iconSize
                 implicitWidth: _calcButtonWidth()
                 implicitHeight: Enums.controlSize.commandBarButtonSize

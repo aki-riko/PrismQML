@@ -13,6 +13,15 @@ Item {
     property var allIcons: []
     property string searchText: ""
     property string selectedIcon: Fluent.Enums.icon.calendar  // Default selected icon 默认选中
+    // Leaf icon components led by the grid cells: name to glyph, single source of truth
+    // 由网格最前面单元格承载的图标叶子组件: 名称到图形的唯一数据源
+    readonly property var leafGlyphs: ({
+        "CheckIcon": checkIconGlyph,
+        "ChevronIcon": chevronIconGlyph,
+        "ChevronIcon (open)": chevronOpenGlyph,
+        "CloseIcon": closeIconGlyph
+    })
+    readonly property var leafComponentNames: Object.keys(leafGlyphs)
 
     Component.onCompleted: { allIcons = getIconList() }
 
@@ -33,12 +42,18 @@ Item {
         return name.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '')
     }
 
+    // Leaf components lead the grid, enum icons follow; search filters both
+    // 叶子组件排在网格最前, 枚举图标随后; 搜索同时过滤两者
     readonly property var filteredIcons: {
-        if (searchText === "") return allIcons
         var lowerSearch = searchText.toLowerCase()
-        return allIcons.filter(function(icon) {
-            return icon.toLowerCase().indexOf(lowerSearch) >= 0
-        })
+        var matchAll = searchText === ""
+        var names = leafComponentNames.concat(allIcons)
+        var result = []
+        for (var index = 0; index < names.length; ++index) {
+            if (matchAll || names[index].toLowerCase().indexOf(lowerSearch) >= 0)
+                result.push(names[index])
+        }
+        return result
     }
 
     Row {
@@ -70,10 +85,10 @@ Item {
                 onTextChanged: root.searchText = text
             }
 
-            // Icon grid 图标网格
+            // Icon grid, led by the leaf component cells 图标网格, 最前面的单元格是叶子组件
             ScrollArea {
                 width: parent.width
-                height: parent.height - 80
+                height: parent.height - y
                 
                 type: Fluent.Enums.scroll.type_grid
                 model: filteredIcons
@@ -82,11 +97,19 @@ Item {
                 selectable: false
                 
                 delegate: Card {
+                    id: gridCard
+
+                    readonly property bool leafComponent: root.leafGlyphs[modelData] !== undefined
+
+                    objectName: gridCard.leafComponent ? "leafComponentCell" : ""
                     cardType: Fluent.Enums.card.type_elevated
                     borderRadius: Fluent.Enums.radius.large
+                    // Card ignores clicks unless enabled; leaf cells demo a component, not a selection
+                    // 卡片需显式启用点击; 叶子单元格演示组件本身, 不参与选中
+                    clickEnabled: !gridCard.leafComponent
                     width: 100
                     height: 88
-                    border.width: modelData === root.selectedIcon ? 1 : 0
+                    border.width: !gridCard.leafComponent && modelData === root.selectedIcon ? 1 : 0
                     border.color: Fluent.Enums.accentColor
 
                     Column {
@@ -95,9 +118,24 @@ Item {
 
                         Icon {
                             anchors.horizontalCenter: parent.horizontalCenter
+                            visible: !gridCard.leafComponent
                             iconSize: Fluent.Enums.iconSize.xl
                             color: Fluent.Enums.textColor.primary
-                            icon: modelData
+                            icon: gridCard.leafComponent ? "" : modelData
+                        }
+
+                        // Leaf glyph occupies the enum icon slot so labels stay aligned
+                        // 叶子图形占据与枚举图标一致的槽位, 保证标签对齐
+                        Item {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            visible: gridCard.leafComponent
+                            width: Fluent.Enums.iconSize.xl
+                            height: Fluent.Enums.iconSize.xl
+
+                            Loader {
+                                anchors.centerIn: parent
+                                sourceComponent: gridCard.leafComponent ? root.leafGlyphs[modelData] : null
+                            }
                         }
 
                         Text {
@@ -248,5 +286,30 @@ Item {
                 }
             }
         }
+    }
+
+    // ==================== Leaf Component Glyphs 叶子组件图形 ====================
+    Component {
+        id: checkIconGlyph
+        CheckIcon { }
+    }
+
+    Component {
+        id: chevronIconGlyph
+        ChevronIcon { }
+    }
+
+    Component {
+        id: chevronOpenGlyph
+        ChevronIcon {
+            direction: "right"
+            animated: true
+            isOpen: true
+        }
+    }
+
+    Component {
+        id: closeIconGlyph
+        CloseIcon { }
     }
 }

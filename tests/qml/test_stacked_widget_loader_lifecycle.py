@@ -86,6 +86,117 @@ Item {{
         engine.deleteLater()
 
 
+def test_shrinking_page_sources_clamps_current_page(qapp, tmp_path):
+    page_urls = []
+    for index in range(3):
+        page = tmp_path / f"clamp_page_{index}.qml"
+        page.write_text(
+            f'import QtQuick\nItem {{ objectName: "clamp-page-{index}" }}\n',
+            encoding="utf-8",
+        )
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    quoted_urls = ", ".join(f'"{url}"' for url in page_urls)
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    function showLast() {{
+        stack.currentIndex = 2
+        stack._displayIndex = 2
+    }}
+
+    function shrinkToFirst() {{
+        stack.pageSources = [{quoted_urls.split(', ')[0]}]
+    }}
+
+    function clearPages() {{
+        stack.pageSources = []
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "clampStack"
+        width: 400
+        height: 240
+        lazyLoading: false
+        animationEnabled: false
+        pageSources: [{quoted_urls}]
+    }}
+}}
+""".encode("utf-8")
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        _pump(200)
+        stack = root.findChild(QObject, "clampStack")
+        assert QMetaObject.invokeMethod(root, "showLast")
+        _pump(1200)
+        assert _evaluate(stack, "currentIndex") == 2
+        assert QMetaObject.invokeMethod(root, "shrinkToFirst")
+        _pump(200)
+        assert _evaluate(stack, "currentIndex") == 0
+        assert _evaluate(stack, "_displayIndex") == 0
+        assert _evaluate(stack, "currentItem.objectName") == "clamp-page-0"
+        assert _evaluate(stack, "_loaders.length") == 1
+        assert QMetaObject.invokeMethod(root, "clearPages")
+        _pump(100)
+        assert _evaluate(stack, "count") == 0
+        assert _evaluate(stack, "currentIndex") == 0
+        assert _evaluate(stack, "_displayIndex") == 0
+        assert _evaluate(stack, "currentItem === null") is True
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_direct_children_keep_initial_current_index(qapp):
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(
+        b"""import QtQuick
+import PrismQML
+
+StackedWidget {
+    objectName: "directIndexStack"
+    width: 320
+    height: 200
+    animationEnabled: false
+    currentIndex: 2
+    Rectangle { objectName: "direct-page-0" }
+    Rectangle { objectName: "direct-page-1" }
+    Rectangle { objectName: "direct-page-2" }
+}
+""",
+        SCENE_URL,
+    )
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    try:
+        assert root is not None
+        stack = root
+        assert _evaluate(stack, "count") == 3
+        assert _evaluate(stack, "currentIndex") == 2
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
 def test_dynamic_stack_push_pop_preserves_lazy_loading_and_initial_properties(qapp, tmp_path):
     page_urls = []
     for index in range(2):
@@ -352,6 +463,10 @@ Item {{
         assert root is not None
         _pump(700)
         assert not any("Unable to assign [undefined] to QQuickItem" in warning for warning in warnings), warnings
+        assert not any(
+            "Binding loop detected" in warning and "active" in warning
+            for warning in warnings
+        ), warnings
     finally:
         root.deleteLater()
         component.deleteLater()

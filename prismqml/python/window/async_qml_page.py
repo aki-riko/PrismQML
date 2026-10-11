@@ -11,6 +11,7 @@ from typing import Optional, Union
 from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtQml import QQmlComponent
 from PySide6.QtQuick import QQuickItem
+import shiboken6
 
 from ..core.logger import error
 from ..core.utils import qml_path
@@ -27,6 +28,20 @@ def _as_qml_url(source: Union[str, Path, QUrl]) -> QUrl:
 
 def _component_errors(component: QQmlComponent) -> str:
     return "\n".join(item.toString() for item in component.errors())
+
+
+def _cached_host_component(engine, host_url: QUrl) -> QQmlComponent:
+    """Reuse the compiled host component for one engine lifetime.
+
+    同一个 QML engine 内所有 AsyncQmlPage 共用已编译宿主，页面实例仍然各自
+    create；engine 被 reset 后 C++ 对象失效，下一页会重新编译。
+    """
+    cached = getattr(engine, "_prismqml_async_page_host_component", None)
+    if cached is not None and shiboken6.isValid(cached):
+        return cached
+    component = QQmlComponent(engine, host_url)
+    engine._prismqml_async_page_host_component = component
+    return component
 
 
 class AsyncQmlPage(QObject):
@@ -83,7 +98,7 @@ class AsyncQmlPage(QObject):
 
         engine = get_published_qml_engine()
         host_url = QUrl.fromLocalFile(str(qml_path(_ASYNC_PAGE_HOST)))
-        component = QQmlComponent(engine, host_url)
+        component = _cached_host_component(engine, host_url)
         self._qml_component = component
         if component.isError():
             details = _component_errors(component)

@@ -26,6 +26,7 @@ Item {
     property int hoveredIndex: -1
     property int previousHoveredIndex: -1  // Track previous hover for transition 追踪上一个悬停索引用于过渡
     property bool labelOutside: false    // Label position: "outside" 标签在外部
+    property bool schedulerActive: true  // Runtime scheduler gate 运行时调度门控
 
     // ==================== Internal Props 内部属性 ====================
     property int _lastHoverCandidateCount: 0
@@ -91,6 +92,7 @@ Item {
 
     // Hover animation trigger with slice transition 悬浮动画触发（带扇区过渡）
     onHoveredIndexChanged: {
+        if (!schedulerActive) return
         // Start transition animation when switching between slices 扇区切换时启动过渡动画
         if (hoveredIndex >= 0 && previousHoveredIndex >= 0 && hoveredIndex !== previousHoveredIndex) {
             canvas.transitionProgress = 0
@@ -114,7 +116,7 @@ Item {
         canvas.requestPaint()
     }
 
-    onChartDataChanged: canvas.requestPaint()
+    onChartDataChanged: if (schedulerActive) canvas.requestPaint()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -125,9 +127,22 @@ Item {
         property real hoverOffset: 0
         property real transitionProgress: 1.0  // Slice transition animation progress 扇区切换动画进度
 
+        function syncSchedulerActive() {
+            if (!root.schedulerActive) {
+                if (chartAnimation.running) chartAnimation.pause()
+                if (transitionAnimation.running) transitionAnimation.pause()
+                return
+            }
+            if (chartAnimation.paused) chartAnimation.resume()
+            else if (root.animated && animProgress < 1) chartAnimation.start()
+            if (transitionAnimation.paused) transitionAnimation.resume()
+            requestPaint()
+        }
+
         anchors.fill: parent
 
         onPaint: {
+            if (!root.schedulerActive) return
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
 
@@ -263,24 +278,24 @@ Item {
         }
         
         Component.onCompleted: {
-            if (root.animated) {
+            if (root.animated && root.schedulerActive) {
                 animProgress = 0
                 chartAnimation.restart()
-            } else {
+            } else if (root.schedulerActive) {
                 animProgress = 1
                 requestPaint()
             }
         }
 
-        onHoverOffsetChanged: requestPaint()
-        onAnimProgressChanged: requestPaint()
+        onHoverOffsetChanged: if (root.schedulerActive) requestPaint()
+        onAnimProgressChanged: if (root.schedulerActive) requestPaint()
         onTransitionProgressChanged: {
             if (transitionProgress >= 1) root.previousHoveredIndex = -1
-            requestPaint()
+            if (root.schedulerActive) requestPaint()
         }
 
         HoverBehavior on hoverOffset {
-            active: root.hoveredIndex >= 0
+            active: root.schedulerActive && root.hoveredIndex >= 0
             enterDuration: Enums.duration.fast
             easingType: Easing.OutCubic
         }
@@ -310,6 +325,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        enabled: root.schedulerActive
         cursorShape: root.hoveredIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
         
         onPositionChanged: (mouse) => {
@@ -342,4 +358,6 @@ Item {
             }
         }
     }
+
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

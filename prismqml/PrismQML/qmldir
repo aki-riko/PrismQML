@@ -34,7 +34,6 @@ singleton IconRendererResources controls/icons/IconRendererResources.qml
 ChevronIcon controls/icons/ChevronIcon.qml
 CheckIcon controls/icons/CheckIcon.qml
 CloseIcon controls/icons/CloseIcon.qml
-AnimatedIcon controls/icons/AnimatedIcon.qml
 
 # ==================== Buttons 按钮 ====================
 Button controls/buttons/Button/ButtonCore.qml
@@ -43,8 +42,6 @@ CustomButtonCore controls/buttons/Button/CustomButtonCore.qml
 ButtonContent controls/buttons/Button/ButtonContent.qml
 ButtonDropdown controls/buttons/Button/ButtonDropdown.qml
 ButtonProgress controls/buttons/Button/ButtonProgress.qml
-CloseButton controls/buttons/CloseButton.qml
-RepeatButton controls/buttons/RepeatButton.qml
 
 # ==================== Containers 容器 ====================
 Widget controls/containers/Widget.qml
@@ -54,7 +51,6 @@ ComponentCard controls/containers/ComponentCard.qml
 DropZone controls/containers/DropZone.qml
 Timeline controls/containers/Timeline.qml
 TimelineCore controls/containers/TimelineCore.qml
-Waterfall controls/containers/Waterfall.qml
 
 # Card 卡片
 Card controls/containers/Card/Card.qml
@@ -75,10 +71,6 @@ HBoxLayout controls/containers/Layout/HBoxLayout.qml
 VBoxLayout controls/containers/Layout/VBoxLayout.qml
 RowFit controls/containers/Layout/RowFit.qml
 SplitPane controls/containers/Layout/SplitPane.qml
-SplitView controls/containers/Layout/SplitView.qml
-RelativePanel controls/containers/Layout/RelativePanel.qml
-Viewbox controls/containers/Layout/Viewbox.qml
-ParallaxView controls/containers/Layout/ParallaxView.qml
 
 # ScrollBar 滚动条
 ScrollBarEntry controls/containers/ScrollBar/ScrollBarEntry.qml
@@ -116,12 +108,6 @@ AudioWaveform controls/data/AudioWaveform.qml
 ChartView controls/data/Chart/ChartView.qml
 ChartDataZoom controls/data/Chart/ChartDataZoom.qml
 IndicatorBar controls/data/IndicatorBar.qml
-ItemsRepeater controls/data/List/ItemsRepeater.qml
-ItemsView controls/data/List/ItemsView.qml
-StandardUICommand controls/data/List/StandardUICommand.qml
-ItemsRepeaterLayout controls/data/List/_internal/ItemsRepeaterLayout.qml
-ItemsStackLayout controls/data/List/_internal/ItemsStackLayout.qml
-ItemsUniformGridLayout controls/data/List/_internal/ItemsUniformGridLayout.qml
 
 # ==================== Navigation 导航 ====================
 # controls/navigation
@@ -146,13 +132,6 @@ NavigationViewItem navigation/NavigationViewItem.qml
 PipsPager navigation/PipsPager.qml
 StatusBar navigation/StatusBar.qml
 ToggleNavigationBar navigation/ToggleNavigationBar.qml
-#ToolBar navigation/ToolBar.qml
-RibbonBar navigation/RibbonBar.qml
-RibbonTab navigation/RibbonTab.qml
-RibbonGroup navigation/RibbonGroup.qml
-AppBarButton navigation/AppBarButton.qml
-AppBarToggleButton navigation/AppBarToggleButton.qml
-AppBarSeparator navigation/AppBarSeparator.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml
@@ -168,7 +147,6 @@ Progress controls/feedback/Progress/Progress.qml
 ProgressCore controls/feedback/Progress/ProgressCore.qml
 ProgressBar controls/feedback/Progress/ProgressBar.qml
 ProgressRing controls/feedback/Progress/ProgressRing.qml
-EmptyState controls/feedback/State/EmptyState.qml
 EmptyDataState controls/feedback/State/EmptyDataState.qml
 OfflineState controls/feedback/State/OfflineState.qml
 ResultState controls/feedback/State/ResultState.qml
@@ -237,13 +215,6 @@ ContextMenu controls/menus/ContextMenu.qml
 Action controls/menus/Action.qml
 MenuSeparator controls/menus/MenuSeparator.qml
 SystemTrayMenu controls/menus/SystemTrayMenu.qml
-RadioMenuFlyoutItem controls/menus/RadioMenuFlyoutItem.qml
-CommandBarFlyout controls/menus/CommandBarFlyout.qml
-
-# ==================== Media 媒体 ====================
-MediaPlayerElement controls/media/MediaPlayerElement.qml
-MapControl controls/media/MapControl.qml
-WebView2 controls/media/WebView2.qml
 
 # ==================== Settings 设置 ====================
 SettingsCardCore controls/settings/SettingsCard/SettingsCardCore.qml
@@ -260,9 +231,6 @@ ConfirmDialog controls/dialogs/ConfirmDialog.qml
 UpdateDialog controls/dialogs/UpdateDialog.qml
 FlyoutSheet controls/dialogs/FlyoutSheet.qml
 ProgressDialog controls/dialogs/ProgressDialog.qml
-
-# ==================== Auth 认证 ====================
-LoginWindow controls/auth/LoginWindow.qml
 
 # ==================== Chat 聊天 ====================
 ChatBubble controls/chat/ChatBubble.qml

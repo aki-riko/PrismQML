@@ -24,21 +24,32 @@ Item {
     // 可能重建全部委托，导致当前页重载并暴露空白帧。
     function _syncPageModel() {
         var sources = sourceContainer.host._safePageSources
-        while (sourceModel.count > sources.length) {
+        var components = sourceContainer.host._safeDeferredPages
+        var pageCount = sources.length > 0 ? sources.length : components.length
+        while (sourceModel.count > pageCount) {
             sourceModel.remove(sourceModel.count - 1)
         }
-        for (var index = 0; index < sources.length; index++) {
-            var source = sources[index] || ""
+        for (var index = 0; index < pageCount; index++) {
+            var source = sources.length > 0 ? (sources[index] || "") : ""
+            var componentMode = sources.length === 0
             if (index >= sourceModel.count) {
-                sourceModel.append({"sourceValue": source})
+                sourceModel.append({
+                    "sourceValue": source,
+                    "componentMode": componentMode
+                })
             } else if (String(sourceModel.get(index).sourceValue)
-                       !== String(source)) {
+                       !== String(source) || sourceModel.get(index).componentMode !== componentMode) {
                 sourceModel.setProperty(index, "sourceValue", source)
+                sourceModel.setProperty(index, "componentMode", componentMode)
             }
         }
-        if (sourceContainer.host._loaders.length > sources.length) {
+        if (sourceContainer.host._loaders.length > pageCount) {
             sourceContainer.host._loaders = sourceContainer.host._loaders.slice(
-                0, sources.length)
+                0, pageCount)
+        }
+        var loaders = sourceContainer.host._loaders
+        for (var loaderIndex = 0; loaderIndex < loaders.length; loaderIndex++) {
+            if (loaders[loaderIndex]) loaders[loaderIndex]._syncSource()
         }
     }
 
@@ -58,19 +69,37 @@ Item {
             property bool _loadOnce: false
             property int pageIndex: index
             property string _loadedSourceText: ""
+            property var _pendingPageProperties: ({})
 
             function _syncSource() {
                 var modelEntry = index >= 0 && index < sourceModel.count
                         ? sourceModel.get(index) : null
                 var nextSource = modelEntry ? modelEntry.sourceValue : ""
+                var componentEntries = sourceContainer.host._safeDeferredPages
+                var nextComponent = modelEntry && modelEntry.componentMode
+                        && index < componentEntries.length ? componentEntries[index] : null
                 var nextProperties = sourceContainer.host._pagePropertiesFor(index)
-                if (!nextSource) {
+                if (!nextSource && !nextComponent) {
                     sourceLoader.source = ""
                     sourceLoader._loadedSourceText = ""
                     return
                 }
                 var nextSourceText = nextSource && nextSource.toString
                         ? nextSource.toString() : String(nextSource)
+                if (nextComponent) {
+                    if (sourceLoader.item && sourceLoader.sourceComponent === nextComponent) {
+                        var componentKeys = Object.keys(nextProperties)
+                        for (var componentIndex = 0; componentIndex < componentKeys.length; componentIndex++) {
+                            var componentKey = componentKeys[componentIndex]
+                            if (componentKey in sourceLoader.item) sourceLoader.item[componentKey] = nextProperties[componentKey]
+                        }
+                        return
+                    }
+                    sourceLoader._pendingPageProperties = nextProperties
+                    sourceLoader.source = ""
+                    sourceLoader.sourceComponent = nextComponent
+                    return
+                }
                 if (sourceLoader.item && sourceLoader._loadedSourceText === nextSourceText) {
                     var keys = Object.keys(nextProperties)
                     for (var i = 0; i < keys.length; i++) {
@@ -79,8 +108,20 @@ Item {
                     }
                     return
                 }
-                if (sourceLoader.source.toString() !== nextSourceText) {
+                if (!sourceLoader.item && sourceLoader.status === Loader.Loading) {
+                    sourceLoader._pendingPageProperties = nextProperties
+                    var loadingSourceText = sourceLoader.source && sourceLoader.source.toString
+                            ? sourceLoader.source.toString() : String(sourceLoader.source)
+                    if (!nextComponent && loadingSourceText !== nextSourceText) {
+                        sourceLoader._loadedSourceText = nextSourceText
+                        sourceLoader.setSource(nextSource, nextProperties)
+                    }
+                    return
+                }
+                if (sourceLoader.source.toString() !== nextSourceText ||
+                        (!sourceLoader.item && sourceLoader.status === Loader.Null)) {
                     sourceLoader._loadedSourceText = nextSourceText
+                    sourceLoader._pendingPageProperties = nextProperties
                     sourceLoader.setSource(nextSource, nextProperties)
                     return
                 }
@@ -99,7 +140,6 @@ Item {
             // 使用独立 _loadOnce 锁存加载状态，避免 active 自引用导致全量加载。
             onActiveChanged: {
                 if (active) {
-                    _loadOnce = true
                     sourceLoader._syncSource()
                 }
                 sourceContainer.host._traceLazyStage(
@@ -108,7 +148,7 @@ Item {
             onStatusChanged: sourceContainer.host._traceLazyStage(
                 "stacked.source_loader.status_changed", index, "", sourceLoader)
             active: sourceContainer.host.lazyLoading
-                    ? (index === sourceContainer.host._displayIndex || _loadOnce)
+                    ? retentionController.loaderActive(index, sourceLoader)
                     : (index === sourceContainer.host._displayIndex ||
                        sourceContainer.eagerHelper.ready ||
                        (sourceContainer.eagerHelper.activationActive &&
@@ -153,7 +193,15 @@ Item {
                     "stacked.source_loader.loaded.begin", index, "", sourceLoader)
                 _loadOnce = true
                 sourceLoader._loadedSourceText = sourceLoader.source.toString()
+                var pendingKeys = Object.keys(sourceLoader._pendingPageProperties)
+                for (var pendingIndex = 0; pendingIndex < pendingKeys.length; pendingIndex++) {
+                    var pendingKey = pendingKeys[pendingIndex]
+                    if (pendingKey in sourceLoader.item) sourceLoader.item[pendingKey] =
+                            sourceLoader._pendingPageProperties[pendingKey]
+                }
+                sourceLoader._pendingPageProperties = ({})
                 sourceContainer.host.pageLoaded(index)
+                sourceContainer.host._syncPageActivity(sourceContainer.host._displayIndex)
                 sourceContainer.host.profileTime("sourceLoader onLoaded index=" + index)
                 sourceContainer.host._traceLazyStage(
                     "stacked.source_loader.loaded.done", index, "", sourceLoader)
@@ -161,6 +209,7 @@ Item {
 
             Connections {
                 function onPageSourcesChanged() { sourceLoader._syncSource() }
+                function onDeferredPagesChanged() { sourceLoader._syncSource() }
                 function onPagePropertiesChanged() { sourceLoader._syncSource() }
 
                 target: sourceContainer.host
@@ -170,9 +219,15 @@ Item {
 
     Connections {
         function onPageSourcesChanged() { sourceContainer._syncPageModel() }
+        function onDeferredPagesChanged() { sourceContainer._syncPageModel() }
 
         target: sourceContainer.host
     }
 
     Component.onCompleted: sourceContainer._syncPageModel()
+
+    StackedPageRetentionController {
+        id: retentionController
+        host: sourceContainer.host
+    }
 }

@@ -55,14 +55,6 @@ Window {{
     readonly property color chartTooltipText: Enums.stateColor.chartTooltipText
     readonly property color chartStrongText: Enums.chartColors.strongText
 
-    LoginWindow {{
-        id: login
-        objectName: "remainingLogin"
-        width: 520
-        height: 500
-        matrixEnabled: false
-    }}
-
     ChartInternal.ChartTooltip {{
         id: chartTooltip
         objectName: "remainingChartTooltip"
@@ -197,17 +189,13 @@ def test_remaining_surfaces_follow_neumorphic_tokens(qapp):
         expected_radius = window.property("expectedRadius")
         expected_border = window.property("expectedBorderWidth")
 
-        login = window.findChild(QObject, "remainingLogin")
         chart = window.findChild(QObject, "remainingChartTooltip")
         multi = window.findChild(QObject, "remainingChartMultiTooltip")
         tip = window.findChild(QObject, "remainingTipPopup")
         filter_bar = window.findChild(QObject, "remainingFilter")
         spin_button = window.findChild(QObject, "remainingSpinButton")
-        assert all(item is not None for item in (login, chart, multi, tip, filter_bar, spin_button))
+        assert all(item is not None for item in (chart, multi, tip, filter_bar, spin_button))
 
-        assert login.property("_cardRadius") == expected_radius
-        assert login.property("_cardBorderWidth") == expected_border
-        assert login.property("_errorRadius") == expected_radius
         assert chart.property("_tooltipRadius") == expected_radius
         assert chart.property("_tooltipBorderColor").alpha() == 0
         assert multi.property("_tooltipRadius") == expected_radius

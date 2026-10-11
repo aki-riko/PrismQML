@@ -13,27 +13,21 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property int currentIndex: 0
     property int animationType: Enums.animation.opacity
-    // Axis of slide / slide_fade / card / pop / bounce 滑动类动画主轴与 pop / bounce 进入边
     property int animationOrientation: Qt.Horizontal
     property int animationOrigin: Enums.animation.origin_auto
-    // Transition used only while a lazy page is loading 懒加载期间使用的过渡类型
     property int lazyAnimationType: Enums.lazyAnimation.lazy_circle
     property int animationDuration: Enums.duration.slow
-    // Extra delay before Loader activation, used to let navigation feedback settle
-    // Loader 激活前的额外延迟，用于等待导航反馈动画稳定
     property int lazyActivationDelay: Enums.duration.none
     property bool animationEnabled: true
     property real cardScale: Enums.opacityLevel.heavy
     property real cardOpacity: Enums.opacityLevel.heavy
     property int popUpOffset: Enums.controlSize.popUpOffset
-    // QML lazy-loading props for pure QML usage 纯QML使用的懒加载属性
     property bool lazyLoading: false
     property var pageSources: []  // QML file paths QML文件路径列表
+    property list<Component> deferredPages  // Inline Component pages 内联延迟页面
     property var pageProperties: []
     property bool dynamicStack: false
-    // Keeps that many recently popped dynamic-stack levels resident so a repeated
-    // push of the same URL reuses the live page (no rebuild, no lazy-loading cover).
-    // 动态栈保留最近弹出的若干层, 重复 push 同一 URL 时复用存活页面(不重建、不再走懒加载覆盖层); 0 = 保持原有「弹出即销毁」行为。
+    property int pageRetentionRadius: -1
     property int dynamicStackRetainDepth: 0
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
@@ -59,14 +53,27 @@ Item {
     readonly property var _safePageProperties:
         pageProperties === null || pageProperties === undefined ? []
         : (typeof pageProperties.length === "number" ? pageProperties : [])
-    readonly property bool _useSourceMode: _safePageSources.length > 0
-    property int count: _useSourceMode ? _safePageSources.length : directPages.children.length
+    readonly property var _safeDeferredPages:
+        deferredPages === null || deferredPages === undefined ? []
+        : (typeof deferredPages.length === "number" ? deferredPages : [])
+    readonly property bool pageModeConflict:
+        _safePageSources.length > 0 && _safeDeferredPages.length > 0
+    readonly property bool _useSourceMode:
+        !pageModeConflict && (_safePageSources.length > 0 || _safeDeferredPages.length > 0)
+    readonly property bool _useUrlSourceMode:
+        _useSourceMode && _safePageSources.length > 0
+    property int count: pageModeConflict ? 0
+        : (_useSourceMode ? (_safePageSources.length > 0
+            ? _safePageSources.length : _safeDeferredPages.length)
+           : directPages.children.length)
     property int _dynamicDepth: -1
     property int _pendingTrimDepth: -1
+    readonly property bool _retentionTransitionActive: animations.running
     readonly property int depth: dynamicStack && _dynamicDepth >= 0
         ? _dynamicDepth : count
     // ==================== Internal Props 内部属性 ====================
     property bool _destroying: false
+    property bool _indexClampReady: false
     default property alias content: directPages.children
     property Item containerItem: directPages
     property Item currentWidget: _getCurrentWidget()
@@ -80,8 +87,6 @@ Item {
     property int _lazyDiagnosticSequence: 0
     property int _pythonLazyTransitionTargetIndex: -1
     property bool _pythonLazyRevealRequested: false
-    // Python-managed windows must explicitly acknowledge page readiness.
-    // Python 页面由宿主生命周期确认就绪，不能把“容器已创建”当成首屏已完成。
     property bool _pythonPageMode: false
     property var _pythonReadyIndexes: []
     // ==================== Signals 信号 ====================
@@ -104,6 +109,24 @@ Item {
     function _getCurrentItem() {
         var widgetItem = currentWidget
         return _useSourceMode && widgetItem ? widgetItem.item : widgetItem
+    }
+    function _clampPageIndexes() {
+        if (count <= 0) {
+            _displayIndex = 0
+            previousIndex = 0
+            _pendingLazySwitchIndex = -1
+            if (!pageModeConflict && currentIndex !== 0) currentIndex = 0
+            return
+        }
+        var lastIndex = count - 1
+        var clampedDisplay = Math.max(0, Math.min(_displayIndex, lastIndex))
+        var clampedCurrent = Math.max(0, Math.min(currentIndex, lastIndex))
+        if (_displayIndex !== clampedDisplay) {
+            _displayIndex = clampedDisplay
+            previousIndex = clampedDisplay
+        }
+        if (currentIndex !== clampedCurrent) currentIndex = clampedCurrent
+        if (_pendingLazySwitchIndex > lastIndex) _pendingLazySwitchIndex = -1
     }
     function _pagePropertiesFor(index) {
         if (index < 0 || index >= _safePageProperties.length) return ({})
@@ -175,9 +198,11 @@ Item {
     function _activateLoader(index) {
         _traceLazyStage("stacked.loader_activate.begin", index)
         if (_loaders[index] && !_loaders[index].active) {
-            if (_useSourceMode) {
+            if (_useUrlSourceMode) {
                 _loaders[index].setSource(
                     _safePageSources[index] || "", _pagePropertiesFor(index))
+            } else if (_safeDeferredPages[index]) {
+                _loaders[index].sourceComponent = _safeDeferredPages[index]
             }
             _loaders[index].active = true
         }
@@ -274,6 +299,7 @@ Item {
         visibilityController.updateVisibility(newIndex)
     }
 
+    function _syncPageActivity(activeIndex) { pageActivityController.sync(activeIndex) }
     function getCurrentIndex() {
         return currentIndex
     }
@@ -315,6 +341,8 @@ Item {
 
     Component.onCompleted: {
         if (dynamicStack && _dynamicDepth < 0) _dynamicDepth = count
+        _indexClampReady = true
+        _clampPageIndexes()
         profileTime("Component.onCompleted count=" + count +
                     ", lazyLoading=" + lazyLoading +
                     ", sourceMode=" + _useSourceMode)
@@ -324,6 +352,10 @@ Item {
         }
     }
     Component.onDestruction: _destroying = true
+
+    onCountChanged: {
+        if (_indexClampReady) _clampPageIndexes()
+    }
 
     onLazyLoadingChanged: {
         if (lazyLoading) {
@@ -349,8 +381,6 @@ Item {
     onCurrentIndexChanged: {
         _traceLazyStage("stacked.current_index_changed", currentIndex)
         profileTime("currentIndex changed to " + currentIndex)
-        // currentIndex 是目标页(外部输入)。用 _displayIndex(实际显示页)判重,
-        // 内部绝不回写 currentIndex(否则打破外部声明式绑定)。
         if (currentIndex === _displayIndex) {
             _cancelPendingLazySwitch("returned-to-visible")
             return
@@ -372,12 +402,8 @@ Item {
 
         if (lazyLoading && !_isPageLoaded(currentIndex)) {
             if (!_pythonPageMode) {
-                // QML pageSources lazy mode is owned by LazyLoadingHelper.
-                // QML pageSources 懒加载模式由 LazyLoadingHelper 管理。
                 _showLazyLoadingAndSwitch(currentIndex)
             }
-            // Python mode starts its circle transition from _startPythonLoading().
-            // Python 模式由 _startPythonLoading() 启动圆形过渡，此处保持旧页显示。
         } else if (!lazyLoading && _useSourceMode && !_isPageLoaded(currentIndex)) {
             eagerActivationHelper.request(currentIndex)
         } else {
@@ -398,11 +424,11 @@ Item {
         cardOpacity: control.cardOpacity
         onAnimationFinished: (idx) => {
             dynamicController.trimPendingPages()
+            control._syncPageActivity(idx)
             control.currentChanged(idx)
             control.animationFinished()
         }
     }
-
     EagerLoadingHelper {
         id: eagerActivationHelper
 
@@ -428,6 +454,7 @@ Item {
         id: directPages
         host: control
     }
+    StackedPageActivityController { id: pageActivityController; host: control; directContainer: directPages }
     StackedSourcePages {
         id: sourcePages
         anchors.fill: parent
@@ -444,7 +471,6 @@ Item {
         id: pageApi
         host: control
     }
-    
     // QML lazy-loading helper for pure QML usage 纯QML使用的懒加载辅助器
     StackedLazyHelperLoader {
         id: lazyHelperLoader
@@ -464,5 +490,6 @@ Item {
         host: control
         animations: animations
         container: directPages
+        dynamicStackController: dynamicController
     }
 }

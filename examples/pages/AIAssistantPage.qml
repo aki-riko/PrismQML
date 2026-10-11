@@ -59,13 +59,14 @@ Item {
         root.hasConversation = false
     }
 
-    // 状态文案保持技术口径（英文），不占用目录条目：idle / streaming · frames: N / finished · frames: N
+    // Status copy goes through the translation catalog like every other visible string.
+    // 状态文案与其它可见文案一样走翻译目录：idle / streaming · frames: N / finished · frames: N
     function statusText() {
-        if (!root.backendReady) return root.demo ? root.demo.errorText : "demo backend unavailable"
+        if (!root.backendReady) return root.demo ? root.demo.errorText : Fluent.Translator.tr("gallery_18a59281b32eba33", Fluent.Translator._v)
         var prefix = Fluent.Translator.tr("gallery_56062030e374faf2", Fluent.Translator._v)
-        if (root.streaming) return prefix + " · streaming · frames: " + (root.stream ? root.stream.frameCount : 0)
+        if (root.streaming) return prefix + Fluent.Translator.tr("gallery_9b6fb28b2f1ad1d0") + (root.stream ? root.stream.frameCount : 0)
         var frames = root.stream ? root.stream.frameCount : 0
-        return frames > 0 ? prefix + " · finished · frames: " + frames : prefix + " · idle"
+        return frames > 0 ? prefix + Fluent.Translator.tr("gallery_d798e478ac3ef4cb") + frames : prefix + Fluent.Translator.tr("gallery_0fea828373b212de")
     }
 
     // 流式增量：推理走 appendReasoningToLast，正文走 appendToLast；失败就把原因写进气泡，

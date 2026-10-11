@@ -296,7 +296,7 @@ Item {
             // Pull to refresh 下拉刷新
             ExampleCard {
                 title: "RefreshContainer"
-                description: "Pull down from the top of the list to refresh"
+                description: Fluent.Translator.tr("gallery_25d3ed9884def6d7", Fluent.Translator._v)
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
 
@@ -338,19 +338,19 @@ Item {
                     Column {
                         spacing: Fluent.Enums.spacing.s
                         Text {
-                            text: "refreshing: " + refreshDemo.refreshing
+                            text: Fluent.Translator.tr("gallery_1e139c2225befbcd", Fluent.Translator._v) + refreshDemo.refreshing
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
                         }
                         Text {
-                            text: "armed: " + refreshDemo.armed
+                            text: Fluent.Translator.tr("gallery_335e3f907015ea3b", Fluent.Translator._v) + refreshDemo.armed
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
                         }
                         Text {
-                            text: "progress: " + Math.round(refreshDemo.progress * 100) + "%"
+                            text: Fluent.Translator.tr("gallery_410e0558d5c99656", Fluent.Translator._v) + Math.round(refreshDemo.progress * 100) + "%"
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.body
                             color: Fluent.Enums.textColor.secondary
@@ -367,6 +367,69 @@ Item {
                     id: refreshDemoTimer
                     interval: 900
                     onTriggered: refreshDemo.refreshing = false
+                }
+            }
+
+            // ==================== RowFit 自适应行 ====================
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_74bd5d7c9b3fdd5d", Fluent.Translator._v)
+                description: "autoFit / minScale / horizontalAlign"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "autoFit true"
+                        RowFit {
+                            width: 200
+                            height: 44
+                            autoFit: true
+                            Rectangle { width: 120; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.5 }
+                            Rectangle { width: 120; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.8 }
+                        }
+                    }
+                    ComponentCard {
+                        label: "autoFit false"
+                        RowFit {
+                            width: 200
+                            height: 44
+                            spacing: Fluent.Enums.spacing.s
+                            Rectangle { width: 80; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.5 }
+                            Rectangle { width: 80; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.8 }
+                        }
+                    }
+                }
+            }
+
+            // ==================== SkinScope 局部皮肤 ====================
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_2ad219a2e64d39fa", Fluent.Translator._v)
+                description: "skin: fluent / neobrutalism / vintage_ticket"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "fluent"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "fluent"
+                            Button { anchors.centerIn: parent; text: "Fluent" }
+                        }
+                    }
+                    ComponentCard {
+                        label: "neobrutalism"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "neobrutalism"
+                            Button { anchors.centerIn: parent; text: "Neo" }
+                        }
+                    }
+                    ComponentCard {
+                        label: "vintage_ticket"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "vintage_ticket"
+                            Button { anchors.centerIn: parent; text: "Ticket" }
+                        }
+                    }
                 }
             }
         }

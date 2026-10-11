@@ -169,7 +169,12 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
 
         assert len(timers) == 1
         # Declarative skin lookup adds no signal-handler objects. 声明式皮肤查找不增加信号处理对象。
-        assert object_count == 66
+        # 66 -> 95: the close affordance is now a transparent Button (surface + content
+        # loader) instead of the removed lightweight CloseButton component. This is the
+        # measured object cost of that consolidation, not extra timers or handlers.
+        # 66 -> 95: 关闭入口改为透明 Button（表面 + 内容加载器）以取代被移除的轻量
+        # CloseButton 组件；这是合并带来的实测对象成本，不是新增定时器或处理器。
+        assert object_count == 95
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

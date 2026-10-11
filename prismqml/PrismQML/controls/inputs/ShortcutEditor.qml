@@ -205,11 +205,19 @@ InputCore {
     }
 
     // Cancel button 取消按钮
-    CloseButton {
+    Button {
         id: cancelBtn
+        objectName: "closeBtn"
         anchors.right: parent.right
         anchors.rightMargin: Enums.spacing.m
         anchors.verticalCenter: parent.verticalCenter
+        style: Enums.button.style_transparent
+        icon: Enums.icon.dismiss
+        width: Enums.controlSize.closeButtonSize
+        height: Enums.controlSize.closeButtonSize
+        radius: width / 2
+        iconSize: Enums.iconSize.s
+        focusOnPress: false
         visible: control.recording
         z: Enums.zIndex.controlsAbove
         onClicked: control.recording = false

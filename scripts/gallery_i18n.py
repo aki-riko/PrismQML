@@ -32,10 +32,13 @@ PROPERTY_NAMES = (
     "placeholderText", "buttonText", "onText", "offText", "emptyText",
     "loadingText", "splashSubtitle", "windowTitle", "message",
     "donutCenterSubtext", "defaultColorText", "customColorText",
-    "chooseColorText",
+    "chooseColorText", "hintText", "section", "name", "actionText",
+    "confirmText", "cancelText", "okText", "closeText", "retryText",
+    "toolTipText", "headerText", "footerText", "captionText", "statusText",
+    "heading", "notes",
 )
 PROPERTY_PATTERN = re.compile(
-    rf"(?P<prefix>\b(?:{'|'.join(PROPERTY_NAMES)})\s*:\s*)"
+    rf"(?P<prefix>[\"']?\b(?:{'|'.join(PROPERTY_NAMES)})[\"']?\s*:\s*)"
     r'(?P<quote>")(?P<value>(?:\\.|[^"\\])*)(?P=quote)'
 )
 DYNAMIC_PATTERN = re.compile(
@@ -88,6 +91,163 @@ def _is_user_visible(value: str) -> bool:
     if re.fullmatch(r"[A-Za-z0-9_+./:=() -]+", stripped):
         return False
     return bool(re.search(r"[A-Za-z\u0080-\uffff]", stripped))
+
+
+# Gallery copy policy: every visible-text literal that reads as a phrase must be
+# authored in the source language (zh_CN) and consumed through Fluent.Translator.
+# Single identifiers, API signatures, paths and protected product terms stay English
+# in every catalog, so they never enter the pipeline.
+# Gallery 文案策略：凡是读起来像短语的可见文案，都必须以源语言（zh_CN）编写并经
+# Fluent.Translator 消费；单词标识符、API 签名、路径与受保护产品术语在所有语言目录
+# 中都保持英文，因此不进入流水线。
+STRUCTURAL_CHARACTERS = frozenset("_+/\\().:=·[]{}<>@#*|&^%~`")
+FUNCTION_WORDS = frozenset(
+    """the a an of to in on for with and or is are be by from at this that
+    you your it its not no as into over when then if else than
+    down up out only first next last each every some any all""".split()
+)
+PROTECTED_TERMS = frozenset(
+    term.lower()
+    for term in (
+        "PrismQML", "Gallery", "C++", "DRY", "GitHub Releases", "GitHub", "Release",
+        "Updater", "UpdateDialog", "ProgressDialog", "Toast", "InfoBar", "Inno Setup",
+        "ToolButton", "PushButton", "Button", "PipsPager", "HorizontalPipsPager",
+        "VerticalPipsPager", "Carousel", "FlowLayout", "MatrixRain", "TeachingTip",
+        "TeachingTour", "StateWidget", "DateTimePicker", "ScrollBar", "ShortcutEditor",
+        "AvatarSelector", "Badge", "ContextMenu", "ImageWidget", "Timeline", "ListView",
+        "TableView", "TreeView", "BreadcrumbBar", "StackedWidget", "Stepper", "DWM",
+        "Windows", "DPI", "Mica", "API", "QML", "ISS",
+        # Skin display names are proper nouns 皮肤显示名是专有名词
+        "Fluent", "Neo", "Ticket", "Neobrutalism", "Vintage Ticket",
+    )
+)
+CAMEL_TOKEN = re.compile(r"[a-z][A-Z]")
+HAN_CHARACTER = re.compile(r"[\u3400-\u9fff]")
+CAPITALIZED_TOKEN = re.compile(r"[A-Z][A-Za-z0-9]*$")
+QML_MODULE_ROOT = PROJECT_ROOT / "prismqml" / "PrismQML"
+
+
+def _registered_component_names() -> frozenset[str]:
+    """Collect every registered QML type name. 收集全部已注册 QML 类型名。"""
+    names: set[str] = set()
+    for qmldir in QML_MODULE_ROOT.rglob("qmldir"):
+        for line in qmldir.read_text(encoding="utf-8").splitlines():
+            parts = line.split()
+            if not parts or parts[0].startswith("#") or not parts[-1].endswith(".qml"):
+                continue
+            names.add(parts[1] if parts[0] in {"singleton", "internal"} else parts[0])
+    return frozenset(names)
+
+
+COMPONENT_NAMES = _registered_component_names()
+
+
+@dataclass(frozen=True)
+class GalleryCopy:
+    """One untranslated copy literal and its position. 一条未本地化文案及其位置。"""
+
+    path: str
+    line: int
+    source: str
+
+
+def is_translatable_copy(value: str) -> bool:
+    """Return True when a literal reads as copy that must be localized.
+
+    判定字面量是否为必须本地化的文案。单词标识符、受保护术语、结构符号标记的 API
+    签名与 camelCase/缩写标识都不算文案；首字母大写的单词只要不是已注册组件名或
+    受保护术语，就是按钮/选项一类的内容标签。
+    """
+    stripped = value.strip()
+    if not stripped or HAN_CHARACTER.search(stripped):
+        return False
+    if not re.search(r"[A-Za-z]", stripped):
+        return False
+    tokens = re.findall(r"[A-Za-z]+", stripped)
+    if len(stripped.split()) == 1:
+        # Single tokens are API value captions when lowercase, and component, skin,
+        # acronym or camelCase names when they look like identifiers; every other
+        # capitalized word is a content label such as a button or option caption.
+        # 单词级：小写是 API 取值标签，组件/皮肤/缩写/camelCase 是标识符，其余首字母
+        # 大写的单词才是按钮、选项一类的内容文案。
+        if not CAPITALIZED_TOKEN.fullmatch(stripped):
+            return False
+        if len(stripped) == 1 or stripped.isupper() or CAMEL_TOKEN.search(stripped):
+            return False
+        return (
+            stripped not in COMPONENT_NAMES
+            and stripped.lower() not in PROTECTED_TERMS
+        )
+    if all(token.lower() in PROTECTED_TERMS or token.isdigit() for token in tokens):
+        return False
+    words = [word for word in stripped.split() if word.isalpha()]
+    if any(word.lower() in FUNCTION_WORDS for word in words):
+        return True
+    if any(character in STRUCTURAL_CHARACTERS for character in stripped):
+        return False
+    if any(token.isupper() and len(token) >= 2 for token in tokens):
+        return False
+    if any(CAMEL_TOKEN.search(token) for token in tokens):
+        return False
+    return True
+
+
+def _is_code_literal(code_mask: str, match: re.Match[str]) -> bool:
+    """Return True when a match sits in real code rather than a comment. 判定匹配位于代码而非注释。"""
+    return "v" in code_mask[match.start() : match.end()]
+
+
+def _is_untranslated_literal(value: str) -> bool:
+    """Return True when one literal must be localized. 判定单条字面量是否需要本地化。"""
+    if is_translatable_copy(value):
+        return True
+    # Label prefixes such as "mode: " stay readable only when the label is localized.
+    # "mode: " 这类标签前缀只有本地化后才可读。
+    return value.strip().endswith(":") and bool(re.search(r"[A-Za-z]{2,}", value))
+
+
+def _is_untranslated_fragment(value: str) -> bool:
+    """Return True when a concatenated label fragment must be localized.
+
+    判定拼接片段（如 "invoked " + index）是否为需要本地化的标签；对象名与路径前缀不算。
+    """
+    stripped = value.strip()
+    if " " not in value or len(re.findall(r"[A-Za-z]", stripped)) < 3:
+        return False
+    return not any(character in STRUCTURAL_CHARACTERS for character in stripped)
+
+
+def find_untranslated_copy(root: Path = GALLERY_ROOT) -> list[GalleryCopy]:
+    """List visible-text literals that still carry untranslated copy.
+
+    列出仍以英文文案形式硬编码的可见字面量；注释中的同名文本不算。
+    """
+    found: dict[tuple[str, int, str], GalleryCopy] = {}
+    for path in _gallery_files(root):
+        content = path.read_text(encoding="utf-8")
+        code_mask = sanitize_qml(content, mask_strings=True, mark_values=True)
+        relative = path.relative_to(root).as_posix()
+
+        def record(match: re.Match[str], value: str) -> None:
+            item = GalleryCopy(
+                relative, content.count("\n", 0, match.start()) + 1, value
+            )
+            found[(item.path, item.line, item.source)] = item
+
+        for match in PROPERTY_PATTERN.finditer(content):
+            if not _is_code_literal(code_mask, match):
+                continue
+            value = _decode_qml_string(match.group("value"))
+            if _is_untranslated_literal(value):
+                record(match, value)
+        for pattern in (DYNAMIC_PATTERN, DYNAMIC_SUFFIX_PATTERN):
+            for match in pattern.finditer(content):
+                if not _is_code_literal(code_mask, match):
+                    continue
+                value = _decode_qml_string(match.group("value"))
+                if _is_untranslated_literal(value) or _is_untranslated_fragment(value):
+                    record(match, value)
+    return sorted(found.values(), key=lambda item: (item.path, item.line, item.source))
 
 
 def _gallery_files(root: Path = GALLERY_ROOT) -> list[Path]:
