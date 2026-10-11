@@ -161,6 +161,42 @@ def test_data_zoom_drag_end_timer_preserves_interactive_lifecycle(chart_scene):
     assert warnings == []
 
 
+def test_data_zoom_scheduler_gate_pauses_thumbnail_and_drag(chart_scene):
+    chart, warnings = chart_scene
+    chart.setProperty("dataZoomEnabled", True)
+    _pump(30)
+
+    data_zoom = _data_zoom_hosts(chart)[0]
+    thumb_canvas = next(
+        obj for obj in _object_tree(data_zoom)
+        if obj.metaObject().indexOfProperty("_drawFrameBuildCount") >= 0
+    )
+    range_slider = next(
+        obj for obj in _object_tree(data_zoom)
+        if obj.metaObject().indexOfProperty("firstValue") >= 0
+        and obj.metaObject().indexOfProperty("secondValue") >= 0
+    )
+    drag_end_timer = data_zoom.findChild(QObject, "chartDataZoomDragEndTimer")
+    assert data_zoom.property("schedulerActive") is True
+    build_count = thumb_canvas.property("_drawFrameBuildCount")
+
+    data_zoom.setProperty("schedulerActive", False)
+    _pump(20)
+    assert data_zoom.property("schedulerActive") is False
+    assert range_slider.property("enabled") is False
+    assert drag_end_timer.property("running") is False
+    chart.setProperty("series", [{"name": "next", "values": [4, 1, 3]}])
+    _pump(20)
+    assert thumb_canvas.property("_drawFrameBuildCount") == build_count
+
+    data_zoom.setProperty("schedulerActive", True)
+    _pump(20)
+    assert data_zoom.property("schedulerActive") is True
+    assert range_slider.property("enabled") is True
+    assert thumb_canvas.property("_drawFrameBuildCount") == build_count + 1
+    assert warnings == []
+
+
 def test_data_zoom_paint_loop_uses_cached_value_range():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     paint_section = source.split("onPaint: {", 1)[1].split(

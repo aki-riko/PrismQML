@@ -36,6 +36,7 @@ Loader {
         ChartDataZoom {
             anchors.fill: parent
             visible: root.chart && root.chart.dataZoomEnabled && root.chart._isXYChart
+            schedulerActive: root.chart ? root.chart.schedulerActive : true
             chartData: root.chart ? root.chart._chartData : []
             series: root.chart ? root.chart._series : []
             primaryColor: root.chart ? root.chart.primaryColor : Enums.accentColor
