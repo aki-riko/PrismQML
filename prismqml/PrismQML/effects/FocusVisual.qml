@@ -30,9 +30,9 @@ Item {
     // Inner stroke follows the active theme accent like other focus indicators.
     // 内圈跟随当前主题强调色，与其他焦点提示保持一致。
     property color innerColor: Enums.accentColor
-    // Outer stroke colour; defaults to the surface so the ring separates from it.
-    // 外圈颜色; 默认取表面色, 使环与表面分离。
-    property color outerColor: Enums.cardColor
+    // Outer stroke uses the theme foreground to keep a clear contrast outline.
+    // 外圈使用主题前景色，维持清晰的高对比轮廓。
+    property color outerColor: Enums.foregroundColor
     // Item whose active focus the ring tracks. Defaults to the parent.
     // 环所跟踪 activeFocus 的项目，默认为父级。
     property Item focusSource: parent

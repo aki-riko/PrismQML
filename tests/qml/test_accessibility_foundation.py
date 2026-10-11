@@ -139,9 +139,13 @@ Window {
     property real outerStroke: drawn ? ring.ringItem.children[0].border.width : -1
     property real innerInset: drawn ? ring.ringItem.children[1].x : -1
     property color themeAccentColor: Enums.accentColor
+    property color themeForegroundColor: Enums.foregroundColor
     property color focusInnerColor: ring.innerColor
+    property color focusOuterColor: ring.outerColor
     property color drawnInnerColor: drawn
         ? ring.ringItem.children[1].border.color : Enums.transparent
+    property color drawnOuterColor: drawn
+        ? ring.ringItem.children[0].border.color : Enums.transparent
 }
 """,
         expect_window=True,
@@ -179,6 +183,9 @@ Window {
         expected_accent = instance.property("themeAccentColor")
         assert instance.property("focusInnerColor") == expected_accent
         assert instance.property("drawnInnerColor") == expected_accent
+        expected_outline = instance.property("themeForegroundColor")
+        assert instance.property("focusOuterColor") == expected_outline
+        assert instance.property("drawnOuterColor") == expected_outline
 
         outer_width = instance.property("outerStroke")
         assert outer_width > 0
