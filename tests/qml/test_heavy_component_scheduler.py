@@ -27,6 +27,11 @@ Item {
     property string firstActivation: ""
     property bool blockedActivated: false
 
+    Component.onCompleted: {
+        HeavyComponentScheduler.activationBudgetMs = 5
+        HeavyComponentScheduler.maxActivationsPerTick = 1
+    }
+
     Connections {
         target: HeavyComponentScheduler
 

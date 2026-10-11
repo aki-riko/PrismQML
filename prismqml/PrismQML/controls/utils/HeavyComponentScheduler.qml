@@ -22,6 +22,7 @@ Item {
     readonly property int priority_interaction: 100
     property bool schedulerEnabled: true
     property int tickInterval: 16
+    property int activationBudgetMs: 5
     property int maxActivationsPerTick: 1
 
     // ==================== Internal Props 内部属性 ====================
@@ -79,8 +80,11 @@ Item {
         candidates.sort(_compareSlots)
 
         var limit = Math.max(1, maxActivationsPerTick)
+        var budget = Math.max(1, activationBudgetMs)
+        var startedAt = Date.now()
         var activated = 0
         for (var index = 0; index < candidates.length && activated < limit; index++) {
+            if (activated > 0 && Date.now() - startedAt >= budget) break
             if (candidates[index]._schedulerActivate()) {
                 activated += 1
                 candidates[index]._schedulerRequested = false
