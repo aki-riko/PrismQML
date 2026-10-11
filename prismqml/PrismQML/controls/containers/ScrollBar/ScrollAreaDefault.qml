@@ -445,8 +445,15 @@ Item {
         onWheel: (event) => {
             var wheelY = WheelEventUtils.verticalDelta(event)
             var wheelX = WheelEventUtils.horizontalDelta(event)
+            // WheelHandler reports coordinates in the Flickable content space.
+            // Convert them back to the viewport space expected by the nested
+            // hit dispatcher after the outer page has scrolled.
+            // WheelHandler 给的是 Flickable 内容坐标；外层页面滚动后，
+            // 先还原为嵌套命中调度器使用的视口坐标。
+            var mouseX = event.x - flickable.contentX
+            var mouseY = event.y - flickable.contentY
             event.accepted = control._handleWheel(
-                wheelY, wheelX, event.modifiers, event.x, event.y
+                wheelY, wheelX, event.modifiers, mouseX, mouseY
             )
         }
     }

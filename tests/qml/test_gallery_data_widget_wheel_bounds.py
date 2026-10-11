@@ -13,11 +13,13 @@ from PySide6.QtCore import (
     QCoreApplication,
     QEvent,
     QEventLoop,
+    QMetaObject,
     QPoint,
     QPointF,
     QTimer,
     QUrl,
     Qt,
+    QObject,
 )
 from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -58,6 +60,21 @@ def _viewport(control: QQuickItem) -> QQuickItem:
     ]
     assert candidates, control.metaObject().className()
     return max(candidates, key=lambda item: item.height())
+
+
+def _sync_outer_scroll_position(outer: QQuickItem, content_y: float) -> None:
+    outer.setProperty("contentY", content_y)
+    helpers = [
+        item
+        for item in outer.findChildren(QObject)
+        if item.metaObject().indexOfProperty("targetPos") >= 0
+        and item.metaObject().indexOfProperty("orientation") >= 0
+        and item.property("orientation") == Qt.Orientation.Vertical.value
+        and item.metaObject().indexOfMethod("syncPosition()") >= 0
+    ]
+    assert len(helpers) == 1
+    assert QMetaObject.invokeMethod(helpers[0], "syncPosition")
+    _pump(80)
 
 
 def _gallery_data_widgets(page: QQuickItem) -> list[QQuickItem]:
@@ -147,6 +164,7 @@ def test_gallery_data_widget_edge_wheel_belongs_to_outer_page(gallery_menu_page)
         if "ScrollAreaDefault" in item.metaObject().className()
         and item.width() > 1000
     )
+    _sync_outer_scroll_position(outer, 200)
 
     for widget in _gallery_data_widgets(page):
         viewport = _viewport(widget)
