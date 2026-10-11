@@ -128,11 +128,6 @@ Item {
             // inside its line budget. 窗口级面板, 抽到 _internal 使本页保持在行数预算内。
             NavigationPanelShowcase { }
 
-            // Shared command surface 共享命令面板
-            // Extracted into _internal so this page stays inside its line budget.
-            // 抽到 _internal, 使本页保持在行数预算内。
-            CommandSurfaceShowcase { }
-
             // Segmented controls 分段控件
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_e998714a526683d7", Fluent.Translator._v)
