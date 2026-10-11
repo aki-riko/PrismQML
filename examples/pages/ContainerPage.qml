@@ -369,6 +369,211 @@ Item {
                     onTriggered: refreshDemo.refreshing = false
                 }
             }
+
+            // ==================== Waterfall 瀑布流 ====================
+            ExampleCard {
+                title: "Waterfall"
+                description: "columns / spacing / model / delegate"
+                ComponentCard {
+                    label: "columns 3"
+                    Item {
+                        width: 360
+                        height: 200
+
+                        Component {
+                            id: waterfallDelegate
+
+                            Rectangle {
+                                height: parent ? 40 + parent.itemIndex % 5 * 14 : 0
+                                color: Fluent.Enums.accentColor
+                                opacity: 0.35
+                                radius: Fluent.Enums.radius.small
+                            }
+                        }
+
+                        Waterfall {
+                            anchors.fill: parent
+                            columns: 3
+                            spacing: Fluent.Enums.spacing.m
+                            model: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+                            delegate: waterfallDelegate
+                        }
+                    }
+                }
+            }
+
+            // ==================== RowFit 自适应行 ====================
+            ExampleCard {
+                title: "RowFit"
+                description: "autoFit / minScale / horizontalAlign"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "autoFit true"
+                        RowFit {
+                            width: 200
+                            height: 44
+                            autoFit: true
+                            Rectangle { width: 120; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.5 }
+                            Rectangle { width: 120; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.8 }
+                        }
+                    }
+                    ComponentCard {
+                        label: "autoFit false"
+                        RowFit {
+                            width: 200
+                            height: 44
+                            spacing: Fluent.Enums.spacing.s
+                            Rectangle { width: 80; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.5 }
+                            Rectangle { width: 80; height: 36; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.8 }
+                        }
+                    }
+                }
+            }
+
+            // ==================== Viewbox 等比缩放 ====================
+            ExampleCard {
+                title: "Viewbox"
+                description: "stretch: Image.PreserveAspectFit / Image.Stretch"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "PreserveAspectFit"
+                        Viewbox {
+                            width: 140
+                            height: 70
+                            stretch: Image.PreserveAspectFit
+                            Rectangle { width: 100; height: 100; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.6 }
+                        }
+                    }
+                    ComponentCard {
+                        label: "Stretch"
+                        Viewbox {
+                            width: 140
+                            height: 70
+                            stretch: Image.Stretch
+                            Rectangle { width: 100; height: 100; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.6 }
+                        }
+                    }
+                }
+            }
+
+            // ==================== RelativePanel 关系式布局 ====================
+            ExampleCard {
+                title: "RelativePanel"
+                description: "relations: below / alignLeftWith / alignRightWithPanel"
+                ComponentCard {
+                    label: "declarative relations"
+                    RelativePanel {
+                        width: 240
+                        height: 120
+                        Rectangle { id: relationHeader; width: 120; height: 30; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor }
+                        Rectangle { id: relationBody; width: 80; height: 40; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.6 }
+                        Rectangle { id: relationFooter; width: 60; height: 24; radius: Fluent.Enums.radius.small; color: Fluent.Enums.accentColor; opacity: 0.35 }
+                        relations: [
+                            { item: relationHeader, alignLeftWithPanel: true, alignTopWithPanel: true },
+                            { item: relationBody, below: relationHeader, alignLeftWith: relationHeader },
+                            { item: relationFooter, below: relationBody, alignRightWithPanel: true }
+                        ]
+                    }
+                }
+            }
+
+            // ==================== ParallaxView 视差滚动 ====================
+            ExampleCard {
+                title: "ParallaxView"
+                description: "source / verticalShift (scroll driven background)"
+                ComponentCard {
+                    label: "scroll the source"
+                    Item {
+                        width: 200
+                        height: 120
+                        Flickable {
+                            id: parallaxSource
+                            anchors.fill: parent
+                            contentWidth: width
+                            contentHeight: 360
+                            clip: true
+                            Rectangle {
+                                width: parallaxSource.width
+                                height: 360
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: Fluent.Enums.accentColor }
+                                    GradientStop { position: 1.0; color: Fluent.Enums.transparent }
+                                }
+                            }
+                        }
+                        ParallaxView {
+                            anchors.fill: parent
+                            source: parallaxSource
+                            verticalShift: 80
+                            verticalSourceStartOffset: 0
+                            verticalSourceEndOffset: 360
+                            Column {
+                                width: parent.width
+                                Rectangle { width: parent.width; height: 30; color: Fluent.Enums.accentColor; opacity: 0.25 }
+                                Rectangle { width: parent.width; height: 30; color: Fluent.Enums.accentColor; opacity: 0.45 }
+                                Rectangle { width: parent.width; height: 30; color: Fluent.Enums.accentColor; opacity: 0.65 }
+                                Rectangle { width: parent.width; height: 30; color: Fluent.Enums.accentColor; opacity: 0.85 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==================== SplitView 可折叠分栏 ====================
+            ExampleCard {
+                title: "SplitView"
+                description: "paneOpen / openPaneLength / paneContent"
+                ComponentCard {
+                    label: "paneOpen true"
+                    SplitView {
+                        width: 280
+                        height: 140
+                        paneOpen: true
+                        openPaneLength: 90
+                        Item {
+                            Rectangle { anchors.fill: parent; color: Fluent.Enums.cardColor; border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.borderColor }
+                        }
+                        paneContent: Item {
+                            Rectangle { anchors.fill: parent; color: Fluent.Enums.accentColor; opacity: 0.35 }
+                        }
+                    }
+                }
+            }
+
+            // ==================== SkinScope 局部皮肤 ====================
+            ExampleCard {
+                title: "SkinScope"
+                description: "skin: fluent / neobrutalism / vintage_ticket"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "fluent"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "fluent"
+                            Button { anchors.centerIn: parent; text: "Fluent" }
+                        }
+                    }
+                    ComponentCard {
+                        label: "neobrutalism"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "neobrutalism"
+                            Button { anchors.centerIn: parent; text: "Neo" }
+                        }
+                    }
+                    ComponentCard {
+                        label: "vintage_ticket"
+                        SkinScope {
+                            width: 180
+                            height: 72
+                            skin: "vintage_ticket"
+                            Button { anchors.centerIn: parent; text: "Ticket" }
+                        }
+                    }
+                }
+            }
         }
     }
     

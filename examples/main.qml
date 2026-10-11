@@ -58,10 +58,14 @@ QtObject {
         { "text": Fluent.Translator.tr("gallery_e72622fe470d04bc", Fluent.Translator._v), "icon": iconPath("CompassNorthwest") },
         { "text": Fluent.Translator.tr("gallery_4ce4cafdd0561280", Fluent.Translator._v), "icon": iconPath("Navigation") },
         { "text": Fluent.Translator.tr("gallery_85f05ecc2a4f3f5d", Fluent.Translator._v), "icon": iconPath("SlideMultiple") },
+        { "text": "Collection", "icon": iconPath("BoxMultiple") },
         { "text": Fluent.Translator.tr("gallery_8cb443ab83797881", Fluent.Translator._v), "icon": iconPath("DataPie") },
         { "text": Fluent.Translator.tr("gallery_8b2106ca13719cb2", Fluent.Translator._v), "icon": iconPath("Alert") },
         { "text": Fluent.Translator.tr("gallery_8829dbcbcfce6e54", Fluent.Translator._v), "icon": iconPath("Sparkle") },
         { "text": Fluent.Translator.tr("gallery_1b0049fcfd4163fe", Fluent.Translator._v), "icon": iconPath("Bot") },
+        { "text": "Chat", "icon": iconPath("Chat") },
+        { "text": "Media", "icon": iconPath("Video") },
+        { "text": "Auth", "icon": iconPath("Person") },
         { "text": Fluent.Translator.tr("gallery_736cff237d7d9255", Fluent.Translator._v), "icon": iconPath("ArrowSync") }
     ]
     
@@ -80,10 +84,14 @@ QtObject {
         Qt.resolvedUrl("pages/NavigationPage.qml"),
         Qt.resolvedUrl("pages/MenuPage.qml"),
         Qt.resolvedUrl("pages/CarouselPage.qml"),
+        Qt.resolvedUrl("pages/CollectionPage.qml"),
         Qt.resolvedUrl("pages/ChartPage.qml"),
         Qt.resolvedUrl("pages/FeedbackPage.qml"),
         Qt.resolvedUrl("pages/EffectsPage.qml"),
         Qt.resolvedUrl("pages/AIAssistantPage.qml"),
+        Qt.resolvedUrl("pages/ChatPage.qml"),
+        Qt.resolvedUrl("pages/MediaPage.qml"),
+        Qt.resolvedUrl("pages/AuthPage.qml"),
         Qt.resolvedUrl("pages/AutoUpdatePage.qml"),
         Qt.resolvedUrl("pages/SettingsPage.qml")
     ]

@@ -310,6 +310,40 @@ Item {
                     AudioWaveform { width: 320; height: 70 }
                 }
             }
+
+            // ==================== Circular Gauge 环形仪表盘 ====================
+            ExampleCard {
+                title: "CircularGauge"
+                description: "value / minValue / maxValue / unit"
+                GalleryFlow {
+                    ComponentCard { label: "value 60"; CircularGauge { width: 110; height: 110; value: 60; unit: "%" } }
+                    ComponentCard { label: "value 85"; CircularGauge { width: 110; height: 110; value: 85; unit: "%" } }
+                    ComponentCard { label: "range 0-10"; CircularGauge { width: 110; height: 110; value: 7; maxValue: 10 } }
+                }
+            }
+
+            // ==================== Chart Data Zoom 图表视窗缩放 ====================
+            ExampleCard {
+                title: "ChartDataZoom"
+                description: "viewportStart / viewportEnd (dual-handle selector)"
+                ComponentCard {
+                    label: "viewport 0.2 - 0.8"
+                    ChartDataZoom {
+                        width: 460
+                        height: 96
+                        chartData: [
+                            {label: "Jan"}, {label: "Feb"}, {label: "Mar"}, {label: "Apr"},
+                            {label: "May"}, {label: "Jun"}, {label: "Jul"}, {label: "Aug"},
+                            {label: "Sep"}, {label: "Oct"}, {label: "Nov"}, {label: "Dec"}
+                        ]
+                        series: [
+                            {name: "Rainfall", values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]}
+                        ]
+                        viewportStart: 0.2
+                        viewportEnd: 0.8
+                    }
+                }
+            }
         }
     }
 }

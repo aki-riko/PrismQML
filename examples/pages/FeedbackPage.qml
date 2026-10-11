@@ -288,11 +288,190 @@ Item {
                     }
                 }
             }
-            
+
+            // ==================== Dialog family 对话框家族 ====================
+            ExampleCard {
+                title: "ConfirmDialog"
+                description: "level / title / message / countdown"
+                GalleryFlow {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard {
+                        label: "level: warning"
+                        Button { text: "Open"; onClicked: warningConfirmDialog.open() }
+                    }
+                    ComponentCard {
+                        label: "level: error"
+                        Button { text: "Open"; onClicked: errorConfirmDialog.open() }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "MaskedDialog"
+                description: "body / overlayTarget"
+                ComponentCard {
+                    label: "custom body"
+                    Button { text: "Open"; onClicked: maskedDialogDemo.open() }
+                }
+            }
+
+            ExampleCard {
+                title: "UpdateDialog"
+                description: "version / currentVersion / notes"
+                ComponentCard {
+                    label: "release notes"
+                    Button { text: "Open"; onClicked: updateDialogDemo.open() }
+                }
+            }
+
+            ExampleCard {
+                title: "FlyoutSheet"
+                description: "contentItem / confirmText / open(target)"
+                ComponentCard {
+                    label: "floating sheet"
+                    Button {
+                        id: flyoutSheetTarget
+                        text: "Open"
+                        onClicked: {
+                            var sheet = flyoutSheetComponent.createObject(null)
+                            if (sheet) sheet.open(flyoutSheetTarget)
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "DesktopNotification"
+                description: "title / message / severity / show()"
+                ComponentCard {
+                    label: "bottom right banner"
+                    Button {
+                        text: "Show"
+                        onClicked: {
+                            var notification = desktopNotificationComponent.createObject(null)
+                            if (notification) notification.show()
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "QMLPage"
+                description: "text / running / finish()"
+                ComponentCard {
+                    label: "loading page"
+                    Item {
+                        width: 260
+                        height: 160
+                        QMLPage {
+                            anchors.fill: parent
+                            text: "Loading"
+                            backgroundColor: Fluent.Enums.transparent
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "SplashScreen"
+                description: "title / subtitle / showProgress / finish()"
+                ComponentCard {
+                    label: "inline splash"
+                    Item {
+                        width: 320
+                        height: 200
+                        SplashScreen {
+                            anchors.fill: parent
+                            title: "PrismQML"
+                            subtitle: "Loading workspace"
+                            showProgress: true
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "EmptyState"
+                description: "icon / title / description / actionText"
+                GalleryFlow {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard {
+                        label: "with action"
+                        EmptyState {
+                            width: 200
+                            height: 180
+                            title: "Nothing here"
+                            description: "Items you create will appear here."
+                            actionText: "Create"
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "HintIcon"
+                description: "icon / iconSize / toolTipText"
+                GalleryFlow {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard { label: "Info"; HintIcon { toolTipText: "Shown on hover" } }
+                    ComponentCard { label: "Question"; HintIcon { icon: "Question"; iconSize: 18; toolTipText: "Help text" } }
+                }
+            }
+
         }
     }
-    
+
     // Dialog components - keep at root level so they fill the window 对话框组件 - 必须放在root级别以正确填充窗口
+    ConfirmDialog {
+        id: warningConfirmDialog
+        level: Fluent.Enums.statusLevel.warning
+        title: "Confirm action"
+        message: "This operation can be undone."
+    }
+    ConfirmDialog {
+        id: errorConfirmDialog
+        level: Fluent.Enums.statusLevel.error
+        title: "Delete record"
+        message: "This operation cannot be undone."
+    }
+    MaskedDialog {
+        id: maskedDialogDemo
+        overlayTarget: root
+        body.width: 240
+        body.height: 160
+        Label { text: "MaskedDialog body" }
+    }
+    UpdateDialog {
+        id: updateDialogDemo
+        version: "v1.0.4"
+        currentVersion: "v1.0.3"
+        notes: "Bug fixes and performance improvements."
+    }
+
+    // FlyoutSheet and DesktopNotification own top-level windows, so they are created
+    // on demand instead of at page load.
+    // FlyoutSheet 与 DesktopNotification 拥有独立顶层窗口, 因此按需创建而非随页面加载。
+    Component {
+        id: flyoutSheetComponent
+
+        FlyoutSheet {
+            confirmText: "OK"
+            showCancelButton: true
+            onAccepted: close()
+            onRejected: close()
+        }
+    }
+    Component {
+        id: desktopNotificationComponent
+
+        DesktopNotification {
+            title: "PrismQML"
+            message: "Desktop notification"
+            severity: "info"
+            onClosed: destroy()
+        }
+    }
+
     MessageBox { id: demoMessageBox; title: Fluent.Translator.tr("gallery_f56c6c82203b33f6", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_200bf3564876553e", Fluent.Translator._v) }
     MessageBox { 
         id: confirmBox; title: Fluent.Translator.tr("gallery_36f33adaf0942634", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_7fa2094884a8778a", Fluent.Translator._v)

@@ -8,6 +8,9 @@ import QtQuick.Effects
 // Import components 导入组件
 import PrismQML
 import PrismQML as Fluent
+// NeoShadow is registered in the effects subdirectory module only
+// NeoShadow 仅注册在 effects 子目录模块
+import "../../prismqml/PrismQML/effects" as Effects
 
 // Effects showcase page 特效展示页面
 Item {
@@ -222,7 +225,283 @@ Item {
                     }
                 }
             }
-            
+
+            // ShadowedRectangle elevation levels 阴影矩形层级
+            ExampleCard {
+                title: "ShadowedRectangle"
+                description: "shadowLevel: level2 / level4 / level8 / level16 / level28"
+                GalleryFlow {
+                    ComponentCard { label: "level2"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level2 } }
+                    ComponentCard { label: "level4"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level4 } }
+                    ComponentCard { label: "level8"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level8 } }
+                    ComponentCard { label: "level16"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level16 } }
+                    ComponentCard { label: "level28"; ShadowedRectangle { width: 104; height: 52; color: Enums.cardColor; radius: Enums.radius.large; shadowLevel: Enums.shadow.level28 } }
+                }
+            }
+
+            // MultiEffect based layer effects 基于 MultiEffect 的图层效果
+            ExampleCard {
+                title: "Shadow"
+                description: "layer.effect: Shadow (blur / color / verticalOffset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "blur 0.35"
+                        Rectangle {
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            layer.enabled: true
+                            layer.effect: Shadow { blur: 0.35; color: Enums.shadow.level8.color; verticalOffset: 6 }
+                        }
+                    }
+                    ComponentCard {
+                        label: "blur 0.8"
+                        Rectangle {
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            layer.enabled: true
+                            layer.effect: Shadow { blur: 0.8; color: Enums.shadow.level16.color; verticalOffset: 12 }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "GaussianBlur"
+                description: "layer.effect: GaussianBlur (radius / samples)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "source"
+                        Image { source: iconPath("Image"); sourceSize.width: 56; sourceSize.height: 56; width: 56; height: 56 }
+                    }
+                    ComponentCard {
+                        label: "radius 8"
+                        Image {
+                            source: iconPath("Image")
+                            sourceSize.width: 56
+                            sourceSize.height: 56
+                            width: 56
+                            height: 56
+                            layer.enabled: true
+                            layer.effect: GaussianBlur { radius: 8 }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "ColorOverlay"
+                description: "layer.effect: ColorOverlay (color)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "source"
+                        Image { source: iconPath("Color"); sourceSize.width: 56; sourceSize.height: 56; width: 56; height: 56 }
+                    }
+                    ComponentCard {
+                        label: "accentColor"
+                        Image {
+                            source: iconPath("Color")
+                            sourceSize.width: 56
+                            sourceSize.height: 56
+                            width: 56
+                            height: 56
+                            layer.enabled: true
+                            layer.effect: ColorOverlay { color: Enums.accentColor }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "OpacityMask"
+                description: "layer.effect: OpacityMask (mask / invert)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "gradient mask"
+                        Item {
+                            width: 120; height: 56
+                            Rectangle {
+                                id: opacityMaskSource
+                                width: 120
+                                height: 56
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: Enums.accentColor }
+                                    GradientStop { position: 1.0; color: Enums.transparent }
+                                }
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Enums.accentColor
+                                layer.enabled: true
+                                layer.effect: OpacityMask { mask: opacityMaskSource }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "NeumorphicShadow"
+                description: "inset: false / true (target / blur / offset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "raised"
+                        Rectangle {
+                            id: neumorphicRaised
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            NeumorphicShadow { target: neumorphicRaised }
+                        }
+                    }
+                    ComponentCard {
+                        label: "inset"
+                        Rectangle {
+                            id: neumorphicInset
+                            width: 96; height: 52
+                            radius: Enums.radius.large
+                            color: Enums.cardColor
+                            NeumorphicShadow { target: neumorphicInset; inset: true }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "NeoShadow"
+                description: "neobrutalism hard shadow (target / accent / offset)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "hard shadow"
+                        Item {
+                            width: 104; height: 60
+                            Effects.NeoShadow { target: neoShadowSurface }
+                            Rectangle {
+                                id: neoShadowSurface
+                                width: 88; height: 48
+                                radius: Enums.radius.small
+                                color: Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderStrongColor
+                            }
+                        }
+                    }
+                    ComponentCard {
+                        label: "accent"
+                        Item {
+                            width: 104; height: 60
+                            Effects.NeoShadow { target: neoShadowAccentSurface; accent: true }
+                            Rectangle {
+                                id: neoShadowAccentSurface
+                                width: 88; height: 48
+                                radius: Enums.radius.small
+                                color: Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderStrongColor
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "TicketPaper"
+                description: "vintage ticket surface (patternOriginX / patternOriginY)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "ticket surface"
+                        Item {
+                            width: 180; height: 72
+                            TicketPaper { anchors.fill: parent; patternOriginX: 12; patternOriginY: 8 }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "TicketPaper"
+                                color: Enums.textColor.primary
+                                font.family: Enums.fontFamily
+                                font.pixelSize: Enums.typography.body
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "HoverBehavior"
+                description: "HoverBehavior on color (active / enterDuration)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "hover fill"
+                        Rectangle {
+                            id: hoverBehaviorSurface
+                            width: 120; height: 52
+                            radius: Enums.radius.small
+                            color: hoverBehaviorArea.containsMouse ? Enums.accentColor : Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            HoverBehavior on color { active: hoverBehaviorArea.containsMouse }
+                            MouseArea { id: hoverBehaviorArea; anchors.fill: parent; hoverEnabled: true }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "ToggleAnimation"
+                description: "target / running (transition on state change)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "toggle"
+                        Item {
+                            width: 120; height: 68
+                            Rectangle {
+                                id: toggleAnimationTarget
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                y: 4
+                                width: 88; height: 36
+                                radius: Enums.radius.small
+                                color: toggleAnimationSwitch.checked ? Enums.accentColor : Enums.cardColor
+                                border.width: Enums.border.thin
+                                border.color: Enums.borderColor
+                            }
+                            ToggleAnimation { target: toggleAnimationTarget; running: toggleAnimationSwitch.checked }
+                            Toggle {
+                                id: toggleAnimationSwitch
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                controlType: Enums.toggle.control_switch
+                            }
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "FocusVisual"
+                description: "keyboard focus ring (focusSource / radius / keyboardOnly)"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "focus ring"
+                        Rectangle {
+                            id: focusVisualTarget
+                            width: 120; height: 52
+                            radius: Enums.radius.small
+                            color: Enums.cardColor
+                            border.width: Enums.border.thin
+                            border.color: Enums.borderColor
+                            activeFocusOnTab: true
+                            MouseArea { anchors.fill: parent; onClicked: focusVisualTarget.forceActiveFocus() }
+                            FocusVisual {
+                                anchors.fill: parent
+                                radius: Enums.radius.small
+                                focusSource: focusVisualTarget
+                                keyboardOnly: false
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

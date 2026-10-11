@@ -591,6 +591,53 @@ Item {
                 }
             }
 
+            // ==================== Local Search Bar 本地搜索栏 ====================
+            ExampleCard {
+                title: "LocalSearchBar"
+                description: "entries / popupMode / fuzzyMatch / onEntrySelected"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Enums.spacing.l
+                    LocalSearchBar {
+                        width: 320
+                        placeholderText: "Search settings..."
+                        entries: [
+                            { title: "Mica", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["mica", "material"] },
+                            { title: "Accent color", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["accent", "theme"] },
+                            { title: "Notifications", subtitle: "System", icon: "Alert", section: "System", keywords: ["toast", "banner"] }
+                        ]
+                        onEntrySelected: function(entry) { searchSelection.text = entry.title }
+                    }
+                    Text {
+                        id: searchSelection
+                        text: "No entry selected"
+                        font.pixelSize: Enums.typography.caption
+                        color: Enums.textColor.secondary
+                        font.family: Enums.fontFamily
+                    }
+                }
+            }
+
+            // ==================== Password Strength 密码强度指示器 ====================
+            ExampleCard {
+                title: "PasswordStrengthIndicator"
+                description: "password / strength (0-4)"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Enums.spacing.l
+                    LineEdit {
+                        id: passwordStrengthProbe
+                        width: 260
+                        inputType: Enums.input.type_password
+                        placeholderText: "Type a password"
+                    }
+                    PasswordStrengthIndicator {
+                        width: 260
+                        password: passwordStrengthProbe.text
+                    }
+                }
+            }
+
         }
     }
     

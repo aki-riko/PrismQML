@@ -246,6 +246,42 @@ Item {
                         }
                     }
                 }
+
+                // Icon leaf components 图标叶子组件
+                Column {
+                    width: parent.width
+                    spacing: Fluent.Enums.spacing.s
+
+                    Text {
+                        text: "Icon components"
+                        font.pixelSize: Fluent.Enums.typography.caption
+                        color: Fluent.Enums.textColor.secondary
+                        font.family: Fluent.Enums.fontFamily
+                    }
+
+                    Row {
+                        spacing: Fluent.Enums.spacing.l
+
+                        CheckIcon { }
+                        ChevronIcon { }
+                        CloseIcon { }
+                    }
+
+                    Row {
+                        spacing: Fluent.Enums.spacing.l
+
+                        AnimatedIcon {
+                            iconSize: 28
+                            icon: root.selectedIcon
+                        }
+
+                        ChevronIcon {
+                            direction: "right"
+                            animated: true
+                            isOpen: true
+                        }
+                    }
+                }
             }
         }
     }

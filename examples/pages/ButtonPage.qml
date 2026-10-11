@@ -12,6 +12,7 @@ import PrismQML as Fluent
 // Button showcase page 按钮展示页面
 Item {
     id: root
+    property int _repeatCount: 0
     readonly property int _flowSpacing: Fluent.Enums.spacing.l
     readonly property var cascadeMenuItems: [
         {
@@ -478,6 +479,73 @@ Item {
                             height: alertBtn.height
                             Button { id: alertBtn; style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; text: "Alerts" }
                             Badge { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: -Fluent.Enums.spacing.xs; count: 3 }
+                        }
+                    }
+                }
+            }
+
+            // ==================== Leaf button variants 独立按钮变体 ====================
+            ExampleCard {
+                title: "CloseButton"
+                description: "size / iconSizeValue / normalIconColor"
+                Flow {
+                    width: parent ? parent.width : 0
+                    spacing: root._flowSpacing
+                    ComponentCard { label: "default"; CloseButton { } }
+                    ComponentCard { label: "size 36"; CloseButton { size: 36 } }
+                    ComponentCard { label: "accent icon"; CloseButton { size: 32; normalIconColor: Fluent.Enums.accentColor; hoverIconColor: Fluent.Enums.accentColor } }
+                }
+            }
+
+            ExampleCard {
+                title: "RepeatButton"
+                description: "autoRepeat / repeatDelay / repeatInterval"
+                Flow {
+                    width: parent ? parent.width : 0
+                    spacing: root._flowSpacing
+                    ComponentCard {
+                        label: "autoRepeat (hold)"
+                        RepeatButton { text: "Hold"; onRepeated: root._repeatCount++ }
+                    }
+                    ComponentCard {
+                        label: "autoRepeat false"
+                        RepeatButton { text: "Single"; autoRepeat: false }
+                    }
+                    ComponentCard {
+                        label: "repeated " + root._repeatCount
+                        Text {
+                            text: String(root._repeatCount)
+                            color: Fluent.Enums.textColor.primary
+                            font.family: Fluent.Enums.fontFamily
+                            font.pixelSize: Fluent.Enums.typography.title
+                        }
+                    }
+                }
+            }
+
+            ExampleCard {
+                title: "CustomButtonCore"
+                description: "getBackgroundColor / getBorderColor / getTextColor"
+                Flow {
+                    width: parent ? parent.width : 0
+                    spacing: root._flowSpacing
+                    ComponentCard {
+                        label: "accent colors"
+                        CustomButtonCore {
+                            text: "Custom"
+                            getBackgroundColor: function() { return Fluent.Enums.accentColorLight }
+                            getBorderColor: function() { return Fluent.Enums.accentColorDark }
+                            getTextColor: function() { return Fluent.Enums.foregroundColor }
+                        }
+                    }
+                    ComponentCard {
+                        label: "flat outline"
+                        CustomButtonCore {
+                            text: "Outline"
+                            flat: true
+                            getBackgroundColor: function() { return Fluent.Enums.transparent }
+                            getBorderColor: function() { return Fluent.Enums.accentColor }
+                            getTextColor: function() { return Fluent.Enums.accentColor }
                         }
                     }
                 }

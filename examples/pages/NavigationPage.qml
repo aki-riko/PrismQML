@@ -9,6 +9,9 @@ import QtQuick.Effects
 import PrismQML
 import PrismQML as Fluent
 import "_internal"
+// ToolBar is registered in the navigation subdirectory module only
+// ToolBar 仅注册在 navigation 子目录模块
+import "../../prismqml/PrismQML/navigation" as Nav
 
 // Navigation components page 导航组件页面
 Item {
@@ -124,6 +127,11 @@ Item {
             // Window-level panels, extracted into _internal so this page stays
             // inside its line budget. 窗口级面板, 抽到 _internal 使本页保持在行数预算内。
             NavigationPanelShowcase { }
+
+            // Ribbon and app bar family 功能区与应用栏家族
+            // Extracted into _internal so this page stays inside its line budget.
+            // 抽到 _internal, 使本页保持在行数预算内。
+            RibbonShowcase { }
 
             // Segmented controls 分段控件
             ExampleCard {
@@ -540,6 +548,64 @@ Item {
                             font.pixelSize: Fluent.Enums.typography.caption
                             color: Fluent.Enums.textColor.secondary
                             font.family: Fluent.Enums.fontFamily
+                        }
+                    }
+                }
+            }
+
+            // Status bar 状态栏
+            ExampleCard {
+                title: "StatusBar"
+                description: "message / leftItems / rightItems"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Fluent.Enums.spacing.l
+                    StatusBar {
+                        width: parent ? parent.width : 0
+                        message: "Ready"
+                        leftItems: [{ "text": "Ln 12, Col 4" }, { "text": "UTF-8" }]
+                        rightItems: [{ "text": "Spaces 4" }, { "text": "100%" }]
+                    }
+                }
+            }
+
+            // Tool bar 工具栏
+            ExampleCard {
+                title: "ToolBar"
+                description: "simple horizontal toolbar"
+                Column {
+                    width: parent ? parent.width : 0
+                    spacing: Fluent.Enums.spacing.l
+                    Nav.ToolBar {
+                        width: parent ? parent.width : 0
+                        Button { text: "New" }
+                        Button { text: "Open" }
+                        Button { text: "Save" }
+                    }
+                }
+            }
+
+            // Navigation profile card 导航资料卡
+            ExampleCard {
+                title: "NavigationProfileCard"
+                description: "avatar / title / subtitle / isCompacted"
+                GalleryFlow {
+                    ComponentCard {
+                        label: "isCompacted true"
+                        NavigationProfileCard {
+                            width: 200
+                            title: "Ada Lovelace"
+                            subtitle: "Design systems"
+                            isCompacted: true
+                        }
+                    }
+                    ComponentCard {
+                        label: "isCompacted false"
+                        NavigationProfileCard {
+                            width: 200
+                            title: "Ada Lovelace"
+                            subtitle: "Design systems"
+                            isCompacted: false
                         }
                     }
                 }

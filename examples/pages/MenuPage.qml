@@ -570,6 +570,77 @@ Item {
                 }
             }
 
+            // Command bar flyout 锚定命令浮出层
+            ExampleCard {
+                title: "CommandBarFlyout"
+                description: "primaryCommands / secondaryCommands / show(target)"
+                ComponentCard {
+                    label: "anchored flyout"
+                    Button {
+                        id: commandBarFlyoutTarget
+                        text: "Open flyout"
+                        onClicked: commandBarFlyoutDemo.show(commandBarFlyoutTarget)
+                    }
+                    CommandBarFlyout {
+                        id: commandBarFlyoutDemo
+                        primaryCommands: [
+                            { "text": "Cut", "icon": Fluent.Enums.icon.cut },
+                            { "text": "Copy", "icon": Fluent.Enums.icon.copy },
+                            { "text": "Paste", "icon": Fluent.Enums.icon.clipboard }
+                        ]
+                        secondaryCommands: [
+                            { "text": "Select all", "icon": Fluent.Enums.icon.select_all_on },
+                            { "text": "Undo", "icon": Fluent.Enums.icon.arrow_undo }
+                        ]
+                    }
+                }
+            }
+
+            // Radio menu rows 单选菜单行
+            ExampleCard {
+                title: "RadioMenuFlyoutItem"
+                description: "radioGroup / exclusive (single-choice rows)"
+                ComponentCard {
+                    label: "right click for radio rows"
+                    Rectangle {
+                        width: 200; height: 55; radius: Fluent.Enums.radius.small
+                        color: Fluent.Enums.stateColor.controlBgHover
+                        border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.stateColor.border
+                        Text { anchors.centerIn: parent; text: "Right click"; color: Fluent.Enums.textColor.secondary }
+                        ContextMenu {
+                            RadioMenuFlyoutItem { actionId: "align-left"; text: "Left"; checked: true }
+                            RadioMenuFlyoutItem { actionId: "align-center"; text: "Center" }
+                            RadioMenuFlyoutItem { actionId: "align-right"; text: "Right" }
+                        }
+                    }
+                }
+            }
+
+            // System tray menu 托盘菜单
+            ExampleCard {
+                title: "SystemTrayMenu"
+                description: "initialActions / showAtPosition(x, y)"
+                ComponentCard {
+                    label: "tray actions"
+                    Button {
+                        text: "Show tray menu"
+                        onClicked: {
+                            var origin = mapToGlobal(0, 0)
+                            systemTrayMenuDemo.showAtPosition(origin.x, origin.y)
+                        }
+                    }
+                    SystemTrayMenu {
+                        id: systemTrayMenuDemo
+                        initialActions: [
+                            { "text": "Open" },
+                            { "text": "Settings" },
+                            { "text": "About" },
+                            { "text": "Exit" }
+                        ]
+                    }
+                }
+            }
+
         }
     }
 }
