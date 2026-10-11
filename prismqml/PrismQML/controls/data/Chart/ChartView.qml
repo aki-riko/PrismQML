@@ -143,16 +143,18 @@ ShadowedRectangle {
     readonly property var _lineContent: renderLayer.lineContentLoader.item
     readonly property var _scatterContent: renderLayer.scatterContentLoader.item
 
-    // Slice the viewport before LTTB sampling to preserve trends and extrema 先按视窗切片，再用 LTTB 保留趋势与峰谷
-    readonly property var _viewSeriesProjection: ChartViewport.projectSeries(
-        _series, _renderViewport.start, _renderViewport.end, lttbThreshold
-    )
+    // Cache expensive viewport projection while inactive 停用期间缓存昂贵的视窗投影
+    property var _viewSeriesProjectionCache: ({ data: [], valueSources: [], dataSources: [] })
+    property var _viewChartDataProjectionCache: ({
+        data: [], sourceLength: 0, sourceOffset: 0, sourceIndices: []
+    })
+    property bool _projectionDirty: true
+    property bool _projectionRestorePending: false
+    property int _projectionRevision: 0
+
+    readonly property var _viewSeriesProjection: _viewSeriesProjectionCache
     readonly property var _viewSeries: _viewSeriesProjection.data
-    readonly property var _viewChartDataProjection: ChartViewport.projectChartData(
-        _chartData, _renderViewport.start, _renderViewport.end, lttbThreshold,
-        _viewSeriesProjection.valueSources.length > 0
-            ? _viewSeriesProjection.valueSources[0] : null
-    )
+    readonly property var _viewChartDataProjection: _viewChartDataProjectionCache
     readonly property var _viewChartData: _viewChartDataProjection.data
 
     // ==================== Signals 信号 ====================
@@ -263,6 +265,37 @@ ShadowedRectangle {
         _hoveredLineSeriesIndex = -1
         _hoveredBoxplotIndex = -1
     }
+
+    function _rebuildProjection() {
+        var seriesProjection = ChartViewport.projectSeries(
+            _series, _renderViewport.start, _renderViewport.end, lttbThreshold
+        )
+        var preferredSource = seriesProjection.valueSources.length > 0
+                              ? seriesProjection.valueSources[0] : null
+        _viewSeriesProjectionCache = seriesProjection
+        _viewChartDataProjectionCache = ChartViewport.projectChartData(
+            _chartData, _renderViewport.start, _renderViewport.end, lttbThreshold,
+            preferredSource
+        )
+        _projectionDirty = false
+        _projectionRevision++
+    }
+
+    function _markProjectionDirty() {
+        _projectionDirty = true
+        if (!schedulerActive) return
+        _projectionRestorePending = true
+        projectionRestoreTimer.restart()
+    }
+
+    function _refreshProjectionForViewport() {
+        _projectionDirty = true
+        if (!schedulerActive) return
+        _projectionRestorePending = false
+        projectionRestoreTimer.stop()
+        _rebuildProjection()
+    }
+
     implicitWidth: preferredWidth > 0 ? preferredWidth : contentWidth
     implicitHeight: preferredHeight > 0 ? preferredHeight : contentHeight
     color: Enums.cardColor
@@ -276,17 +309,28 @@ ShadowedRectangle {
     scale: 1.0
 
     Component.onCompleted: {
+        if (schedulerActive) _rebuildProjection()
         if (!deferAnimation && schedulerActive) {
             entranceAnim.start()
         }
     }
+    onChartDataChanged: _markProjectionDirty()
+    onSeriesChanged: _markProjectionDirty()
+    onLttbThresholdChanged: _markProjectionDirty()
+    on_RenderStartChanged: _refreshProjectionForViewport()
+    on_RenderEndChanged: _refreshProjectionForViewport()
     onSchedulerActiveChanged: {
         if (!schedulerActive) {
+            _projectionDirty = true
             _clearHoverState()
             if (entranceAnim.running) entranceAnim.pause()
-        } else if (!deferAnimation && opacity < 1.0) {
-            if (entranceAnim.paused) entranceAnim.resume()
-            else entranceAnim.start()
+        } else {
+            _projectionRestorePending = true
+            projectionRestoreTimer.restart()
+            if (!deferAnimation && opacity < 1.0) {
+                if (entranceAnim.paused) entranceAnim.resume()
+                else entranceAnim.start()
+            }
         }
     }
     // Apply pointer-anchored wheel zoom and retarget running transitions 应用鼠标锚定滚轮缩放并重定向进行中的过渡
@@ -337,6 +381,16 @@ ShadowedRectangle {
         ParallelAnimation {
             NumberAnimation { target: control; property: "opacity"; to: 1.0; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
             NumberAnimation { target: control; property: "scale"; to: 1.0; duration: Enums.duration.medium; easing.type: Easing.OutCubic }
+        }
+    }
+    Timer {
+        id: projectionRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            control._projectionRestorePending = false
+            if (control.schedulerActive && control._projectionDirty)
+                control._rebuildProjection()
         }
     }
     // ==================== Content 内容 ====================

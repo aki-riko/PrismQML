@@ -147,3 +147,43 @@ def test_scheduler_gate_keeps_latest_viewport_target(qapp):
         assert chart.property("_renderEnd") == 0.8
     finally:
         _dispose(engine, component, chart, window)
+
+
+def test_scheduler_gate_defers_projection_and_xy_stats_until_restore(qapp):
+    engine, component, chart, window = _create_chart()
+    try:
+        xy_chart = chart.property("_xyChartBase")
+        assert xy_chart is not None
+        projection_revision = chart.property("_projectionRevision")
+        stats_revision = xy_chart.property("_statsRevision")
+        previous_data = chart.property("_viewChartData").toVariant()
+        assert len(previous_data) == 3
+
+        chart.setProperty("schedulerActive", False)
+        chart.setProperty(
+            "chartData",
+            [
+                {"label": "D", "value": 10},
+                {"label": "E", "value": 20},
+            ],
+        )
+        chart.setProperty(
+            "series",
+            [{"name": "Series", "values": [10, 20, 15, 25]}],
+        )
+        _pump(80)
+
+        assert chart.property("_projectionRevision") == projection_revision
+        assert xy_chart.property("_statsRevision") == stats_revision
+        assert len(chart.property("_viewChartData").toVariant()) == len(previous_data)
+
+        chart.setProperty("schedulerActive", True)
+        _pump(80)
+
+        assert chart.property("_projectionRevision") == projection_revision + 1
+        assert xy_chart.property("_statsRevision") == stats_revision + 1
+        assert len(chart.property("_viewChartData").toVariant()) == 2
+        assert len(chart.property("_viewSeries").toVariant()) == 1
+        assert xy_chart.property("_calculatedValueRange").toVariant()["max"] > 25
+    finally:
+        _dispose(engine, component, chart, window)

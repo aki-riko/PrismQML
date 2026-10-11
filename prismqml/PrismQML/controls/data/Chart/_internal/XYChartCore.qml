@@ -44,6 +44,15 @@ Item {
     property bool animateValueRange: false
     property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
 
+    // Cache expensive range scans while inactive 停用期间缓存昂贵的范围扫描
+    property var _calculatedValueRangeCache: ({
+        min: 0, max: 0, hasNegative: false, hasPositive: false
+    })
+    property var _scatterDataRangeCache: ({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 })
+    property bool _statsDirty: true
+    property bool _statsRestorePending: false
+    property int _statsRevision: 0
+
     // ==================== Readonly State 只读状态 ====================
     readonly property Item chartArea: axesLayer.chartArea
     readonly property real chartAreaX: chartArea ? chartArea.x : 0
@@ -95,7 +104,36 @@ Item {
     )
 
     // Value range for charts with negative values 支持负值的数值范围
-    readonly property var _calculatedValueRange: {
+    readonly property var _calculatedValueRange: _calculatedValueRangeCache
+    property real _displayRangeMin: _calculatedValueRange.min
+    property real _displayRangeMax: _calculatedValueRange.max
+    readonly property var valueRange: {
+        var min = _displayRangeMin
+        var max = _displayRangeMax
+        return {
+            min: min,
+            max: max,
+            hasNegative: min < 0,
+            hasPositive: max > 0
+        }
+    }
+
+    // Zero line position (0-1) 零轴线位置
+    readonly property real zeroLineRatio: {
+        var range = valueRange
+        if (!range.hasNegative) return 1.0
+        if (!range.hasPositive) return 0.0
+        return range.max / (range.max - range.min)
+    }
+
+    // Scatter chart data range 散点图数据范围
+    readonly property var scatterDataRange: _scatterDataRangeCache
+
+    // ==================== Signals 信号 ====================
+    signal xLabelHovered(int index)
+
+    // ==================== Internal Methods 内部方法 ====================
+    function _calculateValueRange() {
         var min = 0, max = 0
         // 1) chartData 单 series 模式: 每项 {label, value}
         for (var i = 0; i < chartData.length; i++) {
@@ -124,29 +162,8 @@ Item {
             hasPositive: max > 0
         }
     }
-    property real _displayRangeMin: _calculatedValueRange.min
-    property real _displayRangeMax: _calculatedValueRange.max
-    readonly property var valueRange: {
-        var min = _displayRangeMin
-        var max = _displayRangeMax
-        return {
-            min: min,
-            max: max,
-            hasNegative: min < 0,
-            hasPositive: max > 0
-        }
-    }
 
-    // Zero line position (0-1) 零轴线位置
-    readonly property real zeroLineRatio: {
-        var range = valueRange
-        if (!range.hasNegative) return 1.0
-        if (!range.hasPositive) return 0.0
-        return range.max / (range.max - range.min)
-    }
-
-    // Scatter chart data range 散点图数据范围
-    readonly property var scatterDataRange: {
+    function _calculateScatterDataRange() {
         if (!isScatter || series.length === 0)
             return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 }
 
@@ -178,10 +195,19 @@ Item {
         }
     }
 
-    // ==================== Signals 信号 ====================
-    signal xLabelHovered(int index)
+    function _rebuildStats() {
+        _calculatedValueRangeCache = _calculateValueRange()
+        _scatterDataRangeCache = _calculateScatterDataRange()
+        _statsDirty = false
+        _statsRevision++
+    }
 
-    // ==================== Internal Methods 内部方法 ====================
+    function _markStatsDirty() {
+        _statsDirty = true
+        if (!schedulerActive || _statsRestorePending) return
+        _rebuildStats()
+    }
+
     function _formatAxisValue(value, fallbackText) {
         if (valueFormatter && typeof valueFormatter === "function")
             return String(valueFormatter(value))
@@ -262,6 +288,21 @@ Item {
         return end >= _categoryViewportStart && start <= _categoryViewportEnd
     }
 
+    Component.onCompleted: {
+        if (schedulerActive) _rebuildStats()
+    }
+    onChartDataChanged: _markStatsDirty()
+    onSeriesChanged: _markStatsDirty()
+    onIsScatterChanged: _markStatsDirty()
+    onSchedulerActiveChanged: {
+        if (!schedulerActive) {
+            _statsDirty = true
+        } else {
+            _statsRestorePending = true
+            statsRestoreTimer.restart()
+        }
+    }
+
     // ==================== Content 内容 ====================
     ChartTitle {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -281,6 +322,17 @@ Item {
 
         chartControl: root
         axisFontMetrics: axisFontMetrics
+    }
+
+    Timer {
+        id: statsRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            root._statsRestorePending = false
+            if (root.schedulerActive && root._statsDirty)
+                root._rebuildStats()
+        }
     }
 
     Behavior on _displayRangeMin {
