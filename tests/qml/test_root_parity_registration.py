@@ -28,7 +28,6 @@ import pytest
 REQUIRED_ROOT_TYPES = (
     "RadioMenuFlyoutItem",
     "CommandBarFlyout",
-    "SplitView",
     "RelativePanel",
     "Viewbox",
     "ParallaxView",

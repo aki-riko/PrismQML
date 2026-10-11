@@ -519,27 +519,6 @@ Item {
                 }
             }
 
-            // ==================== SplitView 可折叠分栏 ====================
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_821c44166e9eb5a9", Fluent.Translator._v)
-                description: "paneOpen / openPaneLength / paneContent"
-                ComponentCard {
-                    label: "paneOpen true"
-                    SplitView {
-                        width: 280
-                        height: 140
-                        paneOpen: true
-                        openPaneLength: 90
-                        Item {
-                            Rectangle { anchors.fill: parent; color: Fluent.Enums.cardColor; border.width: Fluent.Enums.border.thin; border.color: Fluent.Enums.borderColor }
-                        }
-                        paneContent: Item {
-                            Rectangle { anchors.fill: parent; color: Fluent.Enums.accentColor; opacity: 0.35 }
-                        }
-                    }
-                }
-            }
-
             // ==================== SkinScope 局部皮肤 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_2ad219a2e64d39fa", Fluent.Translator._v)

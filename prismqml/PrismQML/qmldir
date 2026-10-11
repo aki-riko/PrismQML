@@ -43,7 +43,6 @@ CustomButtonCore controls/buttons/Button/CustomButtonCore.qml
 ButtonContent controls/buttons/Button/ButtonContent.qml
 ButtonDropdown controls/buttons/Button/ButtonDropdown.qml
 ButtonProgress controls/buttons/Button/ButtonProgress.qml
-CloseButton controls/buttons/CloseButton.qml
 
 # ==================== Containers 容器 ====================
 Widget controls/containers/Widget.qml
@@ -74,7 +73,6 @@ HBoxLayout controls/containers/Layout/HBoxLayout.qml
 VBoxLayout controls/containers/Layout/VBoxLayout.qml
 RowFit controls/containers/Layout/RowFit.qml
 SplitPane controls/containers/Layout/SplitPane.qml
-SplitView controls/containers/Layout/SplitView.qml
 RelativePanel controls/containers/Layout/RelativePanel.qml
 Viewbox controls/containers/Layout/Viewbox.qml
 ParallaxView controls/containers/Layout/ParallaxView.qml
