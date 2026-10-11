@@ -61,7 +61,10 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 删除布局、集合、媒体和菜单 standalone Gallery 后，目录同步收敛到 762 条。
     # 图标页「图标组件」区块并入图标网格后，其标题 1 条引用消失：762 - 1 = 761。
     # Gallery 英文文案源化后新增 105 条：761 + 105 = 866。
-    assert gallery_i18n.validate_catalogs() == 866
+    # 单词级内容标签（按钮/选项/图例）源化后新增 63 条：866 + 63 = 929。
+    # 引号键导航/托盘/面板标签源化后新增 14 条：929 + 14 = 943。
+    # 并行移除 Waterfall 展示后其 2 条引用消失：943 - 2 = 941。
+    assert gallery_i18n.validate_catalogs() == 941
 
 
 def test_gallery_sources_have_no_inline_untranslated_literals():
@@ -85,6 +88,19 @@ def test_gallery_copy_policy_separates_identifiers_from_copy():
         "shadowLevel: level2 / level4 / level8 / level16 / level28",
         "Indet. Ring",
         "qrc:/app_icon.svg",
+        # Single tokens: API value captions, acronyms, camelCase and skin names
+        # 单词级：API 取值标签、缩写、camelCase 与皮肤名
+        "horizontal",
+        "level16",
+        "src",
+        "ID",
+        "A",
+        "ColorDialog",
+        "DropDown",
+        "Fluent",
+        "Neo",
+        "Ticket",
+        "Chip",
     )
     copy = (
         "Swipe / drag a row to reveal actions",
@@ -93,6 +109,17 @@ def test_gallery_copy_policy_separates_identifiers_from_copy():
         "Flat selector with a sliding pill",
         "Stacked Area Chart",
         "This operation cannot be undone.",
+        # Single tokens that are content labels 单词级内容标签
+        "Archive",
+        "Delete",
+        "Mail",
+        "Flag",
+        "Mon",
+        "Sep",
+        "Filled",
+        "Overview",
+        "Countdown",
+        "Item ",
     )
     for value in technical:
         assert gallery_i18n.is_translatable_copy(value) is False, value

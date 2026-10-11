@@ -38,7 +38,7 @@ PROPERTY_NAMES = (
     "heading", "notes",
 )
 PROPERTY_PATTERN = re.compile(
-    rf"(?P<prefix>\b(?:{'|'.join(PROPERTY_NAMES)})\s*:\s*)"
+    rf"(?P<prefix>[\"']?\b(?:{'|'.join(PROPERTY_NAMES)})[\"']?\s*:\s*)"
     r'(?P<quote>")(?P<value>(?:\\.|[^"\\])*)(?P=quote)'
 )
 DYNAMIC_PATTERN = re.compile(
@@ -117,10 +117,29 @@ PROTECTED_TERMS = frozenset(
         "AvatarSelector", "Badge", "ContextMenu", "ImageWidget", "Timeline", "ListView",
         "TableView", "TreeView", "BreadcrumbBar", "StackedWidget", "Stepper", "DWM",
         "Windows", "DPI", "Mica", "API", "QML", "ISS",
+        # Skin display names are proper nouns 皮肤显示名是专有名词
+        "Fluent", "Neo", "Ticket", "Neobrutalism", "Vintage Ticket",
     )
 )
 CAMEL_TOKEN = re.compile(r"[a-z][A-Z]")
 HAN_CHARACTER = re.compile(r"[\u3400-\u9fff]")
+CAPITALIZED_TOKEN = re.compile(r"[A-Z][A-Za-z0-9]*$")
+QML_MODULE_ROOT = PROJECT_ROOT / "prismqml" / "PrismQML"
+
+
+def _registered_component_names() -> frozenset[str]:
+    """Collect every registered QML type name. 收集全部已注册 QML 类型名。"""
+    names: set[str] = set()
+    for qmldir in QML_MODULE_ROOT.rglob("qmldir"):
+        for line in qmldir.read_text(encoding="utf-8").splitlines():
+            parts = line.split()
+            if not parts or parts[0].startswith("#") or not parts[-1].endswith(".qml"):
+                continue
+            names.add(parts[1] if parts[0] in {"singleton", "internal"} else parts[0])
+    return frozenset(names)
+
+
+COMPONENT_NAMES = _registered_component_names()
 
 
 @dataclass(frozen=True)
@@ -136,16 +155,29 @@ def is_translatable_copy(value: str) -> bool:
     """Return True when a literal reads as copy that must be localized.
 
     判定字面量是否为必须本地化的文案。单词标识符、受保护术语、结构符号标记的 API
-    签名与 camelCase/缩写标识都不算文案。
+    签名与 camelCase/缩写标识都不算文案；首字母大写的单词只要不是已注册组件名或
+    受保护术语，就是按钮/选项一类的内容标签。
     """
     stripped = value.strip()
     if not stripped or HAN_CHARACTER.search(stripped):
         return False
     if not re.search(r"[A-Za-z]", stripped):
         return False
-    if len(stripped.split()) == 1:
-        return False
     tokens = re.findall(r"[A-Za-z]+", stripped)
+    if len(stripped.split()) == 1:
+        # Single tokens are API value captions when lowercase, and component, skin,
+        # acronym or camelCase names when they look like identifiers; every other
+        # capitalized word is a content label such as a button or option caption.
+        # 单词级：小写是 API 取值标签，组件/皮肤/缩写/camelCase 是标识符，其余首字母
+        # 大写的单词才是按钮、选项一类的内容文案。
+        if not CAPITALIZED_TOKEN.fullmatch(stripped):
+            return False
+        if len(stripped) == 1 or stripped.isupper() or CAMEL_TOKEN.search(stripped):
+            return False
+        return (
+            stripped not in COMPONENT_NAMES
+            and stripped.lower() not in PROTECTED_TERMS
+        )
     if all(token.lower() in PROTECTED_TERMS or token.isdigit() for token in tokens):
         return False
     words = [word for word in stripped.split() if word.isalpha()]

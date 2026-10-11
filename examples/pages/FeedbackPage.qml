@@ -230,22 +230,22 @@ Item {
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
                     ComponentCard {
-                        label: "Bottom"
+                        label: Fluent.Translator.tr("gallery_3f049887991b880c", Fluent.Translator._v)
                         Button { id: tipBtn1; text: Fluent.Translator.tr("gallery_3f049887991b880c", Fluent.Translator._v); onClicked: tip1.show() }
                         TeachingTip { id: tip1; target: tipBtn1; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_96a13a16b9f46d25", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_bottom; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Top"
+                        label: Fluent.Translator.tr("gallery_6f2a4a02e60e067c", Fluent.Translator._v)
                         Button { id: tipBtn2; text: Fluent.Translator.tr("gallery_6f2a4a02e60e067c", Fluent.Translator._v); onClicked: tip2.show() }
                         TeachingTip { id: tip2; target: tipBtn2; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c6505f122d94191b", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_top; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Left"
+                        label: Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v)
                         Button { id: tipBtn3; text: Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v); onClicked: tip3.show() }
                         TeachingTip { id: tip3; target: tipBtn3; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_c115c0dde27a7b9a", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_left; deleteOnClose: false }
                     }
                     ComponentCard {
-                        label: "Right"
+                        label: Fluent.Translator.tr("gallery_1cf1d4d0b24b0b16", Fluent.Translator._v)
                         Button { id: tipBtn4; text: Fluent.Translator.tr("gallery_1cf1d4d0b24b0b16", Fluent.Translator._v); onClicked: tip4.show() }
                         TeachingTip { id: tip4; target: tipBtn4; title: Fluent.Translator.tr("gallery_8828e0fec4b05a40", Fluent.Translator._v); content: Fluent.Translator.tr("gallery_e8f5dd6d4b0a27b7", Fluent.Translator._v); anchorPosition: Fluent.Enums.teachingTip.anchor_right; deleteOnClose: false }
                     }
@@ -413,8 +413,8 @@ Item {
                 description: "icon / iconSize / toolTipText"
                 GalleryFlow {
                     spacing: Fluent.Enums.spacing.l
-                    ComponentCard { label: "Info"; HintIcon { toolTipText: Fluent.Translator.tr("gallery_14a5e44c26c76658", Fluent.Translator._v) } }
-                    ComponentCard { label: "Question"; HintIcon { icon: "Question"; iconSize: 18; toolTipText: Fluent.Translator.tr("gallery_7d1060dd33fbbcfc", Fluent.Translator._v) } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_d1d5597337b36ff4", Fluent.Translator._v); HintIcon { toolTipText: Fluent.Translator.tr("gallery_14a5e44c26c76658", Fluent.Translator._v) } }
+                    ComponentCard { label: Fluent.Translator.tr("gallery_fd5fd3c4567938c7", Fluent.Translator._v); HintIcon { icon: "Question"; iconSize: 18; toolTipText: Fluent.Translator.tr("gallery_7d1060dd33fbbcfc", Fluent.Translator._v) } }
                 }
             }
 

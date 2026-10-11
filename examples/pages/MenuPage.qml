@@ -586,10 +586,10 @@ Item {
                     SystemTrayMenu {
                         id: systemTrayMenuDemo
                         initialActions: [
-                            { "text": "Open" },
-                            { "text": "Settings" },
-                            { "text": "About" },
-                            { "text": "Exit" }
+                            { "text": Fluent.Translator.tr("gallery_c771248e511fbf93", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) },
+                            { "text": Fluent.Translator.tr("gallery_498e1d59b4d787ee", Fluent.Translator._v) }
                         ]
                     }
                 }

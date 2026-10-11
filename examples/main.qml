@@ -68,7 +68,7 @@ QtObject {
     ]
     
     property var bottomNavItems: [
-        { "text": "User", "icon": "qrc:/image/avatar/avatar.png", "selectable": false },
+        { "text": Fluent.Translator.tr("gallery_0d0e1a86b3aa7877", Fluent.Translator._v), "icon": "qrc:/image/avatar/avatar.png", "selectable": false },
         { "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), "icon": iconPath("Settings"), "key": "SettingsPage" }
     ]
     

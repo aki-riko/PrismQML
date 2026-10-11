@@ -28,6 +28,11 @@ SWIPE_ROW_TEXT = {
     "zh_CN": "标记 / 归档 / 删除此行",
     "en": "Flag / Archive / Delete this row",
 }
+# Revealed action captions 露出的操作按钮文案
+SWIPE_ACTION_TEXT = {
+    "zh_CN": ("归档", "删除", "邮件"),
+    "en": ("Archive", "Delete", "Mail"),
+}
 
 
 def _pump(milliseconds: int = 20) -> None:
@@ -37,19 +42,26 @@ def _pump(milliseconds: int = 20) -> None:
 
 
 def _visible_texts(page: QQuickItem) -> list[str]:
-    values = []
-    for item in page.findChildren(QQuickItem):
+    """Collect rendered text through the visual tree. 通过可视树收集已渲染文本。"""
+    values: list[str] = []
+
+    def walk(item: QQuickItem) -> None:
         value = item.property("text")
         if isinstance(value, str) and value:
             values.append(value)
+        for child in item.childItems():
+            walk(child)
+
+    walk(page)
     return values
 
 
-def _select_language(translator, code: str, page: QQuickItem, expected: str) -> None:
+def _select_language(translator, code: str, page: QQuickItem, expected: tuple[str, ...]) -> list[str]:
     translator.setProperty("language", code)
     for _ in range(20):
-        if expected in _visible_texts(page):
-            return
+        texts = _visible_texts(page)
+        if all(value in texts for value in expected):
+            return texts
         _pump()
     raise AssertionError(f"{code}: {expected!r} never rendered")
 
@@ -80,19 +92,27 @@ def test_gallery_pages_render_translated_copy(qapp):
         translator = engine.singletonInstance("PrismQML", "Translator")
         assert translator is not None
 
-        _select_language(translator, "zh_CN", page, SWIPE_DESCRIPTION["zh_CN"])
-        chinese = _visible_texts(page)
-        assert SWIPE_ROW_TEXT["zh_CN"] in chinese
+        expected_zh = (
+            SWIPE_DESCRIPTION["zh_CN"],
+            SWIPE_ROW_TEXT["zh_CN"],
+            *SWIPE_ACTION_TEXT["zh_CN"],
+        )
+        chinese = _select_language(translator, "zh_CN", page, expected_zh)
         assert SWIPE_DESCRIPTION["en"] not in chinese
+        assert not set(SWIPE_ACTION_TEXT["en"]) & set(chinese)
         # Component names stay English in every catalog 组件名在所有语言目录中都保持英文
         assert SWIPE_TITLE in chinese
 
-        _select_language(translator, "en", page, SWIPE_DESCRIPTION["en"])
-        english = _visible_texts(page)
-        assert SWIPE_ROW_TEXT["en"] in english
+        expected_en = (
+            SWIPE_DESCRIPTION["en"],
+            SWIPE_ROW_TEXT["en"],
+            *SWIPE_ACTION_TEXT["en"],
+        )
+        english = _select_language(translator, "en", page, expected_en)
         assert SWIPE_DESCRIPTION["zh_CN"] not in english
+        assert not set(SWIPE_ACTION_TEXT["zh_CN"]) & set(english)
 
-        _select_language(translator, "zh_CN", page, SWIPE_DESCRIPTION["zh_CN"])
+        _select_language(translator, "zh_CN", page, expected_zh)
         assert warnings == [], warnings
     finally:
         page.deleteLater()

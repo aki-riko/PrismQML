@@ -46,13 +46,13 @@ Item {
                         showMinMax: true
                         showBarGradient: true
                         chartData: [
-                            {label: "Jan"}, {label: "Feb"}, {label: "Mar"}, {label: "Apr"},
-                            {label: "May"}, {label: "Jun"}, {label: "Jul"}, {label: "Aug"},
-                            {label: "Sep"}, {label: "Oct"}, {label: "Nov"}, {label: "Dec"}
+                            {label: Fluent.Translator.tr("gallery_3e750612b1506eb7", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_42d5f1ff3cb96317", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_720a8da4588d9c9f", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_1b6e21a2413c3704", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_295d12c47765d225", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_bc3e874c55e6d8b6", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_e610f3af850fd30f", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_397be3b504637b99", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_0bc8c1a9a3b8f442", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_fa5042c9a31ef928", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_53c19ce5c76fdd69", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_2a3da8a22b970422", Fluent.Translator._v)}
                         ]
                         series: [
-                            {name: "Rainfall", values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]},
-                            {name: "Evaporation", values: [2.6, 5.9, 9, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6, 2.3], color: Fluent.Enums.chartColors.palette[1]}
+                            {name: Fluent.Translator.tr("gallery_6ccc4701014c58cc", Fluent.Translator._v), values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: Fluent.Translator.tr("gallery_975f602e49c1038f", Fluent.Translator._v), values: [2.6, 5.9, 9, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6, 2.3], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }
@@ -96,12 +96,12 @@ Item {
                         showAverage: true
                         showMinMax: true
                         chartData: [
-                            {label: "Mon"}, {label: "Tue"}, {label: "Wed"},
-                            {label: "Thu"}, {label: "Fri"}, {label: "Sat"}, {label: "Sun"}
+                            {label: Fluent.Translator.tr("gallery_c430f4c12eaa146a", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_d1378a68e620b1cc", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_2961168962be301a", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_e9d3b01a5a00f1af", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_572388f3b096b817", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_f9aa11dbb15ce647", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_ee239f3943293f87", Fluent.Translator._v)}
                         ]
                         series: [
-                            {name: "Highest", values: [10, 11, 13, 11, 12, 12, 9], color: Fluent.Enums.chartColors.palette[0]},
-                            {name: "Lowest", values: [1, -2, 2, 5, 3, 2, 0], color: Fluent.Enums.chartColors.palette[1]}
+                            {name: Fluent.Translator.tr("gallery_8672864e90417138", Fluent.Translator._v), values: [10, 11, 13, 11, 12, 12, 9], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: Fluent.Translator.tr("gallery_8b5f2a61b79721aa", Fluent.Translator._v), values: [1, -2, 2, 5, 3, 2, 0], color: Fluent.Enums.chartColors.palette[1]}
                         ]
                     }
                 }
@@ -120,14 +120,14 @@ Item {
                         boundaryGap: false
                         stacked: true
                         chartData: [
-                            {label: "Mon"}, {label: "Tue"}, {label: "Wed"},
-                            {label: "Thu"}, {label: "Fri"}, {label: "Sat"}, {label: "Sun"}
+                            {label: Fluent.Translator.tr("gallery_c430f4c12eaa146a", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_d1378a68e620b1cc", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_2961168962be301a", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_e9d3b01a5a00f1af", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_572388f3b096b817", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_f9aa11dbb15ce647", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_ee239f3943293f87", Fluent.Translator._v)}
                         ]
                         series: [
-                            {name: "Email", values: [120, 132, 101, 134, 90, 230, 210], color: Fluent.Enums.chartColors.palette[0]},
+                            {name: Fluent.Translator.tr("gallery_1b2714b812d42f77", Fluent.Translator._v), values: [120, 132, 101, 134, 90, 230, 210], color: Fluent.Enums.chartColors.palette[0]},
                             {name: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), values: [220, 182, 191, 234, 290, 330, 310], color: Fluent.Enums.chartColors.palette[1]},
                             {name: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), values: [150, 232, 201, 154, 190, 330, 410], color: Fluent.Enums.chartColors.palette[2]},
-                            {name: "Direct", values: [320, 332, 301, 334, 390, 330, 320], color: Fluent.Enums.chartColors.palette[3]},
+                            {name: Fluent.Translator.tr("gallery_762cd9c2de69577b", Fluent.Translator._v), values: [320, 332, 301, 334, 390, 330, 320], color: Fluent.Enums.chartColors.palette[3]},
                             {name: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), values: [820, 932, 901, 934, 1290, 1330, 1320], color: Fluent.Enums.chartColors.palette[5]}
                         ]
                     }
@@ -147,8 +147,8 @@ Item {
                         subtitle: Fluent.Translator.tr("gallery_bad84c328f619c41", Fluent.Translator._v)
                         chartData: [
                             {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
-                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
-                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: Fluent.Translator.tr("gallery_762cd9c2de69577b", Fluent.Translator._v), value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: Fluent.Translator.tr("gallery_1b2714b812d42f77", Fluent.Translator._v), value: 580, color: Fluent.Enums.chartColors.palette[2]},
                             {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
                             {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
@@ -169,11 +169,11 @@ Item {
                         isDonut: true
                         donutRatio: 0.55
                         donutCenterText: "3147"
-                        donutCenterSubtext: "Total"
+                        donutCenterSubtext: Fluent.Translator.tr("gallery_e8dc871a7fdee23b", Fluent.Translator._v)
                         chartData: [
                             {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
-                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
-                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: Fluent.Translator.tr("gallery_762cd9c2de69577b", Fluent.Translator._v), value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: Fluent.Translator.tr("gallery_1b2714b812d42f77", Fluent.Translator._v), value: 580, color: Fluent.Enums.chartColors.palette[2]},
                             {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
                             {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
@@ -196,8 +196,8 @@ Item {
                         emphasisCenter: true
                         chartData: [
                             {label: Fluent.Translator.tr("gallery_82cbe72ab9d93e0a", Fluent.Translator._v), value: 1048, color: Fluent.Enums.chartColors.palette[0]},
-                            {label: "Direct", value: 735, color: Fluent.Enums.chartColors.palette[1]},
-                            {label: "Email", value: 580, color: Fluent.Enums.chartColors.palette[2]},
+                            {label: Fluent.Translator.tr("gallery_762cd9c2de69577b", Fluent.Translator._v), value: 735, color: Fluent.Enums.chartColors.palette[1]},
+                            {label: Fluent.Translator.tr("gallery_1b2714b812d42f77", Fluent.Translator._v), value: 580, color: Fluent.Enums.chartColors.palette[2]},
                             {label: Fluent.Translator.tr("gallery_7a2879c781b005ef", Fluent.Translator._v), value: 484, color: Fluent.Enums.chartColors.palette[3]},
                             {label: Fluent.Translator.tr("gallery_bd81a9b7948fa055", Fluent.Translator._v), value: 300, color: Fluent.Enums.chartColors.palette[5]}
                         ]
@@ -217,9 +217,9 @@ Item {
                         title: Fluent.Translator.tr("gallery_8ae0d7e7e42468f3", Fluent.Translator._v)
                         series: [
                             // effectScatter: highlighted outliers with ripple 高亮异常点带涟漪
-                            {name: "Outliers", type: "effectScatter", symbolSize: 20, data: [[172.7, 105.2], [153.4, 42]], color: Fluent.Enums.chartColors.palette[3]},
+                            {name: Fluent.Translator.tr("gallery_eb02176db2ba5e00", Fluent.Translator._v), type: "effectScatter", symbolSize: 20, data: [[172.7, 105.2], [153.4, 42]], color: Fluent.Enums.chartColors.palette[3]},
                             // scatter: normal data points 普通数据点
-                            {name: "Normal", type: "scatter", symbolSize: 8, data: [
+                            {name: Fluent.Translator.tr("gallery_296de0e31f8c22d9", Fluent.Translator._v), type: "scatter", symbolSize: 8, data: [
                                 [161.2, 51.6], [167.5, 59], [159.5, 49.2], [157, 63], [155.8, 53.6],
                                 [170, 59], [159.1, 47.6], [166, 69.8], [176.2, 66.8], [160.2, 75.2],
                                 [172.5, 55.2], [170.9, 54.2], [172.9, 62.5], [160, 50], [147.2, 49.8],
@@ -244,12 +244,12 @@ Item {
                         chartType: Fluent.Enums.chart.type_radar
                         title: Fluent.Translator.tr("gallery_546942f8b48814d1", Fluent.Translator._v)
                         indicators: [
-                            {name: "Sales", max: 6500},
-                            {name: "Administration", max: 16000},
+                            {name: Fluent.Translator.tr("gallery_faf3aa3bca537fe8", Fluent.Translator._v), max: 6500},
+                            {name: Fluent.Translator.tr("gallery_e79890c96ee6f0c5", Fluent.Translator._v), max: 16000},
                             {name: Fluent.Translator.tr("gallery_bea5df18ef44c9e8", Fluent.Translator._v), max: 30000},
                             {name: Fluent.Translator.tr("gallery_73c20614bb204536", Fluent.Translator._v), max: 38000},
-                            {name: "Development", max: 52000},
-                            {name: "Marketing", max: 25000}
+                            {name: Fluent.Translator.tr("gallery_cb086d66cd715fa8", Fluent.Translator._v), max: 52000},
+                            {name: Fluent.Translator.tr("gallery_9c1e8bd22488de3b", Fluent.Translator._v), max: 25000}
                         ]
                         series: [
                             {name: Fluent.Translator.tr("gallery_12418479a66de3a4", Fluent.Translator._v), values: [4200, 3000, 20000, 35000, 50000, 18000], color: Fluent.Enums.chartColors.palette[0]},
@@ -332,12 +332,12 @@ Item {
                         width: 460
                         height: 96
                         chartData: [
-                            {label: "Jan"}, {label: "Feb"}, {label: "Mar"}, {label: "Apr"},
-                            {label: "May"}, {label: "Jun"}, {label: "Jul"}, {label: "Aug"},
-                            {label: "Sep"}, {label: "Oct"}, {label: "Nov"}, {label: "Dec"}
+                            {label: Fluent.Translator.tr("gallery_3e750612b1506eb7", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_42d5f1ff3cb96317", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_720a8da4588d9c9f", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_1b6e21a2413c3704", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_295d12c47765d225", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_bc3e874c55e6d8b6", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_e610f3af850fd30f", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_397be3b504637b99", Fluent.Translator._v)},
+                            {label: Fluent.Translator.tr("gallery_0bc8c1a9a3b8f442", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_fa5042c9a31ef928", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_53c19ce5c76fdd69", Fluent.Translator._v)}, {label: Fluent.Translator.tr("gallery_2a3da8a22b970422", Fluent.Translator._v)}
                         ]
                         series: [
-                            {name: "Rainfall", values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]}
+                            {name: Fluent.Translator.tr("gallery_6ccc4701014c58cc", Fluent.Translator._v), values: [2, 4.9, 7, 23.2, 25.6, 76.7, 135.6, 162.2, 32.6, 20, 6.4, 3.3], color: Fluent.Enums.chartColors.palette[0]}
                         ]
                         viewportStart: 0.2
                         viewportEnd: 0.8

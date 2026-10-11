@@ -19,27 +19,27 @@ ExampleCard {
     id: showcase
 
     // ==================== Internal Props 内部属性 ====================
-    // Shared model for the vertical navigation panels. Text and labels stay ASCII on
-    // purpose: the Gallery i18n contract only localizes user-visible literals.
-    // 垂直导航面板共用模型。文本刻意保持 ASCII: 画廊 i18n 合同只本地化用户可见文案。
+    // Shared model for the vertical navigation panels. Item text is user-visible copy, so
+    // it goes through the translation catalog; only the keys and icon names stay ASCII.
+    // 垂直导航面板共用模型。条目文案属于用户可见文案, 因此走翻译目录; 只有 key 与图标名保持 ASCII。
     readonly property var navPanelModel: [
-        { "key": "home", "text": "Home", "icon": iconPath("Home") },
-        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
-        { "key": "search", "text": "Search", "icon": iconPath("Search") },
-        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
-        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
+        { "key": "home", "text": Fluent.Translator.tr("gallery_3e0d676d2d85073d", Fluent.Translator._v), "icon": iconPath("Home") },
+        { "key": "documents", "text": Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v), "icon": iconPath("Document") },
+        { "key": "search", "text": Fluent.Translator.tr("gallery_44ce7ae909bbb28b", Fluent.Translator._v), "icon": iconPath("Search") },
+        { "key": "mail", "text": Fluent.Translator.tr("gallery_3d708e8e8b1f9247", Fluent.Translator._v), "icon": iconPath("Mail") },
+        { "key": "settings", "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), "icon": iconPath("Settings") }
     ]
     readonly property var navPanelScrollModel: [
-        { "key": "home", "text": "Home", "icon": iconPath("Home") },
-        { "key": "documents", "text": "Documents", "icon": iconPath("Document") },
-        { "key": "search", "text": "Search", "icon": iconPath("Search") },
-        { "key": "mail", "text": "Mail", "icon": iconPath("Mail") },
-        { "key": "people", "text": "People", "icon": iconPath("Person") },
-        { "key": "calendar", "text": "Calendar", "icon": iconPath("Calendar") },
-        { "key": "favorites", "text": "Favorites", "icon": iconPath("Star") },
-        { "key": "reports", "text": "Reports", "icon": iconPath("ChartMultiple") },
-        { "key": "folders", "text": "Folders", "icon": iconPath("Folder") },
-        { "key": "settings", "text": "Settings", "icon": iconPath("Settings") }
+        { "key": "home", "text": Fluent.Translator.tr("gallery_3e0d676d2d85073d", Fluent.Translator._v), "icon": iconPath("Home") },
+        { "key": "documents", "text": Fluent.Translator.tr("gallery_2687ccdbb1d2288a", Fluent.Translator._v), "icon": iconPath("Document") },
+        { "key": "search", "text": Fluent.Translator.tr("gallery_44ce7ae909bbb28b", Fluent.Translator._v), "icon": iconPath("Search") },
+        { "key": "mail", "text": Fluent.Translator.tr("gallery_3d708e8e8b1f9247", Fluent.Translator._v), "icon": iconPath("Mail") },
+        { "key": "people", "text": Fluent.Translator.tr("gallery_3303b56982a00fd1", Fluent.Translator._v), "icon": iconPath("Person") },
+        { "key": "calendar", "text": Fluent.Translator.tr("gallery_a00f295cfbb0b1b3", Fluent.Translator._v), "icon": iconPath("Calendar") },
+        { "key": "favorites", "text": Fluent.Translator.tr("gallery_796d20e915884195", Fluent.Translator._v), "icon": iconPath("Star") },
+        { "key": "reports", "text": Fluent.Translator.tr("gallery_902b4f14042a75f3", Fluent.Translator._v), "icon": iconPath("ChartMultiple") },
+        { "key": "folders", "text": Fluent.Translator.tr("gallery_af9996bc4d45ff49", Fluent.Translator._v), "icon": iconPath("Folder") },
+        { "key": "settings", "text": Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), "icon": iconPath("Settings") }
     ]
     // Acrylic state, owned here exactly like the window shell owns it
     // 亚克力状态, 与窗口外壳一样由这里持有
@@ -136,10 +136,10 @@ ExampleCard {
                     id: navPaneModeBar
                     objectName: "galleryNavPaneModeBar"
                     items: [
-                        { "key": "left", "text": "Left" },
-                        { "key": "compact", "text": "Compact" },
-                        { "key": "minimal", "text": "Minimal" },
-                        { "key": "auto", "text": "Auto" }
+                        { "key": "left", "text": Fluent.Translator.tr("gallery_6a24b14f33c72be4", Fluent.Translator._v) },
+                        { "key": "compact", "text": Fluent.Translator.tr("gallery_5d63d587b0b05a75", Fluent.Translator._v) },
+                        { "key": "minimal", "text": Fluent.Translator.tr("gallery_7d4e8ea90d25f335", Fluent.Translator._v) },
+                        { "key": "auto", "text": Fluent.Translator.tr("gallery_7eb336e42cb5076b", Fluent.Translator._v) }
                     ]
                     onItemClicked: (index) => showcase.setNavPaneMode(index)
                 }
@@ -203,7 +203,7 @@ ExampleCard {
                                 paneDisplayMode: Fluent.Enums.navigation.pane_left
                                 model: showcase.navPanelModel
                                 bottomItems: [
-                                    { "text": "Account", "icon": showcase.iconPath("Person"), "selectable": false }
+                                    { "text": Fluent.Translator.tr("gallery_061246bd31e084a7", Fluent.Translator._v), "icon": showcase.iconPath("Person"), "selectable": false }
                                 ]
                                 acrylicEnabled: (isExpanded || navPaneFrame.isAnimating)
                                     && showcase._paneAcrylicReady
@@ -344,9 +344,9 @@ ExampleCard {
                     Pivot {
                         orientation: Qt.Vertical
                         items: [
-                            { "key": "general", "text": "General" },
-                            { "key": "appearance", "text": "Appearance" },
-                            { "key": "advanced", "text": "Advanced" }
+                            { "key": "general", "text": Fluent.Translator.tr("gallery_40fae00b7c6d8ac0", Fluent.Translator._v) },
+                            { "key": "appearance", "text": Fluent.Translator.tr("gallery_86a63f23a076b11e", Fluent.Translator._v) },
+                            { "key": "advanced", "text": Fluent.Translator.tr("gallery_d6e61888b07853ea", Fluent.Translator._v) }
                         ]
                     }
                 }

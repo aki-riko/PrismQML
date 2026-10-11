@@ -158,10 +158,10 @@ Item {
                         SelectorBar {
                             objectName: "gallerySelectorBar"
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "settings", text: "Settings", icon: "Settings" },
-                                { key: "about", text: "About" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "settings", text: Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v), icon: "Settings" },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) }
                             ]
                             onItemClicked: (index, byUser) => selectorStatus.text = Fluent.Translator.tr("gallery_efd79829280946de") + index
                             onCurrentItemChanged: (key) => selectorStatus.text = Fluent.Translator.tr("gallery_3b2ee82dd97c5c96") + key
@@ -185,9 +185,9 @@ Item {
                             objectName: "gallerySelectorBarVertical"
                             orientation: Qt.Vertical
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "about", text: "About" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) }
                             ]
                         }
                     }
@@ -202,11 +202,11 @@ Item {
                             objectName: "gallerySelectorBarNarrow"
                             width: 272
                             items: [
-                                { key: "overview", text: "Overview" },
-                                { key: "activity", text: "Activity" },
-                                { key: "settings", text: "Settings" },
-                                { key: "about", text: "About" },
-                                { key: "extra", text: "Extra" }
+                                { key: "overview", text: Fluent.Translator.tr("gallery_fea405f9b01d1416", Fluent.Translator._v) },
+                                { key: "activity", text: Fluent.Translator.tr("gallery_9e9bead81498b898", Fluent.Translator._v) },
+                                { key: "settings", text: Fluent.Translator.tr("gallery_df3d58c7d84b85f2", Fluent.Translator._v) },
+                                { key: "about", text: Fluent.Translator.tr("gallery_52d25a9e30ba94f1", Fluent.Translator._v) },
+                                { key: "extra", text: Fluent.Translator.tr("gallery_d79888094569b2a3", Fluent.Translator._v) }
                             ]
                         }
                     }
@@ -625,16 +625,16 @@ Item {
         hintText: "Up/Down navigate  Enter run  Esc close"
         items: [
             { key: "open-file", title: Fluent.Translator.tr("gallery_4c8a4e3da39e5c2a", Fluent.Translator._v), subtitle: "Ctrl+O",
-              section: "File", icon: iconPath("FolderOpen") },
+              section: Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), icon: iconPath("FolderOpen") },
             { key: "save-file", title: Fluent.Translator.tr("gallery_4d8dc23ed6e1e690", Fluent.Translator._v), subtitle: "Ctrl+S",
-              section: "File", icon: iconPath("Save") },
-            { key: "toggle-theme", title: Fluent.Translator.tr("gallery_7a1604323e8bf3f2", Fluent.Translator._v), subtitle: "View",
-              section: "View", icon: iconPath("DarkTheme"),
+              section: Fluent.Translator.tr("gallery_39932f24fe11a6ba", Fluent.Translator._v), icon: iconPath("Save") },
+            { key: "toggle-theme", title: Fluent.Translator.tr("gallery_7a1604323e8bf3f2", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_1c5c067138704dda", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_1c5c067138704dda", Fluent.Translator._v), icon: iconPath("DarkTheme"),
               keywords: ["dark", "light", "appearance"] },
-            { key: "goto-navigation", title: Fluent.Translator.tr("gallery_dbe2fecffbbca250", Fluent.Translator._v), subtitle: "Go",
-              section: "Navigate", icon: iconPath("Navigation") },
-            { key: "open-settings", title: Fluent.Translator.tr("gallery_37aa6ad6a36d46fa", Fluent.Translator._v), subtitle: "Go",
-              section: "Navigate", icon: iconPath("Settings") }
+            { key: "goto-navigation", title: Fluent.Translator.tr("gallery_dbe2fecffbbca250", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_fa96079c3b2f7341", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_afd0b9482dfa57f0", Fluent.Translator._v), icon: iconPath("Navigation") },
+            { key: "open-settings", title: Fluent.Translator.tr("gallery_37aa6ad6a36d46fa", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_fa96079c3b2f7341", Fluent.Translator._v),
+              section: Fluent.Translator.tr("gallery_afd0b9482dfa57f0", Fluent.Translator._v), icon: iconPath("Settings") }
         ]
         onCommandTriggered: (key, item) => {
             galleryPaletteStatus.text = Fluent.Translator.tr("gallery_120721c3f1b49aab") + key

@@ -423,7 +423,7 @@ Item {
                                     Repeater {
                                         model: 15
                                         Text { 
-                                            text: "Item " + (index + 1)
+                                            text: Fluent.Translator.tr("gallery_a5c0011b8fb8c6b9", Fluent.Translator._v) + (index + 1)
                                             color: Enums.textColor.primary
                                             font.pixelSize: Enums.typography.caption
                                             leftPadding: 8
@@ -537,11 +537,11 @@ Item {
                         width: 420
                         height: 52
                         leftActions: [
-                            { key: "flag", text: "Flag", icon: iconPath("Flag"), level: Enums.statusLevel.info }
+                            { key: "flag", text: Fluent.Translator.tr("gallery_269635727321c64f", Fluent.Translator._v), icon: iconPath("Flag"), level: Enums.statusLevel.info }
                         ]
                         rightActions: [
-                            { key: "archive", text: "Archive", icon: iconPath("Archive"), level: Enums.statusLevel.warning },
-                            { key: "delete", text: "Delete", icon: iconPath("Delete"), level: Enums.statusLevel.error }
+                            { key: "archive", text: Fluent.Translator.tr("gallery_5292ab1a36c56a6b", Fluent.Translator._v), icon: iconPath("Archive"), level: Enums.statusLevel.warning },
+                            { key: "delete", text: Fluent.Translator.tr("gallery_2f9daa828907b93f", Fluent.Translator._v), icon: iconPath("Delete"), level: Enums.statusLevel.error }
                         ]
                         onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
@@ -563,7 +563,7 @@ Item {
                         width: 420
                         height: 52
                         rightActions: [
-                            { key: "mail", text: "Mail", icon: iconPath("Mail"), level: Enums.statusLevel.success }
+                            { key: "mail", text: Fluent.Translator.tr("gallery_3d708e8e8b1f9247", Fluent.Translator._v), icon: iconPath("Mail"), level: Enums.statusLevel.success }
                         ]
                         onActionTriggered: (key, side) => swipeStatus.text = Fluent.Translator.tr("gallery_b09d185bc51f04d0") + key + " (" + side + ")"
                         Rectangle {
@@ -602,9 +602,9 @@ Item {
                         width: 320
                         placeholderText: Fluent.Translator.tr("gallery_89940594eac1efea", Fluent.Translator._v)
                         entries: [
-                            { title: "Mica", subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["mica", "material"] },
-                            { title: Fluent.Translator.tr("gallery_f84e05423960c3a4", Fluent.Translator._v), subtitle: "Personalization", icon: "Color", section: "Appearance", keywords: ["accent", "theme"] },
-                            { title: "Notifications", subtitle: "System", icon: "Alert", section: "System", keywords: ["toast", "banner"] }
+                            { title: "Mica", subtitle: Fluent.Translator.tr("gallery_38c043e08502e710", Fluent.Translator._v), icon: "Color", section: Fluent.Translator.tr("gallery_86a63f23a076b11e", Fluent.Translator._v), keywords: ["mica", "material"] },
+                            { title: Fluent.Translator.tr("gallery_f84e05423960c3a4", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_38c043e08502e710", Fluent.Translator._v), icon: "Color", section: Fluent.Translator.tr("gallery_86a63f23a076b11e", Fluent.Translator._v), keywords: ["accent", "theme"] },
+                            { title: Fluent.Translator.tr("gallery_b41f4fa6f5efb208", Fluent.Translator._v), subtitle: Fluent.Translator.tr("gallery_5b50d7c4b5950dc5", Fluent.Translator._v), icon: "Alert", section: Fluent.Translator.tr("gallery_5b50d7c4b5950dc5", Fluent.Translator._v), keywords: ["toast", "banner"] }
                         ]
                         onEntrySelected: function(entry) { searchSelection.text = entry.title }
                     }
