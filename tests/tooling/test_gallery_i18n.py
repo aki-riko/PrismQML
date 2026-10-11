@@ -59,7 +59,8 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 762 = current Gallery catalog after removing the standalone parity batch.
     # 该页改成一整块对话框后，「聊天气泡 / 气泡壳 / 开始 / 中断」不再被引用；译文留在目录里备用。
     # 删除布局、集合、媒体和菜单 standalone Gallery 后，目录同步收敛到 762 条。
-    assert gallery_i18n.validate_catalogs() == 762
+    # 图标页「图标组件」区块并入图标网格后，其标题 1 条引用消失：762 - 1 = 761。
+    assert gallery_i18n.validate_catalogs() == 761
 
 
 def test_gallery_notification_menu_uses_reviewed_chinese_terminology():
