@@ -28,6 +28,14 @@ from prismqml import register_types
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_PATH = ROOT / "examples" / "pages" / "IconPage.qml"
+DETAIL_PANEL_WIDTH = 240
+LEAF_CARDS = (
+    ("leafCheckIconCard", "CheckIcon"),
+    ("leafChevronIconCard", "ChevronIcon"),
+    ("leafChevronOpenCard", "ChevronIcon (animated, isOpen)"),
+    ("leafCloseIconCard", "CloseIcon"),
+    ("leafAnimatedIconCard", "AnimatedIcon"),
+)
 
 
 def _pump(milliseconds: int = 30) -> None:
@@ -115,12 +123,47 @@ def _leaf_animated_icon(root: QQuickItem):
     )
 
 
+def _detail_panel(root: QQuickItem) -> QQuickItem:
+    """Right-hand detail panel of the icon page. 图标页右侧详情面板。"""
+    row = next(
+        child
+        for child in root.childItems()
+        if "QQuickRow" in child.metaObject().className()
+    )
+    return next(
+        child for child in row.childItems() if child.width() == DETAIL_PANEL_WIDTH
+    )
+
+
 def test_icon_gallery_source_keeps_grid_cards_clickable():
     source = SOURCE_PATH.read_text(encoding="utf-8")
 
     assert "delegate: Card {" in source
     assert "clickEnabled: true" in source
     assert "onClicked: root.selectedIcon = modelData" in source
+
+
+def test_icon_gallery_shows_every_leaf_component_separately(icon_gallery):
+    """Each leaf component owns its own labelled card. 每个叶子组件拥有独立带名卡片。"""
+    window, root, warnings = icon_gallery
+    panel = _detail_panel(root)
+
+    positions = []
+    for object_name, label in LEAF_CARDS:
+        card = root.findChild(QQuickItem, object_name)
+        assert card is not None, object_name
+        assert card.isVisible(), object_name
+
+        label_item = card.findChild(QQuickItem, "componentCardLabel")
+        assert label_item is not None, object_name
+        assert label_item.property("text") == label
+
+        assert card.x() >= -0.5, object_name
+        assert card.x() + card.width() <= panel.width() + 0.5, object_name
+        positions.append((card.x(), card.y()))
+
+    assert len(set(positions)) == len(LEAF_CARDS)
+    assert warnings == []
 
 
 def test_icon_gallery_card_click_switches_selection(icon_gallery):

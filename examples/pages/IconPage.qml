@@ -260,26 +260,43 @@ Item {
                         font.family: Fluent.Enums.fontFamily
                     }
 
-                    Row {
-                        spacing: Fluent.Enums.spacing.l
-
-                        CheckIcon { }
-                        ChevronIcon { }
-                        CloseIcon { }
-                    }
-
-                    Row {
-                        spacing: Fluent.Enums.spacing.l
-
-                        AnimatedIcon {
-                            iconSize: 28
-                            icon: root.selectedIcon
+                    // One card per leaf component 每个叶子组件单独一张卡片
+                    GalleryFlow {
+                        ComponentCard {
+                            objectName: "leafCheckIconCard"
+                            label: "CheckIcon"
+                            CheckIcon { }
                         }
 
-                        ChevronIcon {
-                            direction: "right"
-                            animated: true
-                            isOpen: true
+                        ComponentCard {
+                            objectName: "leafChevronIconCard"
+                            label: "ChevronIcon"
+                            ChevronIcon { }
+                        }
+
+                        ComponentCard {
+                            objectName: "leafChevronOpenCard"
+                            label: "ChevronIcon (animated, isOpen)"
+                            ChevronIcon {
+                                direction: "right"
+                                animated: true
+                                isOpen: true
+                            }
+                        }
+
+                        ComponentCard {
+                            objectName: "leafCloseIconCard"
+                            label: "CloseIcon"
+                            CloseIcon { }
+                        }
+
+                        ComponentCard {
+                            objectName: "leafAnimatedIconCard"
+                            label: "AnimatedIcon"
+                            AnimatedIcon {
+                                iconSize: 28
+                                icon: root.selectedIcon
+                            }
                         }
                     }
                 }
