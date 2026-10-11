@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlExpression, QQmlEngine
 
 from prismqml import register_types
@@ -106,6 +106,112 @@ Item {
         stack = root.findChild(QObject, "conflictStack")
         assert stack.property("pageModeConflict") is True
         assert stack.property("count") == 0
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_switching_from_deferred_component_to_url_clears_stale_component(qapp, tmp_path):
+    page = tmp_path / "url_page.qml"
+    page.write_text(
+        'import QtQuick\nItem { objectName: "url-page" }\n',
+        encoding="utf-8",
+    )
+    page_url = QUrl.fromLocalFile(str(page)).toString()
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    function switchToUrl() {{
+        stack.pageSources = ["{page_url}"]
+        stack.deferredPages = []
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "switchStack"
+        width: 320
+        height: 200
+        lazyLoading: false
+        animationEnabled: false
+        deferredPages: [Component {{ Item {{ objectName: "inline-page" }} }}]
+    }}
+}}
+"""
+    engine, component, root = _create(source)
+    try:
+        stack = root.findChild(QObject, "switchStack")
+        _pump(120)
+        assert _evaluate(stack, "currentItem.objectName") == "inline-page"
+        assert QMetaObject.invokeMethod(root, "switchToUrl")
+        _pump(250)
+        assert stack.property("pageModeConflict") is False
+        assert _evaluate(stack, "currentItem.objectName") == "url-page"
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_replacing_source_while_loading_uses_latest_url(qapp, tmp_path):
+    initial_page = tmp_path / "initial_page.qml"
+    first_page = tmp_path / "first_page.qml"
+    second_page = tmp_path / "second_page.qml"
+    initial_page.write_text(
+        'import QtQuick\nItem { objectName: "initial-page" }\n',
+        encoding="utf-8",
+    )
+    first_page.write_text(
+        'import QtQuick\n'
+        'Item {\n'
+        '    objectName: "first-page"\n'
+        '    Repeater { model: 4000; delegate: Item { width: index; height: index } }\n'
+        '}\n',
+        encoding="utf-8",
+    )
+    second_page.write_text(
+        'import QtQuick\nItem { objectName: "second-page" }\n',
+        encoding="utf-8",
+    )
+    first_url = QUrl.fromLocalFile(str(first_page)).toString()
+    second_url = QUrl.fromLocalFile(str(second_page)).toString()
+    initial_url = QUrl.fromLocalFile(str(initial_page)).toString()
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    property bool loadingObserved: false
+
+    function replaceWhileLoading() {{
+        stack.pageSources = ["{first_url}"]
+        loadingObserved = stack._loaders[0].status === Loader.Loading
+        stack.pageSources = ["{second_url}"]
+    }}
+
+    StackedWidget {{
+        id: stack
+        objectName: "loadingSwitchStack"
+        width: 320
+        height: 200
+        lazyLoading: true
+        animationEnabled: false
+        pageSources: ["{initial_url}"]
+    }}
+}}
+"""
+    engine, component, root = _create(source)
+    try:
+        stack = root.findChild(QObject, "loadingSwitchStack")
+        _pump(150)
+        assert _evaluate(stack, "currentItem.objectName") == "initial-page"
+        assert QMetaObject.invokeMethod(root, "replaceWhileLoading")
+        assert _evaluate(root, "loadingObserved") is True
+        _pump(700)
+        assert _evaluate(stack, "currentItem.objectName") == "second-page"
+        assert _evaluate(stack, "_loaders[0]._loadedSourceText") == second_url
     finally:
         root.deleteLater()
         component.deleteLater()

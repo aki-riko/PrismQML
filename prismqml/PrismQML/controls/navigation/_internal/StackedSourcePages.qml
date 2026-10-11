@@ -31,15 +31,16 @@ Item {
         }
         for (var index = 0; index < pageCount; index++) {
             var source = sources.length > 0 ? (sources[index] || "") : ""
-            var component = sources.length > 0 ? null : components[index]
+            var componentMode = sources.length === 0
             if (index >= sourceModel.count) {
-                var entry = {"sourceValue": source}
-                if (component) entry.componentValue = component
-                sourceModel.append(entry)
+                sourceModel.append({
+                    "sourceValue": source,
+                    "componentMode": componentMode
+                })
             } else if (String(sourceModel.get(index).sourceValue)
-                       !== String(source) || sourceModel.get(index).componentValue !== component) {
+                       !== String(source) || sourceModel.get(index).componentMode !== componentMode) {
                 sourceModel.setProperty(index, "sourceValue", source)
-                if (component) sourceModel.setProperty(index, "componentValue", component)
+                sourceModel.setProperty(index, "componentMode", componentMode)
             }
         }
         if (sourceContainer.host._loaders.length > pageCount) {
@@ -74,7 +75,9 @@ Item {
                 var modelEntry = index >= 0 && index < sourceModel.count
                         ? sourceModel.get(index) : null
                 var nextSource = modelEntry ? modelEntry.sourceValue : ""
-                var nextComponent = modelEntry ? modelEntry.componentValue : null
+                var componentEntries = sourceContainer.host._safeDeferredPages
+                var nextComponent = modelEntry && modelEntry.componentMode
+                        && index < componentEntries.length ? componentEntries[index] : null
                 var nextProperties = sourceContainer.host._pagePropertiesFor(index)
                 if (!nextSource && !nextComponent) {
                     sourceLoader.source = ""
@@ -107,6 +110,12 @@ Item {
                 }
                 if (!sourceLoader.item && sourceLoader.status === Loader.Loading) {
                     sourceLoader._pendingPageProperties = nextProperties
+                    var loadingSourceText = sourceLoader.source && sourceLoader.source.toString
+                            ? sourceLoader.source.toString() : String(sourceLoader.source)
+                    if (!nextComponent && loadingSourceText !== nextSourceText) {
+                        sourceLoader._loadedSourceText = nextSourceText
+                        sourceLoader.setSource(nextSource, nextProperties)
+                    }
                     return
                 }
                 if (sourceLoader.source.toString() !== nextSourceText ||
@@ -131,7 +140,6 @@ Item {
             // 使用独立 _loadOnce 锁存加载状态，避免 active 自引用导致全量加载。
             onActiveChanged: {
                 if (active) {
-                    _loadOnce = true
                     sourceLoader._syncSource()
                 }
                 sourceContainer.host._traceLazyStage(

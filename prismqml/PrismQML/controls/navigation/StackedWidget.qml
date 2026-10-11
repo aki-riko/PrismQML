@@ -73,6 +73,7 @@ Item {
         ? _dynamicDepth : count
     // ==================== Internal Props 内部属性 ====================
     property bool _destroying: false
+    property bool _indexClampReady: false
     default property alias content: directPages.children
     property Item containerItem: directPages
     property Item currentWidget: _getCurrentWidget()
@@ -108,6 +109,24 @@ Item {
     function _getCurrentItem() {
         var widgetItem = currentWidget
         return _useSourceMode && widgetItem ? widgetItem.item : widgetItem
+    }
+    function _clampPageIndexes() {
+        if (count <= 0) {
+            _displayIndex = 0
+            previousIndex = 0
+            _pendingLazySwitchIndex = -1
+            if (!pageModeConflict && currentIndex !== 0) currentIndex = 0
+            return
+        }
+        var lastIndex = count - 1
+        var clampedDisplay = Math.max(0, Math.min(_displayIndex, lastIndex))
+        var clampedCurrent = Math.max(0, Math.min(currentIndex, lastIndex))
+        if (_displayIndex !== clampedDisplay) {
+            _displayIndex = clampedDisplay
+            previousIndex = clampedDisplay
+        }
+        if (currentIndex !== clampedCurrent) currentIndex = clampedCurrent
+        if (_pendingLazySwitchIndex > lastIndex) _pendingLazySwitchIndex = -1
     }
     function _pagePropertiesFor(index) {
         if (index < 0 || index >= _safePageProperties.length) return ({})
@@ -322,6 +341,8 @@ Item {
 
     Component.onCompleted: {
         if (dynamicStack && _dynamicDepth < 0) _dynamicDepth = count
+        _indexClampReady = true
+        _clampPageIndexes()
         profileTime("Component.onCompleted count=" + count +
                     ", lazyLoading=" + lazyLoading +
                     ", sourceMode=" + _useSourceMode)
@@ -331,6 +352,10 @@ Item {
         }
     }
     Component.onDestruction: _destroying = true
+
+    onCountChanged: {
+        if (_indexClampReady) _clampPageIndexes()
+    }
 
     onLazyLoadingChanged: {
         if (lazyLoading) {
@@ -465,5 +490,6 @@ Item {
         host: control
         animations: animations
         container: directPages
+        dynamicStackController: dynamicController
     }
 }

@@ -356,6 +356,7 @@ Item {
     readonly property alias comboBoxMetrics: _metrics.comboBox
     readonly property alias searchMetrics: _metrics.search
     readonly property alias skeletonMetrics: _metrics.skeletonMetrics
+    readonly property alias stepper: _metrics.stepper
     readonly property alias imageCropperDialogMetrics: _metrics.imageCropperDialog
     readonly property alias splashScreenMetrics: _metrics.splashScreen
     readonly property alias lazyLoadingTransitionMetrics: _metrics.lazyLoadingTransition

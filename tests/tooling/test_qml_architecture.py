@@ -634,8 +634,8 @@ def test_stepper_keeps_showcase_layers_modularized():
     # The rail thickness follows the indicator scale instead of a hairline token.
     # 轨道粗细跟随指示器尺度，而不是固定发丝线宽。
     assert (
-        "readonly property real _railThickness: Math.max(Enums.border.thick, "
-        "indicatorSize * 0.14)" in source
+        "readonly property real _railThickness: Math.max(Enums.border.thick,\n"
+        "        indicatorSize * Enums.stepper.railThicknessRatio)" in source
     )
     # Showcase layers stay property-driven: no canvas painting, no timers and no
     # offscreen layers, so the render thread owns every frame.

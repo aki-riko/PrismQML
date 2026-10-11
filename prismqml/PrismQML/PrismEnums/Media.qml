@@ -53,6 +53,7 @@ QtObject {
 
     // ==================== Map Defaults 地图默认值 ====================
     readonly property real map_default_zoom: 8.0
+    readonly property int map_activation_timeout: 5000
     readonly property real map_min_zoom: 0.0
     readonly property real map_max_zoom: 30.0
     readonly property real map_zoom_step: 1.0

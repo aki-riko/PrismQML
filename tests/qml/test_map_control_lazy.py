@@ -220,6 +220,56 @@ def test_map_scheduler_gate_defers_surface_activation(qapp):
         _dispose(engine, component, root)
 
 
+def test_map_scheduler_holds_activation_until_backend_ready(qapp, tmp_path):
+    surface = tmp_path / "map_surface.qml"
+    surface.write_text(
+        "import QtQuick\n"
+        "Item {\n"
+        "    required property Item host\n"
+        "    Component.onCompleted: host._onSurfaceReady()\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    surface_url = QUrl.fromLocalFile(str(surface)).toString()
+    source = f"""
+import QtQuick
+import PrismQML
+
+Item {{
+    MapControl {{
+        objectName: "mapControl"
+        autoActivate: true
+        surfaceUrl: "{surface_url}"
+    }}
+}}
+""".encode("utf-8")
+    engine = QQmlEngine()
+    warnings = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(source, SCENE_URL)
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create()
+    assert isinstance(root, QQuickItem)
+    try:
+        control = root.findChild(QQuickItem, "mapControl")
+        assert control is not None
+        assert _wait_for(lambda: control.property("surfaceCreated"))
+        assert control.property("activationInProgress") is True
+        _invoke(control, "_onMapReady(true)")
+        assert control.property("activationInProgress") is False
+        assert warnings == []
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_map_control_layers_and_viewport(qapp):
     """Layers, centre and zoom stay in sync with the map. 图层、中心与缩放与地图同步。"""
     engine, component, root, warnings = _create_scene()

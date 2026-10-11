@@ -28,16 +28,17 @@ Item {
     property bool _bursting: false  // Burst window state 迸发窗口状态
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property real _particleSize: Math.max(Enums.spacing.xxs, diameter * 0.12)
-    readonly property real _particleDistance: diameter * 0.85
+    readonly property real _particleSize: Math.max(Enums.spacing.xxs,
+        diameter * Enums.stepper.particleSizeRatio)
+    readonly property real _particleDistance: diameter * Enums.stepper.particleDistanceRatio
     readonly property real _originX: (diameter - _particleSize) / 2
     readonly property real _originY: (diameter - _particleSize) / 2
     readonly property real _ringBorderWidth: Enums.border.normal
-    readonly property real _ringStartScale: 0.7
-    readonly property real _ringEndScale: 1.9
+    readonly property real _ringStartScale: Enums.stepper.ringStartScale
+    readonly property real _ringEndScale: Enums.stepper.ringEndScale
     readonly property real _ringStartOpacity: Enums.opacityLevel.heavy
     readonly property real _particleOpacity: Enums.opacityLevel.strong
-    readonly property real _particleEndScale: 0.4
+    readonly property real _particleEndScale: Enums.stepper.particleEndScale
 
     // ==================== Public Methods 公开方法 ====================
     // Play one completion burst 播放一次完成迸发
@@ -123,7 +124,7 @@ Item {
                     NumberAnimation { id: flyX; target: particleDot; property: "x"; duration: root.duration; easing.type: Easing.OutCubic }
                     NumberAnimation { id: flyY; target: particleDot; property: "y"; duration: root.duration; easing.type: Easing.OutCubic }
                     NumberAnimation { target: particleDot; property: "opacity"; from: root._particleOpacity; to: Enums.opacityLevel.invisible; duration: root.duration; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: particleDot; property: "scale"; from: 1; to: root._particleEndScale; duration: root.duration; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: particleDot; property: "scale"; from: Enums.stepper.baseScale; to: root._particleEndScale; duration: root.duration; easing.type: Easing.OutCubic }
                 }
             }
         }

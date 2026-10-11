@@ -194,7 +194,10 @@ Item {
         activated()
     }
 
-    function _onMapReady(value) { _mapReady = value }
+    function _onMapReady(value) {
+        _mapReady = value
+        if (value) SurfaceActivationScheduler.release(control)
+    }
 
     // ==================== Size 尺寸 ====================
     implicitWidth: Enums.controlSize.inputDefaultWidth
@@ -224,9 +227,9 @@ Item {
         // Component.onCompleted before the Loader exposes it to the host.
         // 就绪在这里上报：被孵化的表面自身的 Component.onCompleted 先于宿主可见。
         onLoaded: {
-            SurfaceActivationScheduler.release(control)
             control._activationRequested = false
             control._onSurfaceReady()
+            if (control._mapReady) SurfaceActivationScheduler.release(control)
         }
 
         onStatusChanged: {
@@ -248,5 +251,13 @@ Item {
         sourceComponent: MediaInternal.SurfaceUnavailable {
             host: control
         }
+    }
+
+    Timer {
+        interval: Enums.media.map_activation_timeout
+        repeat: false
+        running: control._surfaceActivationActive
+                && control.surfaceCreated && !control.mapReady
+        onTriggered: SurfaceActivationScheduler.release(control)
     }
 }

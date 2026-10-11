@@ -30,15 +30,15 @@ Item {
     property real _breath: 0  // Shared breathing factor 共享呼吸因子
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property var _haloScales: [1.0, 1.18, 1.38, 1.6, 1.85]
+    readonly property var _haloScales: Enums.stepper.haloScales
     readonly property real _haloOpacity: Enums.opacityLevel.faint
-    readonly property real _haloFalloff: 0.2
-    readonly property real _minBreath: 0.55
-    readonly property real _maxBreath: 1.0
+    readonly property real _haloFalloff: Enums.stepper.haloFalloff
+    readonly property real _minBreath: Enums.stepper.minBreath
+    readonly property real _maxBreath: Enums.stepper.maxBreath
     readonly property real _restBreath: Enums.opacityLevel.invisible
     readonly property real _rippleBorderWidth: Enums.border.normal
-    readonly property real _rippleStartScale: 1.0
-    readonly property real _rippleEndScale: 2.3
+    readonly property real _rippleStartScale: Enums.stepper.rippleStartScale
+    readonly property real _rippleEndScale: Enums.stepper.rippleEndScale
     readonly property real _rippleStartOpacity: Enums.opacityLevel.light
 
     // ==================== Content 内容 ====================
