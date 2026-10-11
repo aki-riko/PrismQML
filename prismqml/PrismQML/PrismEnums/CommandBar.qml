@@ -17,15 +17,4 @@ QtObject {
     readonly property int style_text_beside: 1     // Text beside icon 文字在图标旁
     readonly property int style_text_under: 2      // Text under icon 文字在图标下
 
-    // ==================== AppBar Display State 应用栏显示状态 ====================
-    // WinUI AppBar semantics shared by RibbonBar and the AppBar button family.
-    // WinUI 应用栏语义, 由功能区与 AppBar 按钮族共用。
-    // No local choice: follow the nearest display-state host 未指定: 跟随最近的显示状态宿主
-    readonly property int appBar_inherit: 0
-    // Pinned open: labels stay visible even when the host bar collapses 固定展开: 宿主折叠时标签仍常显
-    readonly property int appBar_sticky: 1
-    // Icon-only presentation 紧凑: 只呈现图标
-    readonly property int appBar_compact: 2
-    // Labels visible, may collapse 展开: 标签可见, 允许折叠
-    readonly property int appBar_expanded: 3
 }

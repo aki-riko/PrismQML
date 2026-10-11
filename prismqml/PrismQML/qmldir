@@ -133,10 +133,6 @@ PipsPager navigation/PipsPager.qml
 StatusBar navigation/StatusBar.qml
 ToggleNavigationBar navigation/ToggleNavigationBar.qml
 #ToolBar navigation/ToolBar.qml
-RibbonBar navigation/RibbonBar.qml
-RibbonTab navigation/RibbonTab.qml
-RibbonGroup navigation/RibbonGroup.qml
-AppBarButton navigation/AppBarButton.qml
 
 # ==================== Feedback 反馈 ====================
 AutoUpdater controls/feedback/AutoUpdater.qml

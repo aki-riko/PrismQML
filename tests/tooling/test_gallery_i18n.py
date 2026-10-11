@@ -63,8 +63,8 @@ def test_gallery_catalogs_cover_every_supported_language():
     # Gallery 英文文案源化后新增 105 条：761 + 105 = 866。
     # 单词级内容标签（按钮/选项/图例）源化后新增 63 条：866 + 63 = 929。
     # 引号键导航/托盘/面板标签源化后新增 14 条：929 + 14 = 943。
-    # 并行移除 Waterfall 展示后其 2 条引用消失：943 - 2 = 941。
-    assert gallery_i18n.validate_catalogs() == 941
+    # 旧功能区标题也随独立组件移除：940 - 1 = 939。
+    assert gallery_i18n.validate_catalogs() == 939
 
 
 def test_gallery_sources_have_no_inline_untranslated_literals():

@@ -26,10 +26,6 @@ import pytest
 # Newly registered public types that must stay reachable through `import PrismQML`.
 # 必须保持经 `import PrismQML` 可达的新增公开类型。
 REQUIRED_ROOT_TYPES = (
-    "RibbonBar",
-    "RibbonTab",
-    "RibbonGroup",
-    "AppBarButton",
     "FocusVisual",
     "AccessibilityHelper",
 )

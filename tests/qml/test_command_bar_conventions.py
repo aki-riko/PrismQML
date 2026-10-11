@@ -11,6 +11,7 @@ from PySide6.QtCore import (
     QEvent,
     QEventLoop,
     QMetaObject,
+    QPointF,
     QObject,
     QTimer,
     QUrl,
@@ -291,8 +292,14 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
         assert button.height() == button_wrapper.height()
 
         _, view_button_wrapper, view_button = _command_button(view_core, "View")
+        assert view_button.property("text") == "View"
         assert view_button.width() == view_button_wrapper.width()
         assert view_button.height() == view_button_wrapper.height()
+        view_icon = view_button.findChild(QQuickItem, "buttonContentIcon")
+        view_text = view_button.findChild(QQuickItem, "buttonContentText")
+        assert view_icon is not None and view_text is not None
+        assert view_icon.mapToItem(view_button, QPointF()).y() + view_icon.height() \
+            <= view_text.mapToItem(view_button, QPointF()).y()
         assert QMetaObject.invokeMethod(button, "click")
         _pump()
         assert actions == [(0, "Open")]
