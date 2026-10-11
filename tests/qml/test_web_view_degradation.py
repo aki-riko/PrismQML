@@ -319,6 +319,33 @@ def test_web_view_scheduler_gate_defers_load_html_until_activation(qapp, tmp_pat
         _dispose(engine, component, root)
 
 
+def test_web_view_activation_scheduler_limits_same_group_creation(qapp, tmp_path):
+    """Same-group surfaces start one at a time. 同组表面按顺序创建。"""
+    engine, component, root, warnings = _create_scene()
+    try:
+        first = root.findChild(QQuickItem, "webView")
+        second = root.findChild(QQuickItem, "probeView")
+        surface = tmp_path / "queued-web-surface.qml"
+        surface.write_bytes(ASYNC_RECORDING_SURFACE)
+        for view in (first, second):
+            view.setProperty("surfaceUrl", QUrl.fromLocalFile(str(surface)))
+
+        _invoke(first, "activate()")
+        _invoke(second, "activate()")
+        _pump(20)
+        assert sum(
+            bool(view.property("activationInProgress")) for view in (first, second)
+        ) <= 1
+
+        assert _wait_for(
+            lambda: first.property("surfaceCreated")
+            and second.property("surfaceCreated")
+        )
+        assert warnings == []
+    finally:
+        _dispose(engine, component, root)
+
+
 def test_web_view_sources_contain_no_injected_endpoints():
     """Web QML must not hardcode URLs or credentials. 网页 QML 不得硬编码 URL 或凭据。"""
     media_root = ROOT / "prismqml" / "PrismQML" / "controls" / "media"

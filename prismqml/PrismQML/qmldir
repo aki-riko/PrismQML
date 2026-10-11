@@ -274,6 +274,7 @@ MarkdownView controls/chat/MarkdownView.qml
 # ==================== Utils 工具 ====================
 singleton PopupUtils controls/utils/PopupUtils.qml
 singleton HeavyComponentScheduler controls/utils/HeavyComponentScheduler.qml
+singleton SurfaceActivationScheduler controls/utils/SurfaceActivationScheduler.qml
 HeavyComponentSlot controls/utils/HeavyComponentSlot.qml
 PopupWindowCore controls/utils/PopupWindowCore.qml
 ViewportMixin controls/utils/ViewportMixin.qml

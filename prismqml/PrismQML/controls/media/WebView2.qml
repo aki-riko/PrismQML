@@ -21,6 +21,7 @@ Item {
     property real zoomFactor: Enums.media.webview_default_zoom
     property bool autoActivate: false           // Activate during construction 构造期是否激活
     property bool schedulerActive: true         // Runtime activation gate 运行时激活门控
+    property string activationGroup: "webengine"
     property string unavailableMessage: ""      // Localized fallback text 本地化回退文案
 
     // ==================== Readonly State 只读状态 ====================
@@ -37,6 +38,8 @@ Item {
     readonly property url currentUrl: _currentUrl
     readonly property bool canGoBack: _canGoBack
     readonly property bool canGoForward: _canGoForward
+    readonly property bool activationQueued: _surfaceActivationQueued
+    readonly property bool activationInProgress: _surfaceActivationActive
 
     // ==================== Internal Props 内部属性 ====================
     property int _availability: Enums.media.availability_unknown
@@ -52,6 +55,8 @@ Item {
     property url _pendingHtmlBaseUrl: ""
     property bool _hasPendingHtml: false
     property bool _activationRequested: false
+    property bool _surfaceActivationQueued: false
+    property bool _surfaceActivationActive: false
 
     // ==================== Signals 信号 ====================
     signal activated()
@@ -68,6 +73,19 @@ Item {
         if (surfaceLoader.status !== Loader.Null) {
             return available
         }
+        if (_availability === Enums.media.availability_unavailable) {
+            return _surfaceActivate()
+        }
+        return SurfaceActivationScheduler.request(control, activationGroup)
+    }
+
+    function _surfaceCanActivate() {
+        return schedulerActive && _activationRequested
+                && surfaceLoader.status === Loader.Null
+    }
+
+    function _surfaceActivate() {
+        if (!_surfaceCanActivate()) return false
         surfaceLoader.asynchronous = true
         surfaceLoader.setSource(surfaceUrl, { "host": control })
         return true
@@ -210,11 +228,12 @@ Item {
     }
 
     onSchedulerActiveChanged: {
-        if (schedulerActive && _activationRequested &&
-                surfaceLoader.status === Loader.Null) {
+        if (!schedulerActive) SurfaceActivationScheduler.cancel(control)
+        else if (_activationRequested && surfaceLoader.status === Loader.Null) {
             activate()
         }
     }
+    Component.onDestruction: SurfaceActivationScheduler.release(control)
 
     // ==================== Content 内容 ====================
     // Incubated browser surface 按需孵化的浏览器表面
@@ -225,10 +244,16 @@ Item {
         // Ready is reported here: an incubated surface runs its own
         // Component.onCompleted before the Loader exposes it to the host.
         // 就绪在这里上报：被孵化的表面自身的 Component.onCompleted 先于宿主可见。
-        onLoaded: control._onSurfaceReady()
+        onLoaded: {
+            SurfaceActivationScheduler.release(control)
+            control._activationRequested = false
+            control._onSurfaceReady()
+        }
 
         onStatusChanged: {
             if (surfaceLoader.status === Loader.Error) {
+                SurfaceActivationScheduler.release(control)
+                control._activationRequested = false
                 control._availability = Enums.media.availability_unavailable
                 control._errorString = control._surfaceErrorText()
                 control.availabilityFailed(control._errorString)
