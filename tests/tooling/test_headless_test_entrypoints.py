@@ -41,7 +41,6 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     Path("tests/qml/bench_progress_ring_visibility.py"),
     Path("tests/qml/bench_skin_frames.py"),
     Path("tests/qml/bench_windows_bar_content.py"),
-    Path("tests/qml/bench_heavy_component_scheduler.py"),
     Path("tests/qml/bench_stacked_page_retention.py"),
     Path("tests/test_window_buttons.py"),
     # Visible Windows input probe; run manually with a real D3D11 desktop.
