@@ -418,6 +418,42 @@ def test_stacked_widget_keeps_switching_orchestration_modularized():
     assert "lazyController.preloadLazyHelperWhenReady" in source
     assert "visibilityController.doAnimation" in source
 
+def test_stacked_widget_keeps_lifecycle_wiring_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/StackedWidget.qml")
+    lifecycle = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/StackedWidgetLifecycle.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    lifecycle_source = lifecycle.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert lifecycle.exists()
+    assert ".pragma library" in lifecycle_source
+    assert 'import "_internal/StackedWidgetLifecycle.js" as StackedWidgetLifecycle' in source
+    for handler in (
+        "Component.onCompleted: StackedWidgetLifecycle.onCompleted(control)",
+        "onCountChanged: StackedWidgetLifecycle.onCountChanged(control)",
+        "onLazyLoadingChanged: StackedWidgetLifecycle.onLazyLoadingChanged(\n        control, eagerActivationHelper)",
+        "onPageLoaded: (index) => StackedWidgetLifecycle.onPageLoaded(\n        control, eagerActivationHelper, index)",
+        "onCurrentIndexChanged: StackedWidgetLifecycle.onCurrentIndexChanged(\n        control, lazyHelperLoader, eagerActivationHelper)",
+    ):
+        assert handler in source
+    for function_name in (
+        "onCompleted",
+        "onCountChanged",
+        "onLazyLoadingChanged",
+        "onPageLoaded",
+        "onCurrentIndexChanged",
+    ):
+        assert f"function {function_name}(" in lifecycle_source
+    for marker in (
+        '"stacked.current_index_changed"',
+        '"lazyLoadingChanged"',
+        '"pageLoaded index="',
+        '"Component.onCompleted count="',
+    ):
+        assert marker not in source
+
 def test_stacked_widget_keeps_direct_pages_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/navigation/StackedWidget.qml"

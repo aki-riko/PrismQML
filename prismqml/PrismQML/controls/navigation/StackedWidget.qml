@@ -5,6 +5,7 @@
 import QtQuick
 import "../.."
 import "_internal"
+import "_internal/StackedWidgetLifecycle.js" as StackedWidgetLifecycle
 
 // StackedWidget - Unified stacked page switch component 统一堆叠页面组件
 Item {
@@ -285,81 +286,16 @@ Item {
     }
     clip: true
 
-    Component.onCompleted: {
-        if (dynamicStack && _dynamicDepth < 0) _dynamicDepth = count
-        _indexClampReady = true
-        _clampPageIndexes()
-        profileTime("Component.onCompleted count=" + count +
-                    ", lazyLoading=" + lazyLoading +
-                    ", sourceMode=" + _useSourceMode)
-        _preloadLazyHelperWhenReady("completed")
-        if (lazyLoading && _useSourceMode && !_isPageLoaded(_displayIndex)) {
-            _pendingLazySwitchIndex = _displayIndex
-        }
-    }
+    Component.onCompleted: StackedWidgetLifecycle.onCompleted(control)
     Component.onDestruction: _destroying = true
 
-    onCountChanged: {
-        if (_indexClampReady) _clampPageIndexes()
-    }
-
-    onLazyLoadingChanged: {
-        if (lazyLoading) {
-            eagerActivationHelper.cancel()
-            _preloadLazyHelperWhenReady("lazyLoadingChanged")
-        } else {
-            eagerActivationHelper.start()
-        }
-    }
-    onPageLoaded: (index) => {
-        if (index === _displayIndex && _pendingLazySwitchIndex === index) {
-            _pendingLazySwitchIndex = -1
-        }
-        if (index === _displayIndex) _preloadLazyHelperWhenReady("pageLoaded index=" + index)
-        if (!lazyLoading && index === eagerActivationHelper.requestedIndex &&
-                index !== _displayIndex && index === currentIndex) {
-            eagerActivationHelper.requestedIndex = -1
-            previousIndex = _displayIndex
-            _doAnimation(_displayIndex, index)
-            _displayIndex = index
-        }
-    }
-    onCurrentIndexChanged: {
-        _traceLazyStage("stacked.current_index_changed", currentIndex)
-        profileTime("currentIndex changed to " + currentIndex)
-        if (currentIndex === _displayIndex) {
-            _cancelPendingLazySwitch("returned-to-visible")
-            return
-        }
-        if (currentIndex < 0 || currentIndex >= count) return
-
-        var helper = lazyHelperLoader.item
-        if (helper && helper.pendingTargetIndex >= 0
-                && helper.pendingTargetIndex !== currentIndex) {
-            _cancelPendingLazySwitch("retargeted")
-        }
-
-        if (_pythonLazyTransitionTargetIndex >= 0 &&
-                _pythonLazyTransitionTargetIndex !== currentIndex) {
-            _cancelPythonLazySwitch(
-                _pythonLazyTransitionTargetIndex, currentIndex)
-            return
-        }
-
-        if (lazyLoading && !_isPageLoaded(currentIndex)) {
-            if (!_pythonPageMode) {
-                _showLazyLoadingAndSwitch(currentIndex)
-            }
-        } else if (!lazyLoading && _useSourceMode && !_isPageLoaded(currentIndex)) {
-            eagerActivationHelper.request(currentIndex)
-        } else {
-            // Loaded pages always use the configured StackedWidget transition.
-            // 已加载页面始终使用 StackedWidget 配置的常规切页动画。
-            previousIndex = _displayIndex
-            _doAnimation(_displayIndex, currentIndex)
-            _displayIndex = currentIndex
-        }
-    }
+    onCountChanged: StackedWidgetLifecycle.onCountChanged(control)
+    onLazyLoadingChanged: StackedWidgetLifecycle.onLazyLoadingChanged(
+        control, eagerActivationHelper)
+    onPageLoaded: (index) => StackedWidgetLifecycle.onPageLoaded(
+        control, eagerActivationHelper, index)
+    onCurrentIndexChanged: StackedWidgetLifecycle.onCurrentIndexChanged(
+        control, lazyHelperLoader, eagerActivationHelper)
 
     // ==================== Content 内容 ====================
     // Diagnostics and index clamping own their implementation in _internal.
