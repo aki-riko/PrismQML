@@ -27,6 +27,7 @@ from ._page_layout import (
     _resolve_page_layout_item,
 )
 from ._page_prewarm import PagePrewarmMixin
+from ._page_tree_lookup import lookup_page_container
 
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
@@ -233,36 +234,7 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         """根据 objectName 查找子项，并缓存稳定窗口树中的页面容器。"""
         if self._window is None:
             return None
-
-        cache_window = getattr(self, "_page_container_cache_window", None)
-        if cache_window is not self._window:
-            self._page_container_cache_window = self._window
-            self._page_container_cache = {}
-        cache = getattr(self, "_page_container_cache", None)
-        if cache is None:
-            cache = {}
-            self._page_container_cache = cache
-        cached = cache.get(name)
-        if cached is not None:
-            try:
-                if cached.objectName() == name:
-                    return cached
-            except RuntimeError:
-                cache.pop(name, None)
-
-        def find_recursive(item: QQuickItem) -> Optional[QQuickItem]:
-            if item.objectName() == name:
-                return item
-            for child in item.childItems():
-                result = find_recursive(child)
-                if result:
-                    return result
-            return None
-
-        result = find_recursive(self._window.contentItem())
-        if result is not None:
-            cache[name] = result
-        return result
+        return lookup_page_container(self, name)
 
     def _on_nav_changed(self, index: int):
         """导航项切换回调（QML触发）"""

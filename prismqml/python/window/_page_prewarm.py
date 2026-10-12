@@ -118,28 +118,35 @@ class PagePrewarmMixin:
             ),
         }
 
+    def _drop_queued_prewarm(self, index: int) -> None:
+        """Drop one index from the queued prewarm list. 从预热队列移除指定索引。"""
+        self._page_prewarm_queue = [
+            queued_index
+            for queued_index in getattr(self, "_page_prewarm_queue", [])
+            if queued_index != index
+        ]
+
+    def _release_prewarm_ownership(self, index: int) -> None:
+        """Release in-flight prewarm ownership. 解除进行中的预热所有权。"""
+        self._page_prewarm_in_flight = None
+        self._page_prewarm_started_at = None
+        self._page_prewarm_status = "cancelled"
+        self._page_prewarm_last_index = index
+        self._page_prewarm_last_result = "cancelled"
+
     def cancelPagePrewarm(self, index: int) -> bool:
         """Cancel a queued prewarm request without touching foreground pages.
 
         取消排队的页面预热请求，不影响前台页面；已经开始的异步页面仅解除
         预热所有权，保留其加载流程，以便用户随后导航时可以直接复用。
         """
-        queue = getattr(self, "_page_prewarm_queue", [])
-        queued = index in queue
+        queued = index in getattr(self, "_page_prewarm_queue", [])
         if queued:
-            self._page_prewarm_queue = [
-                queued_index
-                for queued_index in queue
-                if queued_index != index
-            ]
+            self._drop_queued_prewarm(index)
 
         in_flight = getattr(self, "_page_prewarm_in_flight", None) == index
         if in_flight:
-            self._page_prewarm_in_flight = None
-            self._page_prewarm_started_at = None
-            self._page_prewarm_status = "cancelled"
-            self._page_prewarm_last_index = index
-            self._page_prewarm_last_result = "cancelled"
+            self._release_prewarm_ownership(index)
 
         if not queued and not in_flight:
             return False
@@ -239,6 +246,20 @@ class PagePrewarmMixin:
             return _PAGE_PREWARM_OVERRUN_BACKOFF_MS
         return _PAGE_PREWARM_DELAY_MS
 
+    def _prewarm_elapsed_ms(self) -> float:
+        """Milliseconds elapsed since the prewarm started. 预热已耗时（毫秒）。"""
+        return (perf_counter() - self._page_prewarm_started_at) * 1000
+
+    def _abort_page_prewarm(self, index: int, exc: Exception) -> None:
+        """Record a failed prewarm creation and back off. 记录预热创建失败并退避。"""
+        elapsed_ms = self._prewarm_elapsed_ms()
+        self._record_page_prewarm_result(index, elapsed_ms, "failed")
+        self._page_prewarm_in_flight = None
+        self._page_prewarm_started_at = None
+        self._page_prewarm_status = "failed"
+        exception(f"页面预热失败: {type(exc).__name__}: {exc}")
+        self._schedule_page_prewarm(_PAGE_PREWARM_OVERRUN_BACKOFF_MS)
+
     def _run_next_page_prewarm(self, generation: Optional[int] = None) -> None:
         if generation is not None and generation != getattr(
             self, "_page_prewarm_generation", 0
@@ -259,19 +280,9 @@ class PagePrewarmMixin:
         try:
             self._create_page(index)
         except Exception as exc:
-            elapsed_ms = (
-                perf_counter() - self._page_prewarm_started_at
-            ) * 1000
-            self._record_page_prewarm_result(index, elapsed_ms, "failed")
-            self._page_prewarm_in_flight = None
-            self._page_prewarm_started_at = None
-            self._page_prewarm_status = "failed"
-            exception(f"页面预热失败: {type(exc).__name__}: {exc}")
-            self._schedule_page_prewarm(_PAGE_PREWARM_OVERRUN_BACKOFF_MS)
+            self._abort_page_prewarm(index, exc)
             return
-        elapsed_ms = (
-            perf_counter() - self._page_prewarm_started_at
-        ) * 1000
+        elapsed_ms = self._prewarm_elapsed_ms()
         page = self._pages.get(index)
         if page is None or not getattr(page, "_prismqml_async_page", False):
             self._finish_page_prewarm(index, elapsed_ms=elapsed_ms)
@@ -321,12 +332,7 @@ class PagePrewarmMixin:
         return index in getattr(self, "_page_loads_in_flight", set())
 
     def _discard_page_prewarm(self, index: int) -> None:
-        queue = getattr(self, "_page_prewarm_queue", [])
-        self._page_prewarm_queue = [
-            queued_index
-            for queued_index in queue
-            if queued_index != index
-        ]
+        self._drop_queued_prewarm(index)
         if not self._page_prewarm_queue:
             self._invalidate_page_prewarm_timer()
 
