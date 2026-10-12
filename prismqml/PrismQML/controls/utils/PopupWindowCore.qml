@@ -213,63 +213,9 @@ Item {
         _openAtPosition(x, y, false)
     }
     function _openAtPosition(x, y, preservePlacement) {
-        if (preservePlacement !== true) _submenuPlacement = false
-        // Create the native content host before aboutToShow so content-sized
-        // popups can measure their items while the host is still hidden.
-        // 在 aboutToShow 前创建原生内容宿主，确保隐藏状态下仍能正确测量内容尺寸。
-        var nativeWindow = _usesControlsPopup ? null : _ensureNativeWindow()
-        if (_usesControlsPopup && !_inlineParent) return
-        if (!_usesControlsPopup && !nativeWindow) return
-        // Keep repeated requests idempotent while opening or open. 打开中或已打开时保持幂等。
-        if (!PopupLifecycle.beginOpen(control)) return
-        aboutToShow()
-        if (!_openRequested || isClosing) return
-
-        _shadowVisible = false
-        var pickerPos = _isPickerMode
-            ? _calcPickerPosition(targetControl, _pickerRowHeight) : null
-        var posX = pickerPos
-            ? pickerPos.x : ((x !== undefined && !isNaN(x)) ? x : 0)
-        var posY = pickerPos
-            ? pickerPos.y : ((y !== undefined && !isNaN(y)) ? y : 0)
-
-        if (_usesControlsPopup) {
-            _prewarmingQtPopup = false
-            _prewarmFocusItem = null
-            var localPos = _calcControlsPopupPosition(posX, posY)
-            _clipHeight = 0
-            inlinePopup.x = localPos.x
-            inlinePopup.y = localPos.y
-            _showCurrentSurface()
-            _prewarmed = true
-            _prewarmScheduled = false
-            prewarmTimer.stop()
-            PopupLifecycle.scheduleCompletion(control)
-            return
-        }
-
-        nativeWindow.width = _outerWidth
-        nativeWindow.height = _outerHeight
-
-        var bounds = _screenBoundsAt(posX, posY, targetControl)
-        if (bounds) {
-            posX = Math.max(bounds.left, Math.min(posX, bounds.right - nativeWindow.width))
-            posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - nativeWindow.height))
-        }
-
-        _clipHeight = 0
-        nativeWindow.x = posX
-        nativeWindow.y = posY
-
-        // Show window first, then trigger animation 先显示窗口，再触发动画
-        _showCurrentSurface()
-        _prewarmed = true
-        _prewarmScheduled = false
-        _prewarmingQtPopup = false
-        _prewarmFocusItem = null
-        prewarmTimer.stop()
-        // Delay to trigger animation after window is visible 延迟触发动画
-        PopupLifecycle.scheduleCompletion(control)
+        PopupLifecycle.openAtPosition(
+            control, x, y, preservePlacement, inlinePopup, prewarmTimer
+        )
     }
     function openAtControl(targetCtrl) {
         if (!targetCtrl) return

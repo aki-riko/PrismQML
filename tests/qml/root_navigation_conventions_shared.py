@@ -39,6 +39,7 @@ ROOT_NAV_SOURCE_PATHS = tuple(
         "_internal/NavigationSmoothScroll.qml",
         "_internal/NavigationPanelBackground.qml",
         "_internal/NavigationPanelBorder.qml",
+        "_internal/NavigationPanelIndicatorLayer.qml",
         "NavigationBar.qml",
         "NavigationBarItem.qml",
         "NavigationPanelCore.qml",

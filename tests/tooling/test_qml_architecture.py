@@ -346,6 +346,33 @@ def test_navigation_window_core_keeps_mica_timers_modularized():
     assert "interval: Enums.window.micaLateReapplyDelayMs" not in source
     assert "window._micaBackdropReady = true" not in source
 
+def test_navigation_window_core_keeps_mica_policy_in_internal_module():
+    entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
+    mica = _source("prismqml/PrismQML/_internal/NavigationWindowMica.js")
+    source = entry.read_text(encoding="utf-8")
+    mica_source = mica.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 480
+    assert mica.exists()
+    assert len(mica_source.splitlines()) < 100
+    assert (
+        'import "_internal/NavigationWindowMica.js" as NavigationWindowMica'
+        in source
+    )
+    assert "function _applyMicaEffect(reason) { return NavigationWindowMica.apply(" in source
+    assert "function _scheduleMicaReapply(reason) { NavigationWindowMica.scheduleReapply(" in source
+    assert "_micaBackdropCommitTimer) }" in source
+    assert "_micaLateReapplyTimer) }" in source
+    for token in (
+        "_closeInProgress && reason !== \"closeCancelled\"",
+        "manager.setMicaEffect(window, window._micaActive, isDark)",
+        "window._syncNativeCorner(\"mica:\" + reason)",
+        "backdropCommitTimer.restart()",
+        "reapplyTimer.restart()",
+        "lateReapplyTimer.restart()",
+    ):
+        assert token in mica_source
+
 def test_navigation_panel_keeps_background_layer_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
     background = _source(
@@ -377,6 +404,34 @@ def test_navigation_panel_keeps_background_layer_modularized():
     assert "id: rightBorderCanvas" not in source
     assert "TicketPaper {" not in source
 
+def test_navigation_panel_keeps_indicator_layer_modularized():
+    entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
+    helper = _source(
+        "prismqml/PrismQML/navigation/_internal/NavigationPanelIndicatorLayer.qml"
+    )
+    qmldir = _source("prismqml/PrismQML/navigation/qmldir")
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 470
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert 'import "_internal"' in source
+    assert "NavigationPanelIndicatorLayer {" in source
+    assert "host: control" in source
+    assert "SlidingIndicator {" not in source
+    assert "NavigationPanelIndicatorLayer" not in qmldir.read_text(encoding="utf-8")
+    assert "required property var host" in helper_source
+    assert "property alias" not in helper_source
+    assert "readonly property bool running: indicator.running" in helper_source
+    assert "function setGeometry(rect)" in helper_source
+    assert "function startAnimation(startRect, endRect)" in helper_source
+    assert "function stopAnimation()" in helper_source
+    assert "clip: true" in helper_source
+    assert "host.indicatorClipBottom" in helper_source
+    assert "Enums.zIndex.controlsAbove + 1" in helper_source
+    assert "indicator: indicatorLayer" in source
+
 def test_navigation_panel_keeps_indicator_timers_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
     tracker = _source(
@@ -406,8 +461,8 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "id: indicatorTracker" in source
     assert "id: _scrollStopTimer" in source
     assert "id: _initTimer" in source
-    assert source.count("host: control") == 2
-    assert "indicator: navIndicator" in source
+    assert source.count("host: control") == 3
+    assert "indicator: indicatorLayer" in source
     assert "tracker: indicatorTracker" in source
     assert "required property var host" in tracker_source
     assert "required property var indicator" in tracker_source

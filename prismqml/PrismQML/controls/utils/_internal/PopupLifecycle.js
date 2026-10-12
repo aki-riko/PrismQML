@@ -30,6 +30,62 @@ function scheduleCompletion(control) {
     _timer(control).start()
 }
 
+function openAtPosition(control, x, y, preservePlacement, inlinePopup, prewarmTimer) {
+    if (preservePlacement !== true) control._submenuPlacement = false
+    // Create the native content host before aboutToShow so content-sized popups
+    // can measure their items while the host is still hidden.
+    // 在 aboutToShow 前创建原生内容宿主，确保隐藏状态下仍能正确测量内容尺寸。
+    var nativeWindow = control._usesControlsPopup ? null : control._ensureNativeWindow()
+    if (control._usesControlsPopup && !control._inlineParent) return
+    if (!control._usesControlsPopup && !nativeWindow) return
+    if (!beginOpen(control)) return
+    control.aboutToShow()
+    if (!control._openRequested || control.isClosing) return
+
+    control._shadowVisible = false
+    var pickerPos = control._isPickerMode
+        ? control._calcPickerPosition(control.targetControl, control._pickerRowHeight)
+        : null
+    var posX = pickerPos
+        ? pickerPos.x : ((x !== undefined && !isNaN(x)) ? x : 0)
+    var posY = pickerPos
+        ? pickerPos.y : ((y !== undefined && !isNaN(y)) ? y : 0)
+
+    if (control._usesControlsPopup) {
+        control._prewarmingQtPopup = false
+        control._prewarmFocusItem = null
+        var localPos = control._calcControlsPopupPosition(posX, posY)
+        control._clipHeight = 0
+        inlinePopup.x = localPos.x
+        inlinePopup.y = localPos.y
+        control._showCurrentSurface()
+        control._prewarmed = true
+        control._prewarmScheduled = false
+        prewarmTimer.stop()
+        scheduleCompletion(control)
+        return
+    }
+
+    nativeWindow.width = control._outerWidth
+    nativeWindow.height = control._outerHeight
+    var bounds = control._screenBoundsAt(posX, posY, control.targetControl)
+    if (bounds) {
+        posX = Math.max(bounds.left, Math.min(posX, bounds.right - nativeWindow.width))
+        posY = Math.max(bounds.top, Math.min(posY, bounds.bottom - nativeWindow.height))
+    }
+
+    control._clipHeight = 0
+    nativeWindow.x = posX
+    nativeWindow.y = posY
+    control._showCurrentSurface()
+    control._prewarmed = true
+    control._prewarmScheduled = false
+    control._prewarmingQtPopup = false
+    control._prewarmFocusItem = null
+    prewarmTimer.stop()
+    scheduleCompletion(control)
+}
+
 function canClose(control, surfaceVisible) {
     return !control.isClosing
         && (control._openRequested || control.isOpen

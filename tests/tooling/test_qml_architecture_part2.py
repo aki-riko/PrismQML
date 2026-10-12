@@ -282,6 +282,29 @@ def test_popup_window_core_keeps_lifecycle_timers_modularized():
     assert "PopupLifecycle.onTimer(host)" in lifecycle_source
     assert "\n    Timer {" not in source
 
+def test_popup_window_core_keeps_open_position_lifecycle_modularized():
+    entry = _source("prismqml/PrismQML/controls/utils/PopupWindowCore.qml")
+    lifecycle = _source(
+        "prismqml/PrismQML/controls/utils/_internal/PopupLifecycle.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    lifecycle_source = lifecycle.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 460
+    assert len(lifecycle_source.splitlines()) < 250
+    assert "function _openAtPosition(x, y, preservePlacement) {" in source
+    assert "PopupLifecycle.openAtPosition(" in source
+    assert "inlinePopup, prewarmTimer" in source
+    assert "function openAtPosition(control, x, y, preservePlacement" in lifecycle_source
+    for token in (
+        "control.aboutToShow()",
+        "control._showCurrentSurface()",
+        "control._calcControlsPopupPosition(posX, posY)",
+        "control._screenBoundsAt(posX, posY, control.targetControl)",
+        "scheduleCompletion(control)",
+    ):
+        assert token in lifecycle_source
+
 def test_popup_position_tracker_keeps_update_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/utils/_internal/PopupPositionTracker.qml"

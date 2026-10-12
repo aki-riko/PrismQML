@@ -8,6 +8,7 @@ import "_internal"
 import "_internal/NavigationWindowLoading.js" as NavigationWindowLoading
 import "_internal/NavigationWindowRouting.js" as NavigationWindowRouting
 import "_internal/NavigationSplashRouting.js" as NavigationSplashRouting
+import "_internal/NavigationWindowMica.js" as NavigationWindowMica
 
 // NavigationWindowCore - Base class for navigation windows 导航窗口基类
 // Provides common navigation logic for all navigation windows 为所有导航窗口提供公共导航逻辑
@@ -118,35 +119,8 @@ WindowsCore {
     function _activateDeferredSplash() { NavigationSplashRouting.activate(window) }
     function _enableDeferredSplash() { NavigationSplashRouting.enable(window) }
 
-    function _applyMicaEffect(reason) {
-        // _closeInProgress arm: a reapply landing mid-collapse repaints Mica outside the circle. 折叠中途重应用会让 Mica 在圆外重绘, 故预置 _closeInProgress
-        if (!MicaManager || !_micaAvailable || !_nativeHookReady || (_closeInProgress && reason !== "closeCancelled")) {
-            _micaNativeApplySucceeded = false
-            _micaBackdropReady = false
-            return false
-        }
-        profileTime("NavigationWindowCore apply Mica " + reason + " start")
-        var success = MicaManager.setMicaEffect(window, _micaActive, Enums.isDark)
-        // Mica writes DWMWCP_ROUND even when disabling, so restore the corner matching the QML
-        // frame. Mica 即使关闭背板也会写入 DWMWCP_ROUND, 故恢复与 QML 窗框一致的原生边角。
-        _syncNativeCorner("mica:" + reason)
-        _micaNativeApplySucceeded = success
-        _micaBackdropReady = false
-        _micaBackdropCommitTimer.stop()
-        if (_micaActive && success) _micaBackdropCommitTimer.restart()
-        profileTime("NavigationWindowCore apply Mica " + reason + " done success=" + success)
-        return success
-    }
-
-    function _scheduleMicaReapply(reason) {
-        if (!_micaActive || !_nativeHookReady || _closeInProgress) return
-        // Hide transparent fallback before DWM re-confirms the backdrop 在 DWM 重新确认背板前关掉透明兜底, 否则只剩透明外壳。
-        _micaBackdropReady = false
-        _micaBackdropCommitTimer.stop()
-        _micaReapplyReason = reason
-        _micaReapplyTimer.restart()
-        _micaLateReapplyTimer.restart()
-    }
+    function _applyMicaEffect(reason) { return NavigationWindowMica.apply(window, reason, MicaManager, Enums.isDark, _micaBackdropCommitTimer) }
+    function _scheduleMicaReapply(reason) { NavigationWindowMica.scheduleReapply(window, reason, _micaBackdropCommitTimer, _micaReapplyTimer, _micaLateReapplyTimer) }
 
     function _moveDefaultPage(child, container, pageIndex, sourceIndex, ownerName) {
         if (!child || !(child instanceof Item)) {

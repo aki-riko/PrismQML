@@ -75,6 +75,29 @@ Item {{
 }}
 """
 
+CONSTANTS_PALETTE_SCENE = f"""
+import QtQuick
+import "{PRISM_ENUMS_URL}"
+
+Item {{
+    id: root
+    property bool dark: false
+    Constants {{ id: values; isDark: root.dark }}
+
+    property color neoBackground: values.neoColors.background
+    property color ticketBackground: values.ticketColors.background
+    property color neumorphismBackground: values.neumorphismColors.background
+    property color semanticSuccess: values.semanticColors.successLight
+    property color demoBlue: values.demoPalette.blue
+    property color automaticColor: values.colorPalette.automaticColor
+    property color themeColorFirst: values.colorPalette.themeColors[0]
+    property color themeColorLast: values.colorPalette.themeColors[59]
+    property color standardColorLast: values.colorPalette.standardColors[9]
+    property color hueColor1: values.colorPickerGradient.hueColor1
+    property real huePosition6: values.colorPickerGradient.huePos6
+}}
+"""
+
 
 def _pump(milliseconds: int = 10) -> None:
     loop = QEventLoop()
@@ -86,6 +109,15 @@ def _as_mapping(value) -> dict:
     if hasattr(value, "toVariant"):
         value = value.toVariant()
     return {str(key): str(item) for key, item in dict(value).items()}
+
+
+def _assert_constant_palette_values(instance, expected: dict) -> None:
+    for property_name, expected_value in expected.items():
+        value = instance.property(property_name)
+        if property_name == "huePosition6":
+            assert value == pytest.approx(expected_value)
+        else:
+            assert value.name() == expected_value
 
 
 def _create(engine: QQmlApplicationEngine, source: str, name: str):
@@ -260,5 +292,44 @@ def test_constants_fallback_scale_matches_python_derivation(qapp):
             values = values.toVariant()
         assert list(values) == list(DEFAULT_SCALE.values())
         assert list(values) == list(accent_scale_for(DEFAULT_ACCENT).values())
+    finally:
+        _dispose(engine, component, instance)
+
+
+def test_constants_private_palettes_preserve_values_and_theme_bindings(qapp):
+    del qapp
+    engine = QQmlApplicationEngine()
+    component = instance = None
+    light_values = {
+        "neoBackground": "#fafaf0",
+        "ticketBackground": "#e9e1d2",
+        "neumorphismBackground": "#e4ebf3",
+        "semanticSuccess": "#0f7b0f",
+        "demoBlue": "#3b82f6",
+        "automaticColor": "#000000",
+        "themeColorFirst": "#ffffff",
+        "themeColorLast": "#375623",
+        "standardColorLast": "#7030a0",
+        "hueColor1": "#ffff00",
+        "huePosition6": 1.0,
+    }
+    try:
+        component, instance = _create(
+            engine, CONSTANTS_PALETTE_SCENE, "w5-constants-private-palettes"
+        )
+        _assert_constant_palette_values(instance, light_values)
+
+        assert instance.setProperty("dark", True)
+        _pump()
+        _assert_constant_palette_values(
+            instance,
+            {
+                "neoBackground": "#1a1a1a",
+                "ticketBackground": "#1d1a17",
+                "neumorphismBackground": "#252b35",
+                "semanticSuccess": "#0f7b0f",
+                "themeColorLast": "#375623",
+            },
+        )
     finally:
         _dispose(engine, component, instance)

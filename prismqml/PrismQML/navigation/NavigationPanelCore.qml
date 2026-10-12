@@ -120,11 +120,11 @@ Item {
         }
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            navIndicator.stopAnimation()
+            indicatorLayer.stopAnimation()
             return
         }
         var rect = _computeIndicatorRect(item)
-        navIndicator.setGeometry(rect)
+        indicatorLayer.setGeometry(rect)
     }
 
     // ==================== Public Methods 公开方法 ====================
@@ -267,7 +267,7 @@ Item {
         var item = _getBottomItemByKey(key)
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            navIndicator.stopAnimation()
+            indicatorLayer.stopAnimation()
             return
         }
 
@@ -283,13 +283,13 @@ Item {
 
         if (prevItem && control._isNavigationItemVisible(prevItem) && _prevIndex !== targetIndex) {
             var startRect = _computeIndicatorRect(prevItem)
-            if (navIndicator.startAnimation) {
-                navIndicator.startAnimation(startRect, endRect)
+            if (indicatorLayer.startAnimation) {
+                indicatorLayer.startAnimation(startRect, endRect)
             } else {
-                navIndicator.setGeometry(endRect)
+                indicatorLayer.setGeometry(endRect)
             }
         } else {
-            navIndicator.setGeometry(endRect)
+            indicatorLayer.setGeometry(endRect)
         }
 
         // Update state 更新状态
@@ -316,27 +316,27 @@ Item {
         var newItem = _getItemAt(currentIndex)
         control._indicatorVisible = control._isNavigationItemVisible(newItem)
         if (!control._indicatorVisible) {
-            navIndicator.stopAnimation()
+            indicatorLayer.stopAnimation()
             return
         }
 
         var endRect = _computeIndicatorRect(newItem)
 
         if (_prevIndex < 0 || _prevIndex === currentIndex) {
-            navIndicator.setGeometry(endRect)
+            indicatorLayer.setGeometry(endRect)
             _prevIndex = currentIndex
             return
         }
         var prevItem = _getItemAt(_prevIndex)
         if (prevItem && control._isNavigationItemVisible(prevItem)) {
             var startRect = _computeIndicatorRect(prevItem)
-            if (navIndicator.startAnimation) {
-                navIndicator.startAnimation(startRect, endRect)
+            if (indicatorLayer.startAnimation) {
+                indicatorLayer.startAnimation(startRect, endRect)
             } else {
-                navIndicator.setGeometry(endRect)
+                indicatorLayer.setGeometry(endRect)
             }
         } else {
-            navIndicator.setGeometry(endRect)
+            indicatorLayer.setGeometry(endRect)
         }
 
         _prevIndex = currentIndex
@@ -372,16 +372,16 @@ Item {
         }
         if (!item) {
             control._indicatorVisible = false
-            navIndicator.stopAnimation()
+            indicatorLayer.stopAnimation()
             return false
         }
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            navIndicator.stopAnimation()
+            indicatorLayer.stopAnimation()
             return true
         }
         var rect = _computeIndicatorRect(item)
-        navIndicator.setGeometry(rect)
+        indicatorLayer.setGeometry(rect)
         return true
     }
 
@@ -413,7 +413,7 @@ Item {
     onScrollOffsetChanged: {
         indicatorTracker._scrolling = true
         _scrollStopTimer.restart()
-        if (!navIndicator.running) {
+        if (!indicatorLayer.running) {
             _updateIndicatorPositionRealtime()
         }
     }
@@ -441,49 +441,16 @@ Item {
         anchors.fill: parent
         panel: control
     }
-    // Indicator clip container: edges hug control; height toggles full vs clipped by tracking mode 指示器裁剪容器: top/left/right 贴 control(容器内坐标系原点 == control 原点,
-    // 故 navIndicator 的 x/y 仍按 control 坐标系算, _computeIndicatorRect 无需改)。
-    // height 动态: 跟踪底部项或动画进行中 → 全高不裁(指示器要能显示在底部区/动画
-    // 全程可见); 跟踪顶部项滚动 → 裁到 indicatorClipBottom(可滚动区底边), 溢出
-    // 底部固定项区的部分被 clip 裁掉。替代原 bottomCover 遮盖(Mica 下透明遮不住)。
-    Item {
-        id: indicatorClip
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: (control._currentKey !== "" || navIndicator.running)
-                ? control.height
-                : control.indicatorClipBottom
-        clip: true
-        // Keep high Z while animating, otherwise backward anim gets covered by bottom items ⚠️ 动画进行中保持高 Z(controlsAbove+1),否则 backward 动画(底→顶)启动时
-        // _currentKey 已清空, Z 立即降到 controls-1 被底部项遮住, 看到"下半段动画消失"。
-        z: (control._currentKey !== "" || navIndicator.running)
-            ? (Enums.zIndex.controlsAbove + 1)
-            : (Enums.zIndex.controls - 1)
-        SlidingIndicator {
-            id: navIndicator
-            x: control.indicatorX
-            orientation: Qt.Vertical
-            mode: "stretch"
-            indicatorWidth: control.indicatorWidth
-            indicatorHeight: control.indicatorHeight
-            radius: Enums.radius.micro
-            animationEnabled: control.indicatorAnimationEnabled
-            // Outlined skins use the selected paper block instead of a second accent strip.
-            // 描边皮肤使用选中纸面块，不再叠加第二条强调指示线。
-            visible: !Enums.hasOutlinedSurfaces && control._indicatorVisible
-            // Track the selected item's scroll fade; the indicator sits outside
-            // the viewport, so without this it stays crisp against faded items.
-            // 跟随选中项的滚动渐隐；指示器在视口之外，否则会在渐隐项旁保持清晰。
-            opacity: control.indicatorOpacity
-        }
+    NavigationPanelIndicatorLayer {
+        id: indicatorLayer
+        host: control
     }
     
     // Real-time indicator position tracking timer 实时指示器位置跟踪定时器
     NavigationIndicatorTrackerTimer {
         id: indicatorTracker
         host: control
-        indicator: navIndicator
+        indicator: indicatorLayer
     }
     
     // Stop tracking after scroll ends 滚动结束后停止跟踪

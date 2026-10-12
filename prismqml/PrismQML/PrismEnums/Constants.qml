@@ -20,125 +20,32 @@ QtObject {
     readonly property QtObject themeColors: ConstantsInternal.ConstantsThemeColors {}
 
     // ==================== NeoColors 新粗野皮肤原始调色板 ====================
-    // neobrutalism 皮肤配色【单一真相源】, 参照 kiro_rs admin-ui(light) + neobrutalism.dev(dark 范式)。
-    // light: 米白底/橙主色/黑边黑影; dark: 深炭底/提亮主色/黑边黑影(靠 surface 提亮区分)。
-    // 控件与上层 token 读 neo.xxx 不变, 值按 isDark 自动切 → 加深色支持零控件改动。
-    readonly property QtObject neoColors: QtObject {
-        // Background layer: light cream / dark charcoal 背景层: light 米白 / dark 深炭(surface 比 background 亮以靠层次区分)
-        readonly property color background: root.isDark ? "#1A1A1A" : "#FAFAF0"
-        readonly property color surface: root.isDark ? "#262626" : "#FFFFFF"
-        readonly property color muted: root.isDark ? "#2E2E2E" : "#F5F5F5"
-        // Text: light near-black / dark near-white 文字: light 近黑 / dark 近白
-        readonly property color foreground: root.isDark ? "#F5F5F0" : "#171717"
-        readonly property color secondaryForeground: root.isDark ? "#A0A0A0" : "#666666"
-        // Stroke + hard shadow: light pure black (signature) 描边+硬阴影: light 纯黑(招牌); dark 反转成浅色(黑边在深底隐形, neo dark 用浅边+浅影立体区分)
-        readonly property color border: root.isDark ? "#F5F5F0" : "#000000"
-        readonly property color shadow: root.isDark ? "#F5F5F0" : "#000000"
-        // Accent/semantic colors: brightened one step on dark for contrast 主色/语义色: dark 下提亮一档保证深底对比
-        readonly property color primary: root.isDark ? "#FB923C" : "#F97316"      // Orange 橙
-        readonly property color primaryForeground: root.isDark ? "#1A1A1A" : "#FFFFFF"  // Text on primary swatch (bright orange, dark text) 主色块上文字(亮橙配深字)
-        readonly property color success: root.isDark ? "#22C55E" : "#16A34A"      // Green 绿
-        readonly property color danger: root.isDark ? "#F87171" : "#EF4444"       // Red 红
-        readonly property color warning: root.isDark ? "#FBBF24" : "#F59E0B"      // Amber 琥珀
-        readonly property color info: root.isDark ? "#60A5FA" : "#3B82F6"         // Blue 蓝
+    readonly property QtObject neoColors: ConstantsInternal.ConstantsNeoColors {
+        isDark: root.isDark
     }
 
     // ==================== TicketColors 复古票据皮肤原始调色板 ====================
     // Warm paper, aged ink and stamp colors are the single source of truth for vintage_ticket.
     // 暖纸、旧油墨与印章色是 vintage_ticket 皮肤的唯一配色真相源。
-    readonly property QtObject ticketColors: QtObject {
-        readonly property color background: root.isDark ? "#1D1A17" : "#E9E1D2"
-        readonly property color surface: root.isDark ? "#28231E" : "#F8F3E8"
-        readonly property color muted: root.isDark ? "#342E27" : "#EEE6D8"
-        readonly property color foreground: root.isDark ? "#EDE3D2" : "#2B211A"
-        readonly property color secondaryForeground: root.isDark ? "#B9AB98" : "#74685B"
-        readonly property color disabledForeground: root.isDark ? "#766B60" : "#A79B8B"
-        readonly property color border: root.isDark ? "#B4A48E" : "#5A4637"
-        readonly property color divider: root.isDark ? "#776A5B" : "#B8AA96"
-        readonly property color primary: root.isDark ? "#C6A66B" : "#5A3D2B"
-        readonly property color primaryForeground: root.isDark ? "#1D1A17" : "#FFF9EE"
-        readonly property color success: root.isDark ? "#68A77C" : "#267451"
-        readonly property color danger: root.isDark ? "#D37B72" : "#A33E36"
-        readonly property color warning: root.isDark ? "#C9A45D" : "#91651F"
-        readonly property color info: root.isDark ? "#88A9AE" : "#416C73"
+    readonly property QtObject ticketColors: ConstantsInternal.ConstantsTicketColors {
+        isDark: root.isDark
     }
 
     // ==================== NeumorphismColors 新拟态原始调色板 ====================
     // Surface and canvas intentionally share a base color; depth comes from paired soft shadows.
     // 表面与画布有意保持同色，立体感由双向软阴影产生。
-    readonly property QtObject neumorphismColors: QtObject {
-        readonly property color background: root.isDark ? "#252B35" : "#E4EBF3"
-        readonly property color surface: root.isDark ? "#252B35" : "#E4EBF3"
-        readonly property color muted: root.isDark ? "#303947" : "#D7E0EB"
-        readonly property color hover: root.isDark ? "#2D3541" : "#DCE5EF"
-        readonly property color pressed: root.isDark ? "#202731" : "#CDD8E5"
-        readonly property color disabledSurface: root.isDark ? "#2A313C" : "#DDE5EE"
-        readonly property color divider: root.isDark ? "#465365" : "#C2CCD9"
-        readonly property color indicator: root.isDark ? "#7F8DA1" : "#7A899D"
-        readonly property color indicatorHover: root.isDark ? "#AAB7C8" : "#596A80"
-        readonly property color foreground: root.isDark ? "#E8EEF7" : "#27364A"
-        readonly property color secondaryForeground: root.isDark ? "#AAB7C8" : "#66758A"
-        readonly property color disabledForeground: root.isDark ? "#697687" : "#9BA8B8"
-        readonly property color shadowDark: root.isDark ? "#171C24" : "#B7C2D0"
-        readonly property color shadowLight: root.isDark ? "#3E4A5B" : "#FFFFFF"
-        readonly property color primary: root.isDark ? "#8CB4FF" : "#3867D6"
-        readonly property color primaryForeground: "#FFFFFF"
-        readonly property color selected: root.isDark ? "#344159" : "#CCD9EF"
-        readonly property color selectedHover: root.isDark ? "#3A4A64" : "#C2D2EC"
-        readonly property color success: root.isDark ? "#72D6A0" : "#238B64"
-        readonly property color danger: root.isDark ? "#FF9A9A" : "#C94B58"
-        readonly property color warning: root.isDark ? "#F2C879" : "#A86F1E"
-        readonly property color info: root.isDark ? "#82C8E8" : "#397A9A"
+    readonly property QtObject neumorphismColors: ConstantsInternal.ConstantsNeumorphismColors {
+        isDark: root.isDark
     }
 
     // ==================== SemanticColors 语义色 ====================
-    // success/warning/error 及其背景色取自微软 WinUI 官方 SystemFillColor 资源
-    // (Common_themeresources_any.xaml: SystemFillColorSuccess/Caution/Critical[Background])，
-    // 系 Fluent Design System 公开标准语义色，非第三方库衍生。
-    // info/attention/processing/caution 为本项目自定义扩展(WinUI 无对应固定值)。
-    // 来源: https://github.com/microsoft/microsoft-ui-xaml CommonStyles/Common_themeresources_any.xaml
-    readonly property QtObject semanticColors: QtObject {
-        // Foreground semantic colors 语义前景色
-        readonly property color infoLight: "#676767"  // custom: neutral gray info color 自定义：中性灰信息色
-        readonly property color successLight: "#0f7b0f"  // WinUI SystemFillColorSuccess (Light)
-        readonly property color warningLight: "#9d5d00"  // WinUI SystemFillColorCaution (Light)
-        readonly property color errorLight: "#c42b1c"  // WinUI SystemFillColorCritical (Light)
-        readonly property color processingLight: "#7b2cbf"  // custom: vivid purple marks processing 自定义：鲜紫色代表处理中
-        readonly property color attentionLight: "#0a93a8"  // custom: cyan marks attention 自定义：青色代表注意
-        readonly property color cautionLight: "#b88600"  // custom: gold marks caution 自定义：金黄色代表谨慎状态
-
-        readonly property color infoDark: "#a3a3a3"  // custom: neutral gray info color 自定义：中性灰信息色
-        readonly property color successDark: "#6ccb5f"  // WinUI SystemFillColorSuccess (Dark)
-        readonly property color warningDark: "#c09000"  // custom: darker than WinUI #FCE100 for dark readability 自定义：较 WinUI #FCE100 调深以提升暗色可读性
-        readonly property color errorDark: "#ff99a4"  // WinUI SystemFillColorCritical (Dark)
-        readonly property color processingDark: "#d8b4fe"  // custom: light vivid purple on dark 自定义：深色主题亮鲜紫
-        readonly property color attentionDark: "#33b5bf"  // custom: light cyan on dark 自定义：深色主题亮青色
-        readonly property color cautionDark: "#e8c547"  // custom: bright yellow on dark 自定义：深色主题亮黄色
-
-        // Background semantic colors (light) 语义背景色（浅色）
-        readonly property color infoBgLight: "#cce4f7"  // custom color token 自定义
-        readonly property color successBgLight: "#dff6dd"  // WinUI SystemFillColorSuccessBackground (Light)
-        readonly property color warningBgLight: "#fff4ce"  // WinUI SystemFillColorCautionBackground (Light)
-        readonly property color errorBgLight: "#fde7e9"  // WinUI SystemFillColorCriticalBackground (Light)
-        readonly property color attentionBgLight: "#f0e6fa"  // custom color token 自定义
-        readonly property color processingBgLight: "#f3e8ff"  // custom: light purple background 自定义：浅紫色背景
-        readonly property color cautionBgLight: "#fff8d6"  // custom: light yellow background 自定义：浅黄色背景
-    }
+    // success/warning/error and their backgrounds follow Microsoft's WinUI SystemFillColor tokens.
+    // success/warning/error及其背景色取自微软WinUI SystemFillColor资源。
+    readonly property QtObject semanticColors: ConstantsInternal.ConstantsSemanticColors {}
 
     // ==================== DemoPalette 示例色板 ====================
     // Used by examples to avoid scattered hardcoded colors 示例程序统一使用的色板
-    readonly property QtObject demoPalette: QtObject {
-        readonly property color blue: "#3b82f6"
-        readonly property color green: "#10b981"
-        readonly property color orange: "#f59e0b"
-        readonly property color red: "#ef4444"
-        readonly property color purple: "#8b5cf6"
-        readonly property color cyan: "#06b6d4"
-        readonly property color teal: "#14b8a6"
-        readonly property color pink: "#ec4899"
-        readonly property color sky: "#0ea5e9"
-        readonly property color lime: "#84cc16"
-    }
+    readonly property QtObject demoPalette: ConstantsInternal.ConstantsDemoPalette {}
 
     // ==================== GrayColors 灰度色 ====================
     readonly property QtObject grayColors: QtObject {
@@ -204,56 +111,10 @@ QtObject {
 
 
     // ==================== ColorPalette 颜色表 ====================
-    readonly property QtObject colorPalette: QtObject {
-        readonly property color automaticColor: Qt.rgba(0, 0, 0, 1)
-
-        // Theme colors (10 columns x 6 rows) 主题色
-        readonly property var themeColors: [
-            // Row 1
-            "#ffffff", "#000000", "#e7e6e6", "#44546a", "#4472c4", "#ed7d31", "#a5a5a5", "#ffc000", "#5b9bd5", "#70ad47",
-            // Row 2
-            "#f2f2f2", "#7f7f7f", "#d0cece", "#d6dce4", "#d9e2f3", "#fbe5d5", "#ededed", "#fff2cc", "#deebf6", "#e2efd9",
-            // Row 3
-            "#d8d8d8", "#595959", "#aeabab", "#adb9ca", "#b4c6e7", "#f7cbac", "#dbdbdb", "#ffe599", "#bdd7ee", "#c5e0b3",
-            // Row 4
-            "#bfbfbf", "#3f3f3f", "#757070", "#8496b0", "#8eaadb", "#f4b183", "#c9c9c9", "#ffd966", "#9cc3e5", "#a8d08d",
-            // Row 5
-            "#a5a5a5", "#262626", "#3a3838", "#323f4f", "#2f5496", "#c55a11", "#7b7b7b", "#bf9000", "#2e75b5", "#538135",
-            // Row 6
-            "#7f7f7f", "#0c0c0c", "#171616", "#222a35", "#1f3864", "#833c0b", "#525252", "#7f6000", "#1e4e79", "#375623"
-        ]
-
-        // Standard colors (10 colors) 标准色
-        readonly property var standardColors: [
-            "#c00000", "#ff0000", "#ffc000", "#ffff00", "#92d050",
-            "#00b050", "#00b0f0", "#0070c0", "#002060", "#7030a0"
-        ]
-    }
+    readonly property QtObject colorPalette: ConstantsInternal.ConstantsColorPalette {}
 
     // ==================== ColorPickerGradient 渐变参数 ====================
-    readonly property QtObject colorPickerGradient: QtObject {
-        // Hue slider stops 色相滑块渐变停靠点
-        readonly property real huePos0: 0.0
-        readonly property real huePos1: 0.166
-        readonly property real huePos2: 0.333
-        readonly property real huePos3: 0.5
-        readonly property real huePos4: 0.666
-        readonly property real huePos5: 0.833
-        readonly property real huePos6: 1.0
-
-        readonly property color hueColor0: "#ff0000"
-        readonly property color hueColor1: "#ffff00"
-        readonly property color hueColor2: "#00ff00"
-        readonly property color hueColor3: "#00ffff"
-        readonly property color hueColor4: "#0000ff"
-        readonly property color hueColor5: "#ff00ff"
-        readonly property color hueColor6: "#ff0000"
-
-        // Fixed lightness palette 固定明度色板
-        readonly property color lightnessDark: "#000000"
-        readonly property color lightnessMid: "#808080"
-        readonly property color lightnessLight: "#ffffff"
-    }
+    readonly property QtObject colorPickerGradient: ConstantsInternal.ConstantsColorPickerGradient {}
     
     // ==================== Gray 灰色系 ====================
     readonly property QtObject gray: QtObject {

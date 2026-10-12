@@ -267,6 +267,51 @@ def test_constants_keeps_theme_colors_modularized():
     assert "readonly property color tabSelectedLight" in helper_source
     assert "required property bool isDark" not in helper_source
 
+def _assert_constants_helper_contract(source, property_name, helper_name, needs_dark):
+    helper = _source(f"prismqml/PrismQML/PrismEnums/_internal/{helper_name}")
+    assert helper.exists()
+    helper_source = helper.read_text(encoding="utf-8")
+    helper_type = helper.stem
+
+    assert len(helper_source.splitlines()) < 60
+    assert (
+        f"readonly property QtObject {property_name}: "
+        f"ConstantsInternal.{helper_type}"
+    ) in source
+    assert (
+        f"readonly property QtObject {property_name}: QtObject {{"
+        not in source
+    )
+    assert ("required property bool isDark" in helper_source) is needs_dark
+    if needs_dark:
+        assert (
+            f"{property_name}: ConstantsInternal.{helper_type} {{\n"
+            "        isDark: root.isDark"
+        ) in source
+
+
+def test_constants_keeps_standalone_palettes_in_private_helpers():
+    entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
+    source = entry.read_text(encoding="utf-8")
+    helpers = {
+        "neoColors": ("ConstantsNeoColors.qml", True),
+        "ticketColors": ("ConstantsTicketColors.qml", True),
+        "neumorphismColors": ("ConstantsNeumorphismColors.qml", True),
+        "semanticColors": ("ConstantsSemanticColors.qml", False),
+        "demoPalette": ("ConstantsDemoPalette.qml", False),
+        "colorPalette": ("ConstantsColorPalette.qml", False),
+        "colorPickerGradient": ("ConstantsColorPickerGradient.qml", False),
+    }
+
+    assert len(source.splitlines()) < 400
+    assert 'import "_internal" as ConstantsInternal' in source
+    assert "property alias" not in source
+    for property_name, (helper_name, needs_dark) in helpers.items():
+        _assert_constants_helper_contract(
+            source, property_name, helper_name, needs_dark
+        )
+
+
 def test_metrics_keeps_shadow_logic_modularized():
     entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
     helper = _source(
