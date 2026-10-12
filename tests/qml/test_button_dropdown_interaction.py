@@ -5,6 +5,7 @@
 """Button dropdown interaction regressions. 按钮下拉菜单交互回归。"""
 
 import pytest
+import shiboken6
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickWindow
@@ -193,15 +194,18 @@ def test_qt_popup_window_long_menu_uses_stable_scrollbar_input_layer(
     thumb = next(
         item
         for item in scrollbar.childItems()
-        if item.metaObject().className().startswith("QQuickRectangle")
+        if shiboken6.isValid(item)
+        and item.metaObject().className().startswith("QQuickRectangle")
         and item.height() < scrollbar.height()
     )
     input_layers = [
         item
         for item in scrollbar.childItems()
-        if any(
+        if shiboken6.isValid(item)
+        and any(
             "PointHandler" in child.metaObject().className()
             for child in item.children()
+            if shiboken6.isValid(child)
         )
     ]
     assert len(input_layers) == 1

@@ -105,10 +105,17 @@ def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
 
 
 def _visual_descendants(item: QQuickItem) -> list[QQuickItem]:
+    # A native popup can tear its items down while the scene is still being walked,
+    # so skip anything whose C++ object is already gone instead of raising.
+    # 原生弹层可能在遍历场景时销毁自身条目，跳过 C++ 对象已析构的项而不是抛错。
     result = []
+    if not shiboken6.isValid(item):
+        return result
     pending = list(item.childItems())
     while pending:
         child = pending.pop()
+        if not shiboken6.isValid(child):
+            continue
         result.append(child)
         pending.extend(child.childItems())
     return result

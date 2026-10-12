@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Shared real-QML harness for button dropdown tests. 按钮菜单真实 QML 测试夹具。"""
 
+import shiboken6
 from pathlib import Path
 
 from PySide6.QtCore import (
@@ -132,10 +133,17 @@ def _descendants(root):
 
 
 def _visual_descendants(root):
+    # A native popup can tear its items down while the scene is still being walked,
+    # so skip anything whose C++ object is already gone instead of raising.
+    # 原生弹层可能在遍历场景时销毁自身条目，跳过 C++ 对象已析构的项而不是抛错。
     result = []
+    if not shiboken6.isValid(root):
+        return result
     pending = list(root.childItems())
     while pending:
         child = pending.pop()
+        if not shiboken6.isValid(child):
+            continue
         result.append(child)
         pending.extend(child.childItems())
     return result

@@ -372,8 +372,14 @@ def test_command_bar_entry_styles_and_signal_forwarding(qapp):
             arrow_origin = arrow_icon.mapToItem(arrow_button, QPointF())
             assert arrow_origin.x() + arrow_icon.width() / 2 == \
                 pytest.approx(arrow_button.width() / 2)
+            # The icon sits centred inside the 1px-smaller content layer, so on a host
+            # that snaps that layer to whole pixels the centre lands 0.5px off the
+            # button centre (observed on Linux CI: 15.5 vs 16.0). Keep the centring
+            # contract and allow for that platform pixel snapping.
+            # 图标居中于比按钮矮 1px 的内容层；宿主把该层吸附到整像素时，中心会偏离按钮
+            # 中心 0.5px（Linux CI 实测 15.5 对 16.0）。保留居中契约并容许该平台像素吸附。
             assert arrow_origin.y() + arrow_icon.height() / 2 == \
-                pytest.approx(arrow_button.height() / 2)
+                pytest.approx(arrow_button.height() / 2, abs=0.5)
         assert QMetaObject.invokeMethod(button, "click")
         _pump()
         assert actions == [(0, "Open")]
