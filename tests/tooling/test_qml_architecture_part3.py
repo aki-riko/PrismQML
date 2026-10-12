@@ -199,6 +199,34 @@ def test_smooth_scroll_helper_keeps_bounds_reconcile_timers_modularized():
     assert "\n    Timer {\n        id: verticalReconcileTimer" not in source
     assert "\n    Timer {\n        id: horizontalReconcileTimer" not in source
 
+def test_smooth_scroll_frame_publication_stays_with_axis_guard():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/SmoothScrollHelper.qml"
+    )
+    guard = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "SmoothScrollOvershootGuard.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    guard_source = guard.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 480
+    assert guard.exists()
+    assert len(guard_source.splitlines()) < 500
+    assert "function publishFrame()" in guard_source
+    assert "verticalOvershootGuard.publishFrame()" in source
+    assert "horizontalOvershootGuard.publishFrame()" in source
+    assert "consumesFrame(" in guard_source
+    assert "constrainOutwardValue(smoothPosition)" in guard_source
+    assert "helper._publishedPosition(" in guard_source
+    assert "helper._lastPublishedY = contentPosition" in guard_source
+    assert "helper._lastPublishedX = contentPosition" in guard_source
+    assert "target.contentY = contentPosition" in guard_source
+    assert "target.contentX = contentPosition" in guard_source
+    assert "target.contentY = contentPosition" not in source
+    assert "target.contentX = contentPosition" not in source
+
+
 def test_flow_layout_keeps_append_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/containers/Layout/FlowLayout.qml")
     helper = _source(

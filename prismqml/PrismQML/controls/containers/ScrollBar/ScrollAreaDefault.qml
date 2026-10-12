@@ -5,6 +5,7 @@
 import "../../.."
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 import "_internal/ScrollCursorResolver.js" as ScrollCursorResolver
+import "_internal/ScrollAreaNestedResolver.js" as ScrollAreaNestedResolver
 
 // ScrollAreaDefault - Default scroll area implementation 默认滚动区域实现
 // For arbitrary content, no virtualization 用于任意内容，无虚拟化
@@ -265,62 +266,11 @@ Item {
     //   3. 子组件到边界 → 由当前层处理（自己滚 / 再往父级透传）
     // 不依赖 event.accepted=false 冒泡（QML wheel 不是 composed event，冒泡不可靠），
     // 改为外层主动调度子组件方法，更稳定。
-    function _findScrollableChildOnAxis(rootItem, mouseX, mouseY, delta, horizontal) {
-        if (!rootItem || !rootItem.children) return null
-        for (var i = rootItem.children.length - 1; i >= 0; i--) {
-            var child = rootItem.children[i]
-            if (!child || !child.visible) continue
-            // A nested scroll surface that does not own this axis must not be
-            // descended into: its inner Flickable carries no orientation property,
-            // so a foreign-axis overflow would otherwise be adopted as a target.
-            // 声明不支持当前轴的嵌套滚动面不得继续下钻: 其内部 Flickable 没有
-            // orientation 属性, 否则另一轴的溢出会被误当成滚动目标。
-            if (!_supportsScrollAxis(child, horizontal)) continue
-            var pt = rootItem.mapToItem(child, mouseX, mouseY)
-            if (pt.x < 0 || pt.y < 0 || pt.x > child.width || pt.y > child.height) continue
-            // Prefer recursing into a deeper hit 优先递归命中更深层
-            var deeper = _findScrollableChildOnAxis(
-                child, pt.x, pt.y, delta, horizontal
-            )
-            if (deeper) {
-                if (!deeper.scrollHelper) {
-                    deeper.scrollHelper = _findScrollHelper(
-                        child, deeper.viewport, horizontal
-                    )
-                }
-                return deeper
-            }
-            // Nested ScrollArea: compute bounds from the real Flickable/ListView/GridView viewport 嵌套 ScrollArea：始终以真实 Flickable/ListView/GridView 视口计算边界。
-            var viewport = _scrollViewport(
-                child, horizontal, pt.x, pt.y
-            )
-            if (!viewport || !_hasScrollOverflow(viewport, horizontal)) continue
-            var scrollHelper = _findScrollHelper(child, viewport, horizontal)
-            if (!scrollHelper) {
-                scrollHelper = _findScrollHelper(rootItem, viewport, horizontal)
-            }
-            var scrollOwner = child
-            var hasAxisScrollMethod = horizontal
-                ? typeof scrollOwner.smoothScrollByX === "function"
-                : typeof scrollOwner.smoothScrollBy === "function"
-            if (!hasAxisScrollMethod && !scrollHelper
-                    && !_hasScrollOverflow(viewport, horizontal)) continue
-            return {
-                item: scrollOwner,
-                viewport: viewport,
-                scrollHelper: scrollHelper,
-                horizontal: horizontal,
-                atBoundary: _isAtScrollBoundary(viewport, delta, horizontal)
-            }
-        }
-        return null
-    }
-
     // Only dispatch descendants that support the requested axis.
     // 只把事件派发给支持当前滚轮轴的后代，不把纵向滚轮改成横向滚动。
     function _findScrollableChild(rootItem, mouseX, mouseY, delta, horizontal) {
-        return _findScrollableChildOnAxis(
-            rootItem, mouseX, mouseY, delta, horizontal
+        return ScrollAreaNestedResolver.findScrollableChild(
+            control, rootItem, mouseX, mouseY, delta, horizontal
         )
     }
 

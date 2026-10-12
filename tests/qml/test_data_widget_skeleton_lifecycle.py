@@ -143,3 +143,26 @@ def test_data_widget_skeletons_preserve_loading_geometry_across_cycles(qapp):
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)
+
+
+def test_data_widget_footer_keeps_live_count_text(qapp):
+    engine, component, window, widget, warnings = _create_scene()
+    try:
+        assert widget.setProperty("model", ["row"])
+        assert widget.setProperty("showFooter", True)
+        assert widget.setProperty("footerText", "Rows: {count}")
+        assert _wait_for(
+            lambda: any(
+                item.property("text") == "Rows: 1"
+                for item in _visual_items(widget)
+            )
+        )
+        footer_label = next(
+            item
+            for item in _visual_items(widget)
+            if item.property("text") == "Rows: 1"
+        )
+        assert footer_label.isVisible()
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)

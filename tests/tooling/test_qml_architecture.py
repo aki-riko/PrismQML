@@ -239,12 +239,18 @@ def test_data_widget_core_keeps_visual_content_modularized():
     helper = _source(
         "prismqml/PrismQML/controls/data/_internal/DataWidgetContent.qml"
     )
+    footer = _source(
+        "prismqml/PrismQML/controls/data/_internal/DataWidgetFooter.qml"
+    )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
+    footer_source = footer.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 250
     assert helper.exists()
-    assert len(helper_source.splitlines()) < 500
+    assert len(helper_source.splitlines()) < 480
+    assert footer.exists()
+    assert len(footer_source.splitlines()) < 80
     assert 'import "_internal"' in source
     assert "DataWidgetContent {" in source
     assert "required property var dataControl" in helper_source
@@ -253,6 +259,10 @@ def test_data_widget_core_keeps_visual_content_modularized():
     assert "contentLayer.needsVerticalScrollBar" in source
     assert "function createHorizontalScrollMixin()" in helper_source
     assert "horizontalScrollMixinComponent.createObject(contentArea)" in helper_source
+    assert "DataWidgetFooter {" in helper_source
+    assert "required property var dataControl" in footer_source
+    assert 'dataControl.footerText.replace("{count}", dataControl.itemCount)' in footer_source
+    assert "footerText.replace(\"{count}\", control.itemCount)" not in helper_source
     assert "contentLayer.createHorizontalScrollMixin()" in source
     assert "RectangularShadow {" not in source
     assert "QtQ.ListView {" not in source
@@ -313,6 +323,26 @@ def test_navigation_window_core_keeps_splash_timer_modularized():
     assert "Enums.duration.splashTimeout" in helper_source
     assert "property bool _minimumVisiblePhase: false" not in source
     assert "property var _onTimeout: null" not in source
+
+def test_navigation_window_core_keeps_splash_page_wait_in_existing_module():
+    entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")
+    routing = _source("prismqml/PrismQML/_internal/NavigationSplashRouting.js")
+    source = entry.read_text(encoding="utf-8")
+    routing_source = routing.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 450
+    assert 'import "_internal/NavigationSplashRouting.js" as NavigationSplashRouting' in source
+    assert "function _dismissSplashWhenReady(stack) { NavigationSplashRouting.dismissWhenReady(window, stack) }" in source
+    assert "function dismissWhenReady(host, stack)" in routing_source
+    for token in (
+        "stack._isPageLoaded(stack.currentIndex)",
+        "stack.pageLoaded.connect(onPageLoaded)",
+        "host._splashTimerObject._onTimeout = function()",
+        "host._requestSplashDismiss()",
+        "host._splashTimerObject.restart()",
+    ):
+        assert token in routing_source
+    assert "function onPageLoaded(idx)" not in source
 
 def test_navigation_window_core_keeps_mica_timers_modularized():
     entry = _source("prismqml/PrismQML/NavigationWindowCore.qml")

@@ -233,3 +233,70 @@ def test_color_picker_notification_and_alpha_asymmetry_preserved():
     # 对话框把 alpha 回读到自己的整数区间; 下拉不回读。
     assert "hsv.alpha" in dialog
     assert "hsv.alpha" not in dropdown
+
+def test_tag_keyboard_suggestion_navigation_stays_in_private_script():
+    entry = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/_internal/"
+        "TagKeyboardController.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/_internal/"
+        "TagSuggestionKeyHandler.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 440
+    assert helper.parent.name == "_internal"
+    assert helper.suffix == ".js"
+    assert len(helper_source.splitlines()) < 100
+    assert ".pragma library" in helper_source
+    assert 'import "TagSuggestionKeyHandler.js" as TagSuggestionKeyHandler' in source
+    assert "TagSuggestionKeyHandler.handleToggle(keyboard, event)" in source
+    assert "TagSuggestionKeyHandler.handleKey(keyboard, event)" in source
+    for marker in (
+        "function _handleSuggestionToggle(",
+        "function _moveSuggestion(",
+        "function _selectSuggestionBoundary(",
+        "function _acceptSuggestion(",
+        "function _handleSuggestionKey(",
+    ):
+        assert marker not in source
+    assert "function handleToggle(controller, event)" in helper_source
+    assert "function handleKey(controller, event)" in helper_source
+    assert "Component {" not in source
+    assert "property alias" not in source
+
+def test_scroll_area_nested_hit_testing_stays_in_private_script():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/ScrollAreaDefault.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/containers/ScrollBar/_internal/"
+        "ScrollAreaNestedResolver.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 430
+    assert helper.parent.name == "_internal"
+    assert helper.suffix == ".js"
+    assert len(helper_source.splitlines()) < 100
+    assert ".pragma library" in helper_source
+    assert (
+        'import "_internal/ScrollAreaNestedResolver.js" '
+        "as ScrollAreaNestedResolver"
+    ) in source
+    assert "ScrollAreaNestedResolver.findScrollableChild(" in source
+    assert "function _findScrollableChild(rootItem," in source
+    assert "function _findScrollableChildOnAxis(" not in source
+    assert "function findScrollableChild(control," in helper_source
+    assert "function _findScrollableChildOnAxis(control," in helper_source
+    for dispatch in (
+        "control._supportsScrollAxis(",
+        "control._scrollViewport(",
+        "control._findScrollHelper(",
+        "control._isAtScrollBoundary(",
+    ):
+        assert dispatch in helper_source
+    assert "Component {" not in source

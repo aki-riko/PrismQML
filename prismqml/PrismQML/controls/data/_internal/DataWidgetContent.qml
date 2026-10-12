@@ -456,42 +456,8 @@ Item {
                 }
             }
 
-            // Footer 底栏
-            Rectangle {
-                id: footerBar
-
-                Layout.fillWidth: true
-                height: Enums.controlSize.inputHeightCompact
-                color: control.headerColor
-                radius: control._effectiveBorderRadius
-                visible: control.showFooter && control.itemCount > 0
-                opacity: visible ? 1 : 0
-
-                Behavior on opacity {
-                    enabled: control.animated
-                    NumberAnimation {
-                        duration: Enums.duration.normal
-                        easing.type: Easing.OutCubic
-                    }
-                }
-
-                // Top half fill 顶部半圆填充
-                Rectangle {
-                    anchors.top: parent.top
-                    width: parent.width
-                    height: parent.height / 2
-                    color: parent.color
-                }
-
-                Label {
-                    anchors.centerIn: parent
-                    type: Enums.label.type_caption
-                    text: control.footerText
-                          ? control.footerText.replace("{count}", control.itemCount)
-                          : Enums.trCount("total_items", control.itemCount)
-                    font.pixelSize: Enums.typography.captionCompact
-                    color: control.secondaryColor
-                }
+            DataWidgetFooter {
+                dataControl: control
             }
         }
     }

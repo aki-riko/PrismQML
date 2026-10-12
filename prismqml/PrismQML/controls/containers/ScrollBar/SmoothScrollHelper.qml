@@ -219,36 +219,11 @@ Item {
     }
 
     function _publishSmoothY() {
-        if (!_isVertical || !target || _discardingStaleFrameV) return
-        // The guard owns both frame-dropping cases: a clamp by the view, and a
-        // stale catch-up peak after the whole outward window elapsed frameless.
-        // 门闸掌管两类弃帧：视图夹紧，以及整段外移窗口无帧后的补算峰值。
-        if (verticalOvershootGuard.consumesFrame(
-                target.contentY, _lastPublishedY, _minY, _maxY,
-                _isOvershotV, _isOutwardBounceV, _lastBounceFrameTimestampV)) return
-        var published = _publishedPosition(_isOutwardBounceV ? verticalOvershootGuard.constrainOutwardValue(_smoothY) : _smoothY, _minY, _maxY)
-        var contentPosition = _visualOvershootEnabled
-            ? _clamp(published, _minY, _maxY) : published
-        // Record the intended position before assignment; ListView may clamp synchronously
-        // and re-enter geometry signals. 赋值前记录发布意图；ListView 可能同步夹紧并重入几何信号。
-        _lastPublishedY = contentPosition
-        target.contentY = contentPosition
-        if (_isOutwardBounceV) _lastBounceFrameTimestampV = Date.now()
+        verticalOvershootGuard.publishFrame()
     }
 
     function _publishSmoothX() {
-        if (_isVertical || !target || _discardingStaleFrameH) return
-        // Keep the guard handling identical to the vertical path.
-        // 门闸处理与垂直路径保持一致。
-        if (horizontalOvershootGuard.consumesFrame(
-                target.contentX, _lastPublishedX, _minX, _maxX,
-                _isOvershotH, _isOutwardBounceH, _lastBounceFrameTimestampH)) return
-        var published = _publishedPosition(_isOutwardBounceH ? horizontalOvershootGuard.constrainOutwardValue(_smoothX) : _smoothX, _minX, _maxX)
-        var contentPosition = _visualOvershootEnabled
-            ? _clamp(published, _minX, _maxX) : published
-        _lastPublishedX = contentPosition
-        target.contentX = contentPosition
-        if (_isOutwardBounceH) _lastBounceFrameTimestampH = Date.now()
+        horizontalOvershootGuard.publishFrame()
     }
 
     // ListView/GridView may change origin while delegates are recycled.

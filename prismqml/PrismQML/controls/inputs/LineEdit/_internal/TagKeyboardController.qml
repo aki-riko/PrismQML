@@ -3,6 +3,7 @@
 // This file is part of PrismQML, licensed under MIT.
 
 import QtQuick
+import "TagSuggestionKeyHandler.js" as TagSuggestionKeyHandler
 
 // TagKeyboardController - Tag keyboard selection and editing 标签键盘选择与编辑
 QtObject {
@@ -196,8 +197,8 @@ QtObject {
     function handleKey(event) {
         if (_handleStandardShortcut(event)) return true
         if (_handleEscape(event)) return true
-        if (_handleSuggestionToggle(event)) return true
-        if (_handleSuggestionKey(event)) return true
+        if (TagSuggestionKeyHandler.handleToggle(keyboard, event)) return true
+        if (TagSuggestionKeyHandler.handleKey(keyboard, event)) return true
         if (_handleDeletion(event)) return true
         if (_handleTagNavigation(event)) return true
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
@@ -337,65 +338,6 @@ QtObject {
         suggestionsDismissed = true
         suggestionIndex = -1
         control._forceShowAll = false
-    }
-
-    function _handleSuggestionToggle(event) {
-        var alt = (event.modifiers & Qt.AltModifier) !== 0
-        var toggle = event.key === Qt.Key_F4 || (alt && event.key === Qt.Key_Down)
-        if (toggle && control._showSuggestions) {
-            _dismissSuggestions()
-            return true
-        }
-        if (toggle && control._safeSuggestions.length > 0) {
-            showAllSuggestions()
-            return true
-        }
-        if (alt && event.key === Qt.Key_Up && control._showSuggestions) {
-            _dismissSuggestions()
-            return true
-        }
-        return false
-    }
-
-    function _moveSuggestion(delta) {
-        var count = control._filteredItems.length
-        if (count === 0) return false
-        if (suggestionIndex < 0) suggestionIndex = delta > 0 ? 0 : count - 1
-        else suggestionIndex = Math.max(0, Math.min(count - 1, suggestionIndex + delta))
-        return true
-    }
-
-    function _selectSuggestionBoundary(first) {
-        if (control._filteredItems.length === 0) return false
-        suggestionIndex = first ? 0 : control._filteredItems.length - 1
-        return true
-    }
-
-    function _acceptSuggestion(useFirstAsFallback) {
-        var index = suggestionIndex
-        if (index < 0 && useFirstAsFallback) index = 0
-        if (index < 0 || index >= control._filteredItems.length) return false
-        var item = control._filteredItems[index]
-        var text = typeof item === "string" ? item : (item ? (item.text || "") : "")
-        if (addTag(text, true)) editor.text = ""
-        control._forceShowAll = false
-        suggestionsDismissed = false
-        suggestionIndex = -1
-        return true
-    }
-
-    function _handleSuggestionKey(event) {
-        if (!control._showSuggestions) return false
-        if (event.key === Qt.Key_Down) return _moveSuggestion(1)
-        if (event.key === Qt.Key_Up) return _moveSuggestion(-1)
-        if (event.key === Qt.Key_Home) return _selectSuggestionBoundary(true)
-        if (event.key === Qt.Key_End) return _selectSuggestionBoundary(false)
-        if (event.key === Qt.Key_Tab) return _acceptSuggestion(true)
-        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
-                && suggestionIndex >= 0) {
-            return _acceptSuggestion(false)
-        }
-        return false
     }
 
     function _handleDeletion(event) {

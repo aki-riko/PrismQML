@@ -152,44 +152,7 @@ WindowsCore {
 
     function _moveDefaultPages(stagedItems, container, ownerName) { return NavigationWindowRouting.moveDefaultPages(window, stagedItems, container, ownerName) }
 
-    function _dismissSplashWhenReady(stack) {
-        profileTime("NavigationWindowCore _dismissSplashWhenReady start")
-        if (_splashDismissed) {
-            profileTime("NavigationWindowCore splash already dismissed")
-            return
-        }
-        if (!_splashInstance) {
-            _splashDismissed = true
-            profileTime("NavigationWindowCore no splash instance")
-            return
-        }
-
-        // Dismiss immediately when the current page is already loaded. 当前页已加载时立即关闭欢迎页。
-        if (!stack || stack._isPageLoaded(stack.currentIndex)) {
-            profileTime("NavigationWindowCore splash ready immediate")
-            _requestSplashDismiss()
-            return
-        }
-
-        // Otherwise wait for the current page, with a timeout fallback. 否则等待当前页，并保留超时兜底。
-        var target = stack.currentIndex
-        function onPageLoaded(idx) {
-            if (idx !== target) return
-            stack.pageLoaded.disconnect(onPageLoaded)
-            _splashTimer.stop()
-            profileTime("NavigationWindowCore splash pageLoaded target=" + idx)
-            _requestSplashDismiss()
-        }
-        stack.pageLoaded.connect(onPageLoaded)
-        _splashTimer._minimumVisiblePhase = false
-        _splashTimer._onTimeout = function() {
-            stack.pageLoaded.disconnect(onPageLoaded)
-            profileTime("NavigationWindowCore splash timeout")
-            _requestSplashDismiss()
-        }
-        _splashTimer.restart()
-        profileTime("NavigationWindowCore splash wait pageLoaded target=" + target)
-    }
+    function _dismissSplashWhenReady(stack) { NavigationSplashRouting.dismissWhenReady(window, stack) }
 
     function _markSplashVisible() {
         if (_splashVisibleSinceMs > 0 || !_splashInstance || !window.visible) return

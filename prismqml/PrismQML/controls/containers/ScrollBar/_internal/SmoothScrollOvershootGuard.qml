@@ -128,6 +128,51 @@ QtObject {
         return false
     }
 
+    // Publish an accepted frame after resolving view clamps and stale bounce frames.
+    // 处理视图夹紧与过期回弹帧后，发布本轴接受的动画帧。
+    function publishFrame() {
+        var helper = scrollHelper
+        if (!helper || (verticalAxis && !helper._isVertical)
+                || (!verticalAxis && helper._isVertical)) return
+        var target = helper.target
+        if (!target) return
+        var discardingStaleFrame = verticalAxis
+            ? helper._discardingStaleFrameV : helper._discardingStaleFrameH
+        if (discardingStaleFrame) return
+
+        var minimum = verticalAxis ? helper._minY : helper._minX
+        var maximum = verticalAxis ? helper._maxY : helper._maxX
+        var current = verticalAxis ? target.contentY : target.contentX
+        var lastPublished = verticalAxis
+            ? helper._lastPublishedY : helper._lastPublishedX
+        var overshot = verticalAxis ? helper._isOvershotV : helper._isOvershotH
+        var outward = verticalAxis
+            ? helper._isOutwardBounceV : helper._isOutwardBounceH
+        var lastFrameTimestamp = verticalAxis
+            ? helper._lastBounceFrameTimestampV : helper._lastBounceFrameTimestampH
+        if (consumesFrame(
+                current, lastPublished, minimum, maximum,
+                overshot, outward, lastFrameTimestamp)) return
+
+        var smoothPosition = verticalAxis ? helper._smoothY : helper._smoothX
+        var guardedPosition = outward
+            ? constrainOutwardValue(smoothPosition) : smoothPosition
+        var published = helper._publishedPosition(
+            guardedPosition, minimum, maximum)
+        var contentPosition = helper._visualOvershootEnabled
+            ? helper._clamp(published, minimum, maximum) : published
+        // Record intent before assignment; views may clamp synchronously and re-enter.
+        // 赋值前记录发布意图；视图可能同步夹紧并重入。
+        if (verticalAxis) helper._lastPublishedY = contentPosition
+        else helper._lastPublishedX = contentPosition
+        if (verticalAxis) target.contentY = contentPosition
+        else target.contentX = contentPosition
+        if (outward) {
+            if (verticalAxis) helper._lastBounceFrameTimestampV = Date.now()
+            else helper._lastBounceFrameTimestampH = Date.now()
+        }
+    }
+
     function isAtOutwardBoundary(current, minimum, maximum) {
         var boundary = outwardBoundary < 0 ? minimum : maximum
         return Math.abs(current - boundary) <= Enums.scroll.revocation_epsilon
