@@ -44,15 +44,6 @@ Item {
     property bool animateValueRange: false
     property bool schedulerActive: true      // Runtime scheduler gate 运行时调度门控
 
-    // Cache expensive range scans while inactive 停用期间缓存昂贵的范围扫描
-    property var _calculatedValueRangeCache: ({
-        min: 0, max: 0, hasNegative: false, hasPositive: false
-    })
-    property var _scatterDataRangeCache: ({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 })
-    property bool _statsDirty: true
-    property bool _statsRestorePending: false
-    property int _statsRevision: 0
-
     // ==================== Readonly State 只读状态 ====================
     readonly property Item chartArea: axesLayer.chartArea
     readonly property real chartAreaX: chartArea ? chartArea.x : 0
@@ -104,7 +95,9 @@ Item {
     )
 
     // Value range for charts with negative values 支持负值的数值范围
-    readonly property var _calculatedValueRange: _calculatedValueRangeCache
+    // Cached ranges live in the scheduler helper 缓存范围由调度助手持有
+    readonly property var _calculatedValueRange: statsScheduler.valueRangeCache
+    readonly property int _statsRevision: statsScheduler.revision
     property real _displayRangeMin: _calculatedValueRange.min
     property real _displayRangeMax: _calculatedValueRange.max
     readonly property var valueRange: {
@@ -127,7 +120,7 @@ Item {
     }
 
     // Scatter chart data range 散点图数据范围
-    readonly property var scatterDataRange: _scatterDataRangeCache
+    readonly property var scatterDataRange: statsScheduler.scatterRangeCache
 
     // ==================== Signals 信号 ====================
     signal xLabelHovered(int index)
@@ -193,19 +186,6 @@ Item {
             xMin: minX - xPadding, xMax: maxX + xPadding,
             yMin: minY - yPadding, yMax: maxY + yPadding
         }
-    }
-
-    function _rebuildStats() {
-        _calculatedValueRangeCache = _calculateValueRange()
-        _scatterDataRangeCache = _calculateScatterDataRange()
-        _statsDirty = false
-        _statsRevision++
-    }
-
-    function _markStatsDirty() {
-        _statsDirty = true
-        if (!schedulerActive || _statsRestorePending) return
-        _rebuildStats()
     }
 
     function _formatAxisValue(value, fallbackText) {
@@ -289,17 +269,16 @@ Item {
     }
 
     Component.onCompleted: {
-        if (schedulerActive) _rebuildStats()
+        if (schedulerActive) statsScheduler.rebuild()
     }
-    onChartDataChanged: _markStatsDirty()
-    onSeriesChanged: _markStatsDirty()
-    onIsScatterChanged: _markStatsDirty()
+    onChartDataChanged: statsScheduler.markDirty()
+    onSeriesChanged: statsScheduler.markDirty()
+    onIsScatterChanged: statsScheduler.markDirty()
     onSchedulerActiveChanged: {
         if (!schedulerActive) {
-            _statsDirty = true
+            statsScheduler.dirty = true
         } else {
-            _statsRestorePending = true
-            statsRestoreTimer.restart()
+            statsScheduler.scheduleRestore()
         }
     }
 
@@ -324,15 +303,10 @@ Item {
         axisFontMetrics: axisFontMetrics
     }
 
-    Timer {
-        id: statsRestoreTimer
-        interval: 0
-        repeat: false
-        onTriggered: {
-            root._statsRestorePending = false
-            if (root.schedulerActive && root._statsDirty)
-                root._rebuildStats()
-        }
+    XYChartStatsScheduler {
+        id: statsScheduler
+
+        host: root
     }
 
     Behavior on _displayRangeMin {

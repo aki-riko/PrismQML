@@ -131,11 +131,7 @@ QtObject {
  // ==================== Mask 遮罩参数 ====================
  readonly property QtObject mask: MetricsInternal.MetricsMask {}
  // ==================== Blur 模糊半径 ====================
- readonly property QtObject blur: QtObject {
- readonly property real acrylic: 30 // Acrylic effect blur 亚克力效果模糊
- readonly property real background: 64 // Background blur 背景模糊
- readonly property real light: 16 // Light blur 轻度模糊
- }
+ readonly property QtObject blur: MetricsInternal.MetricsBlur {}
  // ==================== Border 边框宽度 ====================
  readonly property QtObject border: QtObject {
  readonly property int none: 0
@@ -625,24 +621,7 @@ QtObject {
  }
 
  // ==================== Stepper 步骤条度量 ====================
- readonly property QtObject stepper: QtObject {
-  readonly property real baseScale: 1.0
-  readonly property real tiltPeak: 4
-  readonly property real railThicknessRatio: 0.14
-  readonly property real completedGlowScale: 1.22
-  readonly property real hoverScale: 1.08
-  readonly property var haloScales: [1.0, 1.18, 1.38, 1.6, 1.85]
-  readonly property real haloFalloff: 0.2
-  readonly property real minBreath: 0.55
-  readonly property real maxBreath: 1.0
-  readonly property real rippleStartScale: 1.0
-  readonly property real rippleEndScale: 2.3
-  readonly property real particleSizeRatio: 0.12
-  readonly property real particleDistanceRatio: 0.85
-  readonly property real ringStartScale: 0.7
-  readonly property real ringEndScale: 1.9
-  readonly property real particleEndScale: 0.4
- }
+ readonly property QtObject stepper: MetricsInternal.MetricsStepper {}
 
  // ==================== ImageCropperDialog 裁剪窗口度量 ====================
  readonly property QtObject imageCropperDialog: QtObject {

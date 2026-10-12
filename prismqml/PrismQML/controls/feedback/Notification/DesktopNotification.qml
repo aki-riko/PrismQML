@@ -212,25 +212,11 @@ Window {
         }
         
         // Close button 关闭按钮
-        Button {
+        NotificationInternal.DesktopNotificationCloseButton {
             id: closeBtn
-            objectName: "closeBtn"
-            anchors.right: parent.right
-            anchors.rightMargin: Enums.spacing.l
-            anchors.top: parent.top
-            anchors.topMargin: Enums.spacing.l
-            style: Enums.button.style_transparent
-            icon: Enums.icon.dismiss
-            width: Enums.spacing.xxl
-            height: Enums.spacing.xxl
-            radius: width / 2
-            iconSize: Enums.iconSize.tiny
-            iconColor: Enums.stateColor.scrollThumbHover
-            focusOnPress: false
-            visible: closable
-            onClicked: control.hide()
+            host: control
         }
-        
+
         NotificationInternal.DesktopNotificationClickArea {
             host: control
         }

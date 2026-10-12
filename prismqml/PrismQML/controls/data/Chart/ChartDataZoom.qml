@@ -7,6 +7,7 @@ import QtQuick.Layouts
 import "../../.."
 import "../../inputs/Slider"
 import "_internal" as ChartInternal
+import "_internal/ChartDataZoomFrame.js" as ChartDataZoomFrame
 
 // ChartDataZoom - Dual-handle viewport selector 双手柄视窗范围选择器
 // The canvas renders a full-data thumbnail without depending on ChartView Canvas 绘制全量缩略图且不依赖 ChartView
@@ -109,48 +110,13 @@ Item {
 
         property int _drawFrameBuildCount: 0
         property var _drawFrame: ({ values: [], minimum: 0, maximum: 0 })
-
-        function rebuildDrawFrame() {
-            if (!control.schedulerActive) return
-            var source = []
-            var series = control.series
-            if (series && typeof series.length === "number" && series.length > 0) {
-                var first = series[0]
-                if (first && first.values && typeof first.values.length === "number") {
-                    source = first.values
-                }
-            }
-            if (source.length === 0) {
-                var chartData = control.chartData
-                if (chartData && typeof chartData.length === "number") {
-                    for (var i = 0; i < chartData.length; i++) {
-                        var item = chartData[i]
-                        source.push(item && item.value !== undefined ? item.value : 0)
-                    }
-                }
-            }
-            _drawFrame = _buildDrawFrame(source)
-        }
         readonly property var _drawValues: _drawFrame.values
         readonly property real _drawMinimum: _drawFrame.minimum
         readonly property real _drawMaximum: _drawFrame.maximum
 
-        function _buildDrawFrame(values) {
-            var normalized = []
-            if (!values || typeof values.length !== "number" || values.length === 0) {
-                return { values: normalized, minimum: 0, maximum: 0 }
-            }
-            var minimum = 0
-            var maximum = 0
-            for (var i = 0; i < values.length; i++) {
-                var value = values[i]
-                var normalizedValue = typeof value === "number" && isFinite(value)
-                        ? value : 0
-                normalized.push(normalizedValue)
-                if (i === 0 || normalizedValue < minimum) minimum = normalizedValue
-                if (i === 0 || normalizedValue > maximum) maximum = normalizedValue
-            }
-            return { values: normalized, minimum: minimum, maximum: maximum }
+        function rebuildDrawFrame() {
+            if (!control.schedulerActive) return
+            _drawFrame = ChartDataZoomFrame.buildFrame(control.series, control.chartData)
         }
 
         anchors.fill: parent

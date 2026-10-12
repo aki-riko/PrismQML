@@ -32,8 +32,6 @@ Item {
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property var _loaders: []
     readonly property real _startupProfileStart: Date.now()
-    property real _startupProfileLast: _startupProfileStart
-    readonly property bool _startupProfilingVerboseActive: typeof PrismQmlStartupProfileVerbose !== "undefined" && PrismQmlStartupProfileVerbose
     readonly property bool _asynchronousPageLoaderEnabled: typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" || PrismQmlAsynchronousPageLoaderEnabled
     property var _isPageLoadFailedFunc: function(index) {
         if (!lazyLoading || !_useSourceMode) return false
@@ -84,7 +82,6 @@ Item {
     property int previousIndex: 0
     property int _displayIndex: 0
     property int _pendingLazySwitchIndex: -1
-    property int _lazyDiagnosticSequence: 0
     property int _pythonLazyTransitionTargetIndex: -1
     property bool _pythonLazyRevealRequested: false
     property bool _pythonPageMode: false
@@ -111,22 +108,7 @@ Item {
         return _useSourceMode && widgetItem ? widgetItem.item : widgetItem
     }
     function _clampPageIndexes() {
-        if (count <= 0) {
-            _displayIndex = 0
-            previousIndex = 0
-            _pendingLazySwitchIndex = -1
-            if (!pageModeConflict && currentIndex !== 0) currentIndex = 0
-            return
-        }
-        var lastIndex = count - 1
-        var clampedDisplay = Math.max(0, Math.min(_displayIndex, lastIndex))
-        var clampedCurrent = Math.max(0, Math.min(currentIndex, lastIndex))
-        if (_displayIndex !== clampedDisplay) {
-            _displayIndex = clampedDisplay
-            previousIndex = clampedDisplay
-        }
-        if (currentIndex !== clampedCurrent) currentIndex = clampedCurrent
-        if (_pendingLazySwitchIndex > lastIndex) _pendingLazySwitchIndex = -1
+        indexClamp.clamp()
     }
     function _pagePropertiesFor(index) {
         if (index < 0 || index >= _safePageProperties.length) return ({})
@@ -134,46 +116,10 @@ Item {
         return value && typeof value === "object" ? value : ({})
     }
     function profileTime(msg) {
-        if (!_startupProfilingVerboseActive) return
-        var now = Date.now()
-        console.debug("[启动剖析] StackedWidget " + msg + ": +" +
-                    Math.round(now - _startupProfileLast) + "ms / total " +
-                    Math.round(now - _startupProfileStart) + "ms")
-        _startupProfileLast = now
-    }
-    function _loaderDiagnosticSnapshot(index, loaderOverride) {
-        var loader = loaderOverride ||
-                (index >= 0 && index < _loaders.length ? _loaders[index] : null)
-        var targetSource = index >= 0 && index < _safePageSources.length ?
-                    String(_safePageSources[index]) : ""
-        var currentSource = _displayIndex >= 0 && _displayIndex < _safePageSources.length ?
-                    String(_safePageSources[_displayIndex]) : ""
-        if (!loader) {
-            return "loader=missing" +
-                    " targetSource=\"" + targetSource + "\"" +
-                    " currentSource=\"" + currentSource + "\""
-        }
-        var itemObjectName = loader.item && loader.item.objectName ?
-                    loader.item.objectName : ""
-        return "loader.active=" + loader.active +
-                " loader.status=" + loader.status +
-                " loader.item=" + (loader.item !== null) +
-                " loader.source=\"" + String(loader.source) + "\"" +
-                " loader.itemObjectName=\"" + itemObjectName + "\"" +
-                " targetSource=\"" + targetSource + "\"" +
-                " currentSource=\"" + currentSource + "\""
+        diagnostics.profileTime(msg)
     }
     function _traceLazyStage(stage, index, details, loaderOverride) {
-        if (!_startupProfilingVerboseActive) return
-        _lazyDiagnosticSequence += 1
-        var detailText = details ? " " + details : ""
-        console.debug("[懒加载诊断] StackedWidget #" + _lazyDiagnosticSequence +
-                    " stage=" + stage +
-                    " target=" + index +
-                    " current=" + currentIndex +
-                    " display=" + _displayIndex +
-                    " pending=" + _pendingLazySwitchIndex + " " +
-                    _loaderDiagnosticSnapshot(index, loaderOverride) + detailText)
+        diagnostics.traceLazyStage(stage, index, details, loaderOverride)
     }
     // ==================== Internal Methods 内部方法 ====================
     function _isPageLoaded(index) {
@@ -416,6 +362,14 @@ Item {
     }
 
     // ==================== Content 内容 ====================
+    // Diagnostics and index clamping own their implementation in _internal.
+    // 诊断与索引收敛的实现归属 _internal。
+    StackedDiagnostics {
+        id: diagnostics
+        host: control
+        profileStart: control._startupProfileStart
+    }
+    StackedIndexClamp { id: indexClamp; host: control }
     StackedModeAnimations {
         id: animations
         control: control
