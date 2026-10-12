@@ -647,11 +647,18 @@ def test_vertical_tab_bar_indicator_tracks_the_selected_cell(qapp):
             selected.width() - window.property("crossPadding"), abs=0.5
         )
 
+        # The close affordance is the tab's own transparent Button now, identified the
+        # same way as the other migrated call sites: the "closeBtn" object name plus
+        # the Button iconSize property. The removed CloseButton owned iconSizeValue.
+        # 关闭入口现在是标签自身的透明 Button, 与其余已迁移调用点用同一种方式识别:
+        # "closeBtn" 对象名加上 Button 的 iconSize 属性。iconSizeValue 随 CloseButton
+        # 一并移除。
         close_button = next(
             (
                 child
                 for child in _visual_descendants(selected)
-                if child.metaObject().indexOfProperty("iconSizeValue") >= 0
+                if child.objectName() == "closeBtn"
+                and child.metaObject().indexOfProperty("iconSize") >= 0
             ),
             None,
         )

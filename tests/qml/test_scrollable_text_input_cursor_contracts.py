@@ -267,6 +267,49 @@ def _move_to_item(window: QQuickWindow, item: QQuickItem) -> None:
     _pump(80)
 
 
+def _page_viewport(page: QQuickItem) -> QQuickItem:
+    """Outer page scroller of a Gallery page. 画廊页面的外层滚动视口。"""
+    candidates = [
+        item
+        for item in page.findChildren(QQuickItem)
+        if item.metaObject().indexOfProperty("contentY") >= 0
+        and item.metaObject().indexOfProperty("contentHeight") >= 0
+        and "Flickable" in item.metaObject().className()
+    ]
+    assert candidates, [item.metaObject().className() for item in page.findChildren(QQuickItem)]
+    return max(candidates, key=lambda item: item.height())
+
+
+def _reveal_in_viewport(window: QQuickWindow, page: QQuickItem, item: QQuickItem) -> None:
+    """Bring a page control into the host viewport before hovering it.
+
+    悬停前把页面控件移入宿主视口。
+
+    Only controls that sit outside the window are scrolled, so the in-viewport
+    hover path stays untouched; a pointer outside the window is dropped by Qt and
+    would report an arrow cursor instead of the control's own cursor.
+    只有位于窗口之外的控件才滚动, 视口内的悬停路径保持不变; 窗口外的指针会被 Qt
+    丢弃, 从而报告箭头光标而非控件自身的光标。
+    """
+    point = item.mapToItem(window.contentItem(), QPointF(item.width() / 2, item.height() / 2))
+    if 0 <= point.x() <= window.width() and 0 <= point.y() <= window.height():
+        return
+    viewport = _page_viewport(page)
+    origin = item.mapToItem(viewport, QPointF(0, 0))
+    limit = max(0.0, float(viewport.property("contentHeight")) - float(viewport.height()))
+    viewport.setProperty(
+        "contentY",
+        min(
+            limit,
+            max(
+                0.0,
+                float(viewport.property("contentY")) + origin.y() - viewport.height() / 2,
+            ),
+        ),
+    )
+    _pump(80)
+
+
 def _move_to_item_with_timing(window: QQuickWindow, item: QQuickItem) -> int:
     QTest.mouseMove(window, QPoint(window.width() - 2, window.height() - 2))
     _pump()
@@ -379,7 +422,11 @@ def _gallery_editable_controls(page: QQuickItem) -> list[QQuickItem]:
         and item.property("expanded") is not False
         and len(_editable_surfaces(item)) == 1
     ]
-    assert len(controls) == 8
+    # Eight base demos plus the LocalSearchBar and password-strength cards, whose
+    # LineEdit probes are editable inputs of the same page.
+    # 八个基础演示, 外加本地搜索栏与密码强度卡片 —— 两者的 LineEdit 探针同属该页的
+    # 可编辑输入。
+    assert len(controls) == 10
     return controls
 
 
@@ -395,11 +442,15 @@ def test_input_page_preserves_editable_input_cursors(qapp):
     try:
         controls = _gallery_editable_controls(page)
         for control in controls:
-            _move_to_item(window, _editable_surface(control))
+            surface = _editable_surface(control)
+            _reveal_in_viewport(window, page, surface)
+            _move_to_item(window, surface)
             assert window.cursor().shape() == Qt.CursorShape.IBeamCursor
 
         for control in controls:
-            elapsed_ns = _move_to_item_with_timing(window, _editable_surface(control))
+            surface = _editable_surface(control)
+            _reveal_in_viewport(window, page, surface)
+            elapsed_ns = _move_to_item_with_timing(window, surface)
             assert elapsed_ns < MAX_CURSOR_EVENT_NS
             assert window.cursor().shape() == Qt.CursorShape.IBeamCursor
 
