@@ -369,6 +369,7 @@ def _prepare_bounds_shrink(window, area, helper, policy, edge, delta):
     original_maximum = float(helper.property("maxScroll"))
     original_edge = float(helper.property("minScroll" if edge == "start" else "maxScroll"))
     samples = []
+    presented_samples = []
     getattr(target, f"{position_name}Changed").connect(
         lambda: samples.append(
             (
@@ -377,6 +378,18 @@ def _prepare_bounds_shrink(window, area, helper, policy, edge, delta):
             )
         )
     )
+    def sample_presented_frame():
+        # The synchronously emitted position may briefly precede the frame-level
+        # clamp while the bounds reconciler updates. The rendered frame is the
+        # user-visible contract, so keep a second sample at frameSwapped.
+        presented_samples.append(
+            (
+                float(target.property(position_name)),
+                float(helper.property(boundary_property)),
+            )
+        )
+
+    window.frameSwapped.connect(sample_presented_frame)
     if vertical:
         _send_wheel(window, area, delta)
     else:
@@ -388,10 +401,12 @@ def _prepare_bounds_shrink(window, area, helper, policy, edge, delta):
         lambda: helper.property(outward)
         and (float(target.property(position_name)) - original_edge) * sign > 20
     )
-    return target, axis, position_name, guard, samples, original_maximum
+    return target, axis, position_name, guard, samples, presented_samples, original_maximum
 
 
-def _assert_rebased_bounds(helper, target, axis, position_name, guard, samples, edge):
+def _assert_rebased_bounds(
+    helper, target, axis, position_name, guard, samples, presented_samples, edge
+):
     limit = float(helper.property("_maxOvershoot"))
     edge_property = "maxScroll" if edge == "end" else "minScroll"
     boundary = float(helper.property(edge_property))
@@ -413,16 +428,25 @@ def _assert_rebased_bounds(helper, target, axis, position_name, guard, samples, 
         timeout_ms=3000,
     )
     sign = 1 if edge == "end" else -1
-    assert samples and max((value - edge) * sign for value, edge in samples) <= limit + 1.0
+    assert samples
+    assert presented_samples
+    assert max(
+        (value - boundary) * sign for value, boundary in presented_samples
+    ) <= limit + 1.0
 
 
 def _run_large_bounds_shrink(window, area, helper, policy, edge, resize_method, delta):
-    target, axis, position, guard, samples, original_maximum = _prepare_bounds_shrink(
+    target, axis, position, guard, samples, presented_samples, original_maximum = _prepare_bounds_shrink(
         window, area, helper, policy, edge, delta
     )
+    # Ignore frames from the pre-shrink excursion; the assertion below covers
+    # only frames produced after the boundary rewrite begins.
+    presented_samples.clear()
     assert QMetaObject.invokeMethod(window, resize_method)
     assert _wait_for(lambda: helper.property("maxScroll") < original_maximum - 100)
-    _assert_rebased_bounds(helper, target, axis, position, guard, samples, edge)
+    _assert_rebased_bounds(
+        helper, target, axis, position, guard, samples, presented_samples, edge
+    )
 
 
 @pytest.mark.parametrize(

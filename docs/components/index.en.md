@@ -38,6 +38,8 @@ Fluent.Card { /* ... */ }
 | [Menus](menus.md) | ContextMenu · MenuBar |
 | [Badges](badges.md) | Badge · Tag · Chip |
 | [Effects](effects.md) | Shadow · ShadowedRectangle · ColorOverlay · GaussianBlur |
-| Chat / Settings | ChatBubble · ChatMessageList · SettingsCard, etc. (no dedicated pages yet; see the [cheat sheet](list.md) for the full list) |
+| [Chat](chat.md) | ChatBubble · ChatBubbleSurface · ChatMessageList |
+| [Core and utilities](core.md) | Touch · WheelEventUtils · AccessibilityHelper |
+| Settings | SettingsCard, etc. (see the [cheat sheet](list.md) for the full list) |
 
 > Full list in each `controls/` subdirectory's `qmldir`.

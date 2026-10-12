@@ -328,6 +328,34 @@ def test_metrics_keeps_stepper_and_blur_tokens_modularized():
     for token in ("acrylic", "background", "light"):
         assert f"readonly property real {token}:" in blur_source
 
+def test_metrics_keeps_control_size_tokens_modularized():
+    entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    helper = _source(
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 700
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 250
+    assert 'import "_internal" as MetricsInternal' in source
+    assert (
+        "readonly property QtObject controlSize: MetricsInternal.MetricsControlSize {"
+        in source
+    )
+    assert "touchTargetFloor: root.touchTargetFloor" in source
+    assert "readonly property QtObject controlSize: QtObject {" not in source
+    assert "required property int touchTargetFloor" in helper_source
+    for token in (
+        "buttonHeight",
+        "inputHeight",
+        "navItemHeight",
+        "listItemHeight",
+        "touchTargetFloor",
+    ):
+        assert token in helper_source
+
 def test_combo_box_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")
     helper = _source(

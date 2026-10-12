@@ -26,6 +26,30 @@ Fluent.MessageBox {
 | `ConfirmDialog` | Confirm dialog (supports messageAlignment) |
 | `PopupWindowCore` | Generic popup (backing for menus/dropdowns/tooltips) |
 
+## FlyoutSheet
+
+`FlyoutSheet` hosts replaceable content in a separate window. Provide the body through
+`contentComponent`, and use `open(target)` to position it at a trigger item.
+`deleteOnClose` defaults to `true` and destroys the sheet when closed; set it to
+`false` when you need to reuse the same instance.
+
+```qml
+Item {
+    Component {
+        id: flyoutBody
+        Item {
+            implicitWidth: 320
+            implicitHeight: 180
+            // Panel body content 面板主体内容
+        }
+    }
+    Fluent.FlyoutSheet {
+        contentComponent: flyoutBody
+        onAccepted: console.log("Accepted")
+    }
+}
+```
+
 `OverlayDialogCore` owns the mask, event blocking, open/close animation state, and overlay-target reparenting. Derived controls should only restore their layout through the internal `_prepareOpen()` hook instead of duplicating the `open()` lifecycle.
 
 ## Desktop notifications

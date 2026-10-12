@@ -21,7 +21,10 @@ ROOT = Path(__file__).resolve().parents[2]
 QML_ROOT = ROOT / "prismqml" / "PrismQML"
 QMLDIR = QML_ROOT / "qmldir"
 TOUCH_SINGLETON = QML_ROOT / "Touch.qml"
-METRICS_SOURCE = QML_ROOT / "PrismEnums" / "Metrics.qml"
+METRICS_SOURCES = (
+    QML_ROOT / "PrismEnums" / "Metrics.qml",
+    QML_ROOT / "PrismEnums" / "_internal" / "MetricsControlSize.qml",
+)
 
 HOVER_PATTERN = re.compile(
     r"hoverEnabled|containsMouse|HoverHandler|HoverBehavior|onEntered|onExited"
@@ -167,11 +170,14 @@ def test_touch_singleton_is_registered():
 
 
 def test_interactive_metrics_keep_the_touch_floor():
-    source = METRICS_SOURCE.read_text(encoding="utf-8")
+    sources = [path.read_text(encoding="utf-8") for path in METRICS_SOURCES]
     for token in FLOORED_TOKENS:
-        assert re.search(
-            rf"readonly property int {token}: Math\.max\(\d+, root\.touchTargetFloor\)",
-            source,
+        assert any(
+            re.search(
+                rf"readonly property int {token}: Math\.max\(\d+, (?:root\.|controlSize\.)?touchTargetFloor\)",
+                source,
+            )
+            for source in sources
         ), token
 
 

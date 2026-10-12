@@ -106,6 +106,10 @@ nav:
           - 菜单: components/menus.md
       - 导航:
           - 导航: components/navigation.md
+      - 聊天:
+          - 聊天: components/chat.md
+      - 核心与工具:
+          - 核心与工具: components/core.md
       - 图表:
           - 图表: components/charts.md
       - 特效:

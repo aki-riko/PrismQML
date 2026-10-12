@@ -23,6 +23,28 @@ Fluent.ShadowedRectangle {
 - `GaussianBlur` — 高斯模糊
 - `OpacityMask` — 透明度遮罩（圆角裁剪）
 
+## FocusVisual 焦点视觉环
+
+`FocusVisual` 在宿主项目获得 active focus 时绘制主题强调色焦点环。默认跟踪父级，
+也可以通过 `focusSource` 指定要跟踪的项目；焦点环在没有焦点时不会创建实际的视觉对象。
+
+```qml
+import PrismQML as Fluent
+
+Item {
+    id: fieldShell
+
+    Fluent.FocusVisual {
+        anchors.fill: parent
+        focusSource: fieldShell
+        radius: Enums.radius.small
+    }
+}
+```
+
+`radius` 控制圆角，`ringColor` 默认使用 `Enums.accentColor`。组件本身禁用指针事件，
+因此不会挡住下方控件；宿主仍需自行获得焦点。
+
 ## NeoShadow 硬阴影
 
 新粗野皮肤的招牌——偏移纯色矩形，零模糊。`NeoShadow` 未在根模块注册，需以目录方式

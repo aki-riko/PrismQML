@@ -16,7 +16,7 @@ Window {
     id: control
     
     // ==================== Public Props 公开属性 ====================
-    property var contentItem: null  // Custom content component 自定义内容组件
+    property var contentComponent: null  // Custom content component 自定义内容组件
     property string confirmText: { Translator._v; return Translator.tr("ok") }
     property string cancelText: { Translator._v; return Translator.tr("cancel") }
     property bool showCancelButton: true
@@ -118,7 +118,7 @@ Window {
             Loader {
                 id: contentLoader
                 anchors.fill: parent
-                sourceComponent: control.contentItem
+                sourceComponent: control.contentComponent
             }
         }
         

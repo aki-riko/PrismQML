@@ -23,6 +23,30 @@ Fluent.ShadowedRectangle {
 - `GaussianBlur` — Gaussian blur
 - `OpacityMask` — opacity mask (rounded-corner clipping)
 
+## FocusVisual
+
+`FocusVisual` draws a theme-accent focus ring while its source item has active focus.
+It follows the parent by default; set `focusSource` to track another item. The actual
+ring is created lazily, so an unfocused control keeps no active ring object.
+
+```qml
+import PrismQML as Fluent
+
+Item {
+    id: fieldShell
+
+    Fluent.FocusVisual {
+        anchors.fill: parent
+        focusSource: fieldShell
+        radius: Enums.radius.small
+    }
+}
+```
+
+`radius` controls the corner radius and `ringColor` defaults to `Enums.accentColor`.
+The helper does not accept pointer events, so it will not cover the control underneath;
+the host is still responsible for receiving focus.
+
 ## NeoShadow
 
 The neo skin's signature — an offset solid-color rect with zero blur. `NeoShadow`

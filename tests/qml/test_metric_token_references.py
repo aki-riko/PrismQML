@@ -18,6 +18,7 @@ METRICS_PATH = QML_ROOT / "PrismEnums" / "Metrics.qml"
 EXTERNAL_METRIC_SOURCES = {
     "shadow": METRICS_PATH.parent / "_internal" / "MetricsShadow.qml",
     "mask": METRICS_PATH.parent / "_internal" / "MetricsMask.qml",
+    "controlSize": METRICS_PATH.parent / "_internal" / "MetricsControlSize.qml",
 }
 METRIC_NAMESPACES = {
     "duration": "duration",

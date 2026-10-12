@@ -26,6 +26,29 @@ Fluent.MessageBox {
 | `ConfirmDialog` | 确认对话框（支持 messageAlignment） |
 | `PopupWindowCore` | 通用弹出窗口（菜单/下拉/tooltip 的底层载体） |
 
+## FlyoutSheet 浮层面板
+
+`FlyoutSheet` 使用独立窗口承载可替换内容；自定义主体通过 `contentComponent` 提供，
+并可用 `open(target)` 定位到触发控件。`deleteOnClose` 默认为 `true`，关闭时销毁面板；
+若需要复用同一实例，设为 `false`。
+
+```qml
+Item {
+    Component {
+        id: flyoutBody
+        Item {
+            implicitWidth: 320
+            implicitHeight: 180
+            // Panel body content 面板主体内容
+        }
+    }
+    Fluent.FlyoutSheet {
+        contentComponent: flyoutBody
+        onAccepted: console.log("已确认")
+    }
+}
+```
+
 `OverlayDialogCore` 统一负责遮罩、事件拦截、开关动画状态和覆盖目标重定向。派生组件只应通过内部 `_prepareOpen()` 钩子恢复自身布局，不应重复实现 `open()` 生命周期。
 
 ## 桌面通知

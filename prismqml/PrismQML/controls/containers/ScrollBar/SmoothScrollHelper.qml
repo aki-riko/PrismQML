@@ -226,7 +226,7 @@ Item {
         if (verticalOvershootGuard.consumesFrame(
                 target.contentY, _lastPublishedY, _minY, _maxY,
                 _isOvershotV, _isOutwardBounceV, _lastBounceFrameTimestampV)) return
-        var published = _publishedPosition(_smoothY, _minY, _maxY)
+        var published = _publishedPosition(_isOutwardBounceV ? verticalOvershootGuard.constrainOutwardValue(_smoothY) : _smoothY, _minY, _maxY)
         var contentPosition = _visualOvershootEnabled
             ? _clamp(published, _minY, _maxY) : published
         // Record the intended position before assignment; ListView may clamp synchronously
@@ -243,7 +243,7 @@ Item {
         if (horizontalOvershootGuard.consumesFrame(
                 target.contentX, _lastPublishedX, _minX, _maxX,
                 _isOvershotH, _isOutwardBounceH, _lastBounceFrameTimestampH)) return
-        var published = _publishedPosition(_smoothX, _minX, _maxX)
+        var published = _publishedPosition(_isOutwardBounceH ? horizontalOvershootGuard.constrainOutwardValue(_smoothX) : _smoothX, _minX, _maxX)
         var contentPosition = _visualOvershootEnabled
             ? _clamp(published, _minX, _maxX) : published
         _lastPublishedX = contentPosition
