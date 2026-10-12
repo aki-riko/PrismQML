@@ -21,7 +21,7 @@ DialogBoxCore 过去用 body 的 childrenRect 决定宽度；当定宽 body 有�
 故此处不断言告警本身，而是守住契约）。
 """
 
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine
 
 from prismqml import register_types
@@ -100,7 +100,13 @@ def _load_dialog_width(qapp, qml):
         engine.collectGarbage()
         engine.clearComponentCache()
         engine.deleteLater()
-        qapp.processEvents()
+        # `processEvents()` alone never drains DeferredDelete, so the loaded
+        # `Window` stayed alive as a top-level window and leaked into whichever
+        # test ran next in the same process. Flush it the same way conftest does.
+        # 只调 processEvents() 不会处理 DeferredDelete，加载的 Window 会作为顶层窗口
+        # 存活并泄漏给同进程的下一个用例；按 conftest 的既有做法显式冲刷。
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
 
 
 def test_content_width_drives_dialog_width(qapp):
