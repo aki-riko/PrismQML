@@ -344,6 +344,30 @@ def test_desktop_notification_keeps_auto_close_timer_modularized():
     assert "required property var host" in click_area_source
     assert "onClicked: clickArea.host.clicked()" in click_area_source
 
+def test_desktop_notification_keeps_close_button_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/"
+        "DesktopNotification.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/feedback/Notification/_internal/"
+        "DesktopNotificationCloseButton.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 40
+    assert "NotificationInternal.DesktopNotificationCloseButton {" in source
+    assert "id: closeBtn" in source
+    assert "required property var host" in helper_source
+    assert 'objectName: "closeBtn"' in helper_source
+    assert "style: Enums.button.style_transparent" in helper_source
+    assert "radius: width / 2" in helper_source
+    assert "visible: host.closable" in helper_source
+    assert "onClicked: host.hide()" in helper_source
+    assert "\n        Button {" not in source
+
 def test_notification_animator_keeps_geometry_update_timer_modularized():
     entry = _source(
         "prismqml/PrismQML/controls/feedback/Notification/"

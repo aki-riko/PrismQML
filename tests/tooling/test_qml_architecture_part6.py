@@ -242,6 +242,27 @@ def test_chart_data_zoom_keeps_drag_end_timer_modularized():
     assert "host._dragging = false" in helper_source
     assert "host.interactiveChanged(false)" in helper_source
 
+def test_chart_data_zoom_keeps_draw_frame_builder_modularized():
+    entry = _source("prismqml/PrismQML/controls/data/Chart/ChartDataZoom.qml")
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/ChartDataZoomFrame.js"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 60
+    assert ".pragma library" in helper_source
+    assert "function buildFrame(series, chartData)" in helper_source
+    assert "function normalize(values)" in helper_source
+    assert "Enums" not in helper_source
+    assert 'import "_internal/ChartDataZoomFrame.js" as ChartDataZoomFrame' in source
+    assert (
+        "_drawFrame = ChartDataZoomFrame.buildFrame(control.series, control.chartData)"
+    ) in source
+    assert "function _buildDrawFrame(" not in source
+    assert "function buildFrame(" not in source
+
 def test_segmented_control_keeps_delegate_visuals_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/SegmentedControl.qml")
     helper = _source(

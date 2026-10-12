@@ -302,6 +302,32 @@ def test_metrics_keeps_mask_tokens_modularized():
     for token in ("thresholdMin", "spreadAtMin", "thresholdFull", "spreadFull"):
         assert f"readonly property real {token}:" in helper_source
 
+def test_metrics_keeps_stepper_and_blur_tokens_modularized():
+    entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    stepper = _source("prismqml/PrismQML/PrismEnums/_internal/MetricsStepper.qml")
+    blur = _source("prismqml/PrismQML/PrismEnums/_internal/MetricsBlur.qml")
+    source = entry.read_text(encoding="utf-8")
+    stepper_source = stepper.read_text(encoding="utf-8")
+    blur_source = blur.read_text(encoding="utf-8")
+
+    assert stepper.exists()
+    assert blur.exists()
+    assert "readonly property QtObject stepper: MetricsInternal.MetricsStepper {}" in source
+    assert "readonly property QtObject blur: MetricsInternal.MetricsBlur {}" in source
+    assert "readonly property QtObject stepper: QtObject {" not in source
+    assert "readonly property QtObject blur: QtObject {" not in source
+    for token_type, token in (
+        ("real", "baseScale"),
+        ("real", "tiltPeak"),
+        ("real", "railThicknessRatio"),
+        ("var", "haloScales"),
+        ("real", "minBreath"),
+        ("real", "particleEndScale"),
+    ):
+        assert f"readonly property {token_type} {token}:" in stepper_source
+    for token in ("acrylic", "background", "light"):
+        assert f"readonly property real {token}:" in blur_source
+
 def test_combo_box_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")
     helper = _source(
@@ -481,6 +507,43 @@ def test_xy_chart_core_keeps_axes_visuals_modularized():
         'objectName: "chartXAxisViewport"',
     ):
         assert token not in source
+
+def test_xy_chart_core_keeps_scheduler_stats_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/XYChartCore.qml"
+    )
+    helper = _source(
+        "prismqml/PrismQML/controls/data/Chart/_internal/XYChartStatsScheduler.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    helper_source = helper.read_text(encoding="utf-8")
+
+    assert helper.exists()
+    assert len(helper_source.splitlines()) < 100
+    assert "XYChartStatsScheduler {" in source
+    assert "host: root" in source
+    assert "required property Item host" in helper_source
+    assert "function rebuild()" in helper_source
+    assert "function markDirty()" in helper_source
+    assert "function scheduleRestore()" in helper_source
+    assert "host._calculateValueRange()" in helper_source
+    assert "host._calculateScatterDataRange()" in helper_source
+    assert (
+        "readonly property var _calculatedValueRange: "
+        "statsScheduler.valueRangeCache"
+    ) in source
+    assert "readonly property var scatterDataRange: statsScheduler.scatterRangeCache" in source
+    assert "readonly property int _statsRevision: statsScheduler.revision" in source
+    for marker in (
+        "_calculatedValueRangeCache",
+        "_scatterDataRangeCache",
+        "_statsDirty",
+        "_statsRestorePending",
+        "statsRestoreTimer",
+        "function _rebuildStats(",
+        "function _markStatsDirty(",
+    ):
+        assert marker not in source
 
 def test_chart_view_keeps_render_layer_modularized():
     entry = _source("prismqml/PrismQML/controls/data/Chart/ChartView.qml")

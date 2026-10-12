@@ -453,6 +453,39 @@ def test_stacked_widget_keeps_lazy_helper_loader_modularized():
     assert "lazyHelperLoader: lazyHelperLoader" in source
     assert "StackedLazyHelperLoader {\n        id: lazyHelperLoader\n        host: control\n" in source
 
+def test_stacked_widget_keeps_diagnostics_and_index_clamp_modularized():
+    entry = _source("prismqml/PrismQML/controls/navigation/StackedWidget.qml")
+    diagnostics = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/StackedDiagnostics.qml"
+    )
+    index_clamp = _source(
+        "prismqml/PrismQML/controls/navigation/_internal/StackedIndexClamp.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    diagnostics_source = diagnostics.read_text(encoding="utf-8")
+    index_clamp_source = index_clamp.read_text(encoding="utf-8")
+
+    assert diagnostics.exists()
+    assert index_clamp.exists()
+    assert len(diagnostics_source.splitlines()) < 80
+    assert len(index_clamp_source.splitlines()) < 40
+    assert "StackedDiagnostics {" in source
+    assert "StackedIndexClamp {" in source
+    assert "required property Item host" in diagnostics_source
+    assert "required property real profileStart" in diagnostics_source
+    assert "required property Item host" in index_clamp_source
+    assert "diagnostics.profileTime(msg)" in source
+    assert "diagnostics.traceLazyStage(stage, index, details, loaderOverride)" in source
+    assert "indexClamp.clamp()" in source
+    for marker in (
+        "function _loaderDiagnosticSnapshot(",
+        "_lazyDiagnosticSequence",
+        "_startupProfilingVerboseActive",
+        "var clampedDisplay = Math.max",
+        "var clampedCurrent = Math.max",
+    ):
+        assert marker not in source
+
 def test_tab_widget_keeps_content_pages_modularized():
     _assert_modularized(
         "prismqml/PrismQML/controls/navigation/TabWidget.qml",
