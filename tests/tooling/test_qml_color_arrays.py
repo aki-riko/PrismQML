@@ -27,13 +27,9 @@ MIGRATED_EXAMPLE_ARRAY_PATHS = (
     PurePosixPath("examples/pages/CarouselPage.qml"),
     PurePosixPath("examples/pages/ChartPage.qml"),
 )
-CONSTANTS_ARRAY_VALUE_LINES = {
-    194, 195, 220, 221, 222, 223, 224, 225, 243, 249, 250,
+GLOBAL_PALETTE_VALUE_LINES = {
+    251, 252, 277, 278, 279, 280, 281, 282, 300, 306, 307,
 }
-PICKER_PALETTE_PATH = PurePosixPath(
-    "prismqml/PrismQML/PrismEnums/_internal/ConstantsColorPalette.qml"
-)
-PICKER_PALETTE_VALUE_LINES = {14, 16, 18, 20, 22, 24, 29, 30}
 
 
 def _qml010_lines(source: str, path: PurePosixPath = LIBRARY_PATH) -> list[int]:
@@ -402,12 +398,8 @@ def test_only_high_confidence_collection_name_suffixes_are_scanned():
 def test_real_data_resources_and_dynamic_collections_stay_exempt():
     constants = EXEMPT_PATHS[0]
     source = (ROOT / constants).read_text(encoding="utf-8")
-    assert _detector_lines(source) == CONSTANTS_ARRAY_VALUE_LINES
+    assert _detector_lines(source) == GLOBAL_PALETTE_VALUE_LINES
     assert _qml010_lines(source, constants) == []
-
-    palette_source = (ROOT / PICKER_PALETTE_PATH).read_text(encoding="utf-8")
-    assert _detector_lines(palette_source) == PICKER_PALETTE_VALUE_LINES
-    assert _qml010_lines(palette_source, PICKER_PALETTE_PATH) == []
 
     for path in EXEMPT_PATHS[1:]:
         source = (ROOT / path).read_text(encoding="utf-8")

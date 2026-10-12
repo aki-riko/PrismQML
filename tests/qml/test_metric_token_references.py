@@ -18,7 +18,7 @@ METRICS_PATH = QML_ROOT / "PrismEnums" / "Metrics.qml"
 EXTERNAL_METRIC_SOURCES = {
     "shadow": METRICS_PATH.parent / "_internal" / "MetricsShadow.qml",
     "mask": METRICS_PATH.parent / "_internal" / "MetricsMask.qml",
-    "controlSize": METRICS_PATH.parent / "_internal" / "MetricsControlSize.qml",
+    "controlSize": METRICS_PATH.parent / "_internal" / "MetricsControlSize.js",
 }
 METRIC_NAMESPACES = {
     "duration": "duration",
@@ -50,6 +50,8 @@ METRIC_NAMESPACES = {
 
 
 def _metric_properties(source: str, namespace: str, root_object: bool = False) -> set[str]:
+    if namespace == "controlSize":
+        return set(re.findall(r"^\s{8}([A-Za-z_]\w*):", source, re.MULTILINE))
     pattern = (
         r"\bQtObject\s*\{"
         if root_object

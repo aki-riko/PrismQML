@@ -49,6 +49,7 @@ REPEAT_TIMER_SOURCE_PATH = PATH_DELEGATE_SOURCE_PATH.with_name(
     "CycleWheelPickerRepeatTimer.qml"
 )
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+CONTROL_SIZE_METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "cycle-wheel-picker-conventions.qml")
 )
@@ -323,5 +324,6 @@ def test_cycle_wheel_picker_source_conventions_and_motion_tokens():
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "readonly property int wheelPickerRepeatInterval: 50" in metrics
     assert "readonly property int wheelPickerRepeatDelay: 500" in metrics
-    assert "readonly property int wheelPickerMaxFlickVelocity: 800" in metrics
-    assert "readonly property int wheelPickerFlickDeceleration: 1500" in metrics
+    control_size_metrics = CONTROL_SIZE_METRICS_PATH.read_text(encoding="utf-8")
+    assert "wheelPickerMaxFlickVelocity: 800" in control_size_metrics
+    assert "wheelPickerFlickDeceleration: 1500" in control_size_metrics

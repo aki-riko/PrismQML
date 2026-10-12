@@ -4,12 +4,13 @@
 
 import QtQuick
 import "_internal" as MetricsInternal
+import "_internal/MetricsControlSize.js" as MetricsControlSize
 
 // Metrics - Size and spacing constants 尺寸和间距常量
 // Includes: Duration, Spacing, Radius, Typography, IconSize, etc.
 QtObject {
  id: root
- 
+
  required property bool isDark
  property bool isTicket: false
  property bool isNeumorphism: false
@@ -299,9 +300,8 @@ QtObject {
  }
  
  // ==================== Control Size 控件尺寸 ====================
- readonly property QtObject controlSize: MetricsInternal.MetricsControlSize {
-  touchTargetFloor: root.touchTargetFloor
- }
+ readonly property var controlSize: MetricsControlSize.create(root.touchTargetFloor)
+
  // ==================== Window 窗口度量 ====================
  readonly property QtObject window: QtObject {
  readonly property int defaultWidth: 960

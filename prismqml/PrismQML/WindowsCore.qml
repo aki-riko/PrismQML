@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Window
 import "./_internal"
+import "./_internal/WindowsCoreCloseLifecycle.js" as WindowsCoreCloseLifecycle
 import "./controls/navigation"
 
 // WindowsCore - Base class for all Window 所有 Window 的基类
@@ -145,19 +146,61 @@ Window {
                       " leftLayout=" + _isLeftLayout)
     }
     function _cancelCloseRequest() {
-        closeController.cancelRequest()
+        _closeInProgress = false
+        _closeCompletionPending = false
+        _closeHideOnlyLatched = false
+        closeFrameWaiter.cancel()
+        // stop() also restores this window's opacity if the overlay path hid it.
+        // stop() 同时会在覆盖窗口那条路藏了本窗口时把不透明度还原。
+        closeTransition.stop()
+        windowFrameLayer.visible = _closeSourceWasVisible
+        if (window.visible) {
+            animHelper.restoreVisibleState()
+        }
     }
     function _startAcceptedClose() {
-        closeController.startAcceptedClose()
+        _closeInProgress = true
+        _closeHideOnlyLatched = closeRequestHideOnly
+        _closeSourceWasVisible = windowFrameLayer.visible
+        // Nothing hwnd-level is dropped here on purpose. The collapse runs in the overlay
+        // window (preferOverlayWindow), which has no Mica and no native shadow, and this
+        // window is hidden by opacity once the overlay's mask frame is up — so there is
+        // nothing left for a drop to accomplish. Dropping was also the flash itself: writing
+        // DWMWA_SYSTEMBACKDROP_TYPE makes DWM recompose visibly. Isolated on a real machine
+        // with a throwaway flag that dropped one effect per run — only the Mica variant
+        // flashed. Offscreen tests cannot see this, so the gates for it are static.
+        // 这里故意不撤任何 hwnd 级效果。收紧是在覆盖窗口里跑的(preferOverlayWindow), 那个
+        // 窗口既没 Mica 也没原生阴影, 而本窗口在覆盖窗遮罩帧上屏后就被 opacity 藏了 ——
+        // 所以撤除已无事可做。撤除本身就是闪烁源: 写 DWMWA_SYSTEMBACKDROP_TYPE 会让 DWM
+        // 可见地重新合成。真机上用一次性开关逐个撤效果隔离过, 只有撤 Mica 那次会闪。
+        // offscreen 测试看不到这个现象, 所以相关门禁只能是静态的。
+        closeTransition.collapse(windowFrameLayer)
     }
     function _completeAcceptedClose() {
-        closeController.completeAcceptedClose()
+        WindowsCoreCloseLifecycle.completeAcceptedClose(
+            window, windowFrameLayer, closeTransition, animHelper
+        )
     }
     function _armAcceptedClose() {
-        closeController.armAcceptedClose()
+        if (!_closeInProgress) return
+        _closeCompletionPending = true
+        closeFrameWaiter.arm()
     }
     function _handleCloseFrameEnd() {
-        closeController.handleCloseFrameEnd()
+        if (!_closeCompletionPending) return
+        _closeCompletionPending = false
+        Qt.callLater(window._completeAcceptedClose)
+    }
+    function _closeDesktopNotifications() {
+        var component = Qt.createComponent(Qt.resolvedUrl("_internal/DesktopNotificationCloser.qml"))
+        if (component.status !== Component.Ready) {
+            console.warn("DesktopNotificationCloser not ready:", component.errorString())
+            return
+        }
+        var closer = component.createObject(window)
+        if (!closer) return
+        closer.closeAll()
+        closer.destroy()
     }
     function _syncTaskbarIcon(reason) {
         if (!windowIcon || typeof WindowHelper === "undefined" || !WindowHelper) return
@@ -345,16 +388,6 @@ Window {
 
         targetWindow: window
         onCompleted: window._handleCloseFrameEnd()
-    }
-
-    WindowsCoreCloseController {
-        id: closeController
-
-        hostWindow: window
-        frameLayer: windowFrameLayer
-        animationHelper: animHelper
-        transition: closeTransition
-        frameWaiter: closeFrameWaiter
     }
 
     // Listen to ConfigManager directly. 直接监听 ConfigManager 信号。

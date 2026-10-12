@@ -6,6 +6,7 @@ import QtQuick
 import ".."
 import "../controls/navigation/_internal"
 import "_internal"
+import "_internal/NavigationPanelLogic.js" as NavigationPanelLogic
 // NavigationPanelCore - Base class for navigation panels 导航面板基类
 // Provides common navigation logic: indicator animation, top/bottom items, route mapping 提供公共导航逻辑：指示器动画、上下项、路由映射
 Item {
@@ -107,7 +108,7 @@ Item {
     // Return whether a model item participates in the navigation presentation.
     // 判断模型项是否参与导航呈现。
     function _isNavigationItemVisible(item) {
-        return !!item && item.visible !== false
+        return NavigationPanelLogic.isNavigationItemVisible(item)
     }
 
     // Update indicator position in real-time (no animation) 实时更新指示器位置（无动画）
@@ -120,11 +121,11 @@ Item {
         }
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            indicatorLayer.stopAnimation()
+            navIndicator.stopAnimation()
             return
         }
         var rect = _computeIndicatorRect(item)
-        indicatorLayer.setGeometry(rect)
+        navIndicator.setGeometry(rect)
     }
 
     // ==================== Public Methods 公开方法 ====================
@@ -163,15 +164,8 @@ Item {
 
     function addItem(key, icon, text, onClick, selectable, selectedIcon, position, visible) {
         var pos = position || "top"
-        var item = {
-            "key": key,
-            "icon": icon || "",
-            "text": text || "",
-            "selectedIcon": selectedIcon || icon || "",
-            "selectable": selectable !== false,
-            "visible": visible !== false,
-            "onClick": onClick
-        }
+        var item = NavigationPanelLogic.createItem(
+            key, icon, text, onClick, selectable, selectedIcon, visible)
 
         if (pos === "bottom") {
             var bottom = (_safeBottomItems || []).slice()
@@ -201,73 +195,41 @@ Item {
         if (idx !== undefined) {
             currentIndex = idx
         } else {
-            for (var i = 0; i < (_safeModel || []).length; i++) {
-                var item = (_safeModel || [])[i]
-                if (item && (item.text === key || item.key === key)) {
-                    currentIndex = i
-                    break
-                }
-            }
+            idx = NavigationPanelLogic.indexForKeyOrText(_safeModel || [], key)
+            if (idx >= 0) currentIndex = idx
         }
     }
 
     function widget(key) {
-        var idx = _keyMap[key]
-        if (idx !== undefined && idx < (_safeModel || []).length) return (_safeModel || [])[idx]
-        return null
+        return NavigationPanelLogic.itemForKey(_safeModel || [], _keyMap, key)
     }
 
     // ==================== Internal Methods 内部方法 ====================
     function _rebuildRouteMap(items) {
-        _keyMap = {}
-        for (var i = 0; i < items.length; i++) {
-            if (items[i] && items[i].key) _keyMap[items[i].key] = i
-        }
+        _keyMap = NavigationPanelLogic.routeMapFor(items)
     }
 
     function _getItemAt(index) {
-        if (!topRepeater) return null
-
-        if (index >= 0 && index < topRepeater.count) {
-            return topRepeater.itemAt(index)
-        } else if (bottomRepeater) {
-            var bottomIdx = index - (_safeModel || []).length
-            if (bottomIdx >= 0 && bottomIdx < bottomRepeater.count) {
-                return bottomRepeater.itemAt(bottomIdx)
-            }
-        }
-        return null
+        return NavigationPanelLogic.itemAt(
+            topRepeater, bottomRepeater, (_safeModel || []).length, index)
     }
 
     // Get bottom item by key (for page items in bottom) 通过 key 获取底部项（用于底部页面项）
     function _getBottomItemByKey(key) {
-        if (!bottomRepeater || !key) return null
-        for (var i = 0; i < (_safeBottomItems || []).length; i++) {
-            var item = (_safeBottomItems || [])[i]
-            if (item && item.key === key) {
-                return bottomRepeater.itemAt(i)
-            }
-        }
-        return null
+        return NavigationPanelLogic.bottomItemForKey(
+            _safeBottomItems, bottomRepeater, key)
     }
 
     // Get bottom item index by key 通过 key 获取底部项索引
     function _getBottomIndexByKey(key) {
-        if (!key) return -1
-        for (var i = 0; i < (_safeBottomItems || []).length; i++) {
-            var item = (_safeBottomItems || [])[i]
-            if (item && item.key === key) {
-                return i
-            }
-        }
-        return -1
+        return NavigationPanelLogic.bottomIndexForKey(_safeBottomItems, key)
     }
     // Update indicator for bottom page item by key 通过key更新底部页面项的指示器
     function updateIndicatorForBottomItem(key) {
         var item = _getBottomItemByKey(key)
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            indicatorLayer.stopAnimation()
+            navIndicator.stopAnimation()
             return
         }
 
@@ -283,13 +245,13 @@ Item {
 
         if (prevItem && control._isNavigationItemVisible(prevItem) && _prevIndex !== targetIndex) {
             var startRect = _computeIndicatorRect(prevItem)
-            if (indicatorLayer.startAnimation) {
-                indicatorLayer.startAnimation(startRect, endRect)
+            if (navIndicator.startAnimation) {
+                navIndicator.startAnimation(startRect, endRect)
             } else {
-                indicatorLayer.setGeometry(endRect)
+                navIndicator.setGeometry(endRect)
             }
         } else {
-            indicatorLayer.setGeometry(endRect)
+            navIndicator.setGeometry(endRect)
         }
 
         // Update state 更新状态
@@ -298,15 +260,8 @@ Item {
     }
 
     function _computeIndicatorRect(item) {
-        if (!item) return Qt.rect(0, 0, 0, 0)
-
-        // Key point: map to control coordinates via mapToItem 关键点：使用 mapToItem 映射到 control 的坐标系
-        var mappedPos = item.mapToItem(control, 0, 0)
-
-        // The y coordinate must be centered within the item y坐标需要在项的居中位置
-        var y = mappedPos.y + (item.height - indicatorHeight) / 2
-
-        return Qt.rect(indicatorX, y, indicatorWidth, indicatorHeight)
+        return NavigationPanelLogic.indicatorRect(
+            item, control, indicatorX, indicatorWidth, indicatorHeight)
     }
 
     function _updateIndicatorWithAnimation() {
@@ -316,27 +271,27 @@ Item {
         var newItem = _getItemAt(currentIndex)
         control._indicatorVisible = control._isNavigationItemVisible(newItem)
         if (!control._indicatorVisible) {
-            indicatorLayer.stopAnimation()
+            navIndicator.stopAnimation()
             return
         }
 
         var endRect = _computeIndicatorRect(newItem)
 
         if (_prevIndex < 0 || _prevIndex === currentIndex) {
-            indicatorLayer.setGeometry(endRect)
+            navIndicator.setGeometry(endRect)
             _prevIndex = currentIndex
             return
         }
         var prevItem = _getItemAt(_prevIndex)
         if (prevItem && control._isNavigationItemVisible(prevItem)) {
             var startRect = _computeIndicatorRect(prevItem)
-            if (indicatorLayer.startAnimation) {
-                indicatorLayer.startAnimation(startRect, endRect)
+            if (navIndicator.startAnimation) {
+                navIndicator.startAnimation(startRect, endRect)
             } else {
-                indicatorLayer.setGeometry(endRect)
+                navIndicator.setGeometry(endRect)
             }
         } else {
-            indicatorLayer.setGeometry(endRect)
+            navIndicator.setGeometry(endRect)
         }
 
         _prevIndex = currentIndex
@@ -372,16 +327,16 @@ Item {
         }
         if (!item) {
             control._indicatorVisible = false
-            indicatorLayer.stopAnimation()
+            navIndicator.stopAnimation()
             return false
         }
         control._indicatorVisible = control._isNavigationItemVisible(item)
         if (!control._indicatorVisible) {
-            indicatorLayer.stopAnimation()
+            navIndicator.stopAnimation()
             return true
         }
         var rect = _computeIndicatorRect(item)
-        indicatorLayer.setGeometry(rect)
+        navIndicator.setGeometry(rect)
         return true
     }
 
@@ -413,7 +368,7 @@ Item {
     onScrollOffsetChanged: {
         indicatorTracker._scrolling = true
         _scrollStopTimer.restart()
-        if (!indicatorLayer.running) {
+        if (!navIndicator.running) {
             _updateIndicatorPositionRealtime()
         }
     }
@@ -441,16 +396,49 @@ Item {
         anchors.fill: parent
         panel: control
     }
-    NavigationPanelIndicatorLayer {
-        id: indicatorLayer
-        host: control
+    // Indicator clip container: edges hug control; height toggles full vs clipped by tracking mode 指示器裁剪容器: top/left/right 贴 control(容器内坐标系原点 == control 原点,
+    // 故 navIndicator 的 x/y 仍按 control 坐标系算, _computeIndicatorRect 无需改)。
+    // height 动态: 跟踪底部项或动画进行中 → 全高不裁(指示器要能显示在底部区/动画
+    // 全程可见); 跟踪顶部项滚动 → 裁到 indicatorClipBottom(可滚动区底边), 溢出
+    // 底部固定项区的部分被 clip 裁掉。替代原 bottomCover 遮盖(Mica 下透明遮不住)。
+    Item {
+        id: indicatorClip
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: (control._currentKey !== "" || navIndicator.running)
+                ? control.height
+                : control.indicatorClipBottom
+        clip: true
+        // Keep high Z while animating, otherwise backward anim gets covered by bottom items ⚠️ 动画进行中保持高 Z(controlsAbove+1),否则 backward 动画(底→顶)启动时
+        // _currentKey 已清空, Z 立即降到 controls-1 被底部项遮住, 看到"下半段动画消失"。
+        z: (control._currentKey !== "" || navIndicator.running)
+            ? (Enums.zIndex.controlsAbove + 1)
+            : (Enums.zIndex.controls - 1)
+        SlidingIndicator {
+            id: navIndicator
+            x: control.indicatorX
+            orientation: Qt.Vertical
+            mode: "stretch"
+            indicatorWidth: control.indicatorWidth
+            indicatorHeight: control.indicatorHeight
+            radius: Enums.radius.micro
+            animationEnabled: control.indicatorAnimationEnabled
+            // Outlined skins use the selected paper block instead of a second accent strip.
+            // 描边皮肤使用选中纸面块，不再叠加第二条强调指示线。
+            visible: !Enums.hasOutlinedSurfaces && control._indicatorVisible
+            // Track the selected item's scroll fade; the indicator sits outside
+            // the viewport, so without this it stays crisp against faded items.
+            // 跟随选中项的滚动渐隐；指示器在视口之外，否则会在渐隐项旁保持清晰。
+            opacity: control.indicatorOpacity
+        }
     }
     
     // Real-time indicator position tracking timer 实时指示器位置跟踪定时器
     NavigationIndicatorTrackerTimer {
         id: indicatorTracker
         host: control
-        indicator: indicatorLayer
+        indicator: navIndicator
     }
     
     // Stop tracking after scroll ends 滚动结束后停止跟踪

@@ -15,7 +15,9 @@ from prismqml import register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
-METRICS_SOURCE = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+METRICS_SOURCE = (
+    ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
+)
 LIST_ITEM_SOURCE = (
     ROOT
     / "prismqml"
@@ -128,7 +130,7 @@ def test_list_widget_reveal_uses_one_diameter_token():
         "Behavior on opacity", 1
     )[0]
 
-    assert "readonly property int listRevealDiameter: 120" in metrics_source
+    assert "listRevealDiameter: 120" in metrics_source
     assert "width: Enums.controlSize.listRevealDiameter" in reveal_props
     assert "height: width" in reveal_props
     assert "radius: width / 2" in reveal_props

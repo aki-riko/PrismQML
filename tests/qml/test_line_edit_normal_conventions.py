@@ -47,7 +47,7 @@ HIDE_TIMER_SOURCE_PATH = (
     / "_internal"
     / "LineEditNormalHideTimer.qml"
 )
-METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-normal-conventions.qml")
 )
@@ -386,7 +386,7 @@ def test_line_edit_normal_source_conventions_and_clear_button_token():
     assert "width: Enums.controlSize.lineEditClearButtonSize" in source
     assert "size: 20" not in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
-    assert "readonly property int lineEditClearButtonSize: 20" in metrics
+    assert "lineEditClearButtonSize: 20" in metrics
 
 
 def test_line_edit_normal_hide_timer_source_conventions():

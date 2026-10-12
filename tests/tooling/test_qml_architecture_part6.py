@@ -485,7 +485,9 @@ def test_selector_bar_keeps_delegates_and_pill_modularized():
 
 def test_selector_bar_colors_are_registered_tokens():
     state_color = _source("prismqml/PrismQML/PrismEnums/StateColor.qml")
-    metrics = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
+    metrics = _source(
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.js"
+    )
     state_source = state_color.read_text(encoding="utf-8")
     metrics_source = metrics.read_text(encoding="utf-8")
     item_source = _source(
@@ -516,8 +518,8 @@ def test_selector_bar_colors_are_registered_tokens():
         in state_source
     )
 
-    assert "readonly property int selectorBarHeight" in metrics_source
-    assert "readonly property int selectorBarMinItemWidth" in metrics_source
+    assert "selectorBarHeight:" in metrics_source
+    assert "selectorBarMinItemWidth:" in metrics_source
     assert "Enums.stateColor.selectorBarItemHover" in item_source
     assert "Enums.stateColor.selectorBarItemPressed" in item_source
     assert "Enums.controlSize.selectorBarHeight" in item_source

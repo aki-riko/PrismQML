@@ -295,49 +295,49 @@ def test_constants_keeps_theme_colors_modularized():
     assert "readonly property color tabSelectedLight" in helper_source
     assert "required property bool isDark" not in helper_source
 
-def _assert_constants_helper_contract(source, property_name, helper_name, needs_dark):
-    helper = _source(f"prismqml/PrismQML/PrismEnums/_internal/{helper_name}")
-    assert helper.exists()
-    helper_source = helper.read_text(encoding="utf-8")
-    helper_type = helper.stem
-
-    assert len(helper_source.splitlines()) < 60
-    assert (
-        f"readonly property QtObject {property_name}: "
-        f"ConstantsInternal.{helper_type}"
-    ) in source
-    assert (
-        f"readonly property QtObject {property_name}: QtObject {{"
-        not in source
-    )
-    assert ("required property bool isDark" in helper_source) is needs_dark
-    if needs_dark:
-        assert (
-            f"{property_name}: ConstantsInternal.{helper_type} {{\n"
-            "        isDark: root.isDark"
-        ) in source
-
-
-def test_constants_keeps_standalone_palettes_in_private_helpers():
+def test_constants_keeps_standalone_palettes_in_entry_object():
     entry = _source("prismqml/PrismQML/PrismEnums/Constants.qml")
+    helper = _source(
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsStaticData.js"
+    )
     source = entry.read_text(encoding="utf-8")
-    helpers = {
-        "neoColors": ("ConstantsNeoColors.qml", True),
-        "ticketColors": ("ConstantsTicketColors.qml", True),
-        "neumorphismColors": ("ConstantsNeumorphismColors.qml", True),
-        "semanticColors": ("ConstantsSemanticColors.qml", False),
-        "demoPalette": ("ConstantsDemoPalette.qml", False),
-        "colorPalette": ("ConstantsColorPalette.qml", False),
-        "colorPickerGradient": ("ConstantsColorPickerGradient.qml", False),
-    }
-
-    assert len(source.splitlines()) < 400
+    helper_source = helper.read_text(encoding="utf-8")
+    assert len(source.splitlines()) < 500
     assert 'import "_internal" as ConstantsInternal' in source
+    assert 'import "_internal/ConstantsStaticData.js" as ConstantsStaticData' in source
     assert "property alias" not in source
-    for property_name, (helper_name, needs_dark) in helpers.items():
-        _assert_constants_helper_contract(
-            source, property_name, helper_name, needs_dark
-        )
+    for property_name in ("neoColors", "ticketColors", "neumorphismColors"):
+        assert f"readonly property QtObject {property_name}: QtObject {{" in source
+        assert f"ConstantsInternal.Constants{property_name[0].upper()}{property_name[1:]}" not in source
+    for property_name, factory in (
+        ("semanticColors", "semanticColors"),
+        ("demoPalette", "demoPalette"),
+        ("colorPalette", "colorPalette"),
+        ("colorPickerGradient", "colorPickerGradient"),
+    ):
+        assert f"readonly property var {property_name}: ConstantsStaticData.{factory}()" in source
+        assert f"function {factory}()" in helper_source
+    assert ".pragma library" in helper_source
+
+
+def test_metrics_and_constants_do_not_add_qml_data_helpers():
+    removed_helpers = (
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsColorPalette.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsColorPickerGradient.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsDemoPalette.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsNeoColors.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsNeumorphismColors.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsSemanticColors.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsTicketColors.qml",
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.qml",
+    )
+    assert all(not _source(path).exists() for path in removed_helpers)
+    assert _source(
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.js"
+    ).exists()
+    assert _source(
+        "prismqml/PrismQML/PrismEnums/_internal/ConstantsStaticData.js"
+    ).exists()
 
 
 def test_metrics_keeps_shadow_logic_modularized():
@@ -401,25 +401,20 @@ def test_metrics_keeps_stepper_and_blur_tokens_modularized():
     for token in ("acrylic", "background", "light"):
         assert f"readonly property real {token}:" in blur_source
 
-def test_metrics_keeps_control_size_tokens_modularized():
+def test_metrics_keeps_control_size_tokens_in_entry_object():
     entry = _source("prismqml/PrismQML/PrismEnums/Metrics.qml")
     helper = _source(
-        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.qml"
+        "prismqml/PrismQML/PrismEnums/_internal/MetricsControlSize.js"
     )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
-
     assert len(source.splitlines()) < 700
-    assert helper.exists()
-    assert len(helper_source.splitlines()) < 250
     assert 'import "_internal" as MetricsInternal' in source
+    assert 'import "_internal/MetricsControlSize.js" as MetricsControlSize' in source
     assert (
-        "readonly property QtObject controlSize: MetricsInternal.MetricsControlSize {"
-        in source
-    )
-    assert "touchTargetFloor: root.touchTargetFloor" in source
-    assert "readonly property QtObject controlSize: QtObject {" not in source
-    assert "required property int touchTargetFloor" in helper_source
+        "readonly property var controlSize: "
+        "MetricsControlSize.create(root.touchTargetFloor)"
+    ) in source
     for token in (
         "buttonHeight",
         "inputHeight",
@@ -427,7 +422,7 @@ def test_metrics_keeps_control_size_tokens_modularized():
         "listItemHeight",
         "touchTargetFloor",
     ):
-        assert token in helper_source
+        assert f"{token}:" in helper_source
 
 def test_combo_box_core_keeps_visual_content_modularized():
     entry = _source("prismqml/PrismQML/controls/inputs/ComboBox/ComboBoxCore.qml")

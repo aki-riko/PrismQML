@@ -18,13 +18,12 @@ from windows_core_conventions_shared import (
     _dispose_scene,
 )
 
-CLOSE_CONTROLLER_PATH = (
-    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreCloseController.qml"
+CLOSE_LIFECYCLE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowsCoreCloseLifecycle.js"
 )
 
 def test_windows_core_source_conventions_and_timing_tokens():
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    close_controller_source = CLOSE_CONTROLLER_PATH.read_text(encoding="utf-8")
     frame_source = WINDOW_FRAME_PATH.read_text(encoding="utf-8")
     resize_timer_source = RESIZE_HANDLES_TIMER_PATH.read_text(encoding="utf-8")
     drag_handle_source = WINDOW_DRAG_HANDLE_PATH.read_text(encoding="utf-8")
@@ -49,25 +48,9 @@ def test_windows_core_source_conventions_and_timing_tokens():
     assert "window.showMaximized()" not in source
     assert "window.showNormal()" not in source
     assert "WindowsCoreFrame {" in source
-    assert "WindowsCoreCloseController {" in source
-    assert "hostWindow: window" in source
-    assert "frameLayer: windowFrameLayer" in source
-    assert "animationHelper: animHelper" in source
-    assert "transition: closeTransition" in source
-    assert "frameWaiter: closeFrameWaiter" in source
-    assert "property alias" not in close_controller_source
-    assert "WindowsCoreCloseController" not in (
-        ROOT / "prismqml" / "PrismQML" / "qmldir"
-    ).read_text(encoding="utf-8")
-    close_controller_violations = scan_source_text(
-        close_controller_source,
-        PurePosixPath(CLOSE_CONTROLLER_PATH.relative_to(ROOT).as_posix()),
-    )
-    assert [
-        violation
-        for violation in close_controller_violations
-        if violation.rule in {"QML008", "QML009"}
-    ] == []
+    assert "function _closeDesktopNotifications()" in source
+    assert "closeTransition.collapse(windowFrameLayer)" in source
+    assert "closeFrameWaiter.arm()" in source
     assert "WindowDragHandle {" not in source
     window_frame_index = frame_source.index("id: windowFrame")
     window_ticket_paper_index = frame_source.index(
@@ -110,7 +93,7 @@ def test_leaf_startup_diagnostics_do_not_attach_to_default_object_tree():
 
 def test_window_animation_helper_source_conventions_and_dead_paths():
     source = ANIMATION_HELPER_PATH.read_text(encoding="utf-8")
-    close_controller_source = CLOSE_CONTROLLER_PATH.read_text(encoding="utf-8")
+    close_lifecycle_source = CLOSE_LIFECYCLE_PATH.read_text(encoding="utf-8")
     close_frame_waiter_source = WINDOW_CLOSE_FRAME_WAITER_PATH.read_text(
         encoding="utf-8"
     )
@@ -150,14 +133,32 @@ def test_window_animation_helper_source_conventions_and_dead_paths():
     # 真机实测两处节奏完全相同。
     assert "coverDuration:" not in windows_core_source
     assert "coverEasing:" not in windows_core_source
-    assert "transition.collapse(frameLayer)" in close_controller_source
-    assert "frameLayer.visible = hostWindow._closeSourceWasVisible" in close_controller_source
-    assert "Qt.callLater(hostWindow._completeAcceptedClose)" in close_controller_source
+    assert "closeTransition.collapse(windowFrameLayer)" in windows_core_source
+    assert "windowFrameLayer.visible = _closeSourceWasVisible" in windows_core_source
+    assert "Qt.callLater(window._completeAcceptedClose)" in windows_core_source
     assert "function _handleCloseFrameEnd()" in windows_core_source
-    assert "function _handleCloseFrameEnd() {\n        closeController.handleCloseFrameEnd()" in windows_core_source
-    assert "frameWaiter.arm()" in close_controller_source
-    assert 'Qt.createComponent(Qt.resolvedUrl("DesktopNotificationCloser.qml"))' in (
-        close_controller_source
+    assert "function _handleCloseFrameEnd() {\n        if (!_closeCompletionPending) return" in windows_core_source
+    close_lifecycle_path = PurePosixPath(
+        CLOSE_LIFECYCLE_PATH.relative_to(ROOT).as_posix()
+    )
+    close_lifecycle_violations = scan_source_text(
+        close_lifecycle_source, close_lifecycle_path
+    )
+    assert [
+        violation
+        for violation in close_lifecycle_violations
+        if violation.rule in {"QML008", "QML009"}
+    ] == []
+    assert ".pragma library" in close_lifecycle_source
+    assert "function completeAcceptedClose(host, frameLayer, transition, animationHelper)" in (
+        close_lifecycle_source
+    )
+    assert "host.close()" in close_lifecycle_source
+    assert "host.hide()" in close_lifecycle_source
+    assert "transition.restoreHostWindow()" in close_lifecycle_source
+    assert "property alias" not in close_lifecycle_source
+    assert 'Qt.createComponent(Qt.resolvedUrl("_internal/DesktopNotificationCloser.qml"))' in (
+        windows_core_source
     )
     waiter_path = PurePosixPath(
         WINDOW_CLOSE_FRAME_WAITER_PATH.relative_to(ROOT).as_posix()
@@ -254,11 +255,8 @@ def test_windows_core_close_animates_in_overlay_window_not_by_dropping_dwm_effec
             f"{function_name} 又在动原生阴影: 那是真机实测过的闪烁源"
         )
         assert "MicaManager" not in body, f"{function_name} 又在动 Mica"
-    controller = CLOSE_CONTROLLER_PATH.read_text(encoding="utf-8")
-    for function_name in ("startAcceptedClose", "cancelRequest"):
-        body = controller.split(f"function {function_name}")[1].split(
-            "\n    function "
-        )[0]
+    for function_name in ("_startAcceptedClose", "_cancelCloseRequest"):
+        body = source.split(f"function {function_name}")[1].split("\n    function ")[0]
         assert "ShadowManager" not in body
         assert "MicaManager" not in body
 
@@ -299,11 +297,8 @@ def test_overlay_window_path_hides_host_and_restores_it_only_after_close():
         "function _restoreHostWindowAfterOverlay"
     )[0]
 
-    controller = CLOSE_CONTROLLER_PATH.read_text(encoding="utf-8")
-    completed = controller.split("function completeAcceptedClose")[1].split(
-        "function "
-    )[0]
-    close_index = completed.index("hostWindow.close()")
+    completed = CLOSE_LIFECYCLE_PATH.read_text(encoding="utf-8")
+    close_index = completed.index("host.close()")
     restore_index = completed.index("transition.restoreHostWindow()")
     assert close_index < restore_index, (
         "还原必须在 window.close() 之后, 否则会露出一帧完整的未收紧窗口"

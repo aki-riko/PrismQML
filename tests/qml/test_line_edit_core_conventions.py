@@ -37,7 +37,7 @@ SOURCE_PATH = (
     / "LineEditCore.qml"
 )
 VARIANTS_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "LineEditVariants.qml"
-METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-core-conventions.qml")
 )
@@ -402,5 +402,5 @@ def test_line_edit_core_source_conventions_and_width_tokens():
     assert "Enums.controlSize.lineEditLabelWidth" in source
     assert "Enums.controlSize.lineEditTagWidth" in source
     metrics = METRICS_PATH.read_text(encoding="utf-8")
-    assert "readonly property int lineEditLabelWidth: 250" in metrics
-    assert "readonly property int lineEditTagWidth: 300" in metrics
+    assert "lineEditLabelWidth: 250" in metrics
+    assert "lineEditTagWidth: 300" in metrics

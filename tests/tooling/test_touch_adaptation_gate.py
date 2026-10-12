@@ -23,7 +23,7 @@ QMLDIR = QML_ROOT / "qmldir"
 TOUCH_SINGLETON = QML_ROOT / "Touch.qml"
 METRICS_SOURCES = (
     QML_ROOT / "PrismEnums" / "Metrics.qml",
-    QML_ROOT / "PrismEnums" / "_internal" / "MetricsControlSize.qml",
+    QML_ROOT / "PrismEnums" / "_internal" / "MetricsControlSize.js",
 )
 
 HOVER_PATTERN = re.compile(
@@ -173,10 +173,8 @@ def test_interactive_metrics_keep_the_touch_floor():
     sources = [path.read_text(encoding="utf-8") for path in METRICS_SOURCES]
     for token in FLOORED_TOKENS:
         assert any(
-            re.search(
-                rf"readonly property int {token}: Math\.max\(\d+, (?:root\.|controlSize\.)?touchTargetFloor\)",
-                source,
-            )
+            re.search(rf"readonly property int {token}: Math\.max\(\d+, (?:root\.|controlSize\.)?touchTargetFloor\)", source)
+            or re.search(rf"\b{token}: Math\.max\(\d+, floor\)", source)
             for source in sources
         ), token
 

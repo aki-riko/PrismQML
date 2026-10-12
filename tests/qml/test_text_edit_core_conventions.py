@@ -38,7 +38,7 @@ SOURCE_PATH = (
     / "TextEdit"
     / "TextEditCore.qml"
 )
-METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "Metrics.qml"
+METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "text-edit-core-conventions.qml")
 )
@@ -376,4 +376,4 @@ def test_text_edit_core_source_conventions_and_tokens():
     assert "focusTarget: _isBrowser ? null : textEdit" in source
     assert "onTextEdited: control.textEdited()" in source
     assert "Enums.controlSize.textEditScrollThumbMinHeight" in source
-    assert "readonly property int textEditScrollThumbMinHeight: 20" in metrics
+    assert "textEditScrollThumbMinHeight: 20" in metrics

@@ -239,18 +239,12 @@ def test_data_widget_core_keeps_visual_content_modularized():
     helper = _source(
         "prismqml/PrismQML/controls/data/_internal/DataWidgetContent.qml"
     )
-    footer = _source(
-        "prismqml/PrismQML/controls/data/_internal/DataWidgetFooter.qml"
-    )
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
-    footer_source = footer.read_text(encoding="utf-8")
 
     assert len(source.splitlines()) < 250
     assert helper.exists()
-    assert len(helper_source.splitlines()) < 480
-    assert footer.exists()
-    assert len(footer_source.splitlines()) < 80
+    assert len(helper_source.splitlines()) < 500
     assert 'import "_internal"' in source
     assert "DataWidgetContent {" in source
     assert "required property var dataControl" in helper_source
@@ -259,10 +253,8 @@ def test_data_widget_core_keeps_visual_content_modularized():
     assert "contentLayer.needsVerticalScrollBar" in source
     assert "function createHorizontalScrollMixin()" in helper_source
     assert "horizontalScrollMixinComponent.createObject(contentArea)" in helper_source
-    assert "DataWidgetFooter {" in helper_source
-    assert "required property var dataControl" in footer_source
-    assert 'dataControl.footerText.replace("{count}", dataControl.itemCount)' in footer_source
-    assert "footerText.replace(\"{count}\", control.itemCount)" not in helper_source
+    assert "Rectangle {" in helper_source
+    assert 'footerText.replace("{count}", control.itemCount)' in helper_source
     assert "contentLayer.createHorizontalScrollMixin()" in source
     assert "RectangularShadow {" not in source
     assert "QtQ.ListView {" not in source
@@ -436,31 +428,59 @@ def test_navigation_panel_keeps_background_layer_modularized():
 
 def test_navigation_panel_keeps_indicator_layer_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
+    source = entry.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 500
+    assert 'import "_internal"' in source
+    assert "SlidingIndicator {" in source
+    assert "id: indicatorClip" in source
+    assert "id: navIndicator" in source
+    assert "clip: true" in source
+    assert "control.indicatorClipBottom" in source
+    assert "Enums.zIndex.controlsAbove + 1" in source
+
+def test_navigation_panel_keeps_pure_logic_in_private_script():
+    entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
     helper = _source(
-        "prismqml/PrismQML/navigation/_internal/NavigationPanelIndicatorLayer.qml"
+        "prismqml/PrismQML/navigation/_internal/NavigationPanelLogic.js"
     )
-    qmldir = _source("prismqml/PrismQML/navigation/qmldir")
     source = entry.read_text(encoding="utf-8")
     helper_source = helper.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 470
+    assert len(source.splitlines()) < 500
     assert helper.exists()
-    assert len(helper_source.splitlines()) < 100
-    assert 'import "_internal"' in source
-    assert "NavigationPanelIndicatorLayer {" in source
-    assert "host: control" in source
-    assert "SlidingIndicator {" not in source
-    assert "NavigationPanelIndicatorLayer" not in qmldir.read_text(encoding="utf-8")
-    assert "required property var host" in helper_source
-    assert "property alias" not in helper_source
-    assert "readonly property bool running: indicator.running" in helper_source
-    assert "function setGeometry(rect)" in helper_source
-    assert "function startAnimation(startRect, endRect)" in helper_source
-    assert "function stopAnimation()" in helper_source
-    assert "clip: true" in helper_source
-    assert "host.indicatorClipBottom" in helper_source
-    assert "Enums.zIndex.controlsAbove + 1" in helper_source
-    assert "indicator: indicatorLayer" in source
+    assert len(helper_source.splitlines()) < 120
+    assert helper_source.startswith("// Copyright 2026 aki-riko")
+    assert ".pragma library" in helper_source
+    assert 'import "_internal/NavigationPanelLogic.js" as NavigationPanelLogic' in source
+    for function in (
+        "isNavigationItemVisible",
+        "createItem",
+        "routeMapFor",
+        "indexForKeyOrText",
+        "itemAt",
+        "bottomItemForKey",
+        "bottomIndexForKey",
+        "itemForKey",
+        "indicatorRect",
+    ):
+        assert f"function {function}(" in helper_source
+    for call in (
+        "NavigationPanelLogic.createItem(",
+        "NavigationPanelLogic.routeMapFor(items)",
+        "NavigationPanelLogic.itemAt(",
+        "NavigationPanelLogic.bottomItemForKey(",
+        "NavigationPanelLogic.bottomIndexForKey(",
+        "NavigationPanelLogic.itemForKey(",
+        "NavigationPanelLogic.indicatorRect(",
+    ):
+        assert call in source
+    assert "Qt.callLater" not in helper_source
+    assert "startAnimation(" not in helper_source
+    assert "property alias" not in source
+    assert "NavigationPanelLogic" not in _source(
+        "prismqml/PrismQML/navigation/qmldir"
+    ).read_text(encoding="utf-8")
 
 def test_navigation_panel_keeps_indicator_timers_modularized():
     entry = _source("prismqml/PrismQML/navigation/NavigationPanelCore.qml")
@@ -491,8 +511,8 @@ def test_navigation_panel_keeps_indicator_timers_modularized():
     assert "id: indicatorTracker" in source
     assert "id: _scrollStopTimer" in source
     assert "id: _initTimer" in source
-    assert source.count("host: control") == 3
-    assert "indicator: indicatorLayer" in source
+    assert source.count("host: control") == 2
+    assert "indicator: navIndicator" in source
     assert "tracker: indicatorTracker" in source
     assert "required property var host" in tracker_source
     assert "required property var indicator" in tracker_source
