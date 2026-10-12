@@ -310,6 +310,7 @@ Item {
     onBoundaryGapChanged: _invalidateLineGeometry()
     onShowAreaGradientChanged: if (schedulerActive) canvas.requestPaint()
     onStackedChanged: _invalidateLineGeometry()
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -318,8 +319,6 @@ Item {
 
         lineControl: root
     }
-
-    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // Mouse area 鼠标区域
     MouseArea {

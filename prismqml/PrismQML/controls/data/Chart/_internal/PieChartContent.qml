@@ -117,6 +117,7 @@ Item {
     }
 
     onChartDataChanged: if (schedulerActive) canvas.requestPaint()
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -358,6 +359,4 @@ Item {
             }
         }
     }
-
-    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

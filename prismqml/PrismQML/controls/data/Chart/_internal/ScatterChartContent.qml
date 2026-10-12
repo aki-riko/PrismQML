@@ -230,6 +230,7 @@ Item {
     onSeriesChanged: _invalidatePointGeometry()
     onDataRangeChanged: _invalidatePointGeometry()
     onDefaultSymbolSizeChanged: if (schedulerActive) canvas.requestPaint()
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // ==================== Content 内容 ====================
     // Canvas 画布
@@ -420,6 +421,4 @@ Item {
             }
         }
     }
-
-    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }

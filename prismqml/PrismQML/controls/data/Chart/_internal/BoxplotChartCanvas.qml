@@ -16,6 +16,10 @@ Canvas {
     // ==================== Internal Props 内部属性 ====================
     property real animProgress: boxplotControl.animated ? 0 : 1
 
+    // ==================== Readonly State 只读状态 ====================
+    readonly property var control: boxplotControl
+
+    // ==================== Internal Methods 内部方法 ====================
     function syncSchedulerActive() {
         if (!control.schedulerActive) {
             if (chartAnimation.running) chartAnimation.pause()
@@ -26,10 +30,6 @@ Canvas {
         requestPaint()
     }
 
-    // ==================== Readonly State 只读状态 ====================
-    readonly property var control: boxplotControl
-
-    // ==================== Internal Methods 内部方法 ====================
     function paintVertical(ctx, dataLen, startIndex, endIndex) {
         var groupWidth = control._boxGeometryGroupSize
         var boxWidth = control._boxGeometrySize

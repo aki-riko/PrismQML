@@ -96,6 +96,16 @@ Item {
         _suppressSliderUpdate = false
     }
 
+    onSchedulerActiveChanged: {
+        if (!schedulerActive) {
+            _dragEndTimer.stop()
+            _dragging = false
+        } else if (thumbCanvas) {
+            _rebuildThumbnailFrame()
+            thumbCanvas.requestPaint()
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: control._panelRadius
@@ -209,15 +219,5 @@ Item {
         id: _dragEndTimer
 
         host: control
-    }
-
-    onSchedulerActiveChanged: {
-        if (!schedulerActive) {
-            _dragEndTimer.stop()
-            _dragging = false
-        } else if (thumbCanvas) {
-            _rebuildThumbnailFrame()
-            thumbCanvas.requestPaint()
-        }
     }
 }

@@ -188,6 +188,7 @@ Item {
     onHoveredIndexChanged: _requestHoverPaint()
     onBoxplotDataChanged: _invalidateBoxGeometry()
     onIsHorizontalChanged: _invalidateBoxGeometry()
+    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 
     // ==================== Content 内容 ====================
     BoxplotChartCanvas {
@@ -232,6 +233,4 @@ Item {
             }
         }
     }
-
-    onSchedulerActiveChanged: canvas.syncSchedulerActive()
 }
