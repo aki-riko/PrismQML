@@ -47,6 +47,9 @@ window.addPage(HiddenPage, "Page", "隐藏页面", position="bottom", visible=Fa
 - **系统托盘** — 见 [系统托盘](tray.md)
 - **启动画面** — `SplashScreen` 首屏就绪后自动淡出（默认挂载）
 
+懒加载页面的等待呈现可选环形（默认）与骨架屏，通过
+`ConfigManager.setLazyLoadingStyle(0/1)` 或窗口属性 `lazyLoadingStyle` 设置。
+
 ## Mica 与 Acrylic
 
 ### Mica（云母）

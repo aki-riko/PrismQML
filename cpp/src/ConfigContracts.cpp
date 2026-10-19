@@ -150,7 +150,8 @@ private:
             const QString key = readString();
             consume(':');
             if (key == QStringLiteral("DpiScale") ||
-                key == QStringLiteral("WindowType")) {
+                key == QStringLiteral("WindowType") ||
+                key == QStringLiteral("LazyLoadingStyle")) {
                 skipWhitespace();
                 const char value = peek();
                 const bool number = value == '-' || (value >= '0' && value <= '9');
@@ -312,6 +313,9 @@ QString resolveConfigFilePath(const QString &configured) {
 
 bool isValidDpiScale(int value) { return contains(kValidDpiScales, value); }
 bool isValidWindowType(int value) { return contains(kValidWindowTypes, value); }
+bool isValidLazyLoadingStyle(int value) {
+    return contains(kValidLazyLoadingStyles, value);
+}
 bool isValidTheme(const QString &value) { return containsString(kValidThemes, value); }
 bool isValidSkin(const QString &value) { return containsString(kValidSkins, value); }
 bool isValidLanguage(const QString &value) {
@@ -347,6 +351,12 @@ QVariantList dpiScaleOptions() {
 QVariantList windowTypeOptions() {
     QVariantList result;
     for (int value : kValidWindowTypes) result.append(value);
+    return result;
+}
+
+QVariantList lazyLoadingStyleOptions() {
+    QVariantList result;
+    for (int value : kValidLazyLoadingStyles) result.append(value);
     return result;
 }
 
@@ -389,7 +399,11 @@ ConfigLoadStatus readAppConfigState(const QString &path,
                             integerTokens, invalidField) &&
         readOptionalInteger(window, QStringLiteral("WindowType"),
                             candidate.window.windowType, kValidWindowTypes,
-                            integerTokens, invalidField);
+                            integerTokens, invalidField) &&
+        readOptionalInteger(window, QStringLiteral("LazyLoadingStyle"),
+                            candidate.window.lazyLoadingStyle,
+                            kValidLazyLoadingStyles, integerTokens,
+                            invalidField);
     const bool appearanceTyped =
         readOptionalString(appearance, QStringLiteral("Theme"),
                            candidate.appearance.theme, invalidField) &&

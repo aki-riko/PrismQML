@@ -49,6 +49,10 @@ window.addPage(HiddenPage, "Page", "Hidden page", position="bottom", visible=Fal
 - **System tray** — see [System Tray](tray.md)
 - **Splash screen** — `SplashScreen` auto-fades once the first frame is ready (mounted by default)
 
+The wait presentation for lazy-loaded pages is either the ring (default) or the
+skeleton, set through `ConfigManager.setLazyLoadingStyle(0/1)` or the window
+property `lazyLoadingStyle`.
+
 ## Mica and Acrylic
 
 ### Mica

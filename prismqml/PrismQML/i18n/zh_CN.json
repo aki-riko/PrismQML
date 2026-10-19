@@ -1173,5 +1173,7 @@
   "gallery_a00f295cfbb0b1b3": "日历",
   "gallery_af9996bc4d45ff49": "文件夹列表",
   "gallery_d6e61888b07853ea": "高级",
-  "gallery_498e1d59b4d787ee": "退出"
+  "gallery_498e1d59b4d787ee": "退出",
+  "gallery_199b07ee284d2126": "切换懒加载页面的等待呈现方式",
+  "gallery_a32d0d34c1d45e87": "加载样式"
 }

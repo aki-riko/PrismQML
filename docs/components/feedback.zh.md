@@ -128,6 +128,9 @@ Fluent.HintIcon {
 
 加载占位，支持 `shape_rounded` / `shape_rect` / `shape_circle`。
 
+懒加载等待指示 `QMLPage` 通过 `style` 属性选择展示形式：`Enums.lazyLoadingStyle.style_ring`
+（进度环，默认）或 `Enums.lazyLoadingStyle.style_skeleton`（骨架屏）。
+
 ## 皮肤适配
 
 新粗野下：进度条白轨道黑边 + 橙填充；InfoBar 白底黑边硬阴影 + 高饱和语义色条；Tooltip 黑边硬阴影。语义色（成功绿/危险红/警告琥珀）在 neo 下用高饱和版本。

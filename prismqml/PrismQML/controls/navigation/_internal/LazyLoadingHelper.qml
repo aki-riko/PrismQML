@@ -27,6 +27,7 @@ Item {
     // Axis of the slide / slide_fade overlay entrance 滑动覆盖层的入场轴向
     property int loadingAnimationOrientation: Qt.Horizontal
     property int loadingAnimationDuration: Enums.duration.medium
+    property int loadingStyle: Enums.lazyLoadingStyle.style_ring
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
 
     // ==================== Internal Props 内部属性 ====================
@@ -436,6 +437,7 @@ Item {
         width: parent ? parent.width : 0
         height: parent ? parent.height : 0
         text: helper.loadingText
+        style: helper.loadingStyle
         // Keep the loading surface transparent so the window Mica backdrop remains visible.
         // 保持加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent

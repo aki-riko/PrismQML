@@ -402,18 +402,9 @@ QtObject {
  }
 
  // ==================== Skeleton 骨架屏度量 ====================
- readonly property QtObject skeletonMetrics: QtObject {
- readonly property int rectWidth: 200
- readonly property int rectHeight: 16
- readonly property int circleSize: 48
- readonly property real shimmerWidthRatio: 0.5
- readonly property int shimmerDurationMs: 1500
- readonly property int shimmerPauseMs: 500
- readonly property real baseAlphaLight: 0.06
- readonly property real baseAlphaDark: 0.08
- readonly property real shimmerAlphaLight: 0.04
- readonly property real shimmerAlphaDark: 0.12
- }
+ // 骨架令牌拆到 _internal, 保持本文件在体积门禁之内。
+ // Skeleton tokens live in _internal to stay under the size gate.
+ readonly property QtObject skeletonMetrics: MetricsInternal.MetricsSkeleton {}
 
  // ==================== Stepper 步骤条度量 ====================
  readonly property QtObject stepper: MetricsInternal.MetricsStepper {}

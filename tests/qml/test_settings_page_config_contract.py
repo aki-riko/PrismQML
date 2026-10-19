@@ -33,20 +33,27 @@ class _ConfigManagerFixture(QObject):
     skinChanged = Signal()
     languageChanged = Signal()
     accentColorChanged = Signal()
+    lazyLoadingStyleChanged = Signal()
     persistencePendingChanged = Signal()
 
-    def __init__(self, *, accept_updates=True, dpi_options=None):
+    def __init__(self, *, accept_updates=True, dpi_options=None,
+                 lazy_style_options=None):
         super().__init__()
         self._accept_updates = accept_updates
         self._dpi_options = dpi_options or [200, 0, 125]
+        self._lazy_style_options = (
+            lazy_style_options if lazy_style_options is not None else [0, 1]
+        )
         self._window_type = 0
         self._dpi_scale = 0
         self._theme = "auto"
         self._skin = "fluent"
         self._language = "auto"
         self._accent_color = "#0e5a9c"
+        self._lazy_loading_style = 0
         self.window_calls = []
         self.dpi_calls = []
+        self.lazy_style_calls = []
 
     @Property(bool, notify=persistencePendingChanged)
     def persistencePending(self):
@@ -107,6 +114,22 @@ class _ConfigManagerFixture(QObject):
     @Slot(bool)
     def setLazyLoading(self, _value):
         pass
+
+    @Property("QVariantList", constant=True)
+    def lazyLoadingStyleOptions(self):
+        return self._lazy_style_options
+
+    @Property(int, notify=lazyLoadingStyleChanged)
+    def lazyLoadingStyle(self):
+        return self._lazy_loading_style
+
+    @Slot("QVariant")
+    def setLazyLoadingStyle(self, value):
+        self.lazy_style_calls.append(value)
+        if not self._accept_updates:
+            return
+        self._lazy_loading_style = value
+        self.lazyLoadingStyleChanged.emit()
 
     @Property(str, notify=themeChanged)
     def theme(self):
@@ -425,3 +448,51 @@ def test_gallery_defaults_theme_dpi_and_language_to_follow_system(qapp):
                 _assert_combo_index(card, entry, inner, 0)
     finally:
         theme_manager.setThemeFromQml(previous_theme)
+
+
+def _lazy_style_card(root):
+    style_card = root.findChild(QObject, "lazyLoadingStyleSettingsCard")
+    assert style_card is not None
+    return style_card
+
+
+def test_lazy_loading_style_card_persists_real_option_value(qapp):
+    # 选项顺序故意与取值错开：索引 1 的真实取值是 1，而不是原始下拉索引的想当然映射。
+    manager = _ConfigManagerFixture(lazy_style_options=[1, 0])
+    with _settings_page(manager, qapp) as root:
+        style_card = _lazy_style_card(root)
+        # 模型必须真实渲染出两个不同标签；若 Enums.lazyLoadingStyle 尚未落地，
+        # 绑定会报错并让模型退化为空值，这里必须直接失败而不是静默通过。
+        model = _to_variant(style_card.property("model"))
+        assert model is not None and len(model) == 2, model
+        assert model[0] != model[1], model
+        assert style_card.property("currentIndex") == 1
+
+        entry, inner = _activate_combo_index(style_card, 0)
+        qapp.processEvents()
+        assert manager.lazy_style_calls == [1]
+        assert manager.property("lazyLoadingStyle") == 1
+        _assert_combo_index(style_card, entry, inner, 0)
+
+        _emit_card_index_selected(style_card, -1)
+        _emit_card_index_selected(style_card, 2)
+        assert manager.lazy_style_calls == [1]
+
+    # 交换取值顺序后标签顺序必须同步反转，证明标签由真实取值映射而非下拉索引决定。
+    reversed_manager = _ConfigManagerFixture(lazy_style_options=[0, 1])
+    with _settings_page(reversed_manager, qapp) as root:
+        reversed_model = _to_variant(_lazy_style_card(root).property("model"))
+        assert reversed_model == [model[1], model[0]], (model, reversed_model)
+
+
+def test_lazy_loading_style_card_reverts_when_backend_rejects_update(qapp):
+    manager = _ConfigManagerFixture(accept_updates=False)
+    with _settings_page(manager, qapp) as root:
+        style_card = _lazy_style_card(root)
+        model = _to_variant(style_card.property("model"))
+        assert model is not None and len(model) == 2, model
+        entry, inner = _activate_combo_index(style_card, 1)
+
+        assert manager.lazy_style_calls == [1]
+        assert manager.property("lazyLoadingStyle") == 0
+        _assert_combo_index(style_card, entry, inner, 0)

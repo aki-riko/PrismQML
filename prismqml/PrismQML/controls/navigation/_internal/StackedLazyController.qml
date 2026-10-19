@@ -87,6 +87,7 @@ Item {
         item.targetIndex = Qt.binding(function() { return host.currentIndex })
         item.currentVisibleIndex = Qt.binding(function() { return host._displayIndex })
         item.loadingText = Qt.binding(function() { return host.loadingText })
+        item.loadingStyle = Qt.binding(function() { return host.lazyLoadingStyle })
         // The loading overlay is part of the lazy transition, not the regular
         // page switch. Keep it stationary so slide/fade cannot run alongside
         // the circle collapse/reveal.

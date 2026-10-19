@@ -67,6 +67,8 @@ static QJsonObject validWindow() {
         {QStringLiteral("MicaEnabled"), false},
         {QStringLiteral("DpiScale"), 150},
         {QStringLiteral("WindowType"), 2},
+        // applyAllChanges 把 lazyLoadingStyle 从出厂默认 0 改成 1。
+        {QStringLiteral("LazyLoadingStyle"), 1},
     };
 }
 
@@ -95,7 +97,8 @@ static QJsonObject invalidAppearance(const QString &field,
 static bool hasDefaults(const ConfigManager &config) {
     return config.lazyLoading() && config.dwmShadow() &&
            config.micaEnabled() && config.dpiScale() == 0 &&
-           config.windowType() == 1 && config.theme() == QStringLiteral("auto") &&
+           config.windowType() == 1 && config.lazyLoadingStyle() == 0 &&
+           config.theme() == QStringLiteral("auto") &&
            config.skin() == QStringLiteral("fluent") &&
            config.language() == QStringLiteral("auto") &&
            config.accentColor() == QStringLiteral("#0e5a9c");
@@ -104,6 +107,7 @@ static bool hasDefaults(const ConfigManager &config) {
 struct SignalCounts {
     int config = 0;
     int lazy = 0;
+    int style = 0;
     int shadow = 0;
     int mica = 0;
     int dpi = 0;
@@ -115,8 +119,8 @@ struct SignalCounts {
     bool committedBeforeNotify = true;
 
     int properties() const {
-        return lazy + shadow + mica + dpi + window + theme + skin + language +
-               accent;
+        return lazy + style + shadow + mica + dpi + window + theme + skin +
+               language + accent;
     }
 };
 
@@ -148,6 +152,11 @@ static void observeSignals(ConfigManager &config, const QString &path,
     QObject::connect(&config, &ConfigManager::lazyLoadingChanged, [&]() {
         ++counts.lazy; counts.committedBeforeNotify &=
             !config.lazyLoading() && !readWindow(path).value("LazyLoading").toBool(true);
+    });
+    QObject::connect(&config, &ConfigManager::lazyLoadingStyleChanged, [&]() {
+        ++counts.style; counts.committedBeforeNotify &=
+            config.lazyLoadingStyle() == 1 &&
+            readWindow(path).value("LazyLoadingStyle").toInt() == 1;
     });
     QObject::connect(&config, &ConfigManager::dwmShadowChanged, [&]() {
         ++counts.shadow; counts.committedBeforeNotify &=
@@ -194,6 +203,7 @@ static void observeSignals(ConfigManager &config, const QString &path,
 
 static void applyAllChanges(ConfigManager &config) {
     config.setLazyLoading(false);
+    config.setLazyLoadingStyle(1);
     config.setDwmShadow(false);
     // MicaEnabled 的出厂默认已是 true, 这里必须写成 false 才是真实变更 (镜像 Python 默认)。
     config.setMicaEnabled(false);
@@ -203,7 +213,7 @@ static void applyAllChanges(ConfigManager &config) {
     config.setSkin(QStringLiteral("neobrutalism"));
     config.setLanguage(QStringLiteral("en"));
     config.setAccentColor(QStringLiteral("#e81123"));
-    CHECK(config.waitForPersistence(), "九个 setter 后后台持久化完成");
+    CHECK(config.waitForPersistence(), "十个 setter 后后台持久化完成");
 }
 
 static void testPathResolution(const QTemporaryDir &directory,
@@ -228,6 +238,7 @@ static void testValidLoad(const QTemporaryDir &directory) {
     CHECK(!config.lazyLoading() &&
               !config.dwmShadow() && !config.micaEnabled() &&
               config.dpiScale() == 150 && config.windowType() == 2 &&
+              config.lazyLoadingStyle() == 1 &&
               config.theme() == QStringLiteral("dark") &&
               config.skin() == QStringLiteral("neobrutalism") &&
               config.language() == QStringLiteral("en") &&
@@ -247,6 +258,7 @@ static void testLegacyWindowLoad(const QTemporaryDir &directory) {
     ConfigManager config(path);
     CHECK(!config.lazyLoading() && !config.dwmShadow() && !config.micaEnabled() &&
               config.dpiScale() == 150 && config.windowType() == 2 &&
+              config.lazyLoadingStyle() == 1 &&
               config.theme() == QStringLiteral("auto") &&
               config.skin() == QStringLiteral("fluent") &&
               config.language() == QStringLiteral("auto") &&
@@ -306,6 +318,21 @@ static void testInvalidFieldLoads(const QTemporaryDir &directory) {
                      invalidWindow(QStringLiteral("DpiScale"), true),
                      "写入 bool DPI 真实 JSON",
                      "bool DPI 使整份加载回退默认状态");
+    testRejectedLoad(
+        directory.filePath(QStringLiteral("invalid-lazy-style/app.json")),
+        invalidWindow(QStringLiteral("LazyLoadingStyle"), 7),
+        "写入非法懒加载展示形式真实 JSON",
+        "非法 LazyLoadingStyle 使整份加载回退默认状态");
+    testRejectedLoad(
+        directory.filePath(QStringLiteral("negative-lazy-style/app.json")),
+        invalidWindow(QStringLiteral("LazyLoadingStyle"), -1),
+        "写入负数懒加载展示形式真实 JSON",
+        "LazyLoadingStyle=-1 使整份加载回退默认状态");
+    testRejectedLoad(
+        directory.filePath(QStringLiteral("string-lazy-style/app.json")),
+        invalidWindow(QStringLiteral("LazyLoadingStyle"), QStringLiteral("1")),
+        "写入字符串懒加载展示形式真实 JSON",
+        "LazyLoadingStyle 类型错误不留下部分加载状态");
     testRejectedLoad(directory.filePath(QStringLiteral("array-dpi/app.json")),
                      invalidWindow(QStringLiteral("DpiScale"), QJsonArray{150}),
                      "写入容器 DPI 真实 JSON",
@@ -371,8 +398,9 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     applyAllChanges(config);
     CHECK(readWindow(path) == validWindow() &&
               readAppearance(path) == validAppearance(),
-           "九个 setter 原子保存完整窗口与外观候选状态");
-    CHECK(counts.config == 9 && counts.lazy == 1 && counts.shadow == 1 &&
+           "十个 setter 原子保存完整窗口与外观候选状态");
+    CHECK(counts.config == 10 && counts.lazy == 1 && counts.style == 1 &&
+              counts.shadow == 1 &&
               counts.mica == 1 && counts.dpi == 1 && counts.window == 1 &&
               counts.theme == 1 && counts.skin == 1 && counts.language == 1 &&
               counts.accent == 1,
@@ -382,14 +410,17 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     CHECK(!reloaded.lazyLoading() && !reloaded.dwmShadow() &&
               !reloaded.micaEnabled() && reloaded.dpiScale() == 150 &&
               reloaded.windowType() == 2 &&
+              reloaded.lazyLoadingStyle() == 1 &&
               reloaded.theme() == QStringLiteral("dark") &&
               reloaded.skin() == QStringLiteral("neobrutalism") &&
               reloaded.language() == QStringLiteral("en") &&
               reloaded.accentColor() == QStringLiteral("#e81123"),
-          "重新构造 C++ ConfigManager 后恢复九项持久化状态");
+          "重新构造 C++ ConfigManager 后恢复十项持久化状态");
     config.setDpiScale(999);
     config.setWindowType(3);
     config.setWindowType(99);
+    config.setLazyLoadingStyle(7);
+    config.setLazyLoadingStyle(-1);
     config.setTheme(QStringLiteral("sepia"));
     config.setSkin(QStringLiteral("classic"));
     config.setLanguage(QStringLiteral("xx"));
@@ -397,7 +428,7 @@ static void testSuccessfulCommit(const QTemporaryDir &directory) {
     // 非法值 + 相同值: micaEnabled 已是 false, 再写 false 属相同值, 不得保存或发信号。
     config.setMicaEnabled(false);
     CHECK(config.waitForPersistence(), "保存失败队列已结算");
-    CHECK(counts.config == 9 && counts.properties() == 9,
+    CHECK(counts.config == 10 && counts.properties() == 10,
           "非法值和相同值均不保存也不发信号");
 }
 
@@ -424,7 +455,7 @@ static void testEphemeralAppearanceIgnoresSharedSkin(
     ConfigManager config(path, false);
     CHECK(!config.lazyLoading() && !config.dwmShadow() &&
               !config.micaEnabled() && config.dpiScale() == 150 &&
-              config.windowType() == 2,
+              config.windowType() == 2 && config.lazyLoadingStyle() == 1,
           "禁用外观持久化仍恢复 Window 配置");
     CHECK(config.theme() == QStringLiteral("auto") &&
               config.skin() == QStringLiteral("fluent") &&
@@ -478,7 +509,7 @@ static void testBlockedParent(const QTemporaryDir &directory) {
     SignalCounts counts;
     observeSignals(config, path, counts);
     applyAllChanges(config);
-    CHECK(hasDefaults(config), "父路径为普通文件时九个 setter 均不提交");
+    CHECK(hasDefaults(config), "父路径为普通文件时十个 setter 均不提交");
     CHECK(counts.config == 0 && counts.properties() == 0,
           "真实保存失败不泄露任何成功信号");
     QFile unchanged(blocker);

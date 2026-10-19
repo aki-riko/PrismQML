@@ -17,6 +17,7 @@ struct WindowConfigState {
     bool micaEnabled = true;
     int dpiScale = 0;
     int windowType = 1;
+    int lazyLoadingStyle = 0;
 };
 
 struct AppearanceConfigState {

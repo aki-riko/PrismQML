@@ -17,6 +17,7 @@ Item {
     property int animationOrientation: Qt.Horizontal
     property int animationOrigin: Enums.animation.origin_auto
     property int lazyAnimationType: Enums.lazyAnimation.lazy_circle
+    property int lazyLoadingStyle: Enums.lazyLoadingStyle.style_ring
     property int animationDuration: Enums.duration.slow
     property int lazyActivationDelay: Enums.duration.none
     property bool animationEnabled: true
@@ -161,6 +162,7 @@ Item {
             "targetIndex": control.currentIndex,
             "currentVisibleIndex": control._displayIndex,
             "loadingText": control.loadingText,
+            "loadingStyle": control.lazyLoadingStyle,
             "loaderActivationDelay": control.lazyActivationDelay,
             "isPageLoadedFunc": control._isPageLoaded,
             "isPageLoadFailedFunc": control._isPageLoadFailedFunc,

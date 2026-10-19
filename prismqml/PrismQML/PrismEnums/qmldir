@@ -16,6 +16,7 @@ Notification Notification.qml
 Slider Slider.qml
 Animation Animation.qml
 LazyAnimation LazyAnimation.qml
+LazyLoadingStyle LazyLoadingStyle.qml
 Input Input.qml
 Scroll Scroll.qml
 ComboBox ComboBox.qml

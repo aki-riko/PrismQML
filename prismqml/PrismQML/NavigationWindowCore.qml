@@ -29,6 +29,7 @@ WindowsCore {
     property bool micaEnabled: false
     property bool lazyLoading: false
     property int lazyAnimationType: Enums.lazyAnimation.lazy_circle
+    property int lazyLoadingStyle: Enums.lazyLoadingStyle.style_ring
     property string loadingText: { Translator._v; return Translator.tr("loading") }
     property bool splashEnabled: true  // Enable the shared startup overlay 启用通用启动覆盖层
     property string splashIcon: ""  // Empty inherits windowIcon 空值继承窗口图标

@@ -139,6 +139,10 @@ Fluent.HintIcon {
 
 Loading placeholder, supports `shape_rounded` / `shape_rect` / `shape_circle`.
 
+The lazy-loading wait indicator `QMLPage` selects its presentation through the
+`style` property: `Enums.lazyLoadingStyle.style_ring` (progress ring, default)
+or `Enums.lazyLoadingStyle.style_skeleton` (skeleton screen).
+
 ## Skin adaptation
 
 Under neo: progress bar has a white track with black border + orange fill; InfoBar is white with black border, hard shadow + high-saturation status bar; Tooltip gets a black border + hard shadow. Status colors (success green / danger red / warning amber) use high-saturation versions under neo.

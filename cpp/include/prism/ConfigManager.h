@@ -27,6 +27,10 @@ class ConfigManager : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool lazyLoading READ lazyLoading NOTIFY lazyLoadingChanged)
+    Q_PROPERTY(int lazyLoadingStyle READ lazyLoadingStyle
+               NOTIFY lazyLoadingStyleChanged)
+    Q_PROPERTY(QVariantList lazyLoadingStyleOptions
+               READ lazyLoadingStyleOptions CONSTANT)
     Q_PROPERTY(bool dwmShadow READ dwmShadow NOTIFY dwmShadowChanged)
     Q_PROPERTY(int dpiScale READ dpiScale NOTIFY dpiScaleChanged)
     Q_PROPERTY(QVariantList dpiScaleOptions READ dpiScaleOptions CONSTANT)
@@ -59,6 +63,8 @@ public:
 
     // ---- 属性读取 (默认值镜像 Python app_config.py) ----
     bool lazyLoading() const { return m_state.lazyLoading; }
+    int lazyLoadingStyle() const { return m_state.lazyLoadingStyle; }
+    QVariantList lazyLoadingStyleOptions() const;
     bool dwmShadow() const { return m_state.dwmShadow; }
     int dpiScale() const { return m_state.dpiScale; }
     QVariantList dpiScaleOptions() const;
@@ -78,6 +84,7 @@ public:
 public slots:
     // ---- QML 可调用 setter (镜像 Python @Slot) ----
     void setLazyLoading(bool value);
+    void setLazyLoadingStyle(const QVariant &value);
     void setDwmShadow(bool value);
     void setDpiScale(const QVariant &value);
     void setMicaEnabled(bool value);
@@ -93,6 +100,7 @@ public slots:
 signals:
     void configChanged();
     void lazyLoadingChanged();
+    void lazyLoadingStyleChanged();
     void dwmShadowChanged();
     void dpiScaleChanged();
     void micaEnabledChanged();
@@ -110,6 +118,9 @@ private:
         bool micaEnabled = true;
         int dpiScale = 0;
         int windowType = 1;
+        // 字段顺序必须与 detail::WindowConfigState 一致: load() 按位置聚合初始化。
+        // Field order must mirror detail::WindowConfigState for positional init.
+        int lazyLoadingStyle = 0;
         QString theme = QStringLiteral("auto");
         QString skin = QStringLiteral("fluent");
         QString language = QStringLiteral("auto");
@@ -118,6 +129,7 @@ private:
 
     enum class Field {
         LazyLoading,
+        LazyLoadingStyle,
         DwmShadow,
         MicaEnabled,
         DpiScale,
@@ -172,7 +184,7 @@ private:
     std::optional<ActiveWrite> m_activeWrite;
     QFutureWatcher<bool> m_persistenceWatcher;
     PersistenceWriter m_persistenceWriter;
-    std::array<quint64, 9> m_runtimeOverrides{};
+    std::array<quint64, 10> m_runtimeOverrides{};
     quint64 m_runtimeRequestId = 0;
 };
 

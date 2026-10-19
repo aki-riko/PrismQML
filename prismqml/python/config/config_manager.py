@@ -55,6 +55,7 @@ class ConfigManager(QObject):
     
     configChanged = Signal()
     lazyLoadingChanged = Signal()
+    lazyLoadingStyleChanged = Signal()
     dwmShadowChanged = Signal()
     dpiScaleChanged = Signal()
     micaEnabledChanged = Signal()
@@ -163,6 +164,9 @@ class ConfigManager(QObject):
     def _connect_config_signals(self):
         """Forward entry changes through the public QML signals. 转发配置信号。"""
         self._cfg.lazy_loading.valueUpdated.connect(self.lazyLoadingChanged)
+        self._cfg.lazy_loading_style.valueUpdated.connect(
+            self.lazyLoadingStyleChanged
+        )
         self._cfg.dwm_shadow.valueUpdated.connect(self.dwmShadowChanged)
         self._cfg.dpi_scale.valueUpdated.connect(self.dpiScaleChanged)
         self._cfg.mica_enabled.valueUpdated.connect(self.micaEnabledChanged)
@@ -435,6 +439,25 @@ class ConfigManager(QObject):
             warning(f"拒绝无效 windowType Invalid windowType rejected: {value!r}")
             return
         self._set_value(self._cfg.window_type, value)
+
+    @Property(int, notify=lazyLoadingStyleChanged)
+    def lazyLoadingStyle(self) -> int:
+        return self._cfg.get(self._cfg.lazy_loading_style)
+
+    @Property("QVariantList", constant=True)
+    def lazyLoadingStyleOptions(self):
+        return self._cfg.lazy_loading_style.options
+
+    @Slot("QVariant")
+    def setLazyLoadingStyle(self, value):
+        debug(f"setLazyLoadingStyle: {value}")
+        if not self._cfg.lazy_loading_style.validator.accepts(value):
+            warning(
+                f"拒绝无效 lazyLoadingStyle Invalid lazyLoadingStyle rejected: "
+                f"{value!r}"
+            )
+            return
+        self._set_value(self._cfg.lazy_loading_style, value)
 
     @Property(str, notify=themeChanged)
     def theme(self) -> str:

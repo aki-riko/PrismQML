@@ -119,6 +119,7 @@ Item {
     readonly property alias slider: _slider
     readonly property alias animation: _animation
     readonly property alias lazyAnimation: _lazyAnimation
+    readonly property alias lazyLoadingStyle: _lazyLoadingStyle
     readonly property alias input: _input
     readonly property alias scroll: _scroll
     readonly property alias comboBox: _comboBox
@@ -345,6 +346,7 @@ Item {
     Slider { id: _slider }
     Animation { id: _animation }
     LazyAnimation { id: _lazyAnimation }
+    LazyLoadingStyle { id: _lazyLoadingStyle }
     Input { id: _input }
     Scroll { id: _scroll }
     ComboBox { id: _comboBox }

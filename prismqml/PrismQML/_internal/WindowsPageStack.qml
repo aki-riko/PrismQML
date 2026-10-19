@@ -70,6 +70,10 @@ Item {
         lazyAnimationType: root.host
             && typeof root.host.lazyAnimationType === "number"
                 ? root.host.lazyAnimationType : Enums.lazyAnimation.lazy_circle
+        lazyLoadingStyle: root.host
+            && typeof root.host.lazyLoadingStyle === "number"
+                ? root.host.lazyLoadingStyle
+                : Enums.lazyLoadingStyle.style_ring
         _pythonPageMode: root.host ? root.host._pythonPageMode : false
         // Bind host.currentIndex to stack.currentIndex in one direction.
         // 单向绑定 host.currentIndex 到 stack.currentIndex；内部显示由 _displayIndex 驱动。
@@ -121,6 +125,10 @@ Item {
             backgroundColor: Enums.transparent
             running: visible && !finishing
             text: root.overlayText
+            style: root.host
+                && typeof root.host.lazyLoadingStyle === "number"
+                    ? root.host.lazyLoadingStyle
+                    : Enums.lazyLoadingStyle.style_ring
             Component.onCompleted: if (loading) start()
             onLoadingChanged: {
                 if (loading) start()

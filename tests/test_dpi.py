@@ -161,6 +161,7 @@ def test_apply_dpi_scale_rejects_valid_dpi_when_peer_window_field_is_invalid(
 def test_app_config_options_are_the_python_runtime_contract():
     assert AppConfig.dpi_scale.options == [0, 100, 125, 150, 175, 200]
     assert AppConfig.window_type.options == [0, 1, 2]
+    assert AppConfig.lazy_loading_style.options == [0, 1]
 
 
 def test_app_config_reuses_startup_schema_validators():
@@ -170,6 +171,9 @@ def test_app_config_reuses_startup_schema_validators():
         AppConfig.mica_enabled: _app_config_schema.MICA_ENABLED_VALIDATOR,
         AppConfig.dpi_scale: _app_config_schema.DPI_SCALE_VALIDATOR,
         AppConfig.window_type: _app_config_schema.WINDOW_TYPE_VALIDATOR,
+        AppConfig.lazy_loading_style: (
+            _app_config_schema.LAZY_LOADING_STYLE_VALIDATOR
+        ),
     }
     assert all(entry.validator is validator for entry, validator in validators.items())
 
@@ -207,6 +211,10 @@ def _read_cpp_int_array(symbol):
 def test_cpp_config_options_strictly_mirror_python_runtime_contract():
     assert _read_cpp_int_array("kValidDpiScales") == AppConfig.dpi_scale.options
     assert _read_cpp_int_array("kValidWindowTypes") == AppConfig.window_type.options
+    assert (
+        _read_cpp_int_array("kValidLazyLoadingStyles")
+        == AppConfig.lazy_loading_style.options
+    )
 
 
 def test_settings_page_maps_runtime_options_by_value_not_raw_index():

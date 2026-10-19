@@ -53,6 +53,7 @@ ${qml_component} {
     splashSubtitle: "${splash_subtitle}"
     startupProfilingVerbose: ${startup_profiling_verbose}
     lazyLoading: ${lazy_loading}
+    lazyLoadingStyle: ${lazy_loading_style}
     _pythonPageMode: true
     micaEnabled: ${mica_enabled}
 $indent
@@ -206,6 +207,19 @@ class WindowBuilderMixin:
             for index, item in enumerate(self._bottom_nav_items)
         ]
 
+    @staticmethod
+    def _resolve_lazy_loading_style(pending_props, get_config_manager=None) -> int:
+        """Resolve lazy-loading style from pending state then config. 先看 pending 覆盖再看配置。"""
+        if get_config_manager is None:
+            from ..runtime import get_config_manager as resolve_config_manager
+
+            get_config_manager = resolve_config_manager
+        return int(
+            pending_props.get(
+                "lazyLoadingStyle", get_config_manager().lazyLoadingStyle
+            )
+        )
+
     def _build_initial_window_properties(
         self,
         window_icon_qml: str,
@@ -227,6 +241,9 @@ class WindowBuilderMixin:
             "captionActionEnabled": bool(getattr(self, "_caption_action_enabled", True)),
             "startupProfilingVerbose": startup_profile_verbose,
             "lazyLoading": bool(self._lazy_loading),
+            "lazyLoadingStyle": self._resolve_lazy_loading_style(
+                self._pending_props
+            ),
             "_pythonPageMode": True,
             "micaEnabled": mica_enabled,
             "navigationItems": self._build_navigation_items_data(),
@@ -380,6 +397,48 @@ class WindowBuilderMixin:
             ]
         )
 
+    def _build_window_template_values(
+        self,
+        qml_dir: Path,
+        qml_component: str,
+        window_icon_qml: str,
+        startup_profile_verbose: bool,
+        mica_enabled: bool,
+        lazy_loading_style: int,
+    ) -> dict:
+        """Build identity and state Template values. 构建标识与状态模板值。"""
+        return {
+            "qml_dir": qml_dir.as_posix(),
+            "qml_component": qml_component,
+            "width": self._width,
+            "height": self._height,
+            "window_title": self._escape_qml(self._title),
+            "window_icon": self._escape_qml(window_icon_qml),
+            "window_icon_colored": "true" if self._icon_colored else "false",
+            "startup_profiling_verbose": (
+                "true" if startup_profile_verbose else "false"
+            ),
+            "lazy_loading": "true" if self._lazy_loading else "false",
+            "lazy_loading_style": int(lazy_loading_style),
+            "mica_enabled": "true" if mica_enabled else "false",
+        }
+
+    def _build_window_content_values(
+        self,
+        nav_items_qml: str,
+        bottom_items_qml: str,
+        pages_qml: str,
+    ) -> dict:
+        """Build navigation, page, caption and splash Template values. 构建导航、页面与标题栏/启动画面模板值。"""
+        return {
+            "nav_items": nav_items_qml,
+            "bottom_items": bottom_items_qml,
+            "pages": pages_qml,
+            "indent": "    ",
+            **build_caption_action_template_values(self, self._escape_qml),
+            **build_splash_template_values(self, self._escape_qml),
+        }
+
     def _render_window_qml(
         self,
         qml_dir: Path,
@@ -390,29 +449,28 @@ class WindowBuilderMixin:
         nav_items_qml: str,
         bottom_items_qml: str,
         pages_qml: str,
+        *,
+        lazy_loading_style: int = 0,
     ) -> str:
         """Render the generated root-window QML. 渲染生成的根窗口 QML。"""
         return _WINDOW_QML_TEMPLATE.substitute(
-            qml_dir=qml_dir.as_posix(),
-            qml_component=qml_component,
-            width=self._width,
-            height=self._height,
-            window_title=self._escape_qml(self._title),
-            window_icon=self._escape_qml(window_icon_qml),
-            window_icon_colored="true" if self._icon_colored else "false",
-            startup_profiling_verbose="true" if startup_profile_verbose else "false",
-            lazy_loading="true" if self._lazy_loading else "false",
-            mica_enabled="true" if mica_enabled else "false",
-            nav_items=nav_items_qml,
-            bottom_items=bottom_items_qml,
-            pages=pages_qml,
-            indent="    ",
-            **build_caption_action_template_values(self, self._escape_qml),
-            **build_splash_template_values(self, self._escape_qml),
+            **self._build_window_template_values(
+                qml_dir,
+                qml_component,
+                window_icon_qml,
+                startup_profile_verbose,
+                mica_enabled,
+                lazy_loading_style,
+            ),
+            **self._build_window_content_values(
+                nav_items_qml,
+                bottom_items_qml,
+                pages_qml,
+            ),
         )
 
     def _resolve_window_qml_state(self, icon_dir: Path, get_config_manager):
-        """Resolve root component, icon, and Mica state. 解析根窗口状态。"""
+        """Resolve root component, icon, Mica and style state. 解析根窗口状态。"""
         from .window_core import _WINDOW_TYPE_QML_NAMES
 
         qml_component = _WINDOW_TYPE_QML_NAMES.get(self._window_type, "WindowsBar")
@@ -424,7 +482,15 @@ class WindowBuilderMixin:
         mica_enabled = bool(
             self._pending_props.get("micaEnabled", get_config_manager().micaEnabled)
         )
-        return qml_component, window_icon_qml, mica_enabled
+        lazy_loading_style = self._resolve_lazy_loading_style(
+            self._pending_props, get_config_manager
+        )
+        return (
+            qml_component,
+            window_icon_qml,
+            mica_enabled,
+            lazy_loading_style,
+        )
 
     def _compose_window_qml(
         self,
@@ -439,7 +505,7 @@ class WindowBuilderMixin:
         bottom_items_qml = self._render_bottom_items_qml()
         pages_qml = self._render_page_containers_qml()
         profile("生成导航/页面 QML 数据")
-        qml_component, window_icon_qml, mica_enabled = (
+        qml_component, window_icon_qml, mica_enabled, lazy_loading_style = (
             self._resolve_window_qml_state(icon_dir, get_config_manager)
         )
         window_qml = self._render_window_qml(
@@ -451,6 +517,7 @@ class WindowBuilderMixin:
             nav_items_qml,
             bottom_items_qml,
             pages_qml,
+            lazy_loading_style=lazy_loading_style,
         )
         profile("拼接窗口 QML")
         return qml_dir, window_qml, qml_component, window_icon_qml, mica_enabled

@@ -262,6 +262,33 @@ Item {
                     }
                 }
 
+                // Lazy loading style 懒加载展示形式
+                SettingsCard {
+                    readonly property var styleValues:
+                        ConfigManager ? ConfigManager.lazyLoadingStyleOptions : []
+                    readonly property int styleIndex: ConfigManager
+                        ? styleValues.indexOf(ConfigManager.lazyLoadingStyle) : -1
+
+                    objectName: "lazyLoadingStyleSettingsCard"
+                    width: parent ? parent.width : 0
+                    title: Fluent.Translator.tr("gallery_a32d0d34c1d45e87", Fluent.Translator._v)
+                    content: Fluent.Translator.tr("gallery_199b07ee284d2126", Fluent.Translator._v)
+                    icon: iconPath("StyleGuide")
+                    type: Fluent.Enums.settingCard.type_combobox
+                    model: styleValues.map(function(value) {
+                        return value === Fluent.Enums.lazyLoadingStyle.style_skeleton
+                            ? Fluent.Translator.tr("gallery_76f59696529a636c", Fluent.Translator._v)
+                            : Fluent.Translator.tr("gallery_52c9fc80fca532de", Fluent.Translator._v)
+                    })
+                    currentIndex: styleIndex >= 0 ? styleIndex : 0
+                    onIndexSelected: function(idx) {
+                        if (ConfigManager && idx >= 0 &&
+                                idx < styleValues.length) {
+                            ConfigManager.setLazyLoadingStyle(styleValues[idx])
+                        }
+                    }
+                }
+
             }
             
         }

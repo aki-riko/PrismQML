@@ -342,6 +342,8 @@ void Window::build() {
                                        .arg(cfg->lazyLoading()
                                                  ? QStringLiteral("true")
                                                  : QStringLiteral("false"));
+    const QString lazyLoadingStyleQml =
+        QStringLiteral("    lazyLoadingStyle: %1\n").arg(cfg->lazyLoadingStyle());
     const QString micaQml = QStringLiteral("    micaEnabled: %1\n")
                                 .arg(cfg->micaEnabled() ? QStringLiteral("true") : QStringLiteral("false"));
     // shadowMode: dwmShadow=false → mode_none(3, 跨平台禁用); dwmShadow=true →
@@ -391,7 +393,8 @@ void Window::build() {
         m_captionActionEnabled ? QStringLiteral("true") : QStringLiteral("false")
     );
     const QString extraQml =
-        iconQml + captionActionQml + lazyLoadingQml + micaQml + shadowQml + splashQml;
+        iconQml + captionActionQml + lazyLoadingQml + lazyLoadingStyleQml +
+        micaQml + shadowQml + splashQml;
 
     const QString qml = QStringLiteral(
         "import QtQuick\n"

@@ -41,6 +41,46 @@ Item {
 }
 """
 
+# Skeleton display style. The style is an explicit public property, so the same
+# page component must serve both display forms.
+# 骨架展示形式。展示形式是显式公开属性，因此同一个页面组件必须服务两种形态。
+SKELETON_SOURCE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    property int skeletonStyle: Enums.lazyLoadingStyle.style_skeleton
+    property int ringStyle: Enums.lazyLoadingStyle.style_ring
+    property int minRows: Enums.skeletonMetrics.pageRowMinCount
+    property int maxRows: Enums.skeletonMetrics.pageRowMaxCount
+    width: 640
+    height: 480
+
+    QMLPage {
+        id: page
+        objectName: "qmlPage"
+        anchors.fill: parent
+        text: "Loading page"
+        backgroundColor: Enums.transparent
+        style: skeletonStyle
+    }
+}
+"""
+
+
+def _visual_descendants(item: QQuickItem) -> list[QQuickItem]:
+    """Every visual descendant, in tree order. 全部可视后代，按树序。
+
+    Repeater delegates are visual children of the Repeater's parent but carry a
+    different QObject parent, so findChildren cannot see them.
+    Repeater 委托是 Repeater 父项的可视子项，但其 QObject 父级不同，findChildren 看不到。
+    """
+    descendants: list[QQuickItem] = []
+    for child in item.childItems():
+        descendants.append(child)
+        descendants.extend(_visual_descendants(child))
+    return descendants
+
 
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
@@ -219,6 +259,69 @@ def test_qml_page_exit_watchdog_finishes_a_dropped_exit_callback(qapp):
         _pump(root.property("finishDuration") + root.property("normalDuration") + 60)
         assert finished == [True]
         assert page.property("visible") is False
+    finally:
+        root.deleteLater()
+        engine.deleteLater()
+
+
+def test_qml_page_skeleton_style_is_opt_in_and_lazy(qapp):
+    """骨架展示形式必须显式开启，并通过惰性 Loader 承载。
+
+    默认 ring 路径的对象数、布局与时序不得改变：骨架 Loader 在 ring 模式下不激活，
+    因此不会创建任何 Skeleton 对象。
+    """
+    engine = QQmlEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(SKELETON_SOURCE, QUrl("inline:qml-page-skeleton-test.qml"))
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create()
+    assert root is not None, [error.toString() for error in component.errors()]
+    try:
+        page = root.findChild(QQuickItem, "qmlPage")
+        assert page is not None
+        loader = page.findChild(QObject, "qmlPageSkeletonLoader")
+        assert loader is not None, "QMLPage must own a lazy skeleton Loader"
+        assert page.property("style") == root.property("skeletonStyle")
+
+        blocks = [
+            child
+            for child in _visual_descendants(page)
+            if child.metaObject().className().startswith("Skeleton")
+        ]
+        rows = [block for block in blocks if block.objectName() == "qmlPageSkeletonRow"]
+        assert loader.property("active") is True
+        assert rows
+        assert len(blocks) == len(rows) + 2
+        assert root.property("minRows") <= len(rows) <= root.property("maxRows")
+
+        # The ring branch is still present but must not animate in this mode.
+        # 环形分支仍然存在，但在本模式下不得动画。
+        assert page.findChild(QQuickItem, "qmlPageContent") is not None
+        ring = page.findChild(QQuickItem, "qmlPageProgressRing")
+        assert ring is not None
+        assert ring.property("paused") is True
+
+        # Switching back to the default style tears the skeleton objects down.
+        # 切回默认形式必须销毁骨架对象。
+        root.setProperty("skeletonStyle", root.property("ringStyle"))
+        _pump()
+        assert loader.property("active") is False
+        assert loader.property("item") is None
+        assert [
+            child
+            for child in _visual_descendants(page)
+            if child.metaObject().className().startswith("Skeleton")
+        ] == []
+        assert ring.property("paused") is False
     finally:
         root.deleteLater()
         engine.deleteLater()

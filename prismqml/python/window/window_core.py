@@ -381,6 +381,14 @@ class WindowCore(QObject, WindowBuilderMixin, PageManagerMixin, WindowCompatMixi
         self._lazy_loading = bool(enabled)
         self._set_window_property("lazyLoading", self._lazy_loading)
 
+    def setLazyLoadingStyle(self, style: int):
+        """设置懒加载展示形式（0=环形，1=骨架屏）。
+
+        与 setLazyLoading 不同，本方法不持有实例状态：值先经 _pending_props
+        缓存，构建期由 _window_builder 统一解析（pending 覆盖优先，其次配置）。
+        """
+        self._set_window_property("lazyLoadingStyle", int(style))
+
     # ==================== Splash 启动画面 ====================
 
     def setSplashEnabled(self, enabled: bool):

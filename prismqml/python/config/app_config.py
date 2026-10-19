@@ -69,6 +69,14 @@ class AppConfig(SettingsCore):
         restart=True,
     )
 
+    # Lazy loading style: 0=环形(现有形式), 1=骨架屏
+    lazy_loading_style: ClassVar[EnumEntry] = EnumEntry(
+        group="Window",
+        name="LazyLoadingStyle",
+        default=0,
+        validator=_schema.LAZY_LOADING_STYLE_VALIDATOR,
+    )
+
     # ── Appearance ──
     theme: ClassVar[EnumEntry] = EnumEntry(
         group="Appearance",

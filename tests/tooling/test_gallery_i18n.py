@@ -68,7 +68,8 @@ def test_gallery_catalogs_cover_every_supported_language():
     # 静态聊天组件展示页并入 AI 助手入口，移除其 9 条引用：931 - 9 = 922。
     # 重复空状态展示及其 5 条专用文案已移除：922 - 5 = 917。
     # Feedback 页重复对话框、桌面通知展示移除，但加载页/启动画面/提示图标保留：917 - 19 = 898。
-    assert gallery_i18n.validate_catalogs() == 898
+    # 设置页新增懒加载展示形式卡片（标题 + 说明）：898 + 2 = 900。
+    assert gallery_i18n.validate_catalogs() == 900
 
 
 def test_gallery_sources_have_no_inline_untranslated_literals():

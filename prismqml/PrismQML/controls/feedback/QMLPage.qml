@@ -4,6 +4,7 @@
 
 import "../.."
 import QtQuick  // Keep native types unprefixed after library import 库导入后保留原生类型无前缀
+import "_internal" as FeedbackInternal
 
 // QMLPage - Transparent lazy-loading wait indicator 透明懒加载等待指示页
 Item {
@@ -13,9 +14,14 @@ Item {
     property string text: { Translator._v; return Translator.tr("loading") }  // Loading message 加载提示
     property bool running: visible && !finishing    // Run animation while waiting 等待时运行动画
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
+    // Display style: ring or skeleton 展示形式: 进度环或骨架屏
+    property int style: Enums.lazyLoadingStyle.style_ring
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool finishing: _finishing     // Hiding the wait indicator 正在隐藏等待指示
+    // Skeleton display is opt-in; every other value keeps the ring path. 骨架展示为显式选择，其余取值一律保持环形路径。
+    readonly property bool _skeletonStyle: style === Enums.lazyLoadingStyle.style_skeleton
+    readonly property bool _ringStyle: !_skeletonStyle
 
     // ==================== Internal Props 内部属性 ====================
     property bool _finishing: false
@@ -29,6 +35,9 @@ Item {
         finishGuard.stop()
         control._finishing = false
         control.visible = true
+        // The skeleton Loader is bound to these two values, so it resets with
+        // them and needs no assignment of its own.
+        // 骨架 Loader 绑定在这两个值上，因此随之复位，无需单独赋值。
         contentColumn.opacity = Enums.opacityLevel.visible
         contentColumn.scale = Enums.opacityLevel.visible
     }
@@ -98,6 +107,12 @@ Item {
 
             objectName: "qmlPageContent"
             anchors.centerIn: parent
+            // The ring branch owns this column; the skeleton branch owns its own
+            // loader. In ring mode this is a constant true, so the wait indicator
+            // is laid out and painted exactly as before.
+            // 环形分支持有本列，骨架分支持有自己的加载器。环形模式下这里恒为 true，
+            // 等待指示的布局与绘制与改动前完全一致。
+            visible: control._ringStyle
             opacity: Enums.opacityLevel.visible
             scale: Enums.opacityLevel.visible
             transformOrigin: Item.Center
@@ -112,7 +127,7 @@ Item {
                 height: Enums.controlSize.navBarHeight
                 indeterminate: control.running
                 indeterminateStyle: Enums.progress.indeterminate_style_fixed_arc
-                paused: !control.running
+                paused: !control.running || !control._ringStyle
                 strokeWidth: Enums.controlSize.progressStrokeWidth
                 spinDuration: Enums.duration.scroll
                 trackColorLight: Enums.transparent
@@ -127,12 +142,37 @@ Item {
                 visible: control.text !== ""
             }
         }
+
+        // The skeleton branch reuses the ring branch's exit values by binding to
+        // them, so both display styles fade with the same duration and curve and
+        // the default path gains no second animation at all. In ring mode the
+        // Loader is inactive, so this writes properties on an invisible item and
+        // the rendered frames are unchanged.
+        // 骨架分支通过绑定复用环形分支的退场数值，两种展示形式因此淡出时长与曲线一致，
+        // 默认路径也完全不新增第二个动画。环形模式下该 Loader 未激活，这里只写不可见项
+        // 的属性，渲染帧不变。
+        Loader {
+            id: skeletonLoader
+
+            objectName: "qmlPageSkeletonLoader"
+            anchors.fill: parent
+            active: control._skeletonStyle
+            opacity: contentColumn.opacity
+            scale: contentColumn.scale
+            sourceComponent: FeedbackInternal.QMLPageSkeleton {
+                // Stay painted for the whole exit so the skeleton fades out with
+                // the same motion as the ring instead of blinking away.
+                // 整个退场期间保持绘制，骨架因此与环形一样淡出，不会瞬间消失。
+                loading: control.visible
+            }
+        }
     }
 
     SequentialAnimation {
         id: ringBreatheAnimation
 
         running: control.visible && !control.finishing && control.running
+            && control._ringStyle
         loops: Animation.Infinite
         onRunningChanged: {
             if (!running) progressRing.scale = Enums.opacityLevel.visible

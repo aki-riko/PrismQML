@@ -1173,5 +1173,7 @@
   "gallery_902b4f14042a75f3": "Reports",
   "gallery_a00f295cfbb0b1b3": "Calendar",
   "gallery_af9996bc4d45ff49": "Folders",
-  "gallery_d6e61888b07853ea": "Advanced"
+  "gallery_d6e61888b07853ea": "Advanced",
+  "gallery_a32d0d34c1d45e87": "Loading style",
+  "gallery_199b07ee284d2126": "Change how lazy-loaded pages present their wait state"
 }

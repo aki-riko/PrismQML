@@ -85,7 +85,8 @@ QByteArray fullWindowPayload(const QByteArray &dpiToken,
                "{\"Window\":{\"LazyLoading\":false,\"DwmShadow\":false,"
                "\"MicaEnabled\":true,\"DpiScale\":") +
            dpiToken + QByteArrayLiteral(",\"WindowType\":") +
-           windowTypeToken + QByteArrayLiteral("}}");
+           windowTypeToken +
+           QByteArrayLiteral(",\"LazyLoadingStyle\":1}}");
 }
 
 QByteArray fullWindowPayload(const QByteArray &dpiToken) {
@@ -120,7 +121,7 @@ QVariantList variantOptions(const std::array<int, Size> &values) {
 bool hasDefaults(const ConfigManager &config) {
     return config.lazyLoading() && config.dwmShadow() &&
            config.micaEnabled() && config.dpiScale() == 0 &&
-           config.windowType() == 1;
+           config.windowType() == 1 && config.lazyLoadingStyle() == 0;
 }
 
 }  // namespace
@@ -133,6 +134,12 @@ int runConfigStartupContractTests(const QString &rootPath) {
                  "DPI options 精确镜像共享候选顺序");
     checks.check(windowTypeOptions() == variantOptions(kValidWindowTypes),
                  "WindowType options 精确镜像共享候选顺序");
+    checks.check(lazyLoadingStyleOptions() == variantOptions(kValidLazyLoadingStyles),
+                 "LazyLoadingStyle options 精确镜像共享候选顺序");
+    checks.check(isValidLazyLoadingStyle(0) && isValidLazyLoadingStyle(1) &&
+                     !isValidLazyLoadingStyle(-1) && !isValidLazyLoadingStyle(2) &&
+                     !isValidLazyLoadingStyle(7),
+                 "LazyLoadingStyle 校验精确接受 0/1 并拒绝其它值");
     int integer = -1;
     checks.check(strictIntegerVariant(QVariant(150), integer) && integer == 150,
                  "严格 QVariant 边界接受原生 int");
@@ -182,6 +189,12 @@ int runConfigStartupContractTests(const QString &rootPath) {
         {QStringLiteral("invalid-bool-peer"), QByteArrayLiteral(
              "{\"Window\":{\"LazyLoading\":\"false\",\"DpiScale\":150,"
              "\"WindowType\":2}}")},
+        {QStringLiteral("invalid-lazy-style-peer"), QByteArrayLiteral(
+             "{\"Window\":{\"DpiScale\":150,\"WindowType\":2,"
+             "\"LazyLoadingStyle\":7}}")},
+        {QStringLiteral("fractional-lazy-style-peer"), QByteArrayLiteral(
+             "{\"Window\":{\"DpiScale\":150,\"WindowType\":2,"
+             "\"LazyLoadingStyle\":1.0}}")},
     };
     for (const StartupFallbackCase &testCase : fallbackCases) {
         const QString path = QDir(rootPath).filePath(
@@ -212,21 +225,25 @@ int runConfigParserContractTests(const QString &rootPath) {
     checks.check(writeBytes(escapedPath, QByteArrayLiteral(
         "{\"\\u0057indow\":{\"LazyLoading\":false,\"DwmShadow\":false,"
         "\"MicaEnabled\":true,\"Dpi\\u0053cale\":150,"
-        "\"Window\\u0054ype\":2}}")), "写入转义字段名 JSON");
+        "\"Window\\u0054ype\":2,\"LazyLoading\\u0053tyle\":1}}")),
+        "写入转义字段名 JSON");
     ConfigManager escaped(escapedPath);
     checks.check(!escaped.lazyLoading() && !escaped.dwmShadow() &&
                      escaped.micaEnabled() && escaped.dpiScale() == 150 &&
-                     escaped.windowType() == 2,
+                     escaped.windowType() == 2 &&
+                     escaped.lazyLoadingStyle() == 1,
                  "转义字段名按真实键严格加载");
 
     const QString duplicateValidPath =
         QDir(rootPath).filePath(QStringLiteral("parser-duplicate-valid/app.json"));
     checks.check(writeBytes(duplicateValidPath, QByteArrayLiteral(
         "{\"Window\":{\"DpiScale\":150.0,\"DpiScale\":125,"
-        "\"WindowType\":2}}")), "写入最后整数重复键 JSON");
+        "\"WindowType\":2,\"LazyLoadingStyle\":0,\"LazyLoadingStyle\":1}}")),
+        "写入最后整数重复键 JSON");
     ConfigManager duplicateValid(duplicateValidPath);
     checks.check(duplicateValid.dpiScale() == 125 &&
-                     duplicateValid.windowType() == 2,
+                     duplicateValid.windowType() == 2 &&
+                     duplicateValid.lazyLoadingStyle() == 1,
                  "重复键按最后整数词法和值加载");
 
     const QString duplicateInvalidPath =
@@ -237,6 +254,16 @@ int runConfigParserContractTests(const QString &rootPath) {
     ConfigManager duplicateInvalid(duplicateInvalidPath);
     checks.check(hasDefaults(duplicateInvalid),
                  "重复键最后为积分浮点时整份回退");
+
+    const QString duplicateStyleInvalidPath = QDir(rootPath).filePath(
+        QStringLiteral("parser-duplicate-style-invalid/app.json"));
+    checks.check(writeBytes(duplicateStyleInvalidPath, QByteArrayLiteral(
+        "{\"Window\":{\"LazyLoadingStyle\":1,\"LazyLoadingStyle\":1.0,"
+        "\"DpiScale\":125,\"WindowType\":2}}")),
+        "写入最后积分浮点重复懒加载展示形式 JSON");
+    ConfigManager duplicateStyleInvalid(duplicateStyleInvalidPath);
+    checks.check(hasDefaults(duplicateStyleInvalid),
+                 "LazyLoadingStyle 重复键最后为积分浮点时整份回退");
 
     const QString bomPath =
         QDir(rootPath).filePath(QStringLiteral("parser-bom/app.json"));

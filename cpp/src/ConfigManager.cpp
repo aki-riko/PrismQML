@@ -144,6 +144,10 @@ QVariantList ConfigManager::windowTypeOptions() const {
     return prism::windowTypeOptions();
 }
 
+QVariantList ConfigManager::lazyLoadingStyleOptions() const {
+    return prism::lazyLoadingStyleOptions();
+}
+
 QVariantList ConfigManager::themeOptions() const { return prism::themeOptions(); }
 QVariantList ConfigManager::skinOptions() const { return prism::skinOptions(); }
 QVariantList ConfigManager::languageOptions() const { return prism::languageOptions(); }
@@ -160,6 +164,7 @@ void ConfigManager::load() {
             m_state.micaEnabled,
             m_state.dpiScale,
             m_state.windowType,
+            m_state.lazyLoadingStyle,
         },
         {
             m_state.theme,
@@ -184,6 +189,7 @@ void ConfigManager::load() {
         candidate.window.micaEnabled,
         candidate.window.dpiScale,
         candidate.window.windowType,
+        candidate.window.lazyLoadingStyle,
         m_persistAppearance ? candidate.appearance.theme : m_state.theme,
         m_persistAppearance ? candidate.appearance.skin : m_state.skin,
         m_persistAppearance ? candidate.appearance.language : m_state.language,
@@ -199,6 +205,7 @@ QByteArray ConfigManager::serialize(const State &candidate,
     win[QStringLiteral("MicaEnabled")] = candidate.micaEnabled;
     win[QStringLiteral("DpiScale")] = candidate.dpiScale;
     win[QStringLiteral("WindowType")] = candidate.windowType;
+    win[QStringLiteral("LazyLoadingStyle")] = candidate.lazyLoadingStyle;
     QJsonObject root;
     root[QStringLiteral("Window")] = win;
     if (persistAppearance) {
@@ -226,6 +233,12 @@ bool ConfigManager::applyUpdate(State &candidate, const PendingUpdate &update) {
         const bool value = update.value.toBool();
         if (candidate.lazyLoading == value) return false;
         candidate.lazyLoading = value;
+        return true;
+    }
+    case Field::LazyLoadingStyle: {
+        const int value = update.value.toInt();
+        if (candidate.lazyLoadingStyle == value) return false;
+        candidate.lazyLoadingStyle = value;
         return true;
     }
     case Field::DwmShadow: {
@@ -396,6 +409,9 @@ void ConfigManager::publishCommittedField(Field field) {
     case Field::LazyLoading:
         emit lazyLoadingChanged();
         break;
+    case Field::LazyLoadingStyle:
+        emit lazyLoadingStyleChanged();
+        break;
     case Field::DwmShadow:
         emit dwmShadowChanged();
         break;
@@ -481,6 +497,17 @@ bool ConfigManager::waitForPersistence(int timeoutMs) {
 void ConfigManager::setLazyLoading(bool value) {
     if (!persistencePending() && m_state.lazyLoading == value) return;
     enqueueUpdate(Field::LazyLoading, value);
+}
+void ConfigManager::setLazyLoadingStyle(const QVariant &candidateValue) {
+    int value = 0;
+    if (!strictIntegerVariant(candidateValue, value) ||
+        !isValidLazyLoadingStyle(value)) {
+        qWarning() << "prism::ConfigManager 无效 lazyLoadingStyle:"
+                   << candidateValue;
+        return;
+    }
+    if (!persistencePending() && m_state.lazyLoadingStyle == value) return;
+    enqueueUpdate(Field::LazyLoadingStyle, value);
 }
 void ConfigManager::setDwmShadow(bool value) {
     if (!persistencePending() && m_state.dwmShadow == value) return;
