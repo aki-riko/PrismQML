@@ -20,6 +20,13 @@ QtObject {
     property int windowType: ConfigManager ? ConfigManager.windowType : Fluent.Enums.windowType.type_ms
     // Runtime changes apply after the next full restart. 运行时变更在下次完整启动后生效。
     property bool _startupLazyLoading: true
+    // The display style is bound straight to ConfigManager (like windowType and
+    // micaEnabled), so picking a style in the settings page takes effect on the
+    // next lazy page load instead of only after a restart.
+    // 展示形式直接绑定 ConfigManager(与 windowType/micaEnabled 同模式), 因此在设置页
+    // 选择后于下次懒加载页面加载时生效, 而不必重启。
+    readonly property int lazyLoadingStyle: ConfigManager
+        ? ConfigManager.lazyLoadingStyle : 0
     // ==================== Common Config 公共配置 ====================
     readonly property int windowWidth: 1200
     readonly property int windowHeight: 800
@@ -132,6 +139,7 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
+            lazyLoadingStyle: root.lazyLoadingStyle
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -162,6 +170,7 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
+            lazyLoadingStyle: root.lazyLoadingStyle
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
@@ -189,6 +198,7 @@ QtObject {
             shadowMode: root.shadowMode
             micaEnabled: root.micaEnabled
             lazyLoading: root.lazyLoading
+            lazyLoadingStyle: root.lazyLoadingStyle
             loadingText: root.loadingText
             splashSubtitle: root.splashSubtitle
             navigationItems: root.navItems
