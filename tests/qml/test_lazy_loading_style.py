@@ -16,7 +16,12 @@ import re
 
 import pytest
 from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QPointF, QTimer, QUrl
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+)
 from PySide6.QtQuick import QQuickItem
 
 from prismqml import register_types
@@ -802,6 +807,349 @@ def test_page_stack_falls_back_to_ring_without_a_host(qapp):
         # must still resolve to ring instead of raising a TypeError.
         # 宿主为 null，因此不可能请求骨架样式；覆盖层仍必须解析为 ring 而不是抛 TypeError。
         assert loader.property("item").property("style") == root.property("ringStyle")
+        assert warnings == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+# ==================== Skeleton style must not run the lazy circle ====================
+# 骨架屏样式不得运行懒加载圆圈
+
+# A real lazy switch: `lazyLoading` on with URL page sources, so the switch goes
+# through LazyLoadingHelper -> PageTransition exactly like a real host.
+# 真实懒加载切换: 开启 lazyLoading 并使用 URL 页面源, 因此切换与真实宿主一样走
+# LazyLoadingHelper -> PageTransition。
+LAZY_SWITCH_SCENE = b"""
+import QtQuick
+import PrismQML
+
+Window {
+    id: shell
+    objectName: "lazySwitchShell"
+    width: 640
+    height: 400
+    visible: true
+    color: "#101010"
+
+    StackedWidget {
+        id: stack
+        objectName: "lazySwitchStack"
+        anchors.fill: parent
+        lazyLoading: true
+        lazyAnimationType: Enums.lazyAnimation.lazy_circle
+        lazyLoadingStyle: __STYLE__
+        animationType: Enums.animation.pop
+        animationOrigin: Enums.animation.origin_bottom
+        animationDuration: __DURATION__
+        pageSources: ["__PAGE0__", "__PAGE1__"]
+    }
+}
+"""
+
+
+def _lazy_switch_scene(tmp_path: Path, style_expression: str, duration_ms: int = 200):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    page_urls = []
+    for index in range(2):
+        page = tmp_path / f"lazy_switch_page_{index}.qml"
+        page.write_text(
+            "import QtQuick\n"
+            f'Rectangle {{ objectName: "lazySwitchPage{index}"; color: "#123456" }}\n',
+            encoding="utf-8",
+        )
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+    source = (
+        LAZY_SWITCH_SCENE.replace(b"__STYLE__", style_expression.encode("ascii"))
+        .replace(b"__DURATION__", str(duration_ms).encode("ascii"))
+        .replace(b"__PAGE0__", page_urls[0].encode("utf-8"))
+        .replace(b"__PAGE1__", page_urls[1].encode("utf-8"))
+    )
+    return _create_scene(source, "lazy-loading-circle-style.qml")
+
+
+def _lazy_switch_fixture(tmp_path: Path, style_expression: str):
+    engine, component, root, warnings = _lazy_switch_scene(tmp_path, style_expression)
+    stack = root.findChild(QObject, "lazySwitchStack")
+    assert stack is not None
+    transition = stack.findChild(QObject, "lazyPageCircleTransition")
+    assert transition is not None
+    return engine, component, root, warnings, stack, transition
+
+
+def _drive_lazy_switch(stack: QObject, transition: QObject) -> tuple:
+    """Run one lazy switch, sampling the circle on every turn. 执行一次懒加载切换并逐回合采样。"""
+    samples: list[tuple] = []
+    events: list[str] = []
+    stack.animationStarted.connect(lambda: events.append("animationStarted"))
+    stack.animationFinished.connect(lambda: events.append("animationFinished"))
+    # `currentChanged` is the public contract page managers listen to; it must keep
+    # firing when the reveal moves from the circle to the native animation.
+    # `currentChanged` 是页面管理器监听的公开合同; 揭幕从圆圈改到原生动画后它必须继续触发。
+    stack.currentChanged.connect(lambda index: events.append(f"currentChanged({index})"))
+
+    def sample() -> None:
+        samples.append(
+            (
+                int(transition.property("animationType")),
+                bool(transition.property("running")),
+                bool(transition.property("active")),
+            )
+        )
+
+    sample()
+    assert stack.property("_displayIndex") == 0
+    stack.setProperty("currentIndex", 1)
+
+    settled = False
+    elapsed = 0
+    while elapsed < 8000:
+        sample()
+        if (
+            stack.property("_displayIndex") == 1
+            and not bool(stack.property("busy"))
+        ):
+            settled = True
+            break
+        _pump(15)
+        elapsed += 15
+    for _ in range(30):
+        sample()
+        _pump(15)
+    sample()
+    return samples, events, settled
+
+
+def test_skeleton_style_never_runs_the_lazy_circle_transition(qapp, tmp_path):
+    """骨架屏模式: 圆圈过渡必须完全不参与, 揭幕改走 StackedWidget 原生动画。
+
+    用户反馈骨架屏与懒加载圆圈"一起加载了"。这里用真实懒加载切换逐回合采样
+    `pageCircleTransition` 的 animationType/running/active, 证明圆圈在该样式下
+    不仅类型为 none, 而且从未 running/active; 同时原生动画信号确实被触发。
+    """
+    engine, component, root, warnings, stack, transition = _lazy_switch_fixture(
+        tmp_path, "Enums.lazyLoadingStyle.style_skeleton"
+    )
+    try:
+        samples, events, settled = _drive_lazy_switch(stack, transition)
+
+        # (a) animationType is none for the whole switch and the circle never ran.
+        assert {sample[0] for sample in samples} == {0}, sorted(
+            {sample[0] for sample in samples}
+        )
+        assert not any(sample[1] for sample in samples), "circle ran in skeleton mode"
+        assert not any(sample[2] for sample in samples), "circle active in skeleton mode"
+
+        # (b) the reveal really is the native StackedWidget animation.
+        assert settled, "skeleton lazy switch did not settle"
+        assert "animationStarted" in events
+        assert "animationFinished" in events
+        # The public page-change contract must survive the switch to the native
+        # reveal; page managers depend on it.
+        # 公开的换页合同必须在改用原生揭幕后继续成立; 页面管理器依赖它。
+        assert "currentChanged(1)" in events, events
+        assert stack.property("_displayIndex") == 1
+
+        # (d) the skeleton itself must still be built: killing the circle must not
+        # kill the skeleton blocks.
+        # (d) 骨架本身仍必须创建: 砍掉圆圈不能连骨架一起砍掉。
+        overlay = stack.findChild(QObject, "lazyLoadingOverlay")
+        assert overlay is not None
+        assert _skeleton_blocks(overlay), "skeleton blocks missing in skeleton mode"
+        assert warnings == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_ring_style_keeps_the_lazy_circle_transition(qapp, tmp_path):
+    """环形模式: 圆圈类型与 running/active 行为必须逐项不变。"""
+    engine, component, root, warnings, stack, transition = _lazy_switch_fixture(
+        tmp_path, "Enums.lazyLoadingStyle.style_ring"
+    )
+    try:
+        samples, _events, settled = _drive_lazy_switch(stack, transition)
+
+        # (c) ring keeps the circle type and really animates it.
+        assert {sample[0] for sample in samples} == {7}, sorted(
+            {sample[0] for sample in samples}
+        )
+        assert any(sample[1] for sample in samples), "ring circle never ran"
+        assert any(sample[2] for sample in samples), "ring circle never became active"
+        assert settled
+        assert stack.property("_displayIndex") == 1
+        assert warnings == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_ring_and_skeleton_differ_only_in_the_circle(qapp, tmp_path):
+    """同一场景下两种样式的差异必须且只能是圆圈过渡本身。
+
+    环形跑圆圈、骨架屏跑原生动画; 两者的动画类型互斥, 且骨架屏下圆圈始终静止。
+    这条防止"砍动画"误伤环形路径, 也防止骨架屏偷偷仍然跑圆圈。
+    """
+    ring_engine, ring_component, ring_root, _rw, ring_stack, ring_transition = (
+        _lazy_switch_fixture(tmp_path / "ring", "Enums.lazyLoadingStyle.style_ring")
+    )
+    skel_engine, skel_component, skel_root, _sw, skel_stack, skel_transition = (
+        _lazy_switch_fixture(
+            tmp_path / "skeleton", "Enums.lazyLoadingStyle.style_skeleton"
+        )
+    )
+    try:
+        ring_samples, _re, ring_settled = _drive_lazy_switch(
+            ring_stack, ring_transition
+        )
+        skel_samples, _se, skel_settled = _drive_lazy_switch(
+            skel_stack, skel_transition
+        )
+
+        assert ring_settled and skel_settled
+        assert {s[0] for s in ring_samples} == {7}
+        assert {s[0] for s in skel_samples} == {0}
+        assert any(s[1] for s in ring_samples)
+        assert not any(s[1] for s in skel_samples)
+        # Both styles must reach the same settled display index.
+        assert ring_stack.property("_displayIndex") == skel_stack.property(
+            "_displayIndex"
+        )
+    finally:
+        for root, component, engine in (
+            (ring_root, ring_component, ring_engine),
+            (skel_root, skel_component, skel_engine),
+        ):
+            root.deleteLater()
+            del component
+            engine.deleteLater()
+        _pump(1)
+
+
+def _evaluate(root: QObject, expression: str):
+    qml_expression = QQmlExpression(
+        QQmlEngine.contextForObject(root), root, expression
+    )
+    value = qml_expression.evaluate()
+    assert not qml_expression.hasError(), qml_expression.error().toString()
+    return value[0] if isinstance(value, tuple) else value
+
+
+def _drive_python_lazy_switch(root: QObject, stack: QObject, transition: QObject):
+    """Python host path: complete the handshake and sample the circle.
+
+    Python 宿主路径: 完成握手并采样圆圈。
+
+    Gallery uses the pure QML path, but the Python host path must keep working too:
+    the Python loading pipeline only finishes on `pythonLazyTransitionFinished`,
+    which PageTransition emits from expandFinished. Dropping expand() outright
+    would hang it, so this locks the handshake end to end.
+    Gallery 使用纯 QML 路径, 但 Python 宿主路径也必须继续可用: Python 加载管线只在
+    PageTransition 从 expandFinished 发出的 `pythonLazyTransitionFinished` 上收尾。
+    直接去掉 expand() 会把它挂死, 因此这里端到端锁定该握手。
+    """
+    samples: list[tuple] = []
+    events: list[str] = []
+    stack.pythonLazyExpansionStarted.connect(
+        lambda index: events.append(f"pythonLazyExpansionStarted({index})")
+    )
+    stack.pythonLazyTransitionFinished.connect(
+        lambda index: events.append(f"pythonLazyTransitionFinished({index})")
+    )
+    stack.animationStarted.connect(lambda: events.append("animationStarted"))
+    stack.animationFinished.connect(lambda: events.append("animationFinished"))
+
+    def sample() -> None:
+        samples.append(
+            (
+                int(transition.property("animationType")),
+                bool(transition.property("running")),
+                bool(transition.property("active")),
+            )
+        )
+
+    sample()
+    # The target must not be ready when currentIndex moves, or the lifecycle would
+    # start a native animation and bypass the handshake under test.
+    # currentIndex 变化时目标页必须尚未就绪, 否则生命周期会启动原生动画并绕过被测握手。
+    stack.setProperty("_pythonPageMode", True)
+    stack.setProperty("currentIndex", 1)
+    _pump(30)
+    assert stack.property("_displayIndex") == 0, (
+        "python path precondition: lifecycle must not reveal before the handshake"
+    )
+    _evaluate(root, "stack._markPythonPageReady(1)")
+    stack.setProperty("_pythonLazyTransitionTargetIndex", 1)
+    stack.setProperty("_pythonLazyRevealRequested", True)
+    started = _evaluate(root, "stack._completePythonLazySwitch(1)")
+
+    settled = False
+    elapsed = 0
+    while elapsed < 8000:
+        sample()
+        if any(event.startswith("pythonLazyTransitionFinished") for event in events):
+            settled = True
+            break
+        _pump(15)
+        elapsed += 15
+    for _ in range(20):
+        sample()
+        _pump(10)
+    sample()
+    return started, samples, events, settled
+
+
+def test_python_path_skeleton_disables_the_circle_and_still_completes(qapp, tmp_path):
+    """Python 宿主路径在骨架屏样式下也必须禁用圆圈且仍然收尾。"""
+    engine, component, root, warnings, stack, transition = _lazy_switch_fixture(
+        tmp_path, "Enums.lazyLoadingStyle.style_skeleton"
+    )
+    try:
+        started, samples, events, settled = _drive_python_lazy_switch(
+            root, stack, transition
+        )
+        assert started, "_completePythonLazySwitch refused the handshake"
+        assert {sample[0] for sample in samples} == {0}
+        assert not any(sample[1] for sample in samples), "circle ran in skeleton mode"
+        assert not any(sample[2] for sample in samples), "circle active in skeleton mode"
+        # The Python pipeline must still be told the transition finished, otherwise
+        # pythonPageReady never fires and the host stays loading forever.
+        # 仍必须告知 Python 管线过渡已完成, 否则 pythonPageReady 不会触发, 宿主会永久 loading。
+        assert settled, "pythonLazyTransitionFinished never fired"
+        assert "pythonLazyExpansionStarted(1)" in events
+        assert "pythonLazyTransitionFinished(1)" in events
+        assert "animationStarted" in events
+        assert stack.property("_displayIndex") == 1
+        assert warnings == []
+    finally:
+        root.deleteLater()
+        del component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_python_path_ring_still_runs_the_circle(qapp, tmp_path):
+    """Python 宿主路径在环形样式下的圆圈行为必须不变。"""
+    engine, component, root, warnings, stack, transition = _lazy_switch_fixture(
+        tmp_path, "Enums.lazyLoadingStyle.style_ring"
+    )
+    try:
+        started, samples, events, settled = _drive_python_lazy_switch(
+            root, stack, transition
+        )
+        assert started
+        assert {sample[0] for sample in samples} == {7}
+        assert any(sample[1] for sample in samples), "ring circle never ran"
+        assert any(sample[2] for sample in samples), "ring circle never became active"
+        assert settled, "pythonLazyTransitionFinished never fired"
+        assert "pythonLazyExpansionStarted(1)" in events
+        assert stack.property("_displayIndex") == 1
         assert warnings == []
     finally:
         root.deleteLater()

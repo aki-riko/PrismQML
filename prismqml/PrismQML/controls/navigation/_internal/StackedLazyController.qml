@@ -18,6 +18,11 @@ Item {
     // ==================== Internal Props 内部属性 ====================
     // Target waiting for the QML lazy circle to finish. 等待 QML 懒加载圆圈完成的目标。
     property int _qmlLazyTransitionTargetIndex: -1
+    // Skeleton style reveals through the native StackedWidget animation instead of
+    // the lazy circle, so this controller must branch on the configured style.
+    // 骨架屏样式改由 StackedWidget 原生动画揭幕而非懒加载圆圈, 因此本控制器需按样式分流。
+    readonly property bool _skeletonStyle:
+        host.lazyLoadingStyle === Enums.lazyLoadingStyle.style_skeleton
 
     // ==================== Public Methods 公开方法 ====================
     function preloadLazyHelperWhenReady(reason) {
@@ -129,6 +134,32 @@ Item {
             return
         }
 
+        if (_skeletonStyle) {
+            // Skeleton style: the lazy circle is disabled, so the reveal is owned by
+            // the native StackedWidget animation. The index bookkeeping mirrors the
+            // already-loaded page path in StackedWidgetLifecycle.onCurrentIndexChanged.
+            // expand() is still invoked, because it is the transition contract that
+            // carries expandStarted/expandFinished; the Python loading pipeline only
+            // completes on pythonLazyTransitionFinished, which is emitted from
+            // expandFinished. With animationType none it is a synchronous, visually
+            // empty no-op, so no circle can appear.
+            // 骨架屏样式: 懒加载圆圈已禁用, 揭幕由 StackedWidget 原生动画负责。索引记账与
+            // StackedWidgetLifecycle.onCurrentIndexChanged 中已加载页那条原生路径一致。
+            // 仍调用 expand() 是因为它承载 expandStarted/expandFinished 过渡合同; Python
+            // 加载管线只在 expandFinished 发出的 pythonLazyTransitionFinished 上收尾。
+            // animationType 为 none 时它是同步且无视觉的空操作, 因此不会出现圆圈。
+            var skeletonFromIndex = host._displayIndex
+            host.previousIndex = skeletonFromIndex
+            host._doAnimation(skeletonFromIndex, targetIndex)
+            // Set before expand() so its expandFinished reassert check sees the
+            // already-correct display index and does not touch visibility again.
+            // 在 expand() 之前设置, 使其 expandFinished 的校正检查看到显示索引已正确,
+            // 从而不再改动可见性。
+            host._displayIndex = targetIndex
+            pageTransition.expand(targetWidget)
+            return
+        }
+
         host.previousIndex = host._displayIndex
         host._displayIndex = targetIndex
         // Lazy navigation has one visual owner: the circle transition. Make the
@@ -210,6 +241,26 @@ Item {
         host.profileTime(
             "lazyHelper loadingComplete start target=" + targetIdx +
             ", prev=" + prevIdx)
+        if (_skeletonStyle) {
+            // Skeleton style: the lazy circle is disabled, so the reveal is the
+            // native StackedWidget animation. This mirrors the already-loaded page
+            // path in StackedWidgetLifecycle.onCurrentIndexChanged.
+            // _qmlLazyTransitionTargetIndex is deliberately not armed here: the native
+            // animation emits currentChanged itself when it finishes, and the lazy
+            // circle's expandFinished has already run before this point, so arming it
+            // would only leave a stale index behind.
+            // 骨架屏样式: 懒加载圆圈已禁用, 揭幕交给 StackedWidget 原生动画。此处与
+            // StackedWidgetLifecycle.onCurrentIndexChanged 中已加载页那条原生路径一致。
+            // 故意不设 _qmlLazyTransitionTargetIndex: 原生动画结束时本就会发出
+            // currentChanged, 而圆圈 expandFinished 已在此之前跑过, 设置它只会残留脏索引。
+            host.previousIndex = host._displayIndex
+            host._doAnimation(host._displayIndex, targetIdx)
+            host._displayIndex = targetIdx
+            host.profileTime("lazyHelper loadingComplete done")
+            host._traceLazyStage("stacked.loading_complete.done", targetIdx,
+                                 "previous=" + prevIdx)
+            return
+        }
         // Keep currentIndex declarative; _displayIndex tracks the rendered page.
         // 保持 currentIndex 声明式绑定，由 _displayIndex 跟踪实际显示页面。
         host.previousIndex = host._displayIndex

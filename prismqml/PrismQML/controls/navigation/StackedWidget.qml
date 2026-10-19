@@ -83,6 +83,10 @@ Item {
         || animations.running
     property int previousIndex: 0
     property int _displayIndex: 0
+    // Skeleton style has no lazy circle: the reveal is the native StackedWidget
+    // animation. 骨架屏样式没有懒加载圆圈: 揭幕交给 StackedWidget 原生动画。
+    readonly property bool _lazySkeletonStyle:
+        lazyLoadingStyle === Enums.lazyLoadingStyle.style_skeleton
     property int _pendingLazySwitchIndex: -1
     property int _pythonLazyTransitionTargetIndex: -1
     property bool _pythonLazyRevealRequested: false
@@ -340,6 +344,18 @@ Item {
         onExpandStarted: control._handlePythonLazyExpandStarted()
         onCollapseFinished: control._handlePythonLazyCollapseFinished()
         onExpandFinished: control._handlePythonLazyExpandFinished()
+
+        // Skeleton style reveals through the native StackedWidget animation, so the
+        // lazy circle is disabled for that style. While this Binding is inactive the
+        // ring binding above is in force again, leaving the ring path untouched.
+        // 骨架屏样式改由 StackedWidget 原生动画揭幕, 因此该样式下禁用懒加载圆圈。
+        // Binding 不生效时上面的环形绑定恢复生效, 环形路径不受影响。
+        Binding {
+            target: pageCircleTransition
+            property: "animationType"
+            value: Enums.lazyAnimation.none
+            when: control._lazySkeletonStyle
+        }
     }
 
     StackedDirectPages {
