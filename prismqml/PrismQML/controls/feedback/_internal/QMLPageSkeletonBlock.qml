@@ -93,9 +93,12 @@ Item {
 
         Rectangle {
             objectName: "qmlPageSkeletonCardSurface"
-            color: Enums.transparent
-            border.width: Enums.skeletonMetrics.blockDividerThickness
-            border.color: Enums.borderColor
+            // A skeleton card is a filled placeholder, not a wireframe: an outlined
+            // empty box reads as a blank white pane instead of content that is still
+            // loading, and the outline is not part of the page being previewed.
+            // 骨架卡片是填充占位块, 不是线框: 空心描边盒读起来像一块空白窗格, 而不是
+            // 正在加载的内容, 而且那圈描边并不属于被预览的页面。
+            color: Enums.stateColor.skeletonBase
             radius: Enums.radius.large
 
             Column {
