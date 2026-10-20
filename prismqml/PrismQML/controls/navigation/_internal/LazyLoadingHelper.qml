@@ -28,6 +28,10 @@ Item {
     property int loadingAnimationOrientation: Qt.Horizontal
     property int loadingAnimationDuration: Enums.duration.medium
     property int loadingStyle: Enums.lazyLoadingStyle.style_ring
+    // Declared skeleton structure of the page being awaited, forwarded verbatim to
+    // the overlay so the engine can render the matching skeleton.
+    // 被等待页面的骨架结构声明, 原样转发给覆盖层, 使引擎渲染对应的骨架。
+    property var skeletonBlocks: []
     property int loaderActivationDelay: Enums.duration.none  // Extra delay before Loader activation Loader 激活前额外延迟
 
     // ==================== Internal Props 内部属性 ====================
@@ -438,6 +442,7 @@ Item {
         height: parent ? parent.height : 0
         text: helper.loadingText
         style: helper.loadingStyle
+        skeletonBlocks: helper.skeletonBlocks
         // Keep the loading surface transparent so the window Mica backdrop remains visible.
         // 保持加载表面透明，让窗口云母背板持续可见。
         backgroundColor: Enums.transparent

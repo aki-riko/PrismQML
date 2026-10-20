@@ -6,6 +6,7 @@ import QtQuick
 import "../.."
 import "_internal"
 import "_internal/StackedWidgetLifecycle.js" as StackedWidgetLifecycle
+import "_internal/StackedPageMetadata.js" as StackedPageMetadata
 
 // StackedWidget - Unified stacked page switch component 统一堆叠页面组件
 Item {
@@ -117,9 +118,24 @@ Item {
         indexClamp.clamp()
     }
     function _pagePropertiesFor(index) {
-        if (index < 0 || index >= _safePageProperties.length) return ({})
-        var value = _safePageProperties[index]
-        return value && typeof value === "object" ? value : ({})
+        return StackedPageMetadata.propertiesFor(control, index)
+    }
+    // Skeleton structure declared for one page in `pageProperties`. Read from host
+    // metadata, so it works while the target page is still uninstantiated; absent,
+    // malformed or empty declarations yield an empty list, which the skeleton
+    // renderer treats as "use the generic skeleton".
+    // 某页在 `pageProperties` 中声明的骨架结构。从宿主元数据读取, 因此目标页尚未实例化时
+    // 也可用; 缺失、非法或空声明返回空列表, 骨架渲染器据此使用通用骨架。
+    function _skeletonBlocksFor(index) {
+        return StackedPageMetadata.skeletonBlocksFor(control, index)
+    }
+    // `pageProperties` doubles as the page's initial properties, so engine-reserved
+    // metadata keys must not be forwarded: assigning `skeleton` to a page that does
+    // not declare it raises a QML warning, and the fallback path must stay silent.
+    // `pageProperties` 同时充当页面的初始属性, 因此引擎保留的元数据键不得转发: 把
+    // `skeleton` 赋给未声明该属性的页面会产生 QML 警告, 而回退路径必须保持静默。
+    function _initialPropertiesFor(index) {
+        return StackedPageMetadata.initialPropertiesFor(control, index)
     }
     function profileTime(msg) {
         diagnostics.profileTime(msg)
@@ -152,7 +168,7 @@ Item {
         if (_loaders[index] && !_loaders[index].active) {
             if (_useUrlSourceMode) {
                 _loaders[index].setSource(
-                    _safePageSources[index] || "", _pagePropertiesFor(index))
+                    _safePageSources[index] || "", _initialPropertiesFor(index))
             } else if (_safeDeferredPages[index]) {
                 _loaders[index].sourceComponent = _safeDeferredPages[index]
             }

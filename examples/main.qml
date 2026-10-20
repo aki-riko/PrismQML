@@ -94,6 +94,188 @@ QtObject {
         Qt.resolvedUrl("pages/AutoUpdatePage.qml"),
         Qt.resolvedUrl("pages/SettingsPage.qml")
     ]
+
+    // Declared skeleton structure per page, in the same order as `pagePaths`.
+    // The engine reads these before a page is instantiated, so the wait indicator
+    // mirrors the real layout instead of a generic placeholder. Only the structure
+    // is declared (which blocks, how many cells); every size stays engine-owned.
+    // 与 pagePaths 同序的每页骨架结构声明。引擎在页面实例化前读取, 因此等待指示与真实
+    // 布局一致, 而非通用占位。声明只描述结构(哪些块、几个单元), 尺寸仍全部由引擎决定。
+    readonly property var pageProperties: [
+        // ButtonPage 按钮: title + 若干「标题/说明/按钮行」卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_text },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 4 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] }
+        ] },
+        // InputPage 输入: title + 「输入框/按钮行」卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_input },
+                { type: Fluent.Enums.skeleton.block_input } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_input },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 2 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 2 } ] }
+        ] },
+        // LabelPage 标签: title + 段落卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 4 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_text } ] }
+        ] },
+        // IconPage 图标: title + 图标网格卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_list, items: 4 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_list, items: 5 } ] }
+        ] },
+        // ContainerPage 容器: title + 容器/抽屉卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_divider },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 2 } ] }
+        ] },
+        // CardPage 卡片: title + 卡片组
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image } ] }
+        ] },
+        // NavigationPage 导航: title + 「分节/面包屑/按钮行/文本」卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_subtitle },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_text },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 2 },
+                { type: Fluent.Enums.skeleton.block_text } ] },
+            { type: Fluent.Enums.skeleton.block_subtitle },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_text },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] }
+        ] },
+        // MenuPage 菜单: title + 列表卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_list, items: 4 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_list, items: 3 } ] }
+        ] },
+        // CarouselPage 轮播: title + 轮播卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_carousel, cards: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_carousel, cards: 4 } ] }
+        ] },
+        // ChartPage 图表: title + 图表卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_chart } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_chart },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 2 } ] }
+        ] },
+        // FeedbackPage 反馈: title + 进度/状态卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 2 },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 4 } ] }
+        ] },
+        // EffectsPage 效果: title + 图像/模糊卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_image },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 2 } ] }
+        ] },
+        // AIAssistantPage AI 助手: title + 会话/输入卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_avatar },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_avatar },
+                { type: Fluent.Enums.skeleton.block_textLines, lines: 2 } ] },
+            { type: Fluent.Enums.skeleton.block_input }
+        ] },
+        // AutoUpdatePage 自动更新: title + 表格/按钮卡片
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_table, columns: 3, items: 3 } ] },
+            { type: Fluent.Enums.skeleton.block_card, children: [
+                { type: Fluent.Enums.skeleton.block_subtitle },
+                { type: Fluent.Enums.skeleton.block_buttonRow, buttons: 2 } ] }
+        ] },
+        // SettingsPage 设置: title + 设置项列表
+        { skeleton: [
+            { type: Fluent.Enums.skeleton.block_title },
+            { type: Fluent.Enums.skeleton.block_list, items: 5 },
+            { type: Fluent.Enums.skeleton.block_list, items: 4 }
+        ] }
+    ]
     
     // Window instances 窗口实例
     property var windowInstance: null
@@ -145,6 +327,7 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
+            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 // Handle function items (e.g., avatar click) 处理功能项（如头像点击）
                 if (index === 0) {
@@ -176,6 +359,7 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
+            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }
@@ -204,6 +388,7 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
+            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }

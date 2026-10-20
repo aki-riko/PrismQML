@@ -66,6 +66,13 @@ Item {
               + Enums.lazyLoadingTransitionMetrics.loaderActivationHeadroom
             : Enums.duration.none
         pageSources: root.host ? root.host.pageSources : []
+        // Page metadata (including the reserved `skeleton` declaration) follows the
+        // same channel as the QML path. Hosts that expose none resolve to an empty
+        // list, which the skeleton renderer reads as "use the generic skeleton".
+        // 页面元数据(含保留的 `skeleton` 声明)与 QML 路径走同一通道。未暴露该属性的宿主
+        // 解析为空列表, 骨架渲染器据此使用通用骨架。
+        pageProperties: root.host && root.host.pageProperties
+            ? root.host.pageProperties : []
         lazyLoading: root.host ? root.host.lazyLoading : false
         lazyAnimationType: root.host
             && typeof root.host.lazyAnimationType === "number"
@@ -129,6 +136,15 @@ Item {
                 && typeof root.host.lazyLoadingStyle === "number"
                     ? root.host.lazyLoadingStyle
                     : Enums.lazyLoadingStyle.style_ring
+            // Python host path: the overlay is its own QMLPage, so it needs the
+            // awaited page's declared skeleton structure injected here too. The
+            // window owns the pending index; the page stack owns the declaration.
+            // Python 宿主路径: 该覆盖层是独立的 QMLPage, 因此同样需要在此注入被等待页面
+            // 声明的骨架结构。待处理索引由窗口持有, 声明由页面栈持有。
+            skeletonBlocks: root.host
+                && root.host._pythonPendingIndex >= 0
+                    ? stack._skeletonBlocksFor(root.host._pythonPendingIndex)
+                    : []
             Component.onCompleted: if (loading) start()
             onLoadingChanged: {
                 if (loading) start()

@@ -93,6 +93,15 @@ Item {
         item.currentVisibleIndex = Qt.binding(function() { return host._displayIndex })
         item.loadingText = Qt.binding(function() { return host.loadingText })
         item.loadingStyle = Qt.binding(function() { return host.lazyLoadingStyle })
+        // The skeleton must describe the page being awaited, not the page still on
+        // screen, so this follows the helper's own pending target. The declaration
+        // lives in `pageProperties`, which the engine can read before the target
+        // page is instantiated.
+        // 骨架必须描述正在等待的页面而不是仍在屏上的页面, 因此这里跟随辅助器自身的待处理
+        // 目标。声明位于 `pageProperties`, 引擎在目标页实例化前即可读取。
+        item.skeletonBlocks = Qt.binding(function() {
+            return host._skeletonBlocksFor(item.pendingTargetIndex)
+        })
         // The loading overlay is part of the lazy transition, not the regular
         // page switch. Keep it stationary so slide/fade cannot run alongside
         // the circle collapse/reveal.
