@@ -47,6 +47,18 @@ function skeletonBlocksFor(host, index) {
     return resolvedBlocksFor(host, index)
 }
 
+// Resolved blocks, memoised per page index. The resolver is a Python slot, so each
+// call would hand back a brand-new list, and a `property var` comparing by identity
+// would report a change every time the binding re-evaluated. That made the skeleton
+// repeater tear down and rebuild every block on each evaluation, which showed up as
+// a page switch taking a minute instead of a second. Returning the same object
+// keeps the value stable, so the repeater only rebuilds when the page really changes.
+// 按页下标记忆化已解析的块。解析器是 Python 槽, 每次调用都会返回全新列表, 而
+// `property var` 按引用比较, 于是绑定每次重新求值都会报告"变了"。这导致骨架 Repeater
+// 每次求值都销毁并重建全部块, 表现为切页要一分钟而不是一秒。返回同一个对象可让值保持
+// 稳定, 因此只有页面真的改变时 Repeater 才重建。
+var _resolvedMemo = ({})
+
 // Blocks inferred by the injected resolver for one page, or an empty list when the
 // resolver is absent, the page has no source, or the result is not an array.
 // 由注入解析器为某页推断的块; 解析器缺失、页面无源码或结果非数组时返回空列表。
@@ -57,9 +69,12 @@ function resolvedBlocksFor(host, index) {
     if (index < 0 || index >= sources.length) return []
     var source = sources[index]
     if (!source) return []
+    var key = String(index) + "|" + String(source)
+    if (_resolvedMemo.hasOwnProperty(key)) return _resolvedMemo[key]
     var resolved = resolver.blocksFor(String(source))
     if (!resolved || typeof resolved !== "object") return []
     if (typeof resolved.length !== "number") return []
+    _resolvedMemo[key] = resolved
     return resolved
 }
 
