@@ -354,9 +354,14 @@ def test_card_contains_its_declared_children_with_padding(qapp):
         blocks = scene.blocks()
         assert len(blocks) == 1
         card = blocks[0]
-        surface = card.findChild(QQuickItem, "qmlPageSkeletonCardSurface")
-        assert surface is not None, "card must render an outlined surface"
-        assert surface.width() > 0 and surface.height() > 0
+        # A card is a layout grouping, not a block of its own: it must not paint a
+        # surface, because a plain rectangle cannot shimmer and would sit still while
+        # the placeholder bars animate. Only the animated `Skeleton` cells are drawn.
+        # 卡片是布局分组, 本身不是一种块: 它不得绘制表面, 因为普通矩形无法闪烁, 会在
+        # 占位条动画时静止不动。只有会动画的 `Skeleton` 单元被绘制。
+        assert card.findChild(
+            QQuickItem, "qmlPageSkeletonCardSurface") is None, (
+            "card must not draw a surface; only its animated cells are visible")
         # The card must be taller than the widest single child, i.e. it actually
         # stacks its children plus padding rather than collapsing.
         cells = scene.cells()
