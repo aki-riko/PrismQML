@@ -29,9 +29,13 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property list<Component> deferredPages  // Inline Component pages 内联延迟页面
     property var pageProperties: []
-    // Optional resolver inferring a page's skeleton from its QML source; null keeps
-    // QML-only hosts on the generic skeleton. 可选解析器: 从页面源码推断骨架; null 用通用骨架。
+    // Optional resolver inferring a page's skeleton; null keeps the generic one.
+    // 可选解析器: 从页面源码推断骨架; null 时使用通用骨架。
     property var skeletonSourceResolver: null
+    // Whether the inferred structure is used. Off by default: in a real Gallery switch
+    // it held the overlay over a minute, so off falls back to the fast generic skeleton.
+    // 是否采用推断结构。默认关闭: 真实 Gallery 里它让遮罩停留超过一分钟, 故回退通用骨架。
+    property bool skeletonAutoInference: false
     property bool dynamicStack: false
     property int pageRetentionRadius: -1
     property int dynamicStackRetainDepth: 0

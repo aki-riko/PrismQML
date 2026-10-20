@@ -48,21 +48,19 @@ function skeletonBlocksFor(host, index) {
 }
 
 // Resolved blocks, memoised per page index. The resolver is a Python slot, so each
-// call would hand back a brand-new list, and a `property var` comparing by identity
-// would report a change every time the binding re-evaluated. That made the skeleton
-// repeater tear down and rebuild every block on each evaluation, which showed up as
-// a page switch taking a minute instead of a second. Returning the same object
-// keeps the value stable, so the repeater only rebuilds when the page really changes.
-// 按页下标记忆化已解析的块。解析器是 Python 槽, 每次调用都会返回全新列表, 而
-// `property var` 按引用比较, 于是绑定每次重新求值都会报告"变了"。这导致骨架 Repeater
-// 每次求值都销毁并重建全部块, 表现为切页要一分钟而不是一秒。返回同一个对象可让值保持
-// 稳定, 因此只有页面真的改变时 Repeater 才重建。
+// call hands back a brand-new list; memoising keeps the value stable so the skeleton
+// repeater is not rebuilt for an unchanged page.
+// 按页下标记忆化已解析的块。解析器是 Python 槽, 每次调用都返回全新列表; 记忆化可让值
+// 保持稳定, 使骨架 Repeater 不会为未变化的页面重建。
 var _resolvedMemo = ({})
 
 // Blocks inferred by the injected resolver for one page, or an empty list when the
-// resolver is absent, the page has no source, or the result is not an array.
-// 由注入解析器为某页推断的块; 解析器缺失、页面无源码或结果非数组时返回空列表。
+// host has auto-inference off, the resolver is absent, the page has no source, or the
+// result is not an array.
+// 由注入解析器为某页推断的块; 宿主关闭自动推断、解析器缺失、页面无源码或结果非数组时
+// 返回空列表。
 function resolvedBlocksFor(host, index) {
+    if (!host.skeletonAutoInference) return []
     var resolver = resolverFor(host)
     if (!resolver || typeof resolver.blocksFor !== "function") return []
     var sources = host._safePageSources
@@ -96,6 +94,7 @@ function resolverFor(host) {
 // 在窗口构建期预解析全部页面源码(该阶段允许超过一帧), 使之后的懒加载切换不必在 UI 线程
 // 支付冷读取。针对构造顺序做了守卫: 首次运行时 `pageSources` 与解析器都可能仍未就绪。
 function warmSkeletonSources(host) {
+    if (!host.skeletonAutoInference) return
     var resolver = resolverFor(host)
     if (!resolver || typeof resolver.warm !== "function") return
     var sources = host._safePageSources

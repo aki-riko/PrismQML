@@ -877,6 +877,9 @@ def test_injected_resolver_drives_the_overlay_skeleton(qapp, tmp_path):
     try:
         stack = root.findChild(QObject, "resolverStack")
         assert stack is not None
+        # Auto-inference is off by default; this scene exercises the resolver.
+        # 自动推断默认关闭; 本场景专门覆盖解析器路径。
+        stack.setProperty("skeletonAutoInference", True)
         root.setProperty("resolver", stub)
         _pump(100)
 
@@ -909,6 +912,9 @@ def test_user_declaration_wins_over_the_injected_resolver(qapp, tmp_path):
     try:
         stack = root.findChild(QObject, "resolverStack")
         assert stack is not None
+        # Auto-inference is off by default; this scene exercises the resolver.
+        # 自动推断默认关闭; 本场景专门覆盖解析器路径。
+        stack.setProperty("skeletonAutoInference", True)
         root.setProperty("resolver", stub)
         _evaluate(
             root,
@@ -939,6 +945,9 @@ def test_missing_resolver_falls_back_silently(qapp, tmp_path):
     try:
         stack = root.findChild(QObject, "resolverStack")
         assert stack is not None
+        # Auto-inference is off by default; this scene exercises the resolver.
+        # 自动推断默认关闭; 本场景专门覆盖解析器路径。
+        stack.setProperty("skeletonAutoInference", True)
         # `resolver` stays null, which is the QML-only host case.
         # `resolver` 保持 null, 即纯 QML 宿主的情形。
         assert root.property("resolver") is None
@@ -966,6 +975,9 @@ def test_malformed_resolver_result_is_ignored(qapp, tmp_path):
     try:
         stack = root.findChild(QObject, "resolverStack")
         assert stack is not None
+        # Auto-inference is off by default; this scene exercises the resolver.
+        # 自动推断默认关闭; 本场景专门覆盖解析器路径。
+        stack.setProperty("skeletonAutoInference", True)
         # A resolver object that has no `blocksFor` at all. 完全没有 `blocksFor` 的解析器。
         root.setProperty("resolver", _evaluate(root, "({})"))
         assert _evaluate(root, "stack._skeletonBlocksFor(1)") == []
