@@ -55,6 +55,11 @@ QtObject {
     readonly property color tertiaryForeground: root.isHighContrast ? _hc.secondaryForeground : (isNeo ? _neo.secondaryForeground : (isNeumorphism ? _neu.secondaryForeground : (isTicket ? _ticket.secondaryForeground : (root.isDark ? constants.themeColors.tertiaryForegroundDark : constants.themeColors.tertiaryForegroundLight))))
     readonly property color disabledForeground: root.isHighContrast ? _hc.disabled : (isNeumorphism ? _neu.disabledForeground : (isTicket ? _ticket.disabledForeground : (root.isDark ? constants.themeColors.disabledForegroundDark : constants.themeColors.disabledForegroundLight)))
     readonly property color accentForeground: isNeo ? _neo.primaryForeground : (isNeumorphism ? _neu.primaryForeground : (isTicket ? _ticket.primaryForeground : constants.themeColors.accentForeground))
+    // Ink for fills lighter than the accent foreground can survive. Semantic tokens
+    // brighten to pastels on dark, so filled surfaces need a dark counterpart ink.
+    // 浅于强调前景色可承受范围的填充所用墨色。语义 token 在深色下提亮为粉彩色，
+    // 因此填充表面需要一个深色对应墨色。
+    readonly property color onLightFill: isNeo ? _neo.primaryForeground : (isNeumorphism ? _neu.primaryForeground : (isTicket ? _ticket.primaryForeground : constants.themeColors.onLightFill))
 
     // ==================== Border Colors 边框色 ====================
     readonly property color borderColor: root.isHighContrast ? _hc.border : (isNeo ? _neo.border : (isNeumorphism ? Qt.rgba(0, 0, 0, 0) : (isTicket ? _ticket.border : (root.isDark ? constants.themeColors.borderDark : constants.themeColors.borderLight))))

@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../.."
+import "../../utils/_internal/ContrastInk.js" as ContrastInk
 
 // ButtonStyleHelper - Button color calculation 按钮颜色计算
 // Extracts complex color logic from ButtonCore 从ButtonCore提取复杂颜色逻辑
@@ -136,7 +137,7 @@ QtObject {
             }
             if (!effectiveEnabled) return Enums.textColor.tertiary
             if (pressed) return Enums.textColor.strong
-            return Enums.accentForeground
+            return ContrastInk.onFill(bgColor, Enums.accentForeground, Enums.onLightFill)
         }
         
         switch (style) {
@@ -144,7 +145,10 @@ QtObject {
             case Enums.button.style_gradient:
             case Enums.button.style_filled:
                 if (!effectiveEnabled) return Enums.textColor.tertiary
-                return Enums.accentForeground
+                // Filled surfaces carry any semantic or accent colour, so keep the
+                // preferred ink only while it stays legible on the resolved fill.
+                // 填充表面承载任意语义色或主色，仅在首选墨色于解析后的填充上仍可读时保留。
+                return ContrastInk.onFill(bgColor, Enums.accentForeground, Enums.onLightFill)
             case Enums.button.style_hyperlink:
                 if (!effectiveEnabled) return Enums.textColor.disabled
                 var linkColor = isVisited ? visitedLinkColor : Enums.accentColor

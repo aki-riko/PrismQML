@@ -299,6 +299,7 @@ Item {
     readonly property alias tertiaryForeground: _theme.tertiaryForeground
     readonly property alias disabledForeground: _theme.disabledForeground
     readonly property alias accentForeground: _theme.accentForeground
+    readonly property alias onLightFill: _theme.onLightFill
     readonly property alias borderColor: _theme.borderColor
     readonly property alias borderLightColor: _theme.borderLightColor
     readonly property alias borderStrongColor: _theme.borderStrongColor

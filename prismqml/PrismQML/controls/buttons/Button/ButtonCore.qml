@@ -110,7 +110,8 @@ Widget {
         _skin.cardColor, _skin.accentForeground, _skin.transparent,
         _skin.opacityLevel, _skin.neo, _skin.ticket, visited,
         Enums.isDark ? _skin.button.hyperlinkVisitedDark
-                     : _skin.button.hyperlinkVisitedLight)
+                     : _skin.button.hyperlinkVisitedLight,
+        _skin.onLightFill)
     readonly property color _styleBgColor: styleHelper.bgColor
     readonly property color _styleBorderColor: styleHelper.borderColor
     readonly property color _styleTextColor: styleHelper.textColor

@@ -48,6 +48,12 @@ QtObject {
     readonly property color disabledForegroundDark: "#6d6d6d"
     readonly property color disabledForegroundLight: "#a0a0a0"
     readonly property color accentForeground: "#ffffff"
+    // Ink for light-coloured fills, where the accent foreground would fail contrast.
+    // Semantic tokens brighten to pastels on dark, so a filled surface can end up
+    // lighter than white text can survive; pure black keeps the worst case at 4.58:1.
+    // 浅色填充上的墨色，用于强调前景色对比不足时。语义 token 在深色下提亮为粉彩色，
+    // 使填充表面可能亮到白字无法生存；纯黑可把最坏情况保持在 4.58:1。
+    readonly property color onLightFill: "#000000"
 
     // Borders 边框
     readonly property color borderDark: "#454545"

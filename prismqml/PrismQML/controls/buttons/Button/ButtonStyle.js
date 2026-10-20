@@ -7,6 +7,8 @@
 
 .pragma library
 
+.import "../../utils/_internal/ContrastInk.js" as ContrastInk
+
 function _defaultBackgroundColor(effectiveEnabled, hovered, pressed, stateColor) {
     if (!effectiveEnabled) return stateColor.controlBgDisabled
     if (pressed) return stateColor.controlBgPressed
@@ -142,7 +144,7 @@ function _neoTextColor(style, effectiveEnabled, button, opacityLevel, neo) {
 function textColor(style, level, effectiveEnabled, hovered, pressed,
                    isToggleChecked, isNeobrutalism, button, textColorTokens,
                    statusLevel, accentColor, accentForeground, opacityLevel,
-                   neo, isVisited, visitedLinkColor) {
+                   neo, isVisited, visitedLinkColor, bgColor, onLightInk) {
     if (isNeobrutalism) {
         return _neoTextColor(
             style, effectiveEnabled, button, opacityLevel, neo)
@@ -154,7 +156,7 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
         }
         if (!effectiveEnabled) return textColorTokens.tertiary
         if (pressed) return textColorTokens.strong
-        return accentForeground
+        return ContrastInk.onFill(bgColor, accentForeground, onLightInk)
     }
 
     switch (style) {
@@ -162,7 +164,13 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
     case button.style_gradient:
     case button.style_filled:
         if (!effectiveEnabled) return textColorTokens.tertiary
-        return accentForeground
+        // A filled surface can carry any semantic or accent colour, so keep the
+        // preferred ink only while it stays legible and otherwise fall back to the
+        // light-surface ink. Dark semantic tokens are pastels meant as foreground
+        // accents, so white text on them is unreadable without this guard.
+        // 填充表面可能承载任意语义色或主色，因此仅在首选墨色仍可读时保留，否则退回
+        // 浅色表面墨色。深色语义 token 是作为前景强调色的粉彩色，缺此保护时白字不可读。
+        return ContrastInk.onFill(bgColor, accentForeground, onLightInk)
     case button.style_hyperlink:
         if (!effectiveEnabled) return textColorTokens.disabled
         // A visited hyperlink keeps the same hover/press derivation, only the
@@ -189,14 +197,18 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
                   isNeumorphism, button, stateColor, textColorTokens,
                   statusLevel, accentColor, cardColor, accentForeground,
                   transparent, opacityLevel, neo, ticket,
-                  isVisited, visitedLinkColor) {
+                  isVisited, visitedLinkColor, onLightInk) {
+    // The fill is resolved once so the ink can be validated against the exact
+    // colour that will be painted behind it, including hover and press states.
+    // 填充色只解析一次，使墨色可针对真正被绘制在背后的颜色校验，含悬浮与按压态。
+    var bgColor = backgroundColor(
+        style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
+        isVintageTicket, isNeumorphism, button, stateColor, statusLevel,
+        accentColor, cardColor)
     return {
         effectiveEnabled: effectiveEnabled,
         isToggleChecked: isToggleChecked,
-        bgColor: backgroundColor(
-            style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
-            isVintageTicket, isNeumorphism, button, stateColor, statusLevel,
-            accentColor, cardColor),
+        bgColor: bgColor,
         borderColor: borderColor(
             style, level, effectiveEnabled, isToggleChecked, isNeobrutalism,
             isVintageTicket, button, stateColor, statusLevel, accentColor,
@@ -204,6 +216,7 @@ function snapshot(style, level, effectiveEnabled, hovered, pressed,
         textColor: textColor(
             style, level, effectiveEnabled, hovered, pressed, isToggleChecked,
             isNeobrutalism, button, textColorTokens, statusLevel, accentColor,
-            accentForeground, opacityLevel, neo, isVisited, visitedLinkColor)
+            accentForeground, opacityLevel, neo, isVisited, visitedLinkColor,
+            bgColor, onLightInk)
     }
 }

@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import "../../icons"
 import "../../utils"
+import "../../utils/_internal/ContrastInk.js" as ContrastInk
 import "../../../effects"
 
 // Badge - Unified badge component 统一徽章组件
@@ -74,7 +75,11 @@ Rectangle {
     readonly property bool _visible: _effectiveDot || _showIcon || _showText || _showCount
     
     // Text color on semantic/accent fill 语义/强调填充上的文字色
-    readonly property color _contentColor: Enums.accentForeground
+    // Semantic tokens brighten to pastels on dark, so the ink follows the fill it is
+    // actually drawn on instead of assuming white always survives.
+    // 语义 token 在深色下提亮为粉彩色，故墨色跟随实际填充色，而非假定白字总能存活。
+    readonly property color _contentColor: ContrastInk.onFill(
+        color, Enums.accentForeground, Enums.onLightFill, 4.5)
     readonly property real _badgeBorderWidth: Enums.isNeobrutalism
                                                ? Enums.border.medium
                                                : (Enums.isVintageTicket
