@@ -76,6 +76,9 @@ QtObject {
     readonly property int blockDefaultItems: 4 // Default list rows 默认列表项数
     readonly property int blockMaxItems: 12 // Most list rows 最多列表项数
     readonly property int blockInputHeight: 36 // Input height 输入框高度
+    // Real inputs are fixed-width fields (180-280px), not full-width lines.
+    // 真实输入框是固定宽度的字段(180-280px), 不是整行。
+    readonly property int blockInputWidth: 220 // Input width 输入框宽度
     readonly property int blockTabHeight: 36 // Tab strip height 标签栏高度
     readonly property int blockTabWidth: 96 // Single tab width 单个标签宽度
     readonly property int blockTabCount: 4 // Tabs in a strip 标签栏标签数

@@ -258,6 +258,12 @@ function cellWidth(entry, availableWidth, metrics, types) {
         return area * metrics.blockTextWidthRatio
     case types.block_button:
         return Math.min(metrics.blockButtonWidth, area)
+    // An input is a fixed-width control (real ones are 180-280px), not a full-width
+    // line, so it must stay compact and left-aligned like the field it stands for.
+    // 输入框是固定宽度控件(真实为 180-280px), 不是整行文本, 因此必须像它代表的控件那样
+    // 保持紧凑并左对齐。
+    case types.block_input:
+        return Math.min(metrics.blockInputWidth, area)
     case types.block_icon:
         return metrics.blockIconSize
     case types.block_avatar:
