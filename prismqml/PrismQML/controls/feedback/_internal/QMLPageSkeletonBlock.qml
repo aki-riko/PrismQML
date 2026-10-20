@@ -27,6 +27,18 @@ Item {
     // ==================== Public Props 公开属性 ====================
     property var entry: null
     property real availableHeight: 0
+    // Scales this block down together with the rest of the declaration so a page
+    // holding more than one screen of structure still fits the overlay.
+    // 与整份声明一起缩小本块, 使结构超过一屏的页面仍能放进遮罩。
+    property real fitRatio: 1
+    // Compiled nested-block component supplied by the entry point. Passing it in
+    // keeps one compiled type for every nesting level: a direct self-reference would
+    // be a compile-time cycle, and a URL string recompiles the file per child on
+    // every switch, which cost ~13ms of UI thread time on a four-card page.
+    // 由入口传入的已编译嵌套块组件。传入它可让每一层嵌套复用同一个已编译类型: 直接
+    // 自引用会形成编译期环, 而按 URL 字符串加载会在每次切换为每个子块重新编译文件,
+    // 在四卡片页面上花掉约 13ms 的 UI 线程时间。
+    property Component blockComponent: null
     property bool loading: true
 
     // ==================== Readonly State 只读状态 ====================
@@ -61,7 +73,7 @@ Item {
 
     // ==================== Size 尺寸 ====================
     implicitHeight: SkeletonLayout.blockHeight(
-        entry, availableHeight, _metrics, _types)
+        entry, availableHeight, _metrics, _types) * control.fitRatio
 
     // ==================== Content 内容 ====================
     // Card: an outlined surface holding the declared children, or the engine's
@@ -93,7 +105,8 @@ Item {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: Enums.skeletonMetrics.blockCardPadding
-                spacing: Enums.skeletonMetrics.blockCardGap
+                    * control.fitRatio
+                spacing: Enums.skeletonMetrics.blockCardGap * control.fitRatio
 
                 Repeater {
                     objectName: "qmlPageSkeletonCardChildren"
@@ -102,13 +115,15 @@ Item {
                     delegate: Loader {
                         objectName: "qmlPageSkeletonCardChildLoader"
                         width: cardColumn.width
-                        // Loaded by URL so nested blocks resolve at runtime; a
-                        // direct reference would be a compile-time cycle.
-                        // 经 URL 加载, 使嵌套块在运行时解析; 直接引用会形成编译期实例化环。
-                        source: "QMLPageSkeletonBlock.qml"
+                        sourceComponent: control.blockComponent
                         onLoaded: {
                             item.entry = control._children[index]
                             item.availableHeight = control.availableHeight
+                            item.blockComponent = control.blockComponent
+                            // Nested blocks shrink with their card so the interior
+                            // cannot overflow the surface it was scaled into.
+                            // 嵌套块随卡片一起缩小, 使内部结构不会溢出被缩放后的表面。
+                            item.fitRatio = control.fitRatio
                             item.loading = control.loading
                         }
                     }

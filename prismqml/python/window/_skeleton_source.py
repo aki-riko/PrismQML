@@ -241,20 +241,54 @@ def _card_block(card: dict, source: str) -> dict:
     return {"type": _type("block_card"), "children": children}
 
 
+def _collect_subtitle_run(children: list[dict], index: int, source: str,
+                          blocks: list[dict]) -> int:
+    """Emit one horizontal band for a run of labelled sub-sections.
+
+    为连续多个带标签的分节产出一条横向带。
+
+    A run of labelled sub-sections inside a flow/row container is laid out side by
+    side, so it reads as one band; one stacked section per label would turn a card
+    holding five side-by-side examples into five full-height sections. Returns the
+    index just past the run.
+    流式/行容器里连续多个带标签的分节是并排的, 因此读作一条横向带; 若每个标签各出一个
+    纵向分节, 一张含五个并排示例的卡片会变成五个整高分节。返回该连续序列之后的下标。
+    """
+    name = children[index]["name"]
+    run_end = index
+    while run_end < len(children) and children[run_end]["name"] == name:
+        run_end += 1
+    run = run_end - index
+    # Each append re-checks the card's child budget: the run can add both a subtitle
+    # and a row, so the loop-top check alone is not enough.
+    # 每次追加都重新检查卡片的子块预算: 该序列可能同时加一个分节标题和一行, 仅靠循环
+    # 开头的检查并不够。
+    if len(blocks) < MAX_CARD_CHILDREN and _has_text(
+            _prop_text(children[index], source, "label")):
+        blocks.append({"type": _type("block_subtitle")})
+    if len(blocks) < MAX_CARD_CHILDREN and run >= 2:
+        blocks.append({"type": _type("block_buttonRow"), "buttons": run})
+    _collect_card_content(children[index], source, blocks)
+    return run_end
+
+
 def _collect_card_content(node: dict, source: str, blocks: list[dict]) -> None:
     """Walk a card's content and emit one block per meaningful child. 遍历卡片内容并逐块产出。"""
-    for child in node["children"]:
+    children = node["children"]
+    index = 0
+    while index < len(children):
         if len(blocks) >= MAX_CARD_CHILDREN:
             return
+        child = children[index]
         name = child["name"]
         if name in SUBTITLE_MARKERS:
-            if _has_text(_prop_text(child, source, "label")):
-                blocks.append({"type": _type("block_subtitle")})
-            _collect_card_content(child, source, blocks)
-        elif name in ROW_CONTAINERS:
+            index = _collect_subtitle_run(children, index, source, blocks)
+            continue
+        if name in ROW_CONTAINERS:
             buttons = _count_buttons(child)
-            if buttons >= 2:
+            if buttons >= 2 and len(blocks) < MAX_CARD_CHILDREN:
                 blocks.append({"type": _type("block_buttonRow"), "buttons": buttons})
+                index += 1
                 continue
             _collect_card_content(child, source, blocks)
         elif name == "Button":
@@ -265,6 +299,7 @@ def _collect_card_content(node: dict, source: str, blocks: list[dict]) -> None:
             blocks.append({"type": _type("block_textLines")})
         else:
             _collect_card_content(child, source, blocks)
+        index += 1
 
 
 def _walk(node: dict, source: str, blocks: list[dict], counters: dict) -> None:

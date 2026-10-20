@@ -61,6 +61,15 @@ Item {
     // 外边距，以及三个区段之间的统一结构间距。
     readonly property real _margin: _spacing.xl
     readonly property real _gap: _spacing.xl
+    // The inferred structure can be taller than the overlay (a real page holds far
+    // more than one screen). A skeleton that overflows would draw cards running past
+    // the bottom edge, so the whole declaration is scaled down until it fits.
+    // 推断结构可能高于遮罩(真实页面远不止一屏)。溢出的骨架会把卡片画到边界之外,
+    // 因此整份声明会等比缩小到恰好放得下。
+    readonly property real _fitRatio: _hasDeclaration
+        ? SkeletonLayout.fitRatio(
+            _declared, height - _margin * 2, _metrics.blockGap, _metrics, _types)
+        : 1
     readonly property real _headerHeight: _metrics.pageHeaderHeight
     readonly property real _rowHeight: _metrics.pageRowHeight
     readonly property real _cardHeight: _metrics.pageCardHeight
@@ -85,6 +94,15 @@ Item {
         ? _rowCount * _rowHeight + (_rowCount - 1) * _gap : 0
 
     // ==================== Content 内容 ====================
+    // The one compiled block type every nesting level reuses. Declared here, above
+    // the layouts that consume it, so the block itself needs no self-reference.
+    // 每一层嵌套复用的唯一已编译块类型。声明在消费它的布局之前, 使块自身无需自引用。
+    Component {
+        id: declaredBlockComponent
+
+        QMLPageSkeletonBlock {}
+    }
+
     // Declared structure path 声明结构路径
     Column {
         id: declaredLayout
@@ -109,6 +127,13 @@ Item {
                 width: declaredLayout.width
                 entry: control._declared[index]
                 availableHeight: control.height - control._margin * 2
+                // Shrinks with the declaration so a long page still fits one screen.
+                // 随整份声明一起缩小, 使长页面仍能放进一屏。
+                fitRatio: control._fitRatio
+                // One compiled type reused by every nesting level; see the property
+                // documentation in QMLPageSkeletonBlock.
+                // 每一层嵌套复用的同一个已编译类型; 见 QMLPageSkeletonBlock 中的属性说明。
+                blockComponent: declaredBlockComponent
                 loading: control.loading
             }
         }

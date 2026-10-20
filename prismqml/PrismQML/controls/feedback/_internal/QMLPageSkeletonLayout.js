@@ -300,6 +300,29 @@ function blockShape(entry, types) {
     return types.shape_rounded
 }
 
+// Total height of a whole declaration: every top-level block plus the gaps between
+// them. Used to decide whether the inferred structure fits the available area.
+// 整份声明的总高度: 全部顶层块加上它们之间的间距。用于判断推断结构是否放得进可用区域。
+function declarationHeight(blocks, availableHeight, gap, metrics, types) {
+    if (!blocks || typeof blocks.length !== "number" || blocks.length === 0) return 0
+    var total = 0
+    for (var index = 0; index < blocks.length; index++) {
+        total += blockHeight(blocks[index], availableHeight, metrics, types)
+    }
+    return total + Math.max(blocks.length - 1, 0) * gap
+}
+
+// Height a block may occupy once the whole declaration is scaled to fit. Returns 1
+// when the declaration already fits, so an unclipped page is never rescaled.
+// 整份声明缩放到可容纳后单块可占的高度比例。声明本就能放下时返回 1, 因此未被裁剪的
+// 页面绝不会被重新缩放。
+function fitRatio(blocks, availableHeight, gap, metrics, types) {
+    var total = declarationHeight(blocks, availableHeight, gap, metrics, types)
+    if (total <= 0 || availableHeight <= 0) return 1
+    if (total <= availableHeight) return 1
+    return Math.max(availableHeight / total, 0.1)
+}
+
 // Stable identifier of a block type, used for object names and test discovery.
 // 块类型的稳定标识, 用于对象名与测试发现。
 function typeName(type, types) {
