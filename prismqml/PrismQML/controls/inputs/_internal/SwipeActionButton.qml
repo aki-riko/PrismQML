@@ -6,6 +6,7 @@ import QtQuick
 import "../../.."
 import "../../icons"
 import "../../data"
+import "../../utils/_internal/ContrastInk.js" as ContrastInk
 
 // SwipeActionButton - One revealed swipe action 滑动露出的单个操作
 // Bound behaviour: the Repeater's index/modelData are injected into the required
@@ -31,6 +32,11 @@ Item {
     readonly property color tint: Enums.statusLevel.getColorByLevel(
         modelData && modelData.level !== undefined
             ? Number(modelData.level) : Enums.statusLevel.info)
+    // Semantic tokens brighten to pastels on dark, so the content ink follows the
+    // tint it is drawn on instead of assuming white always survives.
+    // 语义 token 在深色下提亮为粉彩色，故内容墨色跟随实际底色，而非假定白字总能存活。
+    readonly property color tintInk: ContrastInk.onFill(
+        tint, Enums.accentForeground, Enums.onLightFill, 4.5)
     // Touch has no hover preview: the hover treatment follows the press there
     // 触摸没有 hover 预览: 触摸端 hover 视觉跟随按压
     readonly property bool _touchActive: Touch.feedback(hoverHandler.hovered,
@@ -58,7 +64,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             icon: button.iconName
             iconSize: Enums.iconSize.m
-            color: Enums.accentForeground
+            color: button.tintInk
             visible: button.iconName !== ""
         }
 
@@ -66,7 +72,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             type: Enums.label.type_caption
             text: button.label
-            color: Enums.accentForeground
+            color: button.tintInk
             visible: button.label !== ""
         }
     }

@@ -8,6 +8,7 @@ import "../../../effects"
 import "../../icons"
 import "../../buttons"
 import "../../data"
+import "../../utils/_internal/ContrastInk.js" as ContrastInk
 import "_internal" as NotificationInternal
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 import QtQuick.Window  // After library import: native Window type stays unshadowed 置于库import后:去前缀后保原生Window不被库覆盖
@@ -43,6 +44,11 @@ Window {
     // Use shared severity helper 使用共享的语义辅助函数
     readonly property int _severityLevel: Enums.notification.getSeverityLevel(severity)
     readonly property color severityColor: Enums.statusLevel.getColorByLevel(_severityLevel)
+    // The severity glyph sits on the severity swatch, which brightens to a pastel on
+    // dark; follow the swatch instead of assuming a white glyph survives.
+    // 语义图标叠在语义色块上，该色块在深色下提亮为粉彩色；跟随色块而非假定白图标可读。
+    readonly property color _severityIconInk: ContrastInk.onFill(
+        severityColor, Enums.accentForeground, Enums.onLightFill, 4.5)
     readonly property string severityIconName: {
         switch (severity) {
             case "success": return "Checkmark"
@@ -167,7 +173,7 @@ Window {
             Icon {
                 anchors.centerIn: parent
                 iconSize: Enums.iconSize.xs
-                color: Enums.accentForeground
+                color: control._severityIconInk
                 icon: severityIconName
             }
         }
