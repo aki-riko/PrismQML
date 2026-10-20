@@ -250,47 +250,48 @@ def _card_block(card: dict, source: str) -> dict:
     return {"type": _type("block_card"), "children": children}
 
 
+def _stack_labelled_run(children: list[dict], start: int, run_end: int,
+                        source: str, blocks: list[dict]) -> None:
+    """Stack a run of labelled examples as caption plus control. 把连续带标签示例堆叠为说明加控件。
+
+    The real page stacks these: each example is its caption followed by its control,
+    down the column (InputPage shows nine of them). Emitting one row of cells
+    instead put them side by side, which the page does not do.
+    真实页面把它们纵向堆叠: 每个示例先是说明文字, 然后是它的控件, 沿列排下去
+    (InputPage 有九个)。改成一行单元会把它们并排, 而页面并非如此。
+    """
+    for member_index in range(start, run_end):
+        if len(blocks) >= MAX_CARD_CHILDREN:
+            return
+        member = children[member_index]
+        if _has_text(_prop_text(member, source, "label")):
+            blocks.append({"type": _type("block_subtitle")})
+        _collect_card_content(member, source, blocks)
+
+
 def _collect_subtitle_run(children: list[dict], index: int, source: str,
                           blocks: list[dict]) -> int:
-    """Emit one horizontal band for a run of labelled sub-sections.
+    """Emit the blocks for a run of labelled sub-sections.
 
-    为连续多个带标签的分节产出一条横向带。
+    为连续多个带标签的分节产出块。
 
-    A run of labelled sub-sections inside a flow/row container is laid out side by
-    side, so it reads as one band; one stacked section per label would turn a card
-    holding five side-by-side examples into five full-height sections. Returns the
-    index just past the run.
-    流式/行容器里连续多个带标签的分节是并排的, 因此读作一条横向带; 若每个标签各出一个
-    纵向分节, 一张含五个并排示例的卡片会变成五个整高分节。返回该连续序列之后的下标。
+    Returns the index just past the run. Each append re-checks the card's child
+    budget, because the run can add both a subtitle and a row.
+    返回该连续序列之后的下标。每次追加都重新检查卡片的子块预算, 因为该序列可能同时加
+    一个分节标题和一行。
     """
     name = children[index]["name"]
     run_end = index
     while run_end < len(children) and children[run_end]["name"] == name:
         run_end += 1
-    run = run_end - index
-    # Each append re-checks the card's child budget: the run can add both a subtitle
-    # and a row, so the loop-top check alone is not enough.
-    # 每次追加都重新检查卡片的子块预算: 该序列可能同时加一个分节标题和一行, 仅靠循环
-    # 开头的检查并不够。
     if len(blocks) < MAX_CARD_CHILDREN and _has_text(
             _prop_text(children[index], source, "label")):
         blocks.append({"type": _type("block_subtitle")})
-    if run >= 2:
-        # The real page stacks these labelled examples: each one is its caption
-        # followed by its control, down the column (InputPage shows nine of them).
-        # Emitting one row of cells instead put them side by side, which the page
-        # does not do.
-        # 真实页面把这些带标签的示例纵向堆叠: 每个示例先是说明文字, 然后是它的控件, 沿列
-        # 排下去(InputPage 有九个)。改成一行单元会把它们并排, 而页面并非如此。
-        for member_index in range(index, run_end):
-            if len(blocks) >= MAX_CARD_CHILDREN:
-                break
-            member = children[member_index]
-            if _has_text(_prop_text(member, source, "label")):
-                blocks.append({"type": _type("block_subtitle")})
-            _collect_card_content(member, source, blocks)
+    if run_end - index >= 2:
+        _stack_labelled_run(children, index, run_end, source, blocks)
         return run_end
     _collect_card_content(children[index], source, blocks)
+    return run_end
     return run_end
 
 

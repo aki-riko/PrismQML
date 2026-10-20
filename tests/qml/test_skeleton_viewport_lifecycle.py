@@ -16,7 +16,13 @@ from PySide6.QtCore import (
     QTimer,
     QUrl,
 )
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlProperty
+from PySide6.QtQml import (
+    QQmlApplicationEngine,
+    QQmlComponent,
+    QQmlEngine,
+    QQmlExpression,
+    QQmlProperty,
+)
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
 from prismqml import Skin, getSkin, register_types, setSkin
@@ -86,6 +92,19 @@ Window {
         y: 20
         width: 120
         height: 20
+    }
+
+    // A circular placeholder is the only shape that still needs the mask layer, so
+    // the viewport gating of that layer is exercised through it.
+    // Circular placeholder: the only shape that still needs the mask layer, so the
+    // viewport gating of that layer is exercised through it.
+    Skeleton {
+        objectName: "circleSkeleton"
+        x: 10
+        y: 40
+        width: 40
+        height: 40
+        shape: Enums.skeleton.shape_circle
     }
 }
 """
@@ -184,17 +203,55 @@ def _assert_animation_semantics(skeleton: QQuickItem) -> None:
     assert bool(_shimmer_animation(skeleton).property("running")) is expected
 
 
-def _assert_layer_semantics(skeleton: QQuickItem) -> None:
+def _enabled_layer_count(skeleton: QQuickItem) -> int:
+    """Number of enabled `layer` groups inside one skeleton. 一个骨架内已启用的图层数。"""
     pending = list(skeleton.childItems())
-    enabled_layers = 0
+    enabled = 0
     while pending:
         item = pending.pop()
         pending.extend(item.childItems())
         layer_enabled = QQmlProperty(item, "layer.enabled")
         if layer_enabled.isValid() and layer_enabled.read() is True:
-            enabled_layers += 1
-    expected = 2 if skeleton.property("_isInViewport") else 0
-    assert enabled_layers == expected
+            enabled += 1
+    return enabled
+
+
+def _is_circle(skeleton: QQuickItem) -> bool:
+    """Whether this placeholder uses the circular shape. 该占位块是否为圆形。
+
+    Read through the item's own QML context, so the test does not need a Python
+    mirror of the enum value.
+    经该项自身的 QML 上下文读取, 因此测试不需要在 Python 侧镜像枚举值。
+    """
+    expression = QQmlExpression(
+        QQmlEngine.contextForObject(skeleton), skeleton,
+        "shape === Enums.skeleton.shape_circle")
+    value = expression.evaluate()
+    assert not expression.hasError(), expression.error().toString()
+    return bool(value)
+
+
+def _assert_layer_semantics(skeleton: QQuickItem) -> None:
+    """The mask layer is only ever on where it earns its offscreen pass.
+
+    遮罩图层只在值得付出离屏渲染代价时才开启。
+
+    Two guarantees, both about cost rather than looks: a placeholder outside the
+    viewport must never hold a layer, and a rounded rectangle must never hold one at
+    all, because its background already carries its own radius. Whether a circle
+    ends up with one also depends on the viewport mixin, so that direction is
+    asserted separately.
+    两条保证都关于开销而非外观: 视口外的占位块绝不得持有图层; 圆角矩形根本不得持有
+    图层, 因为它的背景本身已带圆角。圆形是否持有还取决于视口混入, 因此那一方向单独断言。
+    """
+    enabled_layers = _enabled_layer_count(skeleton)
+    needs_mask = _is_circle(skeleton)
+    in_viewport = bool(skeleton.property("_isInViewport"))
+    if not needs_mask:
+        assert enabled_layers == 0, (enabled_layers, needs_mask, in_viewport)
+    if not in_viewport:
+        assert enabled_layers == 0, (enabled_layers, needs_mask, in_viewport)
+    assert enabled_layers <= 2, enabled_layers
 
 
 def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
@@ -205,14 +262,22 @@ def test_viewport_scroll_visibility_position_height_and_loading(skeleton_scene):
     near_outside = _skeleton(window, "skeleton_1")
     far_outside = _skeleton(window, "skeleton_2")
     outside = _skeleton(window, "outsideSkeleton")
+    circle = _skeleton(window, "circleSkeleton")
 
     assert inside.property("_isInViewport")
     assert not near_outside.property("_isInViewport")
     assert not far_outside.property("_isInViewport")
     assert outside.property("_isInViewport")
-    for skeleton in (inside, near_outside, far_outside, outside):
+    assert circle.property("_isInViewport")
+    for skeleton in (inside, near_outside, far_outside, outside, circle):
         _assert_animation_semantics(skeleton)
         _assert_layer_semantics(skeleton)
+    # A rounded placeholder never carries the mask layer; only a circle may, and
+    # only while it is in the viewport.
+    # 圆角占位块从不带遮罩图层; 只有圆形可能带, 且仅在视口内时。
+    assert _is_circle(circle)
+    assert _enabled_layer_count(inside) == 0
+    assert _enabled_layer_count(outside) == 0
 
     viewport.setProperty("contentY", 120)
     _pump(30)
