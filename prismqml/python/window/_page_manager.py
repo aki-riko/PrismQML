@@ -23,6 +23,7 @@ from ._page_layout import (
     _PAGE_SIZE_RETRY_DELAY_MS,
     _connect_page_size_binding,
     _emit_page_size_signals,
+    _live_qt_object,
     _make_page_size_binder,
     _resolve_page_layout_item,
 )
@@ -32,6 +33,11 @@ from ._page_tree_lookup import lookup_page_container
 
 _PAGE_LOAD_RENDER_DELAY_MS = 16
 _NO_PAGE_TARGET = object()
+
+
+def _live_window(window: Any):
+    """返回仍持有 C++ 对象的窗口，未创建或已析构时返回 None。"""
+    return _live_qt_object(window)
 
 
 def _resolve_async_page_instance(item: Any):
@@ -143,7 +149,7 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
             profile("索引越界")
             return _NO_PAGE_TARGET, None
         item = all_items[index]
-        if self._window is None:
+        if _live_window(self._window) is None:
             profile("窗口未创建")
             return _NO_PAGE_TARGET, None
         page_container = self._find_child_by_name(f"page_{index}")
@@ -216,11 +222,12 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
 
     def _mark_python_page_ready(self, index: int) -> None:
         """Tell the generated QML stack that a Python page is renderable."""
-        if not self._window:
+        window = _live_window(self._window)
+        if window is None:
             return
         try:
             QMetaObject.invokeMethod(
-                self._window,
+                window,
                 "_markPythonPageReady",
                 Q_ARG("QVariant", index),
             )
@@ -232,7 +239,7 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
 
     def _find_child_by_name(self, name: str) -> Optional[QQuickItem]:
         """根据 objectName 查找子项，并缓存稳定窗口树中的页面容器。"""
-        if self._window is None:
+        if _live_window(self._window) is None:
             return None
         return lookup_page_container(self, name)
 
@@ -283,10 +290,11 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
 
     def _switch_to_index(self, index: int):
         """触发QML侧页面切换"""
-        if self._window:
+        window = _live_window(self._window)
+        if window is not None:
             try:
                 QMetaObject.invokeMethod(
-                    self._window, "navigateTo", Q_ARG("QVariant", index)
+                    window, "navigateTo", Q_ARG("QVariant", index)
                 )
             except RuntimeError as exc:
                 exception(f"页面切换失败: {type(exc).__name__}: {exc}")
@@ -346,19 +354,20 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         self._finalize_async_page(index, item, page_instance)
 
     def _attach_async_page_content(self, page_instance, page_container):
-        page_item = _resolve_page_layout_item(page_instance)
-        if not page_item:
+        page_item = _live_qt_object(_resolve_page_layout_item(page_instance))
+        container = _live_qt_object(page_container)
+        if page_item is None or container is None:
             return
-        page_item.setParentItem(page_container)
-        bind_size = _make_page_size_binder(page_instance, page_container, True)
+        page_item.setParentItem(container)
+        bind_size = _make_page_size_binder(page_instance, container, True)
         _connect_page_size_binding(
-            page_container,
+            container,
             bind_size,
             (_PAGE_SIZE_BIND_DELAY_MS, _PAGE_SIZE_RETRY_DELAY_MS),
             QTimer.singleShot,
         )
         if _has_deferred_queue(page_instance):
-            page_instance._qml_item.setOpacity(0)
+            page_item.setOpacity(0)
 
     def _finalize_async_page(self, index, item, page_instance):
         self._pages[index] = page_instance
@@ -379,8 +388,9 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
     def _on_async_batch_complete(self, index, page_instance):
         if self._pages.get(index) is not page_instance:
             return
-        if page_instance._qml_item:
-            page_instance._qml_item.setOpacity(1)
+        page_item = _live_qt_object(page_instance._qml_item)
+        if page_item is not None:
+            page_item.setOpacity(1)
         self._mark_python_page_ready(index)
         self._mark_page_load_finished(index)
         self._finish_loading_and_switch(index)
@@ -435,11 +445,12 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         collapse_finished.connect(on_collapse_finished)
 
     def _start_loading_overlay(self, index: int) -> None:
-        if not self._window:
+        window = _live_window(self._window)
+        if window is None:
             return
         try:
             QMetaObject.invokeMethod(
-                self._window, "_startPythonLoading", Q_ARG("QVariant", index)
+                window, "_startPythonLoading", Q_ARG("QVariant", index)
             )
         except RuntimeError as exc:
             exception(
@@ -463,9 +474,10 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
     def _finish_loading(self):
         """完成加载，隐藏loading动画"""
         self._mark_foreground_page_load_finished()
-        if self._window:
+        window = _live_window(self._window)
+        if window is not None:
             try:
-                QMetaObject.invokeMethod(self._window, "_finishPythonLoading")
+                QMetaObject.invokeMethod(window, "_finishPythonLoading")
             except RuntimeError as exc:
                 # Method may not exist, ignore 方法可能不存在
                 exception(
