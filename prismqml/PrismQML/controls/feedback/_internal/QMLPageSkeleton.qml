@@ -10,15 +10,16 @@ import "QMLPageSkeletonLayout.js" as SkeletonLayout
 // QMLPageSkeleton - 懒加载页面自适应骨架布局
 //
 // Two rendering paths share this entry point:
-// 1. A page may declare its structure through `blocks` (the engine reads it from
-//    `pageProperties`, before the page itself is instantiated). Each declared block
-//    is rendered by QMLPageSkeletonBlock.
+// 1. A page may declare its structure through `blocks`; a Python host can also
+//    supply it automatically from the page source (the engine reads it before the
+//    page itself is instantiated). Each declared block is rendered by
+//    QMLPageSkeletonBlock.
 // 2. Without a usable declaration the generic document skeleton below is used.
 // Either way every size and count is derived from this item's own available
 // width/height plus Enums tokens, so the host passes no geometry at all.
 // 两条渲染路径共用本入口:
-// 1. 页面可通过 `blocks` 声明结构(引擎在页面实例化前从 `pageProperties` 读取),
-//    每个声明块由 QMLPageSkeletonBlock 渲染。
+// 1. 页面可通过 `blocks` 声明结构; Python 宿主也可从页面源码自动提供(引擎在页面实例化前
+//    读取)。每个声明块由 QMLPageSkeletonBlock 渲染。
 // 2. 没有可用声明时使用下面的通用文档骨架。
 // 两种情况下每个尺寸与数量都由本项自身可用宽高加 Enums 令牌推导, 宿主完全不传几何。
 Item {
@@ -30,19 +31,39 @@ Item {
     property var blocks: []
 
     // ==================== Readonly State 只读状态 ====================
+    // The `Enums` singleton resolves lazily on first access, and the very first
+    // skeleton can be requested while a window is still being constructed. Reading
+    // enum members before they exist throws and spams QML runtime errors (the public
+    // `Skeleton` component reads them too), so nothing here is built until the enum
+    // set is actually ready. Empty stand-ins keep the reads harmless in the meantime,
+    // and every binding below re-evaluates on its own once the singleton completes.
+    // `Enums` 单例在首次访问时惰性解析, 而首个骨架可能在窗口仍在构建时就被请求。在枚举成员
+    // 存在之前读取它们会抛错并刷出 QML 运行时错误(公开的 `Skeleton` 组件也会读它们), 因此
+    // 在枚举集真正就绪前不构建任何内容。空占位对象让期间的读取无害, 单例完成后下面每个绑定
+    // 都会自动重新求值。
+    // Every category the skeleton touches must be present. Note that a partially
+    // built singleton yields `null` for members that are not ready yet, and
+    // `null !== undefined` is true, so plain undefined checks are not enough.
+    // 骨架涉及的每个分类都必须就位。注意未就绪的成员在构建中的单例里是 `null`, 而
+    // `null !== undefined` 为真, 因此仅用 undefined 判断并不够。
+    readonly property bool _enumsReady: !!Enums.skeleton && !!Enums.skeletonMetrics
+        && !!Enums.spacing && !!Enums.stateColor && !!Enums.radius
+    readonly property var _types: _enumsReady ? Enums.skeleton : ({})
+    readonly property var _metrics: _enumsReady ? Enums.skeletonMetrics : ({})
+    readonly property var _spacing: _enumsReady ? Enums.spacing : ({})
     // Normalized declaration; null means "no usable declaration, use the generic
     // skeleton". Unknown types, non-arrays and empty declarations all land here.
     // 归一化声明; null 表示"无可用声明, 用通用骨架"。未知类型、非数组、空声明都会落到这里。
-    readonly property var _declared: SkeletonLayout.normalize(
-        blocks, Enums.skeleton.block_table)
+    readonly property var _declared: _enumsReady
+        ? SkeletonLayout.normalize(blocks, _types.block_table) : null
     readonly property bool _hasDeclaration: _declared !== null
     // Outer margin and the single structural gap between the three sections.
     // 外边距，以及三个区段之间的统一结构间距。
-    readonly property real _margin: Enums.spacing.xl
-    readonly property real _gap: Enums.spacing.xl
-    readonly property real _headerHeight: Enums.skeletonMetrics.pageHeaderHeight
-    readonly property real _rowHeight: Enums.skeletonMetrics.pageRowHeight
-    readonly property real _cardHeight: Enums.skeletonMetrics.pageCardHeight
+    readonly property real _margin: _spacing.xl
+    readonly property real _gap: _spacing.xl
+    readonly property real _headerHeight: _metrics.pageHeaderHeight
+    readonly property real _rowHeight: _metrics.pageRowHeight
+    readonly property real _cardHeight: _metrics.pageCardHeight
     // One row plus its gap: the height a single additional row costs.
     // 单行高度加行间距，即多一行所消耗的高度。
     readonly property real _rowPitch: _rowHeight + _gap
@@ -57,8 +78,8 @@ Item {
     // tiny overlay stays readable and a tall one never turns into noise.
     // 引擎按可用高度决定行数并夹紧区间，使过小的遮罩仍可读、过高的遮罩不至于变成噪声。
     readonly property int _rowCount: Math.max(
-        Enums.skeletonMetrics.pageRowMinCount,
-        Math.min(Enums.skeletonMetrics.pageRowMaxCount,
+        _metrics.pageRowMinCount || 0,
+        Math.min(_metrics.pageRowMaxCount || 0,
                  Math.floor((_rowsBudget + _gap) / Math.max(_rowPitch, 1))))
     readonly property real _rowsHeight: _rowCount > 0
         ? _rowCount * _rowHeight + (_rowCount - 1) * _gap : 0
@@ -73,7 +94,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: control._margin
-        spacing: Enums.skeletonMetrics.blockGap
+        spacing: control._metrics.blockGap
         visible: control._hasDeclaration
 
         Repeater {
@@ -84,7 +105,7 @@ Item {
                 // Type-suffixed name so every declared block type is addressable.
                 // 带类型后缀的名称, 使每种声明块都可被定位。
                 objectName: "qmlPageSkeletonBlock-" + SkeletonLayout.typeName(
-                    control._declared[index].type, Enums.skeleton)
+                    control._declared[index].type, control._types)
                 width: declaredLayout.width
                 entry: control._declared[index]
                 availableHeight: control.height - control._margin * 2
@@ -97,15 +118,18 @@ Item {
     //
     // Held in a Loader that is only active when there is no usable declaration, so
     // the two paths never coexist: a declared page builds no generic skeleton
-    // objects at all, and a fallback page builds nothing else.
+    // objects at all, and a fallback page builds nothing else. It also waits for the
+    // enum set, which is what keeps the public `Skeleton` component from being built
+    // against an unfinished `Enums` singleton.
     // 由仅在无可用声明时才激活的 Loader 持有, 因此两条路径永不共存: 有声明的页面完全
-    // 不创建通用骨架对象, 回退页面也不创建其它东西。
+    // 不创建通用骨架对象, 回退页面也不创建其它东西。它同样等待枚举集就绪, 这正是避免公开
+    // `Skeleton` 组件在 `Enums` 单例未完成时被构建的原因。
     Loader {
         id: fallbackLoader
 
         objectName: "qmlPageSkeletonFallbackLoader"
         anchors.fill: parent
-        active: !control._hasDeclaration
+        active: control._enumsReady && !control._hasDeclaration
         sourceComponent: genericSkeleton
     }
 
@@ -125,9 +149,9 @@ Item {
             // Header bar 标题条
             Skeleton {
                 objectName: "qmlPageSkeletonHeader"
-                width: layout.width * Enums.skeletonMetrics.pageHeaderWidthRatio
+                width: layout.width * control._metrics.pageHeaderWidthRatio
                 height: control._headerHeight
-                shape: Enums.skeleton.shape_rounded
+                shape: control._types.shape_rounded
                 loading: control.loading
             }
 
@@ -146,10 +170,10 @@ Item {
                         objectName: "qmlPageSkeletonRow"
                         y: index * control._rowPitch
                         width: layout.width * (index % 2 === 0
-                            ? Enums.skeletonMetrics.pageRowLongRatio
-                            : Enums.skeletonMetrics.pageRowShortRatio)
+                            ? control._metrics.pageRowLongRatio
+                            : control._metrics.pageRowShortRatio)
                         height: control._rowHeight
-                        shape: Enums.skeleton.shape_rounded
+                        shape: control._types.shape_rounded
                         loading: control.loading
                     }
                 }
@@ -160,7 +184,7 @@ Item {
                 objectName: "qmlPageSkeletonCard"
                 width: layout.width
                 height: control._cardHeight
-                shape: Enums.skeleton.shape_rounded
+                shape: control._types.shape_rounded
                 loading: control.loading
             }
         }

@@ -102,6 +102,14 @@ def _visual_descendants(item: QQuickItem) -> list[QQuickItem]:
     return found
 
 
+def _named_blocks(item: QQuickItem, name: str) -> list[QQuickItem]:
+    """Visual descendants carrying one object name. 携带指定对象名的可视后代。"""
+    return [
+        child for child in _visual_descendants(item)
+        if child.objectName() == name
+    ]
+
+
 def _evaluate(root: QObject, expression: str):
     qml_expression = QQmlExpression(
         QQmlEngine.contextForObject(root), root, expression
@@ -744,6 +752,230 @@ def test_declared_layout_consumes_the_public_skeleton_component():
     dispatch = SKELETON_DISPATCH_SOURCE.read_text(encoding="utf-8")
     assert "SkeletonLayout.normalize(" in dispatch
     # The generic skeleton must be held in an inactive Loader when a declaration
-    # exists, so the two paths never coexist.
-    # 有声明时通用骨架必须持有在不激活的 Loader 中, 使两条路径永不共存。
-    assert "active: !control._hasDeclaration" in dispatch
+    # exists, so the two paths never coexist. It also waits for the enum set, which
+    # keeps the public `Skeleton` component from being built against an unfinished
+    # `Enums` singleton during window construction.
+    # 有声明时通用骨架必须持有在不激活的 Loader 中, 使两条路径永不共存。它同时等待枚举集
+    # 就绪, 避免公开 `Skeleton` 组件在窗口构建期对未完成的 `Enums` 单例进行构建。
+    assert "active: control._enumsReady && !control._hasDeclaration" in dispatch
+    assert "readonly property bool _enumsReady" in dispatch
+
+
+# ==================== Injectable resolver 可注入解析器 ====================
+
+# A real StackedWidget with a stub resolver, i.e. the exact injection a Python host
+# performs with the `SkeletonSource` context property.
+# 带桩解析器的真实 StackedWidget, 即 Python 宿主用 `SkeletonSource` context 属性注入的形态。
+RESOLVER_SCENE = b"""
+import QtQuick
+import PrismQML
+
+Item {
+    id: root
+    property var resolver: null
+    property var declarations: []
+    property int resolverCalls: 0
+    width: 900
+    height: 600
+
+    StackedWidget {
+        id: stack
+        objectName: "resolverStack"
+        anchors.fill: parent
+        lazyLoading: true
+        lazyAnimationType: Enums.lazyAnimation.none
+        lazyLoadingStyle: Enums.lazyLoadingStyle.style_skeleton
+        animationType: Enums.animation.none
+        pageSources: ["__PAGE0__", "__PAGE1__"]
+        pageProperties: root.declarations
+        skeletonSourceResolver: root.resolver
+    }
+}
+"""
+
+# Stub resolver returning a fixed first-screen shape, standing in for the Python one.
+# 返回固定首屏结构的桩解析器, 代替 Python 实现。
+STUB_RESOLVER = """
+import QtQuick
+
+QtObject {
+    id: stub
+
+    property int calls: 0
+
+    function blocksFor(url) {
+        calls += 1
+        if (String(url).indexOf("resolver_page_1") === -1) return []
+        return [
+            { type: 0 },
+            { type: 4, children: [
+                { type: 1 },
+                { type: 2 },
+                { type: 5, buttons: 3 } ] }
+        ]
+    }
+}
+"""
+
+
+def _resolver_scene(tmp_path: Path, declarations_expression: str = "[]"):
+    page_urls = []
+    for index in range(2):
+        page = tmp_path / f"resolver_page_{index}.qml"
+        page.write_text("import QtQuick\nItem { }\n", encoding="utf-8")
+        page_urls.append(QUrl.fromLocalFile(str(page)).toString())
+    stub_path = tmp_path / "stub_resolver.qml"
+    stub_path.write_text(STUB_RESOLVER, encoding="utf-8")
+    source = (
+        RESOLVER_SCENE.replace(b"__PAGE0__", page_urls[0].encode("utf-8"))
+        .replace(b"__PAGE1__", page_urls[1].encode("utf-8"))
+    )
+    engine = QQmlApplicationEngine()
+    warnings: list[str] = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(source, QUrl("inline:skeleton-resolver.qml"))
+    for _ in range(50):
+        if component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    root = component.create(engine.rootContext())
+    assert root is not None, [error.toString() for error in component.errors()]
+    _pump(300)
+    # Attach the stub resolver, created from its own file so the QML stays valid.
+    stub_component = QQmlComponent(engine, QUrl.fromLocalFile(str(stub_path)))
+    for _ in range(50):
+        if stub_component.status() != QQmlComponent.Status.Loading:
+            break
+        _pump()
+    assert stub_component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in stub_component.errors()
+    ]
+    stub = stub_component.create(engine.rootContext())
+    assert stub is not None, [error.toString() for error in stub_component.errors()]
+    _pump(20)
+    return engine, component, stub_component, root, stub, warnings
+
+
+def test_injected_resolver_drives_the_overlay_skeleton(qapp, tmp_path):
+    """注入解析器后, 遮罩必须渲染出解析出的结构, 而不是通用骨架。"""
+    engine, component, stub_component, root, stub, warnings = _resolver_scene(
+        tmp_path
+    )
+    try:
+        stack = root.findChild(QObject, "resolverStack")
+        assert stack is not None
+        root.setProperty("resolver", stub)
+        _pump(100)
+
+        # Page 0 has no inferred structure: the generic skeleton shows.
+        # 页 0 无推断结构: 显示通用骨架。
+        assert _evaluate(root, "stack._skeletonBlocksFor(0)") == []
+        # Page 1 resolves to the stub's structure. 页 1 解析为桩的结构。
+        resolved = _evaluate(root, "stack._skeletonBlocksFor(1)")
+        assert [entry["type"] for entry in resolved] == [0, 4], resolved
+        assert [c["type"] for c in resolved[1]["children"]] == [1, 2, 5]
+
+        # The overlay carries it into the renderer. 覆盖层把它带给渲染器。
+        overlay = stack.findChild(QQuickItem, "lazyLoadingOverlay")
+        assert overlay is not None
+        assert _variant(overlay.property("skeletonBlocks")) == []
+        assert warnings == []
+    finally:
+        stub.deleteLater()
+        root.deleteLater()
+        del component, stub_component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_user_declaration_wins_over_the_injected_resolver(qapp, tmp_path):
+    """三级优先级: 用户声明 > 自动解析 > 空。"""
+    engine, component, stub_component, root, stub, warnings = _resolver_scene(
+        tmp_path
+    )
+    try:
+        stack = root.findChild(QObject, "resolverStack")
+        assert stack is not None
+        root.setProperty("resolver", stub)
+        _evaluate(
+            root,
+            "root.declarations = [ {}, { skeleton: [ { type: 15 } ] } ]",
+        )
+        _pump(100)
+        # The declaration for page 1 wins over the resolver's [0, 4].
+        # 页 1 的声明优先于解析器的 [0, 4]。
+        declared = _evaluate(root, "stack._skeletonBlocksFor(1)")
+        assert [entry["type"] for entry in declared] == [15], declared
+        # Page 0 has neither, so it stays empty and falls back.
+        # 页 0 两者皆无, 因此保持为空并回退。
+        assert _evaluate(root, "stack._skeletonBlocksFor(0)") == []
+        assert warnings == []
+    finally:
+        stub.deleteLater()
+        root.deleteLater()
+        del component, stub_component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_missing_resolver_falls_back_silently(qapp, tmp_path):
+    """未注入解析器时必须静默回退通用骨架, 且无 QML 警告。"""
+    engine, component, stub_component, root, stub, warnings = _resolver_scene(
+        tmp_path
+    )
+    try:
+        stack = root.findChild(QObject, "resolverStack")
+        assert stack is not None
+        # `resolver` stays null, which is the QML-only host case.
+        # `resolver` 保持 null, 即纯 QML 宿主的情形。
+        assert root.property("resolver") is None
+        assert _evaluate(root, "stack._skeletonBlocksFor(0)") == []
+        assert _evaluate(root, "stack._skeletonBlocksFor(1)") == []
+        overlay = stack.findChild(QQuickItem, "lazyLoadingOverlay")
+        assert overlay is not None
+        assert _variant(overlay.property("skeletonBlocks")) == []
+        # The generic skeleton is what actually renders. 实际渲染的是通用骨架。
+        assert _named_blocks(overlay, "qmlPageSkeletonRow")
+        assert warnings == []
+    finally:
+        stub.deleteLater()
+        root.deleteLater()
+        del component, stub_component
+        engine.deleteLater()
+        _pump(1)
+
+
+def test_malformed_resolver_result_is_ignored(qapp, tmp_path):
+    """解析器缺失 blocksFor 或返回非数组时必须静默忽略, 不得报错。"""
+    engine, component, stub_component, root, stub, warnings = _resolver_scene(
+        tmp_path
+    )
+    try:
+        stack = root.findChild(QObject, "resolverStack")
+        assert stack is not None
+        # A resolver object that has no `blocksFor` at all. 完全没有 `blocksFor` 的解析器。
+        root.setProperty("resolver", _evaluate(root, "({})"))
+        assert _evaluate(root, "stack._skeletonBlocksFor(1)") == []
+        # A `blocksFor` that is not callable. 不可调用的 `blocksFor`。
+        root.setProperty("resolver", _evaluate(root, "({ blocksFor: 42 })"))
+        assert _evaluate(root, "stack._skeletonBlocksFor(1)") == []
+        # A resolver whose result is not an array. 结果不是数组的解析器。
+        root.setProperty(
+            "resolver", _evaluate(root, "({ blocksFor: function(url) { return 7 } })")
+        )
+        assert _evaluate(root, "stack._skeletonBlocksFor(1)") == []
+        assert warnings == []
+    finally:
+        stub.deleteLater()
+        root.deleteLater()
+        del component, stub_component
+        engine.deleteLater()
+        _pump(1)

@@ -29,6 +29,9 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property list<Component> deferredPages  // Inline Component pages 内联延迟页面
     property var pageProperties: []
+    // Optional resolver inferring a page's skeleton from its QML source; null keeps
+    // QML-only hosts on the generic skeleton. 可选解析器: 从页面源码推断骨架; null 用通用骨架。
+    property var skeletonSourceResolver: null
     property bool dynamicStack: false
     property int pageRetentionRadius: -1
     property int dynamicStackRetainDepth: 0
@@ -120,15 +123,15 @@ Item {
     function _pagePropertiesFor(index) {
         return StackedPageMetadata.propertiesFor(control, index)
     }
-    // Skeleton structure declared for one page in `pageProperties`. Read from host
-    // metadata, so it works while the target page is still uninstantiated; absent,
-    // malformed or empty declarations yield an empty list, which the skeleton
-    // renderer treats as "use the generic skeleton".
-    // 某页在 `pageProperties` 中声明的骨架结构。从宿主元数据读取, 因此目标页尚未实例化时
-    // 也可用; 缺失、非法或空声明返回空列表, 骨架渲染器据此使用通用骨架。
+    // Skeleton structure for one page, read from host metadata so it works while the
+    // target page is still uninstantiated; unusable declarations yield an empty list.
+    // 某页的骨架结构, 从宿主元数据读取, 因此目标页未实例化时也可用; 不可用时返回空列表。
     function _skeletonBlocksFor(index) {
         return StackedPageMetadata.skeletonBlocksFor(control, index)
     }
+    // Warm-up lives in StackedPageMetadata to keep this entry file inside its gate.
+    // 预热在 StackedPageMetadata 中, 以保持本入口文件的体积门禁。
+    function _warmSkeletonSources() { StackedPageMetadata.warmSkeletonSources(control) }
     // `pageProperties` doubles as the page's initial properties, so engine-reserved
     // metadata keys must not be forwarded: assigning `skeleton` to a page that does
     // not declare it raises a QML warning, and the fallback path must stay silent.
@@ -137,9 +140,7 @@ Item {
     function _initialPropertiesFor(index) {
         return StackedPageMetadata.initialPropertiesFor(control, index)
     }
-    function profileTime(msg) {
-        diagnostics.profileTime(msg)
-    }
+    function profileTime(msg) { diagnostics.profileTime(msg) }
     function _traceLazyStage(stage, index, details, loaderOverride) {
         diagnostics.traceLazyStage(stage, index, details, loaderOverride)
     }
@@ -309,6 +310,11 @@ Item {
     clip: true
 
     Component.onCompleted: StackedWidgetLifecycle.onCompleted(control)
+    // The host binds `pageSources` after this item completes, so warm-up runs when
+    // the list or the resolver arrives rather than at completion.
+    // 宿主在本项完成后才绑定 `pageSources`, 因此预热在列表或解析器到达时执行。
+    onPageSourcesChanged: control._warmSkeletonSources()
+    onSkeletonSourceResolverChanged: control._warmSkeletonSources()
     Component.onDestruction: _destroying = true
 
     onCountChanged: StackedWidgetLifecycle.onCountChanged(control)

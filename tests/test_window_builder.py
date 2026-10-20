@@ -129,6 +129,7 @@ def _expected_engine_context_calls(scenario):
     from prismqml.python.runtime.window_services import (
         get_notification_banner_guard,
     )
+    from prismqml.python.window._skeleton_source import get_skeleton_source
 
     values = scenario.values
     return [
@@ -148,6 +149,10 @@ def _expected_engine_context_calls(scenario):
         ("context", "PrismQmlAsynchronousPageLoaderEnabled", False),
         ("factory", "native"),
         ("context", "NativeWindow", values["native"]),
+        # The skeleton resolver is registered last so the established order above
+        # stays untouched; it has no ordering dependency of its own.
+        # 骨架解析器最后注册, 使上面既有顺序不受影响; 它自身无顺序依赖。
+        ("context", "SkeletonSource", get_skeleton_source()),
         ("profile", "注入 ContextProperty"),
     ]
 

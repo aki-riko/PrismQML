@@ -27,14 +27,65 @@ function propertiesFor(host, index) {
     return value && typeof value === "object" ? value : ({})
 }
 
-// Declared skeleton structure for one page, or an empty list when unusable. An
-// unusable declaration makes the skeleton renderer fall back to the generic one.
-// 某页声明的骨架结构; 不可用时返回空列表。不可用声明会让骨架渲染器回退通用骨架。
+// Skeleton structure for one page, resolved in three tiers:
+//   1. a user declaration in `pageProperties[index].skeleton` wins;
+//   2. otherwise the injected `skeletonSourceResolver` infers it from page source;
+//   3. otherwise an empty list, which makes the renderer use the generic skeleton.
+// The resolver is optional: a host without Python injection leaves it null and the
+// page silently falls back instead of erroring.
+// 某页的骨架结构, 三级解析:
+//   1. `pageProperties[index].skeleton` 的用户声明优先;
+//   2. 否则由注入的 `skeletonSourceResolver` 从页面源码推断;
+//   3. 否则返回空列表, 渲染器据此使用通用骨架。
+// 解析器是可选的: 没有 Python 注入的宿主保持 null, 页面静默回退而不报错。
 function skeletonBlocksFor(host, index) {
     var declared = propertiesFor(host, index).skeleton
-    if (!declared || typeof declared !== "object") return []
-    if (typeof declared.length !== "number") return []
-    return declared
+    if (declared && typeof declared === "object"
+            && typeof declared.length === "number" && declared.length > 0) {
+        return declared
+    }
+    return resolvedBlocksFor(host, index)
+}
+
+// Blocks inferred by the injected resolver for one page, or an empty list when the
+// resolver is absent, the page has no source, or the result is not an array.
+// 由注入解析器为某页推断的块; 解析器缺失、页面无源码或结果非数组时返回空列表。
+function resolvedBlocksFor(host, index) {
+    var resolver = resolverFor(host)
+    if (!resolver || typeof resolver.blocksFor !== "function") return []
+    var sources = host._safePageSources
+    if (index < 0 || index >= sources.length) return []
+    var source = sources[index]
+    if (!source) return []
+    var resolved = resolver.blocksFor(String(source))
+    if (!resolved || typeof resolved !== "object") return []
+    if (typeof resolved.length !== "number") return []
+    return resolved
+}
+
+// The host's skeleton resolver: the bound property when present, otherwise the
+// Python-injected global so a QML-only host still infers layouts. The global is
+// never written into the property, which would destroy a binding the host assigns
+// later. Kept here so the entry file stays inside its size gate.
+// 宿主的骨架解析器: 已绑定的属性优先, 否则用 Python 注入的全局, 使纯 QML 宿主同样能推断
+// 布局。全局绝不写回属性, 否则会破坏宿主之后建立的绑定。放在此处以保持入口文件体积门禁。
+function resolverFor(host) {
+    if (host.skeletonSourceResolver) return host.skeletonSourceResolver
+    return typeof SkeletonSource !== "undefined" ? SkeletonSource : null
+}
+
+// Pre-parse every page source during window construction, where the cost is allowed
+// to exceed one frame, so the lazy switch later never pays a cold source read on the
+// UI thread. Guarded for the construction order: `pageSources` and the resolver can
+// each still be undefined when this first runs.
+// 在窗口构建期预解析全部页面源码(该阶段允许超过一帧), 使之后的懒加载切换不必在 UI 线程
+// 支付冷读取。针对构造顺序做了守卫: 首次运行时 `pageSources` 与解析器都可能仍未就绪。
+function warmSkeletonSources(host) {
+    var resolver = resolverFor(host)
+    if (!resolver || typeof resolver.warm !== "function") return
+    var sources = host._safePageSources
+    if (!sources || typeof sources.length !== "number" || sources.length === 0) return
+    resolver.warm(sources)
 }
 
 // The page's real initial properties, with reserved engine metadata removed. The

@@ -73,6 +73,14 @@ Item {
         // 解析为空列表, 骨架渲染器据此使用通用骨架。
         pageProperties: root.host && root.host.pageProperties
             ? root.host.pageProperties : []
+        // Python hosts inject `SkeletonSource` so the engine can infer each page's
+        // skeleton from its own QML source. Without that global (a QML-only host, or
+        // one that never registered it) the property stays null and the skeleton
+        // silently falls back to the generic layout.
+        // Python 宿主注入 `SkeletonSource`, 使引擎能从页面自身 QML 源码推断骨架。没有该
+        // 全局时(纯 QML 宿主, 或未注册该属性的宿主) 该属性保持 null, 骨架静默回退通用布局。
+        skeletonSourceResolver: typeof SkeletonSource !== "undefined"
+            ? SkeletonSource : null
         lazyLoading: root.host ? root.host.lazyLoading : false
         lazyAnimationType: root.host
             && typeof root.host.lazyAnimationType === "number"

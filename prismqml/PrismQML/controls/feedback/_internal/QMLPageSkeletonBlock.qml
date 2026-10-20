@@ -31,7 +31,14 @@ Item {
 
     // ==================== Readonly State 只读状态 ====================
     readonly property var _metrics: Enums.skeletonMetrics
-    readonly property var _types: Enums.skeleton
+    // Stand-in used only while the `Enums` singleton is still resolving: member reads
+    // on it yield undefined instead of throwing, so the first skeleton built during
+    // window construction cannot spam QML runtime errors. The binding re-evaluates
+    // with the real enum set as soon as it is available.
+    // 仅在 `Enums` 单例仍在解析时使用的占位对象: 读它的成员得到 undefined 而不是抛错, 因此
+    // 窗口构建期构建的首个骨架不会刷出 QML 运行时错误。枚举集可用后绑定会立即重新求值。
+    readonly property var _pendingTypes: ({})
+    readonly property var _types: Enums.skeleton ? Enums.skeleton : _pendingTypes
     readonly property int _type: entry ? entry.type : -1
     readonly property int _count: SkeletonLayout.repeatCount(entry, _metrics, _types)
     readonly property int _columns: SkeletonLayout.columnCount(entry, _metrics)
@@ -219,7 +226,7 @@ Item {
                 objectName: "qmlPageSkeletonTableHeader"
                 width: tableColumn.width
                 height: Enums.skeletonMetrics.blockTableHeaderHeight
-                shape: Enums.skeleton.shape_rounded
+                shape: control._types.shape_rounded
                 loading: control.loading
             }
 
@@ -240,7 +247,7 @@ Item {
                             width: SkeletonLayout.tableColumnWidth(
                                 tableColumn.width, control._columns, control._metrics)
                             height: Enums.skeletonMetrics.blockTableRowHeight
-                            shape: Enums.skeleton.shape_rounded
+                            shape: control._types.shape_rounded
                             loading: control.loading
                         }
                     }

@@ -50,6 +50,7 @@ def register_primary_context(
 ) -> None:
     """Register shared managers and startup flags. 注册共享管理器与启动开关。"""
     from ..core.incubation import asynchronous_page_loader_enabled
+    from ..window._skeleton_source import get_skeleton_source
     from .appearance import getThemeManager
     from .configuration import get_config_manager
 
@@ -66,6 +67,10 @@ def register_primary_context(
                 "PrismQmlAsynchronousPageLoaderEnabled",
                 asynchronous_page_loader_enabled,
             ),
+            # Appended last so the established registration order above is
+            # unchanged; the skeleton resolver has no ordering dependency.
+            # 追加在末尾, 使上面既有的注册顺序保持不变; 骨架解析器无顺序依赖。
+            ("SkeletonSource", get_skeleton_source),
         ),
     )
 
@@ -155,6 +160,7 @@ def register_window_engine_context(
 ) -> None:
     """Register the reduced window startup contract. 注册精简窗口启动上下文合同。"""
     from ..core.incubation import asynchronous_page_loader_enabled
+    from ..window._skeleton_source import get_skeleton_source
     from .window_services import get_notification_banner_guard
 
     ThemeManager, getShadowManager, get_config_manager = core_managers
@@ -182,6 +188,10 @@ def register_window_engine_context(
             # WindowCore defers NativeWindow attach/finalizeAttach for DWM animations.
             # WindowCore 延后 NativeWindow attach/finalizeAttach，以保留 DWM 动画。
             ("NativeWindow", get_native_window_hook),
+            # Appended last so the established registration order above is
+            # unchanged; the skeleton resolver has no ordering dependency.
+            # 追加在末尾, 使上面既有的注册顺序保持不变; 骨架解析器无顺序依赖。
+            ("SkeletonSource", get_skeleton_source),
         ),
     )
     profile("注入 ContextProperty")
