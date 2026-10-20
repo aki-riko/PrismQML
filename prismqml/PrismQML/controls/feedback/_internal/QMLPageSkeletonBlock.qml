@@ -65,8 +65,14 @@ Item {
     readonly property bool _isTable: _type === _types.block_table
     readonly property bool _isStack: _isRepeating && !_isRow && !_isTable
     readonly property bool _isSingle: !_isCard && !_isRepeating
+    // Every internal size is scaled by `fitRatio` as well, so the drawn cells match
+    // the height the block reserved. Scaling only `implicitHeight` left a
+    // ratio-sized block (chart, image) drawing taller than its slot and overlapping
+    // the block below it.
+    // 内部每个尺寸同样按 `fitRatio` 缩放, 使绘制的单元与块预留的高度一致。只缩放
+    // `implicitHeight` 会让按比例定高的块(图表、图片)画得比自己的槽位更高, 压到下方块上。
     readonly property real _cellHeight: SkeletonLayout.cellHeight(
-        entry, availableHeight, _metrics, _types)
+        entry, availableHeight, _metrics, _types) * control.fitRatio
     readonly property real _cellWidth: SkeletonLayout.cellWidth(
         entry, width, _metrics, _types)
     readonly property int _cellShape: SkeletonLayout.blockShape(entry, _types)
@@ -163,7 +169,7 @@ Item {
 
             objectName: "qmlPageSkeletonBlockRow"
             spacing: SkeletonLayout.cellGap(control.entry, control._metrics,
-                                           control._types)
+                                           control._types) * control.fitRatio
 
             Repeater {
                 objectName: "qmlPageSkeletonBlockCells"
@@ -201,7 +207,7 @@ Item {
         Column {
             objectName: "qmlPageSkeletonBlockColumn"
             spacing: SkeletonLayout.cellGap(control.entry, control._metrics,
-                                           control._types)
+                                           control._types) * control.fitRatio
 
             Repeater {
                 objectName: "qmlPageSkeletonBlockCells"
@@ -239,12 +245,13 @@ Item {
             id: tableColumn
 
             objectName: "qmlPageSkeletonTable"
-            spacing: Enums.skeletonMetrics.blockListGap
+            spacing: Enums.skeletonMetrics.blockListGap * control.fitRatio
 
             Skeleton {
                 objectName: "qmlPageSkeletonTableHeader"
                 width: tableColumn.width
                 height: Enums.skeletonMetrics.blockTableHeaderHeight
+                    * control.fitRatio
                 shape: control._types.shape_rounded
                 loading: control.loading
             }
@@ -256,6 +263,7 @@ Item {
                 delegate: Row {
                     width: tableColumn.width
                     spacing: Enums.skeletonMetrics.blockTableColumnGap
+                        * control.fitRatio
 
                     Repeater {
                         objectName: "qmlPageSkeletonTableColumns"
@@ -266,6 +274,7 @@ Item {
                             width: SkeletonLayout.tableColumnWidth(
                                 tableColumn.width, control._columns, control._metrics)
                             height: Enums.skeletonMetrics.blockTableRowHeight
+                                * control.fitRatio
                             shape: control._types.shape_rounded
                             loading: control.loading
                         }
