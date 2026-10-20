@@ -176,46 +176,40 @@ def test_pages_without_a_heading_do_not_invent_one():
 
 
 def test_button_page_mirrors_its_card_and_button_row_shape():
-    """ButtonPage 的真实形状: 标题 + 卡片(分节标题/说明/按钮行)。"""
+    """ButtonPage 的真实形状: 标题 + 每张卡片的分节标题/说明/按钮行(顶层平铺)。"""
     blocks = infer_blocks(_source("ButtonPage"))
     assert blocks[0]["type"] == 0
-    cards = [block for block in blocks if block["type"] == 4]
-    assert len(cards) == MAX_CARDS
-    first = cards[0]
-    child_types = [child["type"] for child in first["children"]]
-    assert 1 in child_types, child_types
-    assert 2 in child_types, child_types
-    rows = [child for child in first["children"] if child["type"] == 5]
-    assert rows, child_types
+    types = [block["type"] for block in blocks]
+    # Cards are grouping only: their content is promoted to top level, because a
+    # placeholder nested inside a card container never painted.
+    # 卡片只是分组: 其内容提升为顶层块, 因为嵌在卡片容器里的占位块从不绘制。
+    assert 4 not in types, types
+    assert 1 in types and 2 in types, types
+    rows = [block for block in blocks if block["type"] == 5]
+    assert rows, types
     # The real first card holds three buttons in one Flow. 真实首卡在一个 Flow 内有三个按钮。
     assert rows[0]["buttons"] == 3, rows[0]
 
 
 def test_navigation_page_mirrors_its_subsection_shape():
-    """NavigationPage 的真实形状: 标题 + 卡片内多个分节标题与控件块。"""
+    """NavigationPage 的真实形状: 标题 + 多个分节标题与控件块(顶层平铺)。"""
     blocks = infer_blocks(_source("NavigationPage"))
     assert blocks[0]["type"] == 0
-    cards = [block for block in blocks if block["type"] == 4]
-    assert len(cards) == MAX_CARDS
-    all_child_types = {
-        child["type"] for card in cards for child in card["children"]
-    }
+    types = [block["type"] for block in blocks]
+    assert 4 not in types, types
     # Subtitles, descriptions and a real control all appear.
-    assert 1 in all_child_types, all_child_types
-    assert 2 in all_child_types, all_child_types
-    assert all_child_types & {5, 12, 13, 3}, all_child_types
+    assert 1 in types, types
+    assert 2 in types, types
+    assert set(types) & {5, 12, 13, 3}, types
 
 
 def test_settings_page_mirrors_its_settings_card_list():
-    """SettingsPage 的真实形状: 标题 + 卡片内多个设置项(block_listItem)。"""
+    """SettingsPage 的真实形状: 标题 + 多个设置项(block_listItem, 顶层平铺)。"""
     blocks = infer_blocks(_source("SettingsPage"))
     assert blocks[0]["type"] == 0
-    cards = [block for block in blocks if block["type"] == 4]
-    assert cards, blocks
-    items = [
-        child for card in cards for child in card["children"]
-        if child["type"] == 11
-    ]
+    types = [block["type"] for block in blocks]
+    assert 4 not in types, types
+    items = [block for block in blocks if block["type"] == 11]
     assert len(items) >= 4, blocks
 
 
@@ -224,8 +218,10 @@ def test_prefixed_component_names_are_recognised():
     source = _source("CardPage")
     assert "Fluent.ExampleCard" in source
     blocks = infer_blocks(source)
-    cards = [block for block in blocks if block["type"] == 4]
-    assert len(cards) == 2, blocks
+    # Two prefixed cards are recognised; their content is flattened to top level.
+    # 两张带前缀的卡片被识别; 其内容平铺到顶层。
+    subtitles = [block for block in blocks if block["type"] == 1]
+    assert len(subtitles) >= 2, blocks
 
 
 def test_structures_differ_between_pages():

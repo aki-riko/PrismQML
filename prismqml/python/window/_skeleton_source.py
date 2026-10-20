@@ -302,6 +302,25 @@ def _collect_card_content(node: dict, source: str, blocks: list[dict]) -> None:
         index += 1
 
 
+def _flatten_card(card: dict, source: str, blocks: list[dict]) -> None:
+    """Emit a card's content as top-level blocks. 把卡片内容作为顶层块产出。
+
+    Cards are grouping only. A card used to be emitted as one `block_card` whose
+    children nested inside it, but a placeholder nested one Loader deep never
+    painted, so only the card's own surface was visible and the interior stayed
+    blank. Promoting the content to top level keeps every placeholder a directly
+    drawn block, which is what actually renders.
+    卡片只是分组。过去把卡片作为一个 `block_card` 产出、子块嵌在其内部, 但嵌套在一层
+    Loader 里的占位块从不绘制, 结果只有卡片自身的表面可见、内部始终空白。把内容提升为
+    顶层块, 使每个占位块都被直接绘制, 这才是真正会渲染的形式。
+    """
+    if _has_text(_prop_text(card, source, "title")):
+        blocks.append({"type": _type("block_subtitle")})
+    if _has_text(_prop_text(card, source, "description")):
+        blocks.append({"type": _type("block_text")})
+    _collect_card_content(card, source, blocks)
+
+
 def _walk(node: dict, source: str, blocks: list[dict], counters: dict) -> None:
     """Collect the page's first-screen blocks. 收集页面首屏块。"""
     for child in node["children"]:
@@ -312,7 +331,7 @@ def _walk(node: dict, source: str, blocks: list[dict], counters: dict) -> None:
             blocks.append({"type": _type("block_title")})
         elif name in CARD_CONTAINERS:
             counters["cards"] += 1
-            blocks.append(_card_block(child, source))
+            _flatten_card(child, source, blocks)
         elif name in LEAF_BLOCK_BY_NAME:
             blocks.append({"type": _type(LEAF_BLOCK_BY_NAME[name])})
         else:
