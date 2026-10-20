@@ -263,8 +263,14 @@ function cellWidth(entry, availableWidth, metrics, types) {
     case types.block_avatar:
         return metrics.blockAvatarSize
     case types.block_buttonRow:
-        return dividedCellWidth(area, repeatCount(entry, metrics, types),
-                                metrics.blockButtonGap)
+        // Real rows hold fixed-width controls, so a cell keeps its natural width and
+        // the row stays compact and left-aligned. The equal division is only the
+        // fallback for a row too wide to fit its cells.
+        // 真实的行放固定宽度控件, 因此单元保持自身宽度, 行保持紧凑左对齐。等分仅在
+        // 单元放不下时作为兜底。
+        return Math.min(metrics.blockRowCellWidth,
+                        dividedCellWidth(area, repeatCount(entry, metrics, types),
+                                         metrics.blockButtonGap))
     case types.block_tabs:
         return Math.min(metrics.blockTabWidth,
                         dividedCellWidth(area, metrics.blockTabCount,

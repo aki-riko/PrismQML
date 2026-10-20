@@ -31,7 +31,12 @@ from ..core.utils import qml_path
 # 骨架是非滚动遮罩，因此只镜像首屏。这些上限避免长页面让骨架无限增长。
 MAX_CARDS = 4
 MAX_BLOCKS = 24
-MAX_CARD_CHILDREN = 6
+# A real example card holds several rows of side-by-side examples (InputPage has
+# four), so the per-card budget must be large enough to keep every row instead of
+# stopping after the first one or two.
+# 真实示例卡片含多行并排示例(InputPage 有四行), 因此每张卡片的预算必须足以保留每一行,
+# 而不是只留前一兩行。
+MAX_CARD_CHILDREN = 10
 
 SKELETON_ENUM_SOURCE = "PrismEnums/Skeleton.qml"
 
@@ -266,8 +271,16 @@ def _collect_subtitle_run(children: list[dict], index: int, source: str,
     if len(blocks) < MAX_CARD_CHILDREN and _has_text(
             _prop_text(children[index], source, "label")):
         blocks.append({"type": _type("block_subtitle")})
-    if len(blocks) < MAX_CARD_CHILDREN and run >= 2:
-        blocks.append({"type": _type("block_buttonRow"), "buttons": run})
+    if run >= 2:
+        # A run of labelled examples laid out side by side is one row of cells, and
+        # the row already stands for every member's control. Recursing into each
+        # member as well would add a stacked section per example and bury the row
+        # structure the page actually has.
+        # 并排排布的连续示例就是一行单元, 该行已经代表每个成员的控件。若再逐个递归进去,
+        # 每个示例都会多出一个纵向分节, 反而把页面真实的"行"结构埋掉。
+        if len(blocks) < MAX_CARD_CHILDREN:
+            blocks.append({"type": _type("block_buttonRow"), "buttons": run})
+        return run_end
     _collect_card_content(children[index], source, blocks)
     return run_end
 

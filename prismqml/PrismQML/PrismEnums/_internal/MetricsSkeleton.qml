@@ -52,6 +52,13 @@ QtObject {
     readonly property int blockButtonHeight: 28 // Button height 按钮高度
     readonly property int blockButtonWidth: 96 // Button width 按钮宽度
     readonly property int blockButtonGap: 8 // Gap between buttons 按钮间距
+    // Width of one cell in a side-by-side example row. Real rows hold fixed-width
+    // controls (an input is 180-280px, a button ~96px), not equal slices of the
+    // whole card, so the row must stay compact and left-aligned instead of
+    // stretching edge to edge.
+    // 并排示例行中单个单元的宽度。真实的行放的是固定宽度控件(输入框 180-280px, 按钮约
+    // 96px), 而不是整张卡片的等分切片, 因此该行必须保持紧凑左对齐, 不铺满整行。
+    readonly property int blockRowCellWidth: 220 // Row cell width 行单元宽度
     readonly property int blockDefaultButtons: 2 // Default buttons in a row 默认按钮数
     readonly property int blockMaxButtons: 6 // Most buttons in a row 最多按钮数
     readonly property int blockIconSize: 24 // Square icon size 方形图标边长
