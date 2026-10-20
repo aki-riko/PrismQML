@@ -6,7 +6,6 @@ import QtQuick
 import "../.."
 import "_internal"
 import "_internal/StackedWidgetLifecycle.js" as StackedWidgetLifecycle
-import "_internal/StackedPageMetadata.js" as StackedPageMetadata
 
 // StackedWidget - Unified stacked page switch component 统一堆叠页面组件
 Item {
@@ -29,13 +28,6 @@ Item {
     property var pageSources: []  // QML file paths QML文件路径列表
     property list<Component> deferredPages  // Inline Component pages 内联延迟页面
     property var pageProperties: []
-    // Optional resolver inferring a page's skeleton; null keeps the generic one.
-    // 可选解析器: 从页面源码推断骨架; null 时使用通用骨架。
-    property var skeletonSourceResolver: null
-    // Whether the inferred structure is used. Off by default: in a real Gallery switch
-    // it held the overlay over a minute, so off falls back to the fast generic skeleton.
-    // 是否采用推断结构。默认关闭: 真实 Gallery 里它让遮罩停留超过一分钟, 故回退通用骨架。
-    property bool skeletonAutoInference: false
     property bool dynamicStack: false
     property int pageRetentionRadius: -1
     property int dynamicStackRetainDepth: 0
@@ -125,26 +117,13 @@ Item {
         indexClamp.clamp()
     }
     function _pagePropertiesFor(index) {
-        return StackedPageMetadata.propertiesFor(control, index)
+        if (index < 0 || index >= _safePageProperties.length) return ({})
+        var value = _safePageProperties[index]
+        return value && typeof value === "object" ? value : ({})
     }
-    // Skeleton structure for one page, read from host metadata so it works while the
-    // target page is still uninstantiated; unusable declarations yield an empty list.
-    // 某页的骨架结构, 从宿主元数据读取, 因此目标页未实例化时也可用; 不可用时返回空列表。
-    function _skeletonBlocksFor(index) {
-        return StackedPageMetadata.skeletonBlocksFor(control, index)
+    function profileTime(msg) {
+        diagnostics.profileTime(msg)
     }
-    // Warm-up lives in StackedPageMetadata to keep this entry file inside its gate.
-    // 预热在 StackedPageMetadata 中, 以保持本入口文件的体积门禁。
-    function _warmSkeletonSources() { StackedPageMetadata.warmSkeletonSources(control) }
-    // `pageProperties` doubles as the page's initial properties, so engine-reserved
-    // metadata keys must not be forwarded: assigning `skeleton` to a page that does
-    // not declare it raises a QML warning, and the fallback path must stay silent.
-    // `pageProperties` 同时充当页面的初始属性, 因此引擎保留的元数据键不得转发: 把
-    // `skeleton` 赋给未声明该属性的页面会产生 QML 警告, 而回退路径必须保持静默。
-    function _initialPropertiesFor(index) {
-        return StackedPageMetadata.initialPropertiesFor(control, index)
-    }
-    function profileTime(msg) { diagnostics.profileTime(msg) }
     function _traceLazyStage(stage, index, details, loaderOverride) {
         diagnostics.traceLazyStage(stage, index, details, loaderOverride)
     }
@@ -173,7 +152,7 @@ Item {
         if (_loaders[index] && !_loaders[index].active) {
             if (_useUrlSourceMode) {
                 _loaders[index].setSource(
-                    _safePageSources[index] || "", _initialPropertiesFor(index))
+                    _safePageSources[index] || "", _pagePropertiesFor(index))
             } else if (_safeDeferredPages[index]) {
                 _loaders[index].sourceComponent = _safeDeferredPages[index]
             }
@@ -314,11 +293,6 @@ Item {
     clip: true
 
     Component.onCompleted: StackedWidgetLifecycle.onCompleted(control)
-    // The host binds `pageSources` after this item completes, so warm-up runs when
-    // the list or the resolver arrives rather than at completion.
-    // 宿主在本项完成后才绑定 `pageSources`, 因此预热在列表或解析器到达时执行。
-    onPageSourcesChanged: control._warmSkeletonSources()
-    onSkeletonSourceResolverChanged: control._warmSkeletonSources()
     Component.onDestruction: _destroying = true
 
     onCountChanged: StackedWidgetLifecycle.onCountChanged(control)

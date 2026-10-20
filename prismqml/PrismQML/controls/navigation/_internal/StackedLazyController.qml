@@ -93,21 +93,6 @@ Item {
         item.currentVisibleIndex = Qt.binding(function() { return host._displayIndex })
         item.loadingText = Qt.binding(function() { return host.loadingText })
         item.loadingStyle = Qt.binding(function() { return host.lazyLoadingStyle })
-        // The skeleton must describe the page being awaited, not the page still on
-        // screen, so this follows the helper's own pending target. It is assigned
-        // when that target changes rather than left as a binding: the resolver is a
-        // Python slot, so every evaluation returns a fresh object, and a binding
-        // would then report a change each time it re-evaluated. That made the
-        // skeleton repeater rebuild every block repeatedly and turned a one-second
-        // page switch into a minute-long one.
-        // 骨架必须描述正在等待的页面而不是仍在屏上的页面, 因此这里跟随辅助器自身的待处理
-        // 目标。它在目标变化时赋值, 而不是保持绑定: 解析器是 Python 槽, 每次求值都返回
-        // 新对象, 绑定于是每次重新求值都报告"变了"。这会让骨架 Repeater 反复重建全部块,
-        // 把一秒的切页拖成一分钟。
-        item.skeletonBlocks = host._skeletonBlocksFor(item.pendingTargetIndex)
-        item.pendingTargetIndexChanged.connect(function() {
-            item.skeletonBlocks = host._skeletonBlocksFor(item.pendingTargetIndex)
-        })
         // The loading overlay is part of the lazy transition, not the regular
         // page switch. Keep it stationary so slide/fade cannot run alongside
         // the circle collapse/reveal.

@@ -103,10 +103,8 @@ Item {
     property int skeletonStyle: Enums.lazyLoadingStyle.style_skeleton
     property bool lazyLoading: false
     property var pageSources: []
-    property var pageProperties: []
     property int currentIndex: 0
     property bool _pythonPageMode: false
-    property int _pythonPendingIndex: -1
     property var _pythonLoadingOverlay: null
     property var hostValue: root
     property int lazyLoadingStyle: ringStyle
@@ -742,72 +740,6 @@ def _stacked_widget(page_stack: QQuickItem) -> QObject | None:
         if child.metaObject().className().startswith("StackedWidget"):
             return child
     return None
-
-
-def test_page_stack_forwards_the_declared_skeleton_to_the_overlay(qapp):
-    """Python 宿主路径: WindowsPageStack 必须把 pageProperties 声明转发到 overlay。"""
-    source = PAGE_STACK_SCENE.replace(
-        b"__INTERNAL_URL__", INTERNAL_URL.encode("utf-8")
-    )
-    engine, component, root, warnings = _create_scene(
-        source, "lazy-loading-style-page-stack-skeleton-blocks.qml"
-    )
-    try:
-        page_stack = root.findChild(QQuickItem, "pageStack")
-        assert page_stack is not None
-        stack = _stacked_widget(page_stack)
-        loader = page_stack.findChild(QObject, "loadingOverlayLoader")
-        assert stack is not None and loader is not None
-        assert root.property("skeletonStyle") == 1
-        root.setProperty("lazyLoadingStyle", root.property("skeletonStyle"))
-        _pump()
-
-        # No declaration: the overlay falls back to the generic skeleton.
-        overlay = loader.property("item")
-        fallback = overlay.property("skeletonBlocks")
-        fallback = (
-            fallback.toVariant() if hasattr(fallback, "toVariant") else fallback
-        )
-        assert fallback in (None, []), fallback
-        assert _named_blocks(overlay, "qmlPageSkeletonRow")
-
-        # A declaration on the awaited page must reach the overlay's QMLPage, which
-        # is the only way the Python host path can render a matching skeleton.
-        # 被等待页面的声明必须到达 overlay 的 QMLPage, 这是 Python 宿主路径渲染匹配骨架的
-        # 唯一途径。
-        root.setProperty("currentIndex", 1)
-        root.setProperty("_pythonPendingIndex", 1)
-        root.setProperty(
-            "pageProperties",
-            [
-                {},
-                {
-                    "skeleton": [
-                        {"type": 0},
-                        {"type": 1},
-                        {"type": 4},
-                    ]
-                },
-            ],
-        )
-        _pump(50)
-        overlay = loader.property("item")
-        declared = overlay.property("skeletonBlocks")
-        declared = (
-            declared.toVariant() if hasattr(declared, "toVariant") else declared
-        )
-        assert declared is not None and len(declared) == 3, declared
-        assert [entry["type"] for entry in declared] == [0, 1, 4]
-        # The declared layout replaces the generic one in the overlay too.
-        # 声明布局同样取代 overlay 中的通用布局。
-        assert not _named_blocks(overlay, "qmlPageSkeletonRow")
-        assert _named_blocks(overlay, "qmlPageSkeletonBlock-title")
-        assert warnings == []
-    finally:
-        root.deleteLater()
-        del component
-        engine.deleteLater()
-        _pump(1)
 
 
 def test_page_stack_forwards_the_style_to_stack_and_overlay(qapp):

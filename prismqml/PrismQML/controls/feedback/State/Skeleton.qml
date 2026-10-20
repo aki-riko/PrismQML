@@ -29,15 +29,6 @@ Item {
             default: return Enums.radius.small
         }
     }
-    // The mask is what makes the shimmer follow the outline, but it also forces every
-    // placeholder through an offscreen layer and a MultiEffect pass. A rounded
-    // rectangle's background already carries its own radius, so only a circular
-    // placeholder needs the mask: without it the shimmer would show square corners
-    // against the circle.
-    // 遮罩让闪烁沿轮廓走, 但它也会把每个占位块送进离屏图层与 MultiEffect 通道。圆角矩形
-    // 的背景本身已带圆角, 因此只有圆形占位块需要遮罩: 否则闪烁会在圆形上露出方角。
-    readonly property bool _needsMask:
-        control.shape === Enums.skeleton.shape_circle
     
     // ==================== Public Methods 公开方法 ====================
     // Start loading 开始加载
@@ -69,8 +60,8 @@ Item {
         id: contentContainer
         anchors.fill: parent
 
-        // Apply mask 应用遮罩 (只在可视且需要轮廓裁剪时启用 layer 减少 GPU 开销)
-        layer.enabled: control._isInViewport && control._needsMask
+        // Apply mask 应用遮罩 (只在可视时启用 layer 减少 GPU 开销)
+        layer.enabled: control._isInViewport
         layer.effect: MultiEffect {
             maskEnabled: true
             maskSource: maskShape
@@ -125,6 +116,6 @@ Item {
         radius: control._radius
         color: Enums.textColor.primary
         visible: false
-        layer.enabled: control._isInViewport && control._needsMask
+        layer.enabled: control._isInViewport
     }
 }

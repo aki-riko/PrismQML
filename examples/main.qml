@@ -94,14 +94,6 @@ QtObject {
         Qt.resolvedUrl("pages/AutoUpdatePage.qml"),
         Qt.resolvedUrl("pages/SettingsPage.qml")
     ]
-
-    // Optional per-page skeleton override, in the same order as `pagePaths`.
-    // The engine now infers each page skeleton from its own QML source, so no
-    // declaration is needed here. A user may still declare one for a page, and that
-    // declaration wins over inference. Every size stays engine-owned either way.
-    // 可选的每页骨架覆盖, 与 `pagePaths` 同序。引擎现在从页面自身 QML 源码推断骨架,
-    // 因此此处无需声明; 用户仍可为某页声明, 且声明优先于推断。两种方式下尺寸都由引擎决定。
-    readonly property var pageProperties: []
     
     // Window instances 窗口实例
     property var windowInstance: null
@@ -153,7 +145,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 // Handle function items (e.g., avatar click) 处理功能项（如头像点击）
                 if (index === 0) {
@@ -185,7 +176,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }
@@ -214,7 +204,6 @@ QtObject {
             navigationItems: root.navItems
             bottomNavigationItems: root.bottomNavItems
             pageSources: root.pagePaths
-            pageProperties: root.pageProperties
             onBottomItemClicked: (index) => {
                 if (index === 0) console.log("Avatar clicked")
             }

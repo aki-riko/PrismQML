@@ -18,10 +18,6 @@ NavigationWindowCore {
  // ==================== Public Props 公开属性 ====================
  default property list<QtObject> pages
  property var pageSources: []
- // Per-page metadata, including the reserved `skeleton` declaration the lazy
- // skeleton reads before the target page is instantiated.
- // 每页元数据, 含懒加载骨架在目标页实例化前读取的保留 `skeleton` 声明。
- property var pageProperties: []
 
  // ==================== Readonly State 只读状态 ====================
  readonly property int navCompactWidth: Enums.controlSize.navPanelCompactWidth

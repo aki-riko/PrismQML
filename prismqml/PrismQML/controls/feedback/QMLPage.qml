@@ -16,10 +16,6 @@ Item {
     property color backgroundColor: Enums.backgroundColor  // Page background 页面背景
     // Display style: ring or skeleton 展示形式: 进度环或骨架屏
     property int style: Enums.lazyLoadingStyle.style_ring
-    // Declared skeleton structure for the page being awaited. Structure only: the
-    // engine still derives every block size from the available area.
-    // 被等待页面的骨架结构声明。仅结构: 每个块尺寸仍由引擎按可用区域推导。
-    property var skeletonBlocks: []
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool finishing: _finishing     // Hiding the wait indicator 正在隐藏等待指示
@@ -168,10 +164,6 @@ Item {
                 // the same motion as the ring instead of blinking away.
                 // 整个退场期间保持绘制，骨架因此与环形一样淡出，不会瞬间消失。
                 loading: control.visible
-                // The declared structure decides the layout; when it is absent or
-                // unusable the generic skeleton is shown instead.
-                // 声明的结构决定布局; 缺失或不可用时改用通用骨架。
-                blocks: control.skeletonBlocks
             }
         }
     }

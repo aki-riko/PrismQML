@@ -78,7 +78,7 @@ Item {
                 var componentEntries = sourceContainer.host._safeDeferredPages
                 var nextComponent = modelEntry && modelEntry.componentMode
                         && index < componentEntries.length ? componentEntries[index] : null
-                var nextProperties = sourceContainer.host._initialPropertiesFor(index)
+                var nextProperties = sourceContainer.host._pagePropertiesFor(index)
                 if (!nextSource && !nextComponent) {
                     sourceLoader.source = ""
                     sourceLoader._loadedSourceText = ""
