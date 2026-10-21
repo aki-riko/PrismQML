@@ -133,9 +133,14 @@ Item {
     readonly property int expectedRingFeature: Enums.button.feature_progress_ring
     readonly property int expectedLeadingGap: Enums.spacing.s
     readonly property int expectedContentIconSize: Enums.iconSize.m
+    // Vertical (style_text_under) tokens. The vertical presentation stacks one
+    // leading visual above the text and separates them with the compact token.
+    // ASCII only here: this whole scene is a bytes literal.
+    readonly property int expectedVerticalLeadingGap: Enums.spacing.xxs
+    readonly property int expectedVerticalIconSize: Enums.iconSize.m
 
-    width: 400
-    height: 200
+    width: 760
+    height: 420
 
     Button {
         id: closeButton
@@ -281,6 +286,78 @@ Item {
         height: 40
         type: Enums.colorPicker.type_screen
     }
+
+    // Vertical style_text_under presentations. iconSize is pinned to the shared
+    // token so the leading slot can be asserted without hardcoded numbers.
+    // ASCII only: SCENE_SOURCE is a bytes literal.
+    Button {
+        id: verticalRingButton
+        objectName: "verticalRingButton"
+        x: 420
+        width: 90
+        height: 120
+        _verticalContent: true
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: "Ring"
+        iconSize: Enums.iconSize.m
+        progress: 0.6
+    }
+
+    Button {
+        id: verticalRingIconButton
+        objectName: "verticalRingIconButton"
+        x: 420
+        y: 140
+        width: 90
+        height: 120
+        _verticalContent: true
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: "Both"
+        icon: Enums.icon.checkmark
+        iconSize: Enums.iconSize.m
+        progress: 0.6
+    }
+
+    Button {
+        id: verticalLoadingButton
+        objectName: "verticalLoadingButton"
+        x: 530
+        width: 90
+        height: 120
+        _verticalContent: true
+        style: Enums.button.style_primary
+        text: "Load"
+        iconSize: Enums.iconSize.m
+        loading: true
+    }
+
+    Button {
+        id: verticalTextButton
+        objectName: "verticalTextButton"
+        x: 530
+        y: 140
+        width: 90
+        height: 120
+        _verticalContent: true
+        style: Enums.button.style_primary
+        text: "Text"
+        iconSize: Enums.iconSize.m
+    }
+
+    Button {
+        id: verticalIconButton
+        objectName: "verticalIconButton"
+        x: 640
+        width: 90
+        height: 120
+        _verticalContent: true
+        style: Enums.button.style_primary
+        text: "Icon"
+        icon: Enums.icon.checkmark
+        iconSize: Enums.iconSize.m
+    }
 }
 """
 
@@ -397,6 +474,61 @@ def _ring_scene_content(root, object_name):
     rings = _progress_rings(content)
     assert len(rings) == 1, [item.metaObject().className() for item in rings]
     return button, content, text_item, rings[0]
+
+
+def _vertical_button(root, object_name):
+    """Resolve a vertical style_text_under scene button.
+
+    解析纵向 style_text_under 场景按钮, 并断言它确实开启了纵向内容布局, 避免夹具退化成
+    横向按钮后用例静默失去意义。
+    """
+    button = root.findChild(QObject, object_name)
+    assert button is not None, object_name
+    assert button.property("_verticalContent")
+    return button
+
+
+def _content_child_y(child, content):
+    """Map a child's local top edge into content coordinates.
+
+    把子项局部顶边缘换算到 content 坐标。
+    """
+    return child.mapToItem(content, QPointF(0.0, 0.0)).y()
+
+
+def _content_child_bottom(child, content):
+    """Map a child's local bottom edge into content coordinates.
+
+    把子项局部底边缘换算到 content 坐标。
+    """
+    return child.mapToItem(content, QPointF(0.0, child.height())).y()
+
+
+def _assert_vertical_leading_stays_above_text(leading, text_item, content, root):
+    """Assert one vertical leading visual sits above the text with the compact gap.
+
+    断言纵向唯一的前导视觉位于文字上方, 且两者之间恰好是紧凑间距 token: 前导视觉底边不得
+    越过文字顶边, 间距必须等于 root 暴露的纵向间距 token, 前导视觉高度必须等于图标尺寸 token。
+    """
+    gap = root.property("expectedVerticalLeadingGap")
+    icon_size = root.property("expectedVerticalIconSize")
+
+    leading_top = _content_child_y(leading, content)
+    leading_bottom = _content_child_bottom(leading, content)
+    text_top = _content_child_y(text_item, content)
+
+    assert leading_top == pytest.approx(0.0)
+    assert leading_bottom - leading_top == pytest.approx(float(icon_size))
+    assert leading_bottom <= text_top, (leading_bottom, text_top)
+    assert text_top - leading_bottom == pytest.approx(float(gap))
+
+
+def _vertical_content_parts(root, object_name):
+    """Resolve a vertical button's content layer and text item. 解析纵向按钮内容层与文字。"""
+    button = _vertical_button(root, object_name)
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    return button, content, text_item
 
 
 def _button_dropdown(button):
@@ -779,6 +911,124 @@ def test_button_text_only_content_height_follows_the_text(button_leaf_scene):
 
     assert content.property("implicitHeight") == pytest.approx(
         text_item.property("implicitHeight")
+    )
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_ring_stays_clear_of_the_text_below(button_leaf_scene):
+    """A vertical leading ring must not sit under the text stacked below it.
+
+    纵向前导圆环不得压在其下方的文字上。修复前 HEAD 实测 (vertical-matrix-head-4f17ed2b.json)
+    中 vRing 的圆环占 y=0..16, 文字顶边仅 2, 两者重叠 14px; 本用例即锁定该真实缺陷,
+    期望值全部由 root 暴露的 Enums token 计算。
+    """
+    root, windows_before = button_leaf_scene
+    button = _vertical_button(root, "verticalRingButton")
+    assert button.property("feature") == root.property("expectedRingFeature")
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    rings = _progress_rings(content)
+    assert len(rings) == 1, [item.metaObject().className() for item in rings]
+
+    _assert_vertical_leading_stays_above_text(rings[0], text_item, content, root)
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_loading_ring_stays_clear_of_the_text_below(
+    button_leaf_scene,
+):
+    """A vertical loading ring is the leading visual and clears the text below.
+
+    纵向加载环作为前导视觉同样不得压住下方文字; 期望值由 root 暴露的 Enums token 计算。
+    """
+    root, windows_before = button_leaf_scene
+    button = _vertical_button(root, "verticalLoadingButton")
+    assert button.property("loading")
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    rings = _progress_rings(content)
+    assert len(rings) == 1, [item.metaObject().className() for item in rings]
+
+    _assert_vertical_leading_stays_above_text(rings[0], text_item, content, root)
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_ring_icon_keeps_a_single_leading_visual(button_leaf_scene):
+    """Vertical keeps exactly one leading visual: the ring wins over the icon.
+
+    纵向只保留一个前导视觉: 功能环优先于图标, 因此图标不激活、两者不再重叠。修复前 HEAD
+    实测 (vertical-matrix-head-4f17ed2b.json) 中 vRingIcon 的圆环与图标同在 y=0..16 完全重叠。
+    """
+    root, windows_before = button_leaf_scene
+    button = _vertical_button(root, "verticalRingIconButton")
+    assert button.property("feature") == root.property("expectedRingFeature")
+    assert button.property("icon") != ""
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    rings = _progress_rings(content)
+    assert len(rings) == 1, [item.metaObject().className() for item in rings]
+
+    icon = content.findChild(QObject, "buttonContentVisual")
+    assert icon is not None
+    assert not icon.property("active")
+    assert icon.property("height") == pytest.approx(0.0)
+
+    _assert_vertical_leading_stays_above_text(rings[0], text_item, content, root)
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_icon_sits_above_the_text_with_the_compact_gap(
+    button_leaf_scene,
+):
+    """Without a ring the icon becomes the vertical leading visual.
+
+    无圆环时图标成为纵向前导视觉, 文字顶边等于图标底边加上紧凑间距 token。
+    """
+    root, windows_before = button_leaf_scene
+    button = _vertical_button(root, "verticalIconButton")
+    assert button.property("icon") != ""
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    icon = content.findChild(QObject, "buttonContentVisual")
+    assert icon is not None
+    assert icon.property("active")
+
+    _assert_vertical_leading_stays_above_text(icon, text_item, content, root)
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_text_only_starts_at_the_content_top(button_leaf_scene):
+    """A vertical text-only button has no leading slot, so the text starts at 0.
+
+    纵向纯文字按钮没有前导视觉, 文字顶边必须为 0, 且内容高度只由文字自身撑起。
+    """
+    root, windows_before = button_leaf_scene
+    button, content, text_item = _vertical_content_parts(root, "verticalTextButton")
+    assert button.property("icon") == ""
+    assert button.property("feature") != root.property("expectedRingFeature")
+
+    assert _content_child_y(text_item, content) == pytest.approx(0.0)
+    assert content.property("implicitHeight") == pytest.approx(
+        text_item.property("implicitHeight")
+    )
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_vertical_ring_content_height_reserves_the_leading_slot(
+    button_leaf_scene,
+):
+    """Vertical implicitHeight = iconSize + compact gap + text implicitHeight.
+
+    纵向内容高度 = 前导视觉尺寸 + 紧凑间距 + 文字自身高度, 期望值全部由 root 暴露的
+    Enums token 与运行时文字 implicitHeight 计算, 不硬编码数字。
+    """
+    root, windows_before = button_leaf_scene
+    _, content, text_item = _vertical_content_parts(root, "verticalRingButton")
+    icon_size = root.property("expectedVerticalIconSize")
+    gap = root.property("expectedVerticalLeadingGap")
+
+    assert content.property("implicitHeight") == pytest.approx(
+        icon_size + gap + text_item.property("implicitHeight")
     )
     assert _new_visible_windows(windows_before) == []
 
