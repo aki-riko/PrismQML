@@ -194,6 +194,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # 与全部骨架分支), 但让等待覆盖层本身渲染廉价的环形。若卡死消失, 则骨架自身的渲染
     # 就是竞争者; 若仍卡, 则是 none 路径。故意打断覆盖层的样式绑定, 仅用于诊断。
     parser.add_argument("--overlay-ring", action="store_true")
+    # Bisect the skeleton overlay's own cost. `--skeleton-loading-off` stops the
+    # infinite shimmer and hides the blocks; `--skeleton-layers-off` keeps them
+    # visible but disables the per-block layer + MultiEffect mask. Diagnosis only.
+    # 二分骨架覆盖层自身的开销。--skeleton-loading-off 停掉无限闪光并隐藏块;
+    # --skeleton-layers-off 保持可见但关掉每块的 layer + MultiEffect 遮罩。仅诊断用。
+    parser.add_argument("--skeleton-loading-off", action="store_true")
+    parser.add_argument("--skeleton-layers-off", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=ARTIFACT_DIR)
     parser.add_argument("--result-file", type=Path, default=None)
     return parser.parse_args(argv)
@@ -602,6 +609,7 @@ class _Run:
         self.collapse_finished_ms: float | None = None
         self.stage_timer = None
         self.guard = None
+        self._skeleton_adjusted = False
         self.target_loader = None
         self.timers: list = []
         self.signals: dict[str, list] = {
@@ -718,6 +726,13 @@ class _Run:
             self._bind_stack(stack, overlay)
             if self.args.overlay_ring:
                 self._overlay_render_ring(overlay)
+            if self.args.skeleton_loading_off or self.args.skeleton_layers_off:
+                # Applied later, once the overlay is visible and populated: before
+                # the switch the skeleton subtree is not built yet, so a walk here
+                # only finds the layout container.
+                # 稍后在遮罩可见且已填充时应用: 切换前骨架子树尚未构建, 此时遍历
+                # 只能找到布局容器。
+                pass
             settle_timer.start()
 
         def _settle_done() -> None:
@@ -1082,6 +1097,78 @@ class _Run:
         overlay.setProperty("style", ring_value)
         self.report["overlay_ring_after"] = int(overlay.property("style"))
 
+    def _maybe_adjust_skeleton_once(self) -> None:
+        """Apply the skeleton bisect arm once, after the overlay is populated.
+
+        在遮罩填充完成后只应用一次骨架二分臂。
+        """
+        if not (self.args.skeleton_loading_off or self.args.skeleton_layers_off):
+            return
+        if self._skeleton_adjusted:
+            return
+        overlay = self.overlay
+        if overlay is None or not bool(overlay.property("visible")):
+            return
+        self._adjust_skeleton_blocks(overlay)
+        self._skeleton_adjusted = True
+
+    def _adjust_skeleton_blocks(self, overlay) -> None:
+        """Turn off parts of the skeleton overlay to bisect its cost.
+
+        关掉骨架覆盖层的部分开销, 以二分其成本。
+
+        The overlay's blocks each own a layer + MultiEffect mask plus an infinite
+        shimmer. Disabling them one family at a time tells whether the page's
+        stalled asynchronous creation is starved by the overlay's rendering or by
+        its animations. Product files are untouched.
+        / 覆盖层的每个块都带一层 layer + MultiEffect 遮罩以及无限闪光。逐类关闭即可
+        判断目标页异步创建被饿死是覆盖层渲染还是动画所致。不修改产品文件。
+        """
+        if self.QObject is None:
+            return
+        from PySide6.QtQuick import QQuickItem
+
+        def walk(item, depth=0):
+            if item is None or depth > 30:
+                return []
+            try:
+                children = item.childItems()
+            except (RuntimeError, AttributeError):
+                return []
+            found = []
+            for child in children:
+                found.append(child)
+                found.extend(walk(child, depth + 1))
+            return found
+
+        blocks = []
+        for item in walk(overlay):
+            try:
+                name = item.objectName()
+            except RuntimeError:
+                continue
+            if name.startswith("qmlPageSkeleton"):
+                blocks.append(item)
+
+        report = self.report
+        report["skeleton_blocks_found"] = len(blocks)
+        changed = 0
+        for item in blocks:
+            try:
+                if self.args.skeleton_loading_off and item.property("loading") is not None:
+                    if item.setProperty("loading", False):
+                        changed += 1
+                if self.args.skeleton_layers_off:
+                    # `layer` is a grouped property: reach its own `enabled`.
+                    # `layer` 是分组属性: 需要进入它自身的 `enabled`。
+                    layer = item.property("layer")
+                    if layer is not None and hasattr(layer, "setProperty"):
+                        if layer.setProperty("enabled", False):
+                            changed += 1
+            except (RuntimeError, AttributeError, TypeError):
+                continue
+        report["skeleton_blocks_changed"] = changed
+
     def _do_switch(self) -> None:
         if self.finished:
             return
@@ -1122,6 +1209,7 @@ class _Run:
             self.report["display_converged_ms"] = round(self.display_converged_ms, 2)
         self._observe_loader(snapshot)
         self._observe_transition_type()
+        self._maybe_adjust_skeleton_once()
         self._maybe_complete()
 
     def _snapshot(self) -> tuple:
