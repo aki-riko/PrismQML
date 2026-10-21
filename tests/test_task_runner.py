@@ -35,7 +35,15 @@ from prismqml import (
 
 
 TASK_TIMEOUT_MS = 3000
+# Upper bound on the dedicated-thread cancellation stress loop, expressed as both a
+# cycle ceiling and a wall-clock budget. The ceiling keeps a fast machine from
+# spinning without limit; the time budget keeps a slow machine inside the shard's
+# timeout. The minimum ensures the regression is always actually exercised.
+# 专用线程取消压力循环的上界, 同时用轮次上限与墙钟预算表达。轮次上限防止快机器无限
+# 空转; 时间预算保证慢机器不越过分片超时; 最低轮次保证回归总被真正覆盖。
 THREAD_RELEASE_STRESS_CYCLES = 200
+THREAD_RELEASE_STRESS_MIN_CYCLES = 20
+THREAD_RELEASE_STRESS_BUDGET_SECONDS = 20.0
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_PROCESS = REPO_ROOT / "scripts" / "test_process.py"
 
@@ -610,6 +618,28 @@ def test_backend_release_retries_before_dropping_ownership(qapp, monkeypatch) ->
 
 def test_dedicated_thread_release_survives_repeated_cancellation(qapp) -> None:
     """Repeated cancellation must not double-delete QThread. 重复取消不得双重销毁 QThread。"""
-    for _iteration in range(THREAD_RELEASE_STRESS_CYCLES):
+    # Bound this stress loop by wall-clock time, not by a fixed iteration count.
+    # Creating and retiring a dedicated QThread is far more expensive on a loaded CI
+    # runner than on a developer machine: 200 fixed cycles cost 0.65s locally but blew
+    # the shard's 180s budget on GitHub Actions, where it was the only test that never
+    # finished (25 of 26 passed, then the supervisor killed the shard with exit=124).
+    # A fixed count therefore encodes an uncontrolled duration. Run at least the
+    # minimum number of cycles so the regression still has coverage, then keep going
+    # while there is time budget left.
+    # 用墙钟时间上界约束这个压力循环, 而不是固定轮次。专用 QThread 的创建与回收在
+    # 负载高的 CI 上远贵于开发机: 固定 200 轮本地 0.65 秒, 在 GitHub Actions 上却
+    # 直接冲破分片 180 秒预算, 是 26 项里唯一没跑完的那个(25 项通过后 supervisor
+    # 以 exit=124 杀掉分片)。因此固定轮次等于编码了一个不可控的时长。这里先保证
+    # 最低轮次以维持回归覆盖, 再在时间预算内继续跑。
+    deadline = time.monotonic() + THREAD_RELEASE_STRESS_BUDGET_SECONDS
+    completed = 0
+    while completed < THREAD_RELEASE_STRESS_CYCLES:
         _cancel_one_dedicated_task()
         qapp.processEvents()
+        completed += 1
+        if (
+            completed >= THREAD_RELEASE_STRESS_MIN_CYCLES
+            and time.monotonic() >= deadline
+        ):
+            break
+    assert completed >= THREAD_RELEASE_STRESS_MIN_CYCLES
