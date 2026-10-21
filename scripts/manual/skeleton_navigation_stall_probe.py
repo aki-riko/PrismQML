@@ -194,6 +194,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # 与全部骨架分支), 但让等待覆盖层本身渲染廉价的环形。若卡死消失, 则骨架自身的渲染
     # 就是竞争者; 若仍卡, 则是 none 路径。故意打断覆盖层的样式绑定, 仅用于诊断。
     parser.add_argument("--overlay-ring", action="store_true")
+    # Confound test for --overlay-ring: write the overlay's CURRENT style value
+    # back at the same moment. If this no-op write also clears the stall, then the
+    # trigger is the runtime property write (and its effect on binding/polish
+    # order), not the ring content itself.
+    # --overlay-ring 的混淆测试: 在同一时刻把覆盖层当前的 style 值原样写回。若这个
+    # 空操作写入也能消除卡死, 则触发条件是"运行期属性写入"(及其对绑定/打磨顺序的
+    # 影响), 而不是环形内容本身。
+    parser.add_argument("--overlay-touch-style", action="store_true")
     # Bisect the skeleton overlay's own cost. `--skeleton-loading-off` stops the
     # infinite shimmer and hides the blocks; `--skeleton-layers-off` keeps them
     # visible but disables the per-block layer + MultiEffect mask. Diagnosis only.
@@ -635,6 +643,13 @@ class _Run:
         self.stage_timer = None
         self.guard = None
         self._skeleton_adjusted = False
+        # Frame counters: the stall may be "the window stops rendering, so the
+        # async (incubated) page creation never completes". Counting swapped frames
+        # tests that directly instead of guessing from timings.
+        # 帧计数: 卡死可能是"窗口停止出帧, 导致异步(孵化)的页面创建永不完成"。
+        # 直接数已交换帧即可验证, 而不必从耗时反推。
+        self.frames_swapped = 0
+        self.frames_swapped_after_switch = 0
         self.target_loader = None
         self.timers: list = []
         self.signals: dict[str, list] = {
@@ -749,8 +764,11 @@ class _Run:
             # "gallery never became ready" 杀掉, 把每个慢速用例都截断到该时长。
             ready_timeout.stop()
             self._bind_stack(stack, overlay)
+            self._connect_frame_counter()
             if self.args.overlay_ring:
                 self._overlay_render_ring(overlay)
+            if self.args.overlay_touch_style:
+                self._overlay_touch_style(overlay)
             if self.args.helper_sync:
                 self._reload_helper_synchronously()
             if self.args.skeleton_loading_off or self.args.skeleton_layers_off:
@@ -1365,6 +1383,39 @@ class _Run:
         self.report["skeleton_layers_disabled_by_qml"] = count
         return count
 
+    def _overlay_touch_style(self, overlay) -> None:
+        """Write the overlay's current style value back, unchanged.
+
+        把覆盖层当前的 style 值原样写回。
+
+        Used to tell whether ``--overlay-ring`` succeeds because of the ring content
+        or merely because a runtime write happens at that moment.
+        / 用于判断 --overlay-ring 的成功来自环形内容, 还是仅仅因为那一刻发生了一次
+        运行期写入。
+        """
+        current = int(overlay.property("style"))
+        self.report["overlay_touch_before"] = current
+        overlay.setProperty("style", current)
+        self.report["overlay_touch_after"] = int(overlay.property("style"))
+
+    def _connect_frame_counter(self) -> None:
+        """Count swapped frames so the stall can be tied to rendering activity.
+
+        统计已交换帧, 以便把卡死与渲染活动关联起来。
+        """
+        window = self.window
+        if window is None:
+            return
+        try:
+            window.frameSwapped.connect(self._on_frame_swapped)
+        except (RuntimeError, AttributeError, TypeError) as exc:
+            self.report["frame_counter_error"] = f"{type(exc).__name__}: {exc}"
+
+    def _on_frame_swapped(self) -> None:
+        self.frames_swapped += 1
+        if self.switch_ms is not None:
+            self.frames_swapped_after_switch += 1
+
     def _do_switch(self) -> None:
         if self.finished:
             return
@@ -1737,6 +1788,8 @@ class _Run:
                 report["overlay_visible_false_ms"] - switch_ms, 2
             )
         report["transition_type_timeline"] = self.transition_types
+        report["frames_swapped_total"] = self.frames_swapped
+        report["frames_swapped_after_switch"] = self.frames_swapped_after_switch
         report["signals"] = self.signals
         # Each entry is [t_ms, loaderReady, loaderActive]; readiness comes from
         # QML because the enum cannot be marshalled on this Qt build.
