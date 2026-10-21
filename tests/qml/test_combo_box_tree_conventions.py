@@ -405,3 +405,48 @@ def test_combo_box_tree_fast_close_during_popup_startup(qapp):
     finally:
         _dispose_scene(engine, component, window, combo)
         assert _new_visible_windows(windows_before) == []
+
+
+def test_combo_box_tree_cascade_click_on_parent_keeps_popup_open(qapp):
+    """点**有子节点的行**（级联菜单的分类）只展开/折叠，**不关闭弹层**。
+
+    2026-10-21 回归：旧实现 `_selectNode(nodeText, path)` 无条件 `closePopup()`，
+    点分类行时弹层直接消失——级联菜单等于没法用（Kaleidos 百战助手实测反馈
+    「点级联菜单就自动收起」）。修复后 `_selectNode` 收 4 个参数，父节点走展开分支。
+
+    判据：
+    1. 点父节点行后 `isOpen` 仍为 True；
+    2. 该节点的展开状态确实翻转（证明走的是展开分支，不是被吞掉）；
+    3. 点叶子节点后仍正常关闭并回报 `itemSelected`（不能把选中能力改坏）。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, combo, warnings = _create_scene()
+    try:
+        combo._toggleExpand("root_0")
+        assert _wait_for(lambda: len(_flat_model(combo)) == 2)
+        popup = _open_popup(window, combo, windows_before)
+
+        parent_row = next(row for row in _flat_model(combo) if row["hasChildren"])
+        before_expanded = str(_variant(combo.property("_expandedNodes")))
+
+        combo._selectNode(parent_row["text"], parent_row["path"])
+        assert _wait_for(lambda: True, timeout_ms=60)
+
+        assert combo.property("isOpen") is True, "点分类行后弹层不应关闭（级联菜单要能继续用）"
+        assert popup.property("isOpen") is True
+        assert (
+            str(_variant(combo.property("_expandedNodes"))) != before_expanded
+        ), "点分类行应切换展开状态，而不是什么都不做"
+
+        # 叶子节点仍然正常选中并关闭
+        selected = []
+        combo.itemSelected.connect(lambda text, path: selected.append(text))
+        leaf = next(row for row in _flat_model(combo) if not row["hasChildren"])
+        combo._selectNode(leaf["text"], leaf["path"])
+        assert selected == [leaf["text"]]
+        assert _wait_for(lambda: not combo.property("isOpen"))
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window, combo)
+        assert _new_visible_windows(windows_before) == []
+

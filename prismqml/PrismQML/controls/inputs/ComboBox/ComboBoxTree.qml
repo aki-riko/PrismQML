@@ -33,6 +33,9 @@ ComboBoxCore {
     property string _searchText: ""
     property var _flatModel: []
     property bool _initialized: false
+    //: 弹层里搜索框的引用（由 popupContent 实例化时回写）。用于「点分类展开后把焦点还给搜索框」：
+    //: 弹层内容是独立 Component，外层函数作用域够不到它的 id。
+    property var _searchBox: null
     property real _animatedPopupContentHeight: 0
 
     // ==================== Readonly State 只读状态 ====================
@@ -135,7 +138,37 @@ ComboBoxCore {
         return showPathFromRoot ? path.join(delimiter) : path[path.length - 1]
     }
     
+    /// 该 path 在**当前可见模型**里的那一行（找不到返回 null）。
+    /// `path` 由 `TreeNodes.flatten` 产出，与模型一一对应；用 JSON 比较避免数组引用差异。
+    function _rowForPath(path) {
+        var target = JSON.stringify(path || [])
+        for (var i = 0; i < _flatModel.length; i++) {
+            if (JSON.stringify(_flatModel[i].path) === target) return _flatModel[i]
+        }
+        return null
+    }
+
+    /// 选中 / 展开一个节点。
+    ///
+    /// 🔴 2026-10-21：点**有子节点的行**（级联菜单的分类/分组）只展开/折叠，**不关闭弹层**。
+    /// 旧实现无条件 `closePopup()`：用户点「分类」想看下面的账号，弹层直接消失——
+    /// 级联菜单等于没法用（Kaleidos 百战助手实测反馈「点级联菜单就自动收起」）。
+    /// 只有点**叶子**才算真正选中并关闭。
+    ///
+    /// ⚠️ 签名**必须保持 `(nodeText, path)` 两个参数**：QML 函数一旦声明 4 个形参，
+    /// 引擎就按 4 参数对外暴露，既有调用方（含 `_assert_path_selection` 这类测试）
+    /// 用两参数会直接 `TypeError`。所以 `nodeId` / `hasChildren` 由本函数自己按 `path`
+    /// 在 `_flatModel` 里查（一次 O(可见行数) 的查找，点击频率下可忽略）。
     function _selectNode(nodeText, path) {
+        var row = _rowForPath(path)
+        if (row && row.hasChildren && row.nodeId !== undefined && row.nodeId !== null) {
+            _toggleExpand(row.nodeId)
+            // 展开/折叠会重建 `_flatModel`；把焦点还给弹层里的搜索框，用户可以继续输入收窄。
+            // （`PopupSearchBox` 提供 `focusInput()`；`_search` 是 ComboBoxSearchState，
+            //   不含输入框引用，别往那边猜。）
+            if (searchEnabled && _searchBox) _searchBox.focusInput()
+            return
+        }
         currentText = _getPathText(path)
         itemSelected(nodeText, path)
         closePopup()
@@ -162,7 +195,9 @@ ComboBoxCore {
         Column {
             anchors.fill: parent
             spacing: Enums.spacing.none
-            
+
+            Component.onCompleted: control._searchBox = searchBox
+
             // Search box 搜索框 (复用PopupSearchBox)
             PopupSearchBox {
                 id: searchBox
