@@ -201,6 +201,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # --skeleton-layers-off 保持可见但关掉每块的 layer + MultiEffect 遮罩。仅诊断用。
     parser.add_argument("--skeleton-loading-off", action="store_true")
     parser.add_argument("--skeleton-layers-off", action="store_true")
+    # Targeted P1 candidate: the lazy helper subtree (which carries the whole
+    # skeleton overlay) is itself created through an asynchronous Loader
+    # (`StackedLazyHelperLoader.asynchronous: host._asynchronousPageLoaderEnabled`),
+    # so it shares the page incubation queue. Reloading that helper synchronously
+    # reserves the queue for the page Loaders without making page creation
+    # synchronous. Product files are untouched.
+    # P1 定向候选: 懒加载辅助器子树(承载整个骨架覆盖层)本身也是经异步 Loader 创建的
+    # (`StackedLazyHelperLoader.asynchronous: host._asynchronousPageLoaderEnabled`),
+    # 因此与页面共用孵化队列。把该辅助器改为同步重载, 即可把队列留给页面 Loader,
+    # 而不必把页面创建也变成同步。不修改产品文件。
+    parser.add_argument("--helper-sync", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=ARTIFACT_DIR)
     parser.add_argument("--result-file", type=Path, default=None)
     return parser.parse_args(argv)
@@ -329,6 +340,20 @@ def _loader_ready(loader) -> bool | None:
     if isinstance(value, tuple):
         value = value[0]
     return bool(value)
+
+
+def _is_alive(obj) -> bool:
+    """Return whether a wrapped C++ object is still valid. 判断包装的 C++ 对象是否仍有效。"""
+    if obj is None:
+        return False
+    try:
+        import shiboken6
+    except ImportError:
+        return True
+    try:
+        return bool(shiboken6.isValid(obj))
+    except (RuntimeError, TypeError):
+        return False
 
 
 def _qml_int(scope, expression_text: str) -> int | None:
@@ -726,6 +751,8 @@ class _Run:
             self._bind_stack(stack, overlay)
             if self.args.overlay_ring:
                 self._overlay_render_ring(overlay)
+            if self.args.helper_sync:
+                self._reload_helper_synchronously()
             if self.args.skeleton_loading_off or self.args.skeleton_layers_off:
                 # Applied later, once the overlay is visible and populated: before
                 # the switch the skeleton subtree is not built yet, so a walk here
@@ -1183,6 +1210,87 @@ class _Run:
                     continue
         report["skeleton_blocks_changed"] = changed
 
+    def _reload_helper_synchronously(self) -> None:
+        """Reload the lazy helper Loader without sliced incubation.
+
+        不经分片孵化地重载懒加载辅助器 Loader。
+
+        Finds the Loader that sources ``LazyLoadingHelper.qml``, switches it to
+        synchronous creation, and forces a fresh load. The page Loaders keep their
+        asynchronous setting, so this isolates "the helper competes for the page
+        incubation queue" from "page creation is asynchronous".
+        / 找到加载 ``LazyLoadingHelper.qml`` 的 Loader, 改为同步创建并强制重新加载。
+        页面 Loader 保持异步, 因此这能把"辅助器争用页面孵化队列"与"页面创建是异步的"
+        分开。
+        """
+        stack = self.stack
+        if stack is None:
+            return
+        helper_loader = None
+        for child in stack.findChildren(self.QObject):
+            try:
+                source = child.property("source")
+            except (RuntimeError, AttributeError, TypeError):
+                continue
+            if source is None:
+                continue
+            text = source.toString() if hasattr(source, "toString") else str(source)
+            if "LazyLoadingHelper.qml" in text:
+                helper_loader = child
+                break
+
+        report = self.report
+        if helper_loader is None:
+            report["helper_sync_error"] = "helper Loader not found"
+            return
+
+        report["helper_sync_source"] = "LazyLoadingHelper.qml"
+        report["helper_sync_async_before"] = bool(
+            helper_loader.property("asynchronous")
+        )
+        # Drop the current (asynchronously built) instance, then rebuild it with
+        # sliced incubation disabled so the helper never enters the page queue.
+        # 先丢弃当前(异步构建的)实例, 再在关闭分片孵化的情况下重建, 使辅助器不再
+        # 进入页面队列。
+        helper_loader.setProperty("active", False)
+        helper_loader.setProperty("asynchronous", False)
+        helper_loader.setProperty("active", True)
+        report["helper_sync_async_after"] = bool(
+            helper_loader.property("asynchronous")
+        )
+        report["helper_sync_active"] = bool(helper_loader.property("active"))
+        # Let the synchronous load land before the switch is requested.
+        # 让同步加载先落地, 再发起切换。
+        for _ in range(40):
+            if helper_loader.property("item") is not None:
+                break
+            self.app.processEvents()
+        # The reload destroys the previous helper subtree, so every reference the
+        # probe captured at startup is now dangling. Re-bind them or the first
+        # sample touches a deleted QQuickItem.
+        # 重载会销毁旧的辅助器子树, 因此探针启动时捕获的引用全部悬空。必须重新绑定,
+        # 否则第一次采样就会访问已删除的 QQuickItem。
+        self._rebind_helper_objects()
+
+    def _rebind_helper_objects(self) -> None:
+        """Re-capture the helper and overlay after the helper was reloaded.
+
+        辅助器重载后重新捕获辅助器与遮罩。
+        """
+        window = self.window
+        overlay = window.findChild(self.QObject, "lazyLoadingOverlay")
+        helper = window.findChild(self.QObject, "lazyHelper")
+        self.overlay = overlay
+        self.helper = helper
+        # The guard, stage timer and target loader also live inside the destroyed
+        # helper subtree, so re-run the stack binding to refresh all of them.
+        # 守卫、阶段计时器与目标 Loader 同样位于被销毁的辅助器子树内, 因此重跑一次
+        # 栈绑定以刷新它们。
+        if self.stack is not None and overlay is not None:
+            self._bind_stack(self.stack, overlay)
+        self.report["rebound_overlay"] = overlay is not None
+        self.report["rebound_helper"] = helper is not None
+
     def _do_switch(self) -> None:
         if self.finished:
             return
@@ -1205,6 +1313,23 @@ class _Run:
     def _sample(self) -> None:
         if self.finished or self.stack is None or self.overlay is None:
             return
+        # A reloaded helper destroys its old subtree, so a captured reference can
+        # go stale mid-run. Re-bind instead of touching a deleted QQuickItem,
+        # which would abort the probe and leave its window process behind.
+        # 重载辅助器会销毁其旧子树, 因此已捕获的引用可能在运行中失效。此时重新绑定,
+        # 而不是访问已删除的 QQuickItem —— 那会中断探针并把窗口进程留在后台。
+        if not _is_alive(self.stack) or not _is_alive(self.overlay):
+            self.report["stale_reference_rebind"] = (
+                self.report.get("stale_reference_rebind", 0) + 1
+            )
+            stack = self.window.property("stackedWidget")
+            overlay = self.window.findChild(self.QObject, "lazyLoadingOverlay")
+            if stack is None or overlay is None:
+                return
+            self.stack = stack
+            self._bind_stack(stack, overlay)
+            if not _is_alive(self.overlay):
+                return
         snapshot = self._snapshot()
         if snapshot != self.last_snapshot:
             self.last_snapshot = snapshot
