@@ -43,12 +43,14 @@ def test_active_tick_logs_matching_begin_and_done_boundaries(monkeypatch, qapp):
 
     controller._on_tick()
 
-    assert controller.budgets == [5]
+    assert controller.budgets == [incubation.DEFAULT_INCUBATION_BUDGET_MS]
     assert len(messages) == 2
     assert all(tag == "Incubation" for tag, _ in messages)
     assert "tick begin sequence=1" in messages[0][1]
     assert "object_count_before=2" in messages[0][1]
-    assert "budget_ms=5" in messages[0][1]
+    assert (
+        f"budget_ms={incubation.DEFAULT_INCUBATION_BUDGET_MS}" in messages[0][1]
+    )
     assert "tick done sequence=1" in messages[1][1]
     assert "object_count_after=1" in messages[1][1]
     assert "timer_interval_ms=16" in messages[1][1]
@@ -68,7 +70,7 @@ def test_idle_tick_does_not_emit_active_diagnostics(monkeypatch, qapp):
 
     controller._on_tick()
 
-    assert controller.budgets == [5]
+    assert controller.budgets == [incubation.DEFAULT_INCUBATION_BUDGET_MS]
     assert messages == []
     assert controller._timer.interval() == 250
 
