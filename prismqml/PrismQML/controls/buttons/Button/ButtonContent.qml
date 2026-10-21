@@ -58,16 +58,60 @@ Item {
         if (loading && loadingText !== "") return loadingText
         return text
     }
+    // Inline slot order matches the historical Row: loading ring, feature ring,
+    // icon, text. A slot only participates when it is visible and non-zero wide,
+    // and the shared gap sits between consecutive participants only — the exact
+    // rule Qt's Row applied before this layout became manual. A zero-width or
+    // hidden visual therefore never pushes its neighbour sideways.
+    // 横向槽位顺序沿用历史 Row: 加载环、功能环、图标、文字。只有可见且宽度非零的槽位
+    // 参与排布, 共享间距只落在相邻的两个参与槽位之间 —— 这正是本布局改为手工定位前
+    // Qt Row 所遵循的规则。零宽或隐藏的视觉因此不会把相邻项挤开。
+    readonly property bool _showsLoadingRing: loading
+    readonly property bool _showsIconVisual: !loading && icon !== ""
+    readonly property bool _textVisible: _displayText !== ""
+    readonly property real _loadingSlotWidth: _showsLoadingRing ? iconSize : 0
+    readonly property real _featureSlotWidth: _hasFeatureRing ? iconSize : 0
+    readonly property real _iconSlotWidth: _showsIconVisual ? iconSize : 0
+    readonly property real _textSlotWidth: _textVisible ? contentText.implicitWidth : 0
+    readonly property int _loadingSlotCount: _loadingSlotWidth > 0 ? 1 : 0
+    readonly property int _featureSlotCount: _featureSlotWidth > 0 ? 1 : 0
+    readonly property int _iconSlotCount: _iconSlotWidth > 0 ? 1 : 0
+    readonly property int _textSlotCount: _textSlotWidth > 0 ? 1 : 0
+    readonly property int _placedSlotCount: _loadingSlotCount + _featureSlotCount
+        + _iconSlotCount + _textSlotCount
+    readonly property real _placedSlotWidth: _loadingSlotWidth + _featureSlotWidth
+        + _iconSlotWidth + _textSlotWidth
+    readonly property real _slotGap: skinContext.spacing.s
+    // Prefix sums: participants and accumulated width preceding each slot.
+    // 前缀和: 每个槽位之前已排布的参与槽位数量与累计宽度。
+    readonly property int _slotsBeforeFeature: _loadingSlotCount
+    readonly property int _slotsBeforeIcon: _loadingSlotCount + _featureSlotCount
+    readonly property int _slotsBeforeText: _loadingSlotCount + _featureSlotCount
+        + _iconSlotCount
+    readonly property real _widthBeforeFeature: _loadingSlotWidth
+    readonly property real _widthBeforeIcon: _loadingSlotWidth + _featureSlotWidth
+    readonly property real _widthBeforeText: _loadingSlotWidth + _featureSlotWidth
+        + _iconSlotWidth
+    // A slot that does not participate keeps x = 0, exactly as Row left skipped
+    // items untouched instead of parking them at a computed offset.
+    // 不参与的槽位保持 x = 0, 与 Row 不对被跳过项做定位的行为一致。
+    readonly property real _loadingSlotX: 0
+    readonly property real _featureSlotX: _featureSlotCount > 0
+        ? _widthBeforeFeature + _slotsBeforeFeature * _slotGap : 0
+    readonly property real _iconSlotX: _iconSlotCount > 0
+        ? _widthBeforeIcon + _slotsBeforeIcon * _slotGap : 0
+    readonly property real _textSlotX: _textSlotCount > 0
+        ? _widthBeforeText + _slotsBeforeText * _slotGap : 0
 
     // ==================== Size 尺寸 ====================
     implicitWidth: verticalLayout
         ? Math.max(iconSize, contentText.implicitWidth)
-        : iconSize * (hasIcon ? 1 : 0)
-          + Enums.spacing.xs * (hasIcon && contentText.visible ? 1 : 0)
-          + contentText.implicitWidth
+        : _placedSlotWidth + Math.max(_placedSlotCount - 1, 0) * _slotGap
     implicitHeight: verticalLayout
         ? (hasIcon ? iconSize + Enums.spacing.xxs : 0) + contentText.implicitHeight
-        : Math.max(iconSize, contentText.implicitHeight)
+        : Math.max(_loadingSlotWidth + _featureSlotWidth + _iconSlotWidth > 0
+                   ? iconSize : 0,
+                   _textSlotWidth > 0 ? contentText.implicitHeight : 0)
 
     // ==================== Content 内容 ====================
     Loader {
@@ -77,7 +121,8 @@ Item {
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
-            ? (content.width - width) / 2 : 0
+            ? (content.width - width) / 2
+            : content._loadingSlotX
         y: content.verticalLayout
             ? 0 : (content.height - height) / 2
         sourceComponent: loadingComponent
@@ -90,7 +135,8 @@ Item {
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
-            ? (content.width - width) / 2 : 0
+            ? (content.width - width) / 2
+            : content._featureSlotX
         y: content.verticalLayout
             ? 0 : (content.height - height) / 2
         sourceComponent: featureRingComponent
@@ -100,11 +146,12 @@ Item {
         id: iconLoader
 
         objectName: "buttonContentVisual"
-        active: !content.loading && content.icon !== ""
+        active: content._showsIconVisual
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
-            ? (content.width - width) / 2 : 0
+            ? (content.width - width) / 2
+            : content._iconSlotX
         y: content.verticalLayout
             ? 0 : (content.height - height) / 2
         sourceComponent: iconComponent
@@ -116,7 +163,7 @@ Item {
         objectName: "buttonContentText"
         x: content.verticalLayout
             ? (content.width - implicitWidth) / 2
-            : (content.hasIcon ? iconLoader.width + Enums.spacing.xs : 0)
+            : content._textSlotX
         y: content.verticalLayout
             ? (content.hasIcon ? iconLoader.height + Enums.spacing.xxs : 0)
             : (content.height - implicitHeight) / 2
@@ -130,7 +177,7 @@ Item {
         font.strikeout: content.fontStrikeout
         color: content.textColor
         wrapMode: Text.WordWrap
-        visible: text !== ""
+        visible: content._textVisible
     }
 
     Component {

@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -126,6 +126,13 @@ Item {
     readonly property int expectedButtonMinWidth: Enums.controlSize.buttonMinWidth
     readonly property int expectedInputHeight: Enums.controlSize.inputHeight
     readonly property string expectedFontFamily: Enums.fontFamily
+    // Progress-ring leading-slot tokens. The ring occupies a leading visual slot
+    // exactly like the icon, so the shared gap token is the only spacing the
+    // inline layout may use between two occupied slots. ASCII only here: this
+    // whole scene is a bytes literal.
+    readonly property int expectedRingFeature: Enums.button.feature_progress_ring
+    readonly property int expectedLeadingGap: Enums.spacing.s
+    readonly property int expectedContentIconSize: Enums.iconSize.m
 
     width: 400
     height: 200
@@ -198,6 +205,58 @@ Item {
         fontUnderline: true
         fontStrikeout: true
         countdownText: " sec"
+    }
+
+    Button {
+        id: ringTextButton
+        objectName: "ringTextButton"
+        x: 210
+        width: 180
+        height: 40
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: "Ring"
+        progress: 0.6
+    }
+
+    Button {
+        id: ringIconTextButton
+        objectName: "ringIconTextButton"
+        x: 210
+        y: 40
+        width: 180
+        height: 40
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: "Ring"
+        icon: Enums.icon.checkmark
+        progress: 0.6
+    }
+
+    Button {
+        id: ringOnlyButton
+        objectName: "ringOnlyButton"
+        x: 210
+        y: 80
+        width: 180
+        height: 40
+        feature: Enums.button.feature_progress_ring
+        style: Enums.button.style_primary
+        text: ""
+        progress: 0.6
+    }
+
+    // Text-only entry point used to prove the inline height is driven by the
+    // text alone. ASCII only: SCENE_SOURCE is a bytes literal.
+    Button {
+        id: textOnlyButton
+        objectName: "textOnlyButton"
+        x: 210
+        y: 120
+        width: 180
+        height: 40
+        style: Enums.button.style_primary
+        text: "Text"
     }
 
     Button {
@@ -312,6 +371,32 @@ def _progress_rings(content):
         for child in _descendants(content)
         if child.metaObject().className().startswith("ProgressRing_QMLTYPE_")
     ]
+
+
+def _content_child_x(child, content):
+    """Map a child's local origin into content coordinates. 把子项局部原点换算到 content 坐标。"""
+    return child.mapToItem(content, QPointF(0.0, 0.0)).x()
+
+
+def _content_child_right(child, content):
+    """Map a child's local right edge into content coordinates. 把子项局部右边缘换算到 content 坐标。"""
+    return child.mapToItem(content, QPointF(child.width(), 0.0)).x()
+
+
+def _ring_scene_content(root, object_name):
+    """Resolve the ring scene button parts used by the slot regressions.
+
+    解析圆环场景按钮的各个部分: 按钮、内容层、文字与唯一的功能进度环。同时用 root 暴露
+    的 Enums token 断言场景按钮确实处于进度环功能态, 避免夹具本身失效却静默通过。
+    """
+    button = root.findChild(QObject, object_name)
+    assert button is not None
+    assert button.property("feature") == root.property("expectedRingFeature")
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+    rings = _progress_rings(content)
+    assert len(rings) == 1, [item.metaObject().className() for item in rings]
+    return button, content, text_item, rings[0]
 
 
 def _button_dropdown(button):
@@ -607,6 +692,94 @@ def test_button_content_reuses_one_feature_ring_loader(button_leaf_scene):
     button.setProperty("loading", True)
     _pump(20)
     assert len(_progress_rings(content)) == 2
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_ring_text_slot_keeps_text_clear_of_the_ring(button_leaf_scene):
+    """A leading progress ring must not sit under the text it precedes.
+
+    前导进度环不得压在其后的文字下面。重构前 HEAD 实测 (geom.head-broken.json) 中
+    ringTextButton 的圆环右边缘为 16、文字左边缘仅 4, 两者重叠 12px, 本用例即锁定该
+    真实缺陷; 重构前的 Row 基线 (geom.prerefactor.json) 为 16 -> 22, 间距 6。
+    """
+    root, windows_before = button_leaf_scene
+    _, content, text_item, ring = _ring_scene_content(root, "ringTextButton")
+    gap = root.property("expectedLeadingGap")
+
+    ring_right = _content_child_right(ring, content)
+    text_left = _content_child_x(text_item, content)
+    assert ring_right <= text_left, (ring_right, text_left)
+    assert text_left - ring_right == pytest.approx(float(gap))
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_ring_slot_content_width_counts_every_occupied_slot(button_leaf_scene):
+    """implicitWidth = occupied leading slots + one gap per occupied slot + text.
+
+    内容宽度 = 实际占位的前导视觉 + 每个占位视觉一个间距 + 文字宽度。期望值全部由 root
+    暴露的 Enums token 与运行时文字 implicitWidth 计算, 不硬编码数字。
+    """
+    root, _ = button_leaf_scene
+    icon_size = root.property("expectedContentIconSize")
+    gap = root.property("expectedLeadingGap")
+
+    # ring + text: 16 + 6 + textWidth = 50 for the historical Row baseline.
+    _, content, text_item, _ = _ring_scene_content(root, "ringTextButton")
+    assert content.property("implicitWidth") == pytest.approx(
+        icon_size + gap + text_item.property("implicitWidth")
+    )
+
+    # ring + icon + text: 2 * 16 + 2 * 6 + textWidth = 72 for the same baseline.
+    _, content, text_item, _ = _ring_scene_content(root, "ringIconTextButton")
+    assert content.property("implicitWidth") == pytest.approx(
+        2 * icon_size + 2 * gap + text_item.property("implicitWidth")
+    )
+
+    # ring only: a single leading visual, no text and therefore no gap.
+    _, content, _, _ = _ring_scene_content(root, "ringOnlyButton")
+    assert content.property("implicitWidth") == pytest.approx(icon_size)
+
+
+def test_button_ring_and_icon_share_the_same_slot_stride(button_leaf_scene):
+    """Ring, icon and text advance by one slot stride, never overlapping.
+
+    圆环、图标与文字按同一槽位步进排列且互不重叠。重构前 HEAD 实测
+    (geom.head-broken.json) 中 ringIconTextButton 的圆环与图标都停在 x=0..16, 完全
+    重叠; 重构前的 Row 基线为 0..16 / 22..38 / 44..72。
+    """
+    root, windows_before = button_leaf_scene
+    _, content, text_item, ring = _ring_scene_content(root, "ringIconTextButton")
+    gap = root.property("expectedLeadingGap")
+    icon = content.findChild(QObject, "buttonContentVisual")
+    assert icon is not None
+
+    ring_right = _content_child_right(ring, content)
+    icon_left = _content_child_x(icon, content)
+    icon_right = _content_child_right(icon, content)
+    text_left = _content_child_x(text_item, content)
+
+    assert ring_right <= icon_left, (ring_right, icon_left)
+    assert icon_left - ring_right == pytest.approx(float(gap))
+    assert icon_right <= text_left, (icon_right, text_left)
+    assert text_left - icon_right == pytest.approx(float(gap))
+    assert _new_visible_windows(windows_before) == []
+
+
+def test_button_text_only_content_height_follows_the_text(button_leaf_scene):
+    """A text-only button must not be inflated to the icon slot height.
+
+    纯文本按钮的高度不得被图标槽位抬高。重构前 HEAD 实测 (geom.head-broken.json) 中
+    textOnly 的 content.implicitHeight 为 16, 而文字自身 implicitHeight 只有 14。
+    """
+    root, windows_before = button_leaf_scene
+    button = root.findChild(QObject, "textOnlyButton")
+    assert button is not None
+    content = _button_content(button)
+    text_item = _button_content_text(content)
+
+    assert content.property("implicitHeight") == pytest.approx(
+        text_item.property("implicitHeight")
+    )
     assert _new_visible_windows(windows_before) == []
 
 
