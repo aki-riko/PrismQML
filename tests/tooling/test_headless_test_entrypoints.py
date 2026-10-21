@@ -74,6 +74,14 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # 圆形遮罩: offscreen 平台回退到 Software 场景图, 不执行着色器效果,
     # 层遮罩在该后端完全无法观测。
     Path("scripts/manual/avatar_circle_mask_probe.py"),
+    # Measures the lazy-loading skeleton overlay's exit timing on the Gallery's
+    # navigation page. The stall it diagnoses only reproduces on a real presenting
+    # D3D11 desktop: the offscreen platform falls back to the Software scene graph,
+    # which executes no shader effects and never stalls the incubation queue, so the
+    # failure signal is unobservable there. 在 Gallery 导航页上测量懒加载骨架覆盖层
+    # 的退场时机。它诊断的卡死只在真实上屏的 D3D11 桌面上复现: offscreen 平台回退到
+    # Software 场景图, 不执行着色器效果也不会让孵化队列停滞, 因此那里观测不到失败信号。
+    Path("scripts/manual/skeleton_navigation_stall_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"
