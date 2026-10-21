@@ -290,14 +290,16 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
 
     def _switch_to_index(self, index: int):
         """触发QML侧页面切换"""
-        window = _live_window(self._window)
-        if window is not None:
-            try:
-                QMetaObject.invokeMethod(
-                    window, "navigateTo", Q_ARG("QVariant", index)
-                )
-            except RuntimeError as exc:
-                exception(f"页面切换失败: {type(exc).__name__}: {exc}")
+        try:
+            window = _live_window(self._window)
+            if window is None:
+                # Skip is correct; the traceback keeps it observable. 跳过是对的, traceback 让它可观测。
+                raise RuntimeError("窗口已析构, 跳过页面切换")
+            QMetaObject.invokeMethod(
+                window, "navigateTo", Q_ARG("QVariant", index)
+            )
+        except RuntimeError as exc:
+            exception(f"页面切换失败: {type(exc).__name__}: {exc}")
 
     def _start_async_page_load(self, index: int):
         """收紧圆圈后异步创建目标页，并在其就绪时完成切换。"""
@@ -445,10 +447,11 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
         collapse_finished.connect(on_collapse_finished)
 
     def _start_loading_overlay(self, index: int) -> None:
-        window = _live_window(self._window)
-        if window is None:
-            return
         try:
+            window = _live_window(self._window)
+            if window is None:
+                # Same contract as _switch_to_index. 与 _switch_to_index 同一契约。
+                raise RuntimeError("窗口已析构, 跳过 loading 启动")
             QMetaObject.invokeMethod(
                 window, "_startPythonLoading", Q_ARG("QVariant", index)
             )
@@ -474,13 +477,17 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
     def _finish_loading(self):
         """完成加载，隐藏loading动画"""
         self._mark_foreground_page_load_finished()
-        window = _live_window(self._window)
-        if window is not None:
-            try:
-                QMetaObject.invokeMethod(window, "_finishPythonLoading")
-            except RuntimeError as exc:
-                # Method may not exist, ignore 方法可能不存在
-                exception(
-                    "页面 loading 结束方法不可用: "
-                    f"{type(exc).__name__}: {exc}"
+        try:
+            window = _live_window(self._window)
+            if window is None:
+                # Same contract as the other boundaries. 与另两处同一契约。
+                raise RuntimeError(
+                    '窗口已析构, 跳过 "_finishPythonLoading" 调用'
                 )
+            QMetaObject.invokeMethod(window, "_finishPythonLoading")
+        except RuntimeError as exc:
+            # Method may not exist, ignore 方法可能不存在
+            exception(
+                "页面 loading 结束方法不可用: "
+                f"{type(exc).__name__}: {exc}"
+            )
