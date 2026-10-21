@@ -202,6 +202,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     # 空操作写入也能消除卡死, 则触发条件是"运行期属性写入"(及其对绑定/打磨顺序的
     # 影响), 而不是环形内容本身。
     parser.add_argument("--overlay-touch-style", action="store_true")
+    # Distinguishes "skeleton subtree never created" (source `active: false`) from
+    # "created during the helper's async incubation, then destroyed" (what
+    # --overlay-ring does when it rewrites style). Only the latter ever succeeded.
+    # 区分"骨架子树从未创建"(源码 active:false)与"在辅助器异步孵化期间已创建、随后被
+    # 销毁"(--overlay-ring 改写 style 时的情况)。只有后者曾经成功过。
+    parser.add_argument("--drop-skeleton-loader-at-settle", action="store_true")
     # Bisect the skeleton overlay's own cost. `--skeleton-loading-off` stops the
     # infinite shimmer and hides the blocks; `--skeleton-layers-off` keeps them
     # visible but disables the per-block layer + MultiEffect mask. Diagnosis only.
@@ -769,6 +775,8 @@ class _Run:
                 self._overlay_render_ring(overlay)
             if self.args.overlay_touch_style:
                 self._overlay_touch_style(overlay)
+            if self.args.drop_skeleton_loader_at_settle:
+                self._drop_skeleton_loader_at_settle(overlay)
             if self.args.helper_sync:
                 self._reload_helper_synchronously()
             if self.args.skeleton_loading_off or self.args.skeleton_layers_off:
@@ -1415,6 +1423,26 @@ class _Run:
         self.frames_swapped += 1
         if self.switch_ms is not None:
             self.frames_swapped_after_switch += 1
+
+    def _drop_skeleton_loader_at_settle(self, overlay) -> None:
+        """Deactivate the overlay's skeleton Loader, leaving `style` untouched.
+
+        在不改动 style 的前提下停用覆盖层的骨架 Loader。
+
+        Reproduces the "subtree existed, then went away" ordering that
+        ``--overlay-ring`` produces, without changing the configured style.
+        / 复现 --overlay-ring 造成的"子树已存在、随后消失"顺序, 但不改配置样式。
+        """
+        loader = overlay.findChild(self.QObject, "qmlPageSkeletonLoader")
+        if loader is None:
+            self.report["drop_skeleton_loader_error"] = "skeleton Loader not found"
+            return
+        self.report["drop_skeleton_loader_before"] = bool(loader.property("active"))
+        self.report["drop_skeleton_loader_item_before"] = (
+            loader.property("item") is not None
+        )
+        loader.setProperty("active", False)
+        self.report["drop_skeleton_loader_after"] = bool(loader.property("active"))
 
     def _do_switch(self) -> None:
         if self.finished:
