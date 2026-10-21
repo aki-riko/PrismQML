@@ -411,6 +411,21 @@ Item {
             loadingOverlay.scale = Enums.opacityLevel.invisible
             break
         }
+        // With no page transition the collapse hides the previous page immediately,
+        // so fading the overlay in from opacity 0 would expose the bare background
+        // for the whole enter duration (measured at 10ms resolution: previous page
+        // already hidden while overlay opacity was still 0 -> ~230ms of visible
+        // background, i.e. the flash users report). Cover instantly in that case;
+        // the circle path keeps its fade because the transition itself still covers.
+        // 无页面过渡时, 收紧会立刻隐藏上一页, 此时把遮罩从 opacity 0 淡入会让空白背景
+        // 在整个入场时长内暴露(10ms 采样实测: 上一页已隐藏而遮罩不透明度仍为 0, 约
+        // 230ms 可见背景, 即用户报告的闪烁)。这种情况直接铺满; 圆圈路径仍保留淡入,
+        // 因为过渡本身还在遮盖。
+        if (helper.pageTransition
+                && helper.pageTransition.animationType === Enums.lazyAnimation.none) {
+            loadingOverlay.opacity = Enums.opacityLevel.visible
+            return
+        }
         loadingOverlayEnterAnimation.restart()
     }
 
@@ -528,8 +543,14 @@ Item {
 
         function _overlayHasGoneStale() {
             if (!loadingOverlay.visible) return false
-            if (pendingTargetIndex < 0) return true
-            return _visibleElapsed >= _ownedBudget
+            // Only an ownerless overlay is released. A switch that still owns a
+            // target keeps its overlay: releasing it early exposes the content area
+            // before the target is ready, which the user perceives as a flash of the
+            // previous page or of the bare background. The switch itself ends the
+            // overlay through the normal reveal once the page is ready.
+            // 只释放无主遮罩。仍持有目标的切换保留遮罩: 提前释放会在目标就绪前暴露
+            // 内容区, 用户看到的就是旧页或空背景闪一下。目标就绪后由正常揭幕结束遮罩。
+            return pendingTargetIndex < 0
         }
 
         objectName: "lazyOverlayLifecycleGuard"
@@ -539,17 +560,11 @@ Item {
         property real _visibleSince: 0
         // Sampled on every tick instead of bound over Date.now(). Date.now() is not
         // an observable dependency, so a binding over it evaluates once when
-        // _visibleSince is written and then never grows again; the budget below
-        // would stay permanently unreachable while a target is still pending, which
-        // is exactly the unbounded wait this guard exists to bound.
+        // _visibleSince is written and then never grows again, which would make the
+        // reported "visibleFor" duration permanently read as 0.
         // 每拍采样, 而非绑定 Date.now()。Date.now() 不是可观察依赖, 绑定只在
-        // _visibleSince 写入时求值一次, 此后不再增长; 目标仍待处理时下方预算将永远
-        // 无法到达, 而这正是本守卫要兜住的无界等待。
+        // _visibleSince 写入时求值一次, 此后不再增长, 会让上报的 "visibleFor" 恒为 0。
         property real _visibleElapsed: 0
-        // An ownerless overlay is released quickly; an owned one keeps three
-        // seconds, which is well past collapse + activation + first render.
-        // 无持有者的遮罩快速释放; 有持有者的保留三秒, 远超收紧 + 激活 + 首帧渲染。
-        readonly property int _ownedBudget: 3000
 
         onRunningChanged: {
             _visibleSince = running ? Date.now() : 0
@@ -563,17 +578,9 @@ Item {
                 "helper.overlay.lifecycle_guard",
                 pendingTargetIndex,
                 "visibleFor=" + Math.round(_visibleElapsed))
-            // Giving up on a switch that still owns a target must not leave the
-            // content area empty. The collapse already hid the previously displayed
-            // page, and the skeleton style has no transition that would restore it,
-            // so without this the overlay's exit exposes a blank area (measured on
-            // a real window: every loader invisible, content pixel pure white).
-            // A late page-ready still corrects this through loadingComplete.
-            // 放弃一次仍持有目标的切换时不得留下空白内容区。收紧动作已经把上一页隐藏,
-            // 而骨架样式没有会恢复它的过渡, 因此缺了这一步, 遮罩退场后暴露的就是空白
-            // (真实窗口实测: 所有 Loader 均不可见, 内容区像素纯白)。若页面稍后就绪,
-            // loadingComplete 仍会重跑可见性并纠正。
-            if (pendingTargetIndex >= 0) helper._restoreVisiblePage()
+            // Ownerless only (see _overlayHasGoneStale): an owned overlay is ended by
+            // the normal reveal, so nothing has to be restored here.
+            // 仅无主遮罩(见 _overlayHasGoneStale): 有主遮罩由正常揭幕结束, 此处无需恢复。
             helper._releaseOverlayIfVisible()
         }
     }

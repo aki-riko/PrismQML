@@ -665,17 +665,17 @@ def test_deferred_reveal_survives_a_wait_indicator_that_exited_first(qapp):
         _dispose_scene(qapp, engine, component, window)
 
 
-def test_guard_giving_up_on_an_owned_switch_restores_the_previous_page(qapp):
-    """守卫放弃有主切换时, 必须恢复上一页, 不得留下空白内容区。
+def test_guard_keeps_the_overlay_while_a_switch_still_owns_a_target(qapp):
+    """守卫不得释放仍持有目标的遮罩, 否则会闪出旧页或空背景。
 
-    The collapse hides the previously displayed page, and the skeleton style has no
-    transition that would bring it back. If the guard then releases the overlay
-    while the target page never became ready, every loader ends up invisible and
-    the content area renders blank (measured on a real window: content pixel pure
-    white). Giving up must therefore restore the page it hid.
-    收紧动作会隐藏上一页, 而骨架样式没有会把它带回来的过渡。若守卫在目标页始终未就绪
-    的情况下释放遮罩, 所有 Loader 都会不可见, 内容区渲染为空白(真实窗口实测: 内容区
-    像素纯白)。因此放弃时必须把被它隐藏的那一页恢复回来。
+    The collapse hides the previously displayed page and the skeleton style has no
+    transition to restore it, so releasing an owned overlay before the target is
+    ready exposes the content area. Users perceive that as a flash of the previous
+    page or of the bare background, so an owned overlay must survive the guard and
+    be ended by the normal reveal instead.
+    收紧会隐藏上一页, 而骨架样式没有恢复它的过渡, 因此在目标就绪前释放有主遮罩就会
+    暴露内容区。用户看到的是旧页或空背景闪一下, 所以有主遮罩必须活过守卫, 由正常
+    揭幕结束。
     """
     engine = QQmlApplicationEngine()
     engine.addImportPath(str(ROOT / "prismqml"))
@@ -700,24 +700,30 @@ def test_guard_giving_up_on_an_owned_switch_restores_the_previous_page(qapp):
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == 1)
         assert _wait_for(lambda: overlay.property("visible") is True)
 
-        # The collapse hid the page that was on screen, and the target is still
-        # loading, so nothing would restore it without the fix.
-        # 收紧已把屏幕上的那一页隐藏, 而目标仍在加载, 没有修复就没人恢复它。
+        # The collapse hid the page that was on screen.
+        # 收紧已把屏幕上的那一页隐藏。
         assert _wait_for(lambda: first_page.property("visible") is False)
         assert window.property("targetLoaded") is False
 
-        # Make the guard see an elapsed budget without waiting three real seconds.
-        # 让守卫立刻看到预算已耗尽, 而不必真等三秒。
+        # Make the guard see plenty of elapsed budget without waiting for it.
+        # 让守卫立刻看到预算早已耗尽, 而不必真等。
         guard = _overlay_guard(helper)
         assert guard is not None
-        guard.setProperty("_visibleSince", int(time.time() * 1000) - 4000)
+        guard.setProperty("_visibleSince", int(time.time() * 1000) - 60000)
 
-        assert _wait_for(lambda: overlay.property("visible") is False, timeout_ms=4000)
-        assert first_page.property("visible") is True, (
-            "guard released the overlay without restoring the hidden page"
-        )
-        # The switch is still pending: this is the give-up path, not a completion.
-        # 切换仍在待处理: 这是放弃路径, 不是完成路径。
+        # An owned overlay must survive the guard: releasing it while the target is
+        # still loading exposes the content area, which users perceive as a flash of
+        # the previous page or of the bare background. Give the guard several ticks
+        # to prove it does not release.
+        # 有主遮罩必须活过守卫: 目标仍在加载时释放它就会暴露内容区, 用户看到的就是旧页
+        # 或空背景闪一下。给守卫若干拍以证明它不会释放。
+        for _ in range(40):
+            assert overlay.property("visible") is True, (
+                "guard released an overlay that still owns a pending target"
+            )
+            _pump()
+        assert helper.property("pendingTargetIndex") == 1
+        assert first_page.property("visible") is False
         assert window.property("completedTarget") == -1
     finally:
         _dispose_scene(qapp, engine, component, window)
