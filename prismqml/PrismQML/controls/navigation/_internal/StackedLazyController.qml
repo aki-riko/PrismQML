@@ -256,6 +256,19 @@ Item {
             host.previousIndex = host._displayIndex
             host._doAnimation(host._displayIndex, targetIdx)
             host._displayIndex = targetIdx
+            // The native animation only publishes currentChanged when it finishes,
+            // but the wait overlay can exit earlier. Between those two moments no
+            // page satisfies `visible: index === _displayIndex` for the new index
+            // while the old index is already gone, so the content area renders
+            // empty (measured: overlay off at 4264ms, currentChanged at 4411ms).
+            // Pin the target visible as soon as the switch owns it, so the reveal
+            // never uncovers an empty area.
+            // 原生动画只在结束时才发出 currentChanged, 而等待遮罩可能更早退场。这
+            // 两个时刻之间没有任何页满足 `visible: index === _displayIndex`: 新索引
+            // 未生效、旧索引已撤下, 内容区就会渲染为空白(实测: 遮罩 4264ms 退场,
+            // currentChanged 到 4411ms 才发)。因此在切换接管目标的那一刻就把目标页
+            // 固定为可见, 使揭幕不会露出空白。
+            host._updateVisibility(targetIdx)
             host.profileTime("lazyHelper loadingComplete done")
             host._traceLazyStage("stacked.loading_complete.done", targetIdx,
                                  "previous=" + prevIdx)
