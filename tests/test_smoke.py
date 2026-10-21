@@ -157,13 +157,20 @@ QtObject {
 }
 ''')
 
-# Poll until the translation resolves instead of waiting a fixed 100 ms. A fixed
-# sleep is a race: the callLater callback plus Translator.setLanguage can take
-# longer than the budget on a loaded CI machine, and the assertion then reads an
-# unresolved value and fails for reasons unrelated to the code under test.
-# 轮询到翻译就绪, 而不是死等固定 100ms。固定等待是竞态: 在负载高的 CI 机器上
-# callLater 回调加 Translator.setLanguage 可能超过该预算, 断言就会读到未解析的值,
-# 因与本测试目标无关的原因失败。
+# Wait for the resolution to land instead of reading after a fixed sleep, then let
+# the app tear down its worker threads before the interpreter exits. Two separate
+# hazards are handled here:
+#   1. a fixed 100 ms budget can expire before the callLater callback runs, so the
+#      value is read unresolved;
+#   2. exiting while a background task thread is still running makes Qt fail fast
+#      with "QThread: Destroyed while thread is still running" (0xC0000409 on
+#      Windows), which crashes the subprocess instead of failing the assertion.
+# 等到翻译值就绪再读取(而不是固定 sleep), 并在解释器退出前让应用收回后台线程。
+# 这里处理两个独立隐患:
+#   1. 固定 100ms 预算可能在 callLater 回调执行前就到期, 读到未解析的值;
+#   2. 后台任务线程仍在运行时退出, 会让 Qt 以
+#      "QThread: Destroyed while thread is still running" 快速失败(Windows 上
+#      表现为 0xC0000409 崩溃), 子进程崩溃而不是断言失败。
 deadline = 5000.0
 elapsed = 0.0
 step = 10.0
@@ -178,7 +185,14 @@ while elapsed < deadline:
     if candidate:
         translated = candidate
         break
-App._reset()
+
+# Drain teardown while the event loop still runs so worker threads finish first.
+# 在事件循环仍在运行的情况下完成拆卸, 让工作线程先结束。
+app._reset()
+for _ in range(20):
+    loop = QEventLoop()
+    QTimer.singleShot(10, loop.quit)
+    loop.exec()
 raise SystemExit(0 if translated == "OK" else 3)
 """
     completed = subprocess.run(
