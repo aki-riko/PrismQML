@@ -235,15 +235,31 @@ Item {
 
         _waitIndicatorFinished = true
         _trace("helper.wait_indicator.finish", pendingTargetIndex)
-        if (_deferredRevealTarget >= 0) {
-            var revealTarget = _deferredRevealTarget
-            _deferredRevealTarget = -1
-            _trace("helper.page_reveal.after_wait", revealTarget)
-            var prevIdx = internalLastIndex
-            internalLastIndex = revealTarget
-            loadingComplete(revealTarget, prevIdx)
-        }
+        _deliverDeferredReveal()
         _finalizeLoadingSwitch()
+    }
+
+    function _deliverDeferredReveal() {
+        // The skeleton path (`animationType === none`) defers its reveal until the
+        // wait indicator has left the screen, so `loadingComplete` normally rides
+        // that exit. When the overlay already finished before the page became
+        // ready, that exit never runs again and the deferred target would wait for
+        // a signal that cannot arrive: the switch finalizes but the displayed page
+        // never updates, leaving the previous page on screen. Delivering from both
+        // owners covers either order, and the later caller finds it cleared.
+        // 骨架路径(animationType === none)把揭幕推迟到等待指示退场之后, 因此
+        // loadingComplete 通常搭那次退场。若遮罩在页面就绪前就已退场完毕, 那次退场
+        // 不会再发生, 延迟目标便会永远等待一个不会到来的信号: 切换收尾了, 但显示页
+        // 永不更新, 屏幕上仍留着上一页。两个持有者都补发即可覆盖两种顺序, 后到的
+        // 调用者只会看到它已被清空。
+        if (_deferredRevealTarget < 0) return
+
+        var revealTarget = _deferredRevealTarget
+        _deferredRevealTarget = -1
+        _trace("helper.page_reveal.after_wait", revealTarget)
+        var prevIdx = internalLastIndex
+        internalLastIndex = revealTarget
+        loadingComplete(revealTarget, prevIdx)
     }
 
     function _finalizeLoadingSwitch() {
@@ -339,6 +355,13 @@ Item {
 
         _trace("helper.page_expand.finish", pendingTargetIndex)
         _targetExpansionFinished = true
+        // The target is on screen now, so a reveal still waiting on the wait
+        // indicator's exit must be delivered even when that exit already ran while
+        // the page was not ready yet. In the ring path the deferred target is
+        // never armed, so this is a no-op there.
+        // 目标此时已上屏, 因此仍在等待指示退场的揭幕必须补发, 即使那次退场在页面尚未
+        // 就绪时就已经跑过。环形路径从不武装延迟目标, 故那里是空操作。
+        _deliverDeferredReveal()
         _finalizeLoadingSwitch()
     }
 

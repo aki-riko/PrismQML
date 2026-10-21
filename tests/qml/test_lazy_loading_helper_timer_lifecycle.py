@@ -157,11 +157,109 @@ Window {
 """
 
 
+DEFERRED_REVEAL_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+import "../../prismqml/PrismQML/controls/navigation/_internal"
+
+Window {
+    id: root
+
+    property bool targetLoaded: false
+    property int completedTarget: -1
+    property int completedPrevious: -1
+    property string stageLog: ""
+
+    function beginSwitch() {
+        lazyHelper.showLoadingAndSwitch(1)
+    }
+    function markTargetLoaded() {
+        targetLoaded = true
+    }
+    function releaseOverlayWithoutOwner() {
+        lazyHelper._releaseOverlayIfVisible()
+    }
+
+    width: 320
+    height: 180
+    visible: true
+    color: "#18202b"
+
+    Item {
+        id: pageHost
+        anchors.fill: parent
+
+        Loader {
+            id: firstPage
+            objectName: "firstPage"
+            anchors.fill: parent
+            sourceComponent: Rectangle { color: "#b3d9485f" }
+        }
+
+        Loader {
+            id: secondPage
+            objectName: "secondPage"
+            anchors.fill: parent
+            sourceComponent: Rectangle { color: "#3487eb" }
+            active: false
+            visible: false
+            opacity: 0
+        }
+    }
+
+    PageTransition {
+        id: sharedPageTransition
+        objectName: "lazyPageCircleTransition"
+        anchors.fill: parent
+        // Skeleton style disables the lazy circle, so the helper defers its
+        // reveal until the wait indicator exits.
+        animationType: Enums.lazyAnimation.none
+    }
+
+    LazyLoadingHelper {
+        id: lazyHelper
+        objectName: "lazyHelper"
+
+        anchors.fill: parent
+        loaders: [firstPage, secondPage]
+        targetIndex: 1
+        currentVisibleIndex: 0
+        loadingText: ""
+        pageTransition: sharedPageTransition
+        loaderActivationDelay: Enums.duration.dialog
+        isPageLoadedFunc: function(index) {
+            return index === 1 && root.targetLoaded
+        }
+        isPageLoadFailedFunc: function(index) {
+            return false
+        }
+        pageLoadErrorFunc: function(index) {
+            return ""
+        }
+        activateLoaderFunc: function(index) {
+            if (index === 1) secondPage.active = true
+        }
+        diagnosticFunc: function(stage, index, details) {
+            root.stageLog += stage + ";"
+        }
+
+        onLoadingComplete: function(targetIndex, previousIndex) {
+            root.completedTarget = targetIndex
+            root.completedPrevious = previousIndex
+            firstPage.visible = false
+            secondPage.visible = true
+            secondPage.opacity = 1
+        }
+    }
+}
+"""
+
+
 def _pump(milliseconds: int = 20) -> None:
     loop = QEventLoop()
     QTimer.singleShot(milliseconds, loop.quit)
     loop.exec()
-
 
 def _wait_for(predicate, timeout_ms: int = 2_000) -> bool:
     elapsed = 0
@@ -511,6 +609,59 @@ def test_overlay_guard_samples_the_clock_on_every_tick():
     # 采样必须位于每拍处理器内，而非只在 onRunningChanged 中。
     triggered_block = source.split("onTriggered:", 1)[1].split("_overlayHasGoneStale", 1)[0]
     assert "_visibleElapsed = " in triggered_block
+
+
+def test_deferred_reveal_survives_a_wait_indicator_that_exited_first(qapp):
+    """遮罩先退场时, 延迟揭幕仍必须交付 loadingComplete。
+
+    Skeleton style defers its reveal until the wait indicator exits. When the
+    overlay finished before the page became ready, that exit never runs again, so
+    a deferred target waiting only on it would never be delivered: the switch
+    finalizes while the displayed page never updates and the previous page stays
+    on screen. 骨架样式把揭幕推迟到等待指示退场。若遮罩在页面就绪前已退场完毕,
+    那次退场不会再发生, 只等它的延迟目标便永不交付: 切换收尾了, 显示页却不更新,
+    屏幕上仍留着上一页。
+    """
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(DEFERRED_REVEAL_SCENE_SOURCE, SCENE_URL)
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    helper = window.findChild(QQuickItem, "lazyHelper")
+    overlay = window.findChild(QQuickItem, "lazyLoadingOverlay")
+    assert helper is not None and overlay is not None
+    try:
+        assert _wait_for(window.isExposed)
+
+        assert QMetaObject.invokeMethod(window, "beginSwitch")
+        assert _wait_for(lambda: helper.property("pendingTargetIndex") == 1)
+
+        # The overlay leaves the screen while the target page is still loading.
+        # 目标页仍在加载时, 遮罩先离开屏幕。
+        assert QMetaObject.invokeMethod(window, "releaseOverlayWithoutOwner")
+        assert _wait_for(lambda: overlay.property("visible") is False)
+        assert window.property("completedTarget") == -1
+
+        # Only now does the page become ready: the deferred reveal must still be
+        # delivered, otherwise the switch completes without showing the target.
+        # 页面此时才就绪: 延迟揭幕仍必须交付, 否则切换收尾却不显示目标页。
+        assert QMetaObject.invokeMethod(window, "markTargetLoaded")
+        assert _wait_for(lambda: window.property("completedTarget") == 1), (
+            "deferred reveal was never delivered after the wait indicator exited first"
+        )
+        assert window.property("completedPrevious") == 0
+        assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
+        assert _wait_for(lambda: overlay.property("visible") is False)
+    finally:
+        _dispose_scene(qapp, engine, component, window)
 
 
 def test_activation_interval_reads_collapse_duration_from_transition():
