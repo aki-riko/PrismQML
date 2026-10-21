@@ -1136,8 +1136,14 @@ class _Run:
         overlay = self.overlay
         if overlay is None or not bool(overlay.property("visible")):
             return
-        self._adjust_skeleton_blocks(overlay)
         self._skeleton_adjusted = True
+        try:
+            self._adjust_skeleton_blocks(overlay)
+        except (RuntimeError, AttributeError, TypeError, NameError) as exc:
+            # A broken bisect arm must be visible: silently continuing would let an
+            # arm that never took effect look like a real negative result.
+            # 损坏的二分臂必须可见: 静默继续会让"其实没生效"的臂看起来像真实负结果。
+            self.report["skeleton_adjust_error"] = f"{type(exc).__name__}: {exc}"
 
     def _adjust_skeleton_blocks(self, overlay) -> None:
         """Turn off parts of the skeleton overlay to bisect its cost.
@@ -1199,24 +1205,13 @@ class _Run:
             # must be visited or nothing gets disabled.
             # layer 挂在未命名的内部项(内容容器与遮罩形状)上, 不在命名的 Skeleton
             # 块本身, 因此必须遍历全部后代, 否则一个都关不掉。
-            for item in subtree:
-                try:
-                    layer = item.property("layer")
-                except (RuntimeError, AttributeError, TypeError):
-                    continue
-                if layer is None:
-                    continue
-                layer_seen += 1
-                if layer_type is None:
-                    layer_type = type(layer).__name__
-                    layer_has_set = hasattr(layer, "setProperty")
-                if not hasattr(layer, "setProperty"):
-                    continue
-                try:
-                    if layer.setProperty("enabled", False):
-                        changed += 1
-                except (RuntimeError, AttributeError, TypeError):
-                    continue
+            #
+            # PySide6 cannot read the grouped `layer` property: property("layer")
+            # returned None for all 193 descendants. QML/JS can, so the walk is done
+            # through a QQmlExpression instead of the Python property API.
+            # PySide6 读不到分组属性 layer: 193 个后代全部返回 None。QML/JS 可以,
+            # 因此改由 QQmlExpression 完成遍历, 而不是走 Python 属性 API。
+            changed += self._disable_layers_via_qml(overlay)
         report["skeleton_layers_seen"] = layer_seen
         report["skeleton_layer_type"] = layer_type
         report["skeleton_layer_has_set"] = layer_has_set
@@ -1302,6 +1297,73 @@ class _Run:
             self._bind_stack(self.stack, overlay)
         self.report["rebound_overlay"] = overlay is not None
         self.report["rebound_helper"] = helper is not None
+
+    def _disable_layers_via_qml(self, overlay) -> int:
+        """Disable every descendant layer through a QML expression.
+
+        通过 QML 表达式关闭全部后代项的 layer。
+
+        PySide6 cannot read the grouped ``layer`` property, but QML/JS can, so the
+        subtree is walked from QML. Returns how many layers were switched off.
+        / PySide6 读不到分组属性 ``layer``, 但 QML/JS 可以, 因此改从 QML 侧遍历子树。
+        返回被关闭的图层数量。
+        """
+        try:
+            from PySide6.QtQml import QQmlEngine, QQmlExpression
+        except ImportError:
+            self.report["skeleton_layers_error"] = "QtQml unavailable"
+            return 0
+
+        # contextForObject() returns a QQmlContext, not a QQmlEngine: reach the
+        # engine through the context and take its root context.
+        # contextForObject() 返回的是 QQmlContext 而非 QQmlEngine: 需经该上下文取引擎,
+        # 再取引擎的根上下文。
+        context = QQmlEngine.contextForObject(overlay)
+        if context is None:
+            self.report["skeleton_layers_error"] = "no qml context"
+            return 0
+        engine = context.engine() if hasattr(context, "engine") else None
+        root = engine.rootContext() if engine is not None else context
+        if root is None:
+            self.report["skeleton_layers_error"] = "no root context"
+            return 0
+        # Publish the overlay under a probe-only name so the expression can reach
+        # it without relying on scope-object `this` semantics.
+        # 用一个探针专用名字发布遮罩, 使表达式无需依赖作用域对象的 this 语义即可访问。
+        root.setContextProperty("__prismProbeOverlay", overlay)
+        script = (
+            "(function walk(item, depth) {"
+            "  if (!item || depth > 30) return 0;"
+            "  var count = 0;"
+            "  if (item.layer !== undefined && item.layer !== null) {"
+            "    item.layer.enabled = false;"
+            "    count += 1;"
+            "  }"
+            "  var kids = item.children || [];"
+            "  for (var i = 0; i < kids.length; i++) {"
+            "    count += walk(kids[i], depth + 1);"
+            "  }"
+            "  return count;"
+            "})(__prismProbeOverlay, 0)"
+        )
+        try:
+            expression = QQmlExpression(root, None, script)
+            value = expression.evaluate()
+            if expression.hasError():
+                self.report["skeleton_layers_error"] = "expression error"
+                return 0
+        except (RuntimeError, TypeError) as exc:
+            self.report["skeleton_layers_error"] = f"{type(exc).__name__}: {exc}"
+            return 0
+        if isinstance(value, tuple):
+            value = value[0]
+        try:
+            count = int(value)
+        except (TypeError, ValueError):
+            self.report["skeleton_layers_error"] = "non-numeric result"
+            return 0
+        self.report["skeleton_layers_disabled_by_qml"] = count
+        return count
 
     def _do_switch(self) -> None:
         if self.finished:
