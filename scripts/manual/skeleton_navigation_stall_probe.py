@@ -1183,6 +1183,9 @@ class _Run:
         report["skeleton_blocks_found"] = len(blocks)
         report["skeleton_subtree_size"] = len(subtree)
         changed = 0
+        layer_seen = 0
+        layer_type = None
+        layer_has_set = None
         for item in blocks:
             try:
                 if self.args.skeleton_loading_off and item.property("loading") is not None:
@@ -1201,13 +1204,22 @@ class _Run:
                     layer = item.property("layer")
                 except (RuntimeError, AttributeError, TypeError):
                     continue
-                if layer is None or not hasattr(layer, "setProperty"):
+                if layer is None:
+                    continue
+                layer_seen += 1
+                if layer_type is None:
+                    layer_type = type(layer).__name__
+                    layer_has_set = hasattr(layer, "setProperty")
+                if not hasattr(layer, "setProperty"):
                     continue
                 try:
                     if layer.setProperty("enabled", False):
                         changed += 1
                 except (RuntimeError, AttributeError, TypeError):
                     continue
+        report["skeleton_layers_seen"] = layer_seen
+        report["skeleton_layer_type"] = layer_type
+        report["skeleton_layer_has_set"] = layer_has_set
         report["skeleton_blocks_changed"] = changed
 
     def _reload_helper_synchronously(self) -> None:
