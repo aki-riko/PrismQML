@@ -488,6 +488,31 @@ def test_lazy_loading_helper_source_reuses_one_stage_timer():
     assert "_startPageRenderTimer(targetIdx)" in source
 
 
+def test_overlay_guard_samples_the_clock_on_every_tick():
+    """守卫必须每拍现读时钟，否则有主遮罩的预算永远无法到期。
+
+    A binding over ``Date.now()`` is evaluated once, when ``_visibleSince`` is
+    written, because ``Date.now()`` is not an observable dependency. The elapsed
+    value then stays frozen at 0, so ``_visibleElapsed >= _ownedBudget`` can never
+    become true while a target is still pending, and the overlay stays on screen
+    without any bound. The guard must sample the clock on each tick instead.
+    绑定 ``Date.now()`` 只在 ``_visibleSince`` 写入时求值一次，因为 ``Date.now()``
+    不是可观察依赖。此后 elapsed 恒为 0，目标仍待处理时
+    ``_visibleElapsed >= _ownedBudget`` 永远不成立，遮罩便无界停留。守卫必须每拍
+    现读时钟。
+    """
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "property real _visibleElapsed: 0" in source
+    # The frozen-binding form must not come back.
+    # 冻结式绑定形式不得回归。
+    assert "readonly property real _visibleElapsed" not in source
+    assert "_visibleElapsed = _visibleSince > 0 ? Date.now() - _visibleSince : 0" in source
+    # Sampling must live in the tick handler, not only in onRunningChanged.
+    # 采样必须位于每拍处理器内，而非只在 onRunningChanged 中。
+    triggered_block = source.split("onTriggered:", 1)[1].split("_overlayHasGoneStale", 1)[0]
+    assert "_visibleElapsed = " in triggered_block
+
+
 def test_activation_interval_reads_collapse_duration_from_transition():
     """激活间隔必须读实际过渡的收紧时长，而非全局 token。
 

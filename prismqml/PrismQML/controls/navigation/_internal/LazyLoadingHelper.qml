@@ -514,16 +514,27 @@ Item {
         repeat: true
         running: loadingOverlay.visible
         property real _visibleSince: 0
-        readonly property real _visibleElapsed:
-            _visibleSince > 0 ? Date.now() - _visibleSince : 0
+        // Sampled on every tick instead of bound over Date.now(). Date.now() is not
+        // an observable dependency, so a binding over it evaluates once when
+        // _visibleSince is written and then never grows again; the budget below
+        // would stay permanently unreachable while a target is still pending, which
+        // is exactly the unbounded wait this guard exists to bound.
+        // 每拍采样, 而非绑定 Date.now()。Date.now() 不是可观察依赖, 绑定只在
+        // _visibleSince 写入时求值一次, 此后不再增长; 目标仍待处理时下方预算将永远
+        // 无法到达, 而这正是本守卫要兜住的无界等待。
+        property real _visibleElapsed: 0
         // An ownerless overlay is released quickly; an owned one keeps three
         // seconds, which is well past collapse + activation + first render.
         // 无持有者的遮罩快速释放; 有持有者的保留三秒, 远超收紧 + 激活 + 首帧渲染。
         readonly property int _ownedBudget: 3000
 
-        onRunningChanged: _visibleSince = running ? Date.now() : 0
+        onRunningChanged: {
+            _visibleSince = running ? Date.now() : 0
+            _visibleElapsed = 0
+        }
         onTriggered: {
             if (!loadingOverlay.visible) return
+            _visibleElapsed = _visibleSince > 0 ? Date.now() - _visibleSince : 0
             if (!_overlayHasGoneStale()) return
             helper._trace(
                 "helper.overlay.lifecycle_guard",
