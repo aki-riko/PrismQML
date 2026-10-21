@@ -25,6 +25,30 @@ _DIAGNOSTIC_TAG = "Incubation"
 _CONNECTIONS_VME_CRASH_PLATFORM = "win32"
 _CONNECTIONS_VME_CRASH_QT_VERSIONS = frozenset(("6.11.1",))
 _LAZY_RUNTIME_EXPORTS = frozenset(("PrismIncubationController",))
+# Milliseconds of object creation granted per incubation tick.
+# Measured on the Gallery navigation page (the heaviest page, 12 nested
+# StackedWidgets) with a real visible D3D11 window:
+#   5ms  -> the page had not finished loading after 88.8s
+#   10ms -> 1.4~1.9s
+#   12ms -> 1.6s
+#   20ms -> 1.3s
+# A 5ms slice is too short to make real progress on the long queue that heavy
+# pages enqueue, so load time explodes far beyond the 2x the slice change alone
+# would explain. 10ms is the smallest value that finishes reliably, and it costs
+# nothing measurable: per-frame and main-thread gap statistics on lighter pages
+# match the 5ms baseline (chart page: 326~411ms max gap at 10ms vs 346~371ms at
+# 5ms), so the existing gaps are page-driven, not slice-driven.
+# 每个孵化拍授予的对象创建毫秒数。
+# 用真实可见 D3D11 窗口在 Gallery 导航页(最重页面, 12 个嵌套 StackedWidget)实测:
+#   5ms  -> 88.8 秒后仍未加载完
+#   10ms -> 1.4~1.9 秒
+#   12ms -> 1.6 秒
+#   20ms -> 1.3 秒
+# 5ms 切片太短, 对重页面入队的长队列几乎推不动, 因此耗时远超"切片翻倍"应有的 2 倍。
+# 10ms 是能稳定完成的最小值, 且没有可测出的代价: 轻页面的每帧与主线程间隔统计与
+# 5ms 基线一致(图表页 10ms 时最大间隔 326~411ms, 5ms 时 346~371ms), 说明那些间隔
+# 由页面本身造成, 与切片无关。
+DEFAULT_INCUBATION_BUDGET_MS = 10
 
 
 def asynchronous_page_loader_enabled(qt_version=None, platform_name=None):
@@ -39,14 +63,16 @@ def asynchronous_page_loader_enabled(qt_version=None, platform_name=None):
     )
 
 
-def install_incubation_controller(engine, budget_ms: int = 5):
+def install_incubation_controller(engine, budget_ms: int = None):
     """Explicitly load and install the sliced controller. 显式加载并安装分片控制器。"""
     from ._incubation_controller import install_incubation_controller as install
 
+    if budget_ms is None:
+        budget_ms = DEFAULT_INCUBATION_BUDGET_MS
     return install(engine, budget_ms=budget_ms)
 
 
-def install_default_incubation_controller(engine, budget_ms: int = 5):
+def install_default_incubation_controller(engine, budget_ms: int = None):
     """Install the default controller unless this Qt build is unsafe.
 
     当前 Qt 构建存在已知风险时保持同步回退，否则安装默认控制器。

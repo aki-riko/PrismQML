@@ -22,11 +22,13 @@ class PrismIncubationController(QQmlIncubationController):
     def __init__(
         self,
         owner,
-        budget_ms: int = 5,
+        budget_ms: int = None,
         active_interval: int = 16,
         idle_interval: int = 250,
     ):
         super().__init__()
+        if budget_ms is None:
+            budget_ms = facade.DEFAULT_INCUBATION_BUDGET_MS
         self._budget_ms = max(1, int(budget_ms))
         self._active_interval = max(1, int(active_interval))
         self._idle_interval = max(self._active_interval, int(idle_interval))
@@ -134,8 +136,10 @@ class PrismIncubationController(QQmlIncubationController):
         )
 
 
-def install_incubation_controller(engine, budget_ms: int = 5):
+def install_incubation_controller(engine, budget_ms: int = None):
     """Install or reuse the sliced incubation controller. 安装或复用分片孵化控制器。"""
+    if budget_ms is None:
+        budget_ms = facade.DEFAULT_INCUBATION_BUDGET_MS
     existing = engine.incubationController()
     if isinstance(existing, PrismIncubationController):
         _log_controller_reused(existing)
