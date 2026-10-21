@@ -10,6 +10,7 @@ import hashlib
 import os
 from pathlib import Path
 import sys
+import time
 
 import shiboken6
 from PySide6.QtCore import (
@@ -660,6 +661,64 @@ def test_deferred_reveal_survives_a_wait_indicator_that_exited_first(qapp):
         assert window.property("completedPrevious") == 0
         assert _wait_for(lambda: helper.property("pendingTargetIndex") == -1)
         assert _wait_for(lambda: overlay.property("visible") is False)
+    finally:
+        _dispose_scene(qapp, engine, component, window)
+
+
+def test_guard_giving_up_on_an_owned_switch_restores_the_previous_page(qapp):
+    """守卫放弃有主切换时, 必须恢复上一页, 不得留下空白内容区。
+
+    The collapse hides the previously displayed page, and the skeleton style has no
+    transition that would bring it back. If the guard then releases the overlay
+    while the target page never became ready, every loader ends up invisible and
+    the content area renders blank (measured on a real window: content pixel pure
+    white). Giving up must therefore restore the page it hid.
+    收紧动作会隐藏上一页, 而骨架样式没有会把它带回来的过渡。若守卫在目标页始终未就绪
+    的情况下释放遮罩, 所有 Loader 都会不可见, 内容区渲染为空白(真实窗口实测: 内容区
+    像素纯白)。因此放弃时必须把被它隐藏的那一页恢复回来。
+    """
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(DEFERRED_REVEAL_SCENE_SOURCE, SCENE_URL)
+    assert _wait_for(lambda: component.status() != QQmlComponent.Status.Loading)
+    assert component.status() == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    window = component.create(engine.rootContext())
+    assert isinstance(window, QQuickWindow), [
+        error.toString() for error in component.errors()
+    ]
+    helper = window.findChild(QQuickItem, "lazyHelper")
+    overlay = window.findChild(QQuickItem, "lazyLoadingOverlay")
+    first_page = window.findChild(QQuickItem, "firstPage")
+    assert helper is not None and overlay is not None and first_page is not None
+    try:
+        assert _wait_for(window.isExposed)
+        assert QMetaObject.invokeMethod(window, "beginSwitch")
+        assert _wait_for(lambda: helper.property("pendingTargetIndex") == 1)
+        assert _wait_for(lambda: overlay.property("visible") is True)
+
+        # The collapse hid the page that was on screen, and the target is still
+        # loading, so nothing would restore it without the fix.
+        # 收紧已把屏幕上的那一页隐藏, 而目标仍在加载, 没有修复就没人恢复它。
+        assert _wait_for(lambda: first_page.property("visible") is False)
+        assert window.property("targetLoaded") is False
+
+        # Make the guard see an elapsed budget without waiting three real seconds.
+        # 让守卫立刻看到预算已耗尽, 而不必真等三秒。
+        guard = _overlay_guard(helper)
+        assert guard is not None
+        guard.setProperty("_visibleSince", int(time.time() * 1000) - 4000)
+
+        assert _wait_for(lambda: overlay.property("visible") is False, timeout_ms=4000)
+        assert first_page.property("visible") is True, (
+            "guard released the overlay without restoring the hidden page"
+        )
+        # The switch is still pending: this is the give-up path, not a completion.
+        # 切换仍在待处理: 这是放弃路径, 不是完成路径。
+        assert window.property("completedTarget") == -1
     finally:
         _dispose_scene(qapp, engine, component, window)
 

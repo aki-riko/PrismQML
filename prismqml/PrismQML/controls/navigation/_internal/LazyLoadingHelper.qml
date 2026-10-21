@@ -563,6 +563,17 @@ Item {
                 "helper.overlay.lifecycle_guard",
                 pendingTargetIndex,
                 "visibleFor=" + Math.round(_visibleElapsed))
+            // Giving up on a switch that still owns a target must not leave the
+            // content area empty. The collapse already hid the previously displayed
+            // page, and the skeleton style has no transition that would restore it,
+            // so without this the overlay's exit exposes a blank area (measured on
+            // a real window: every loader invisible, content pixel pure white).
+            // A late page-ready still corrects this through loadingComplete.
+            // 放弃一次仍持有目标的切换时不得留下空白内容区。收紧动作已经把上一页隐藏,
+            // 而骨架样式没有会恢复它的过渡, 因此缺了这一步, 遮罩退场后暴露的就是空白
+            // (真实窗口实测: 所有 Loader 均不可见, 内容区像素纯白)。若页面稍后就绪,
+            // loadingComplete 仍会重跑可见性并纠正。
+            if (pendingTargetIndex >= 0) helper._restoreVisiblePage()
             helper._releaseOverlayIfVisible()
         }
     }
