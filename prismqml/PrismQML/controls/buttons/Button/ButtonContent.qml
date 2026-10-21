@@ -68,6 +68,25 @@ Item {
     // Qt Row 所遵循的规则。零宽或隐藏的视觉因此不会把相邻项挤开。
     readonly property bool _showsLoadingRing: loading
     readonly property bool _showsIconVisual: !loading && icon !== ""
+    // The vertical presentation stacks one leading visual above the text, so it
+    // keeps exactly one: loading ring, else feature ring, else icon. The inline
+    // presentation keeps placing every occupied slot side by side.
+    // 纵向展示把前导视觉堆在文字上方, 因此只保留一个: 加载环 > 功能环 > 图标。
+    // 横向展示继续把每个占位槽位并排排布。
+    readonly property bool _verticalLeadingLoading: loading
+    readonly property bool _verticalLeadingRing: !loading && _hasFeatureRing
+    readonly property bool _verticalLeadingIcon: !loading && !_hasFeatureRing
+        && _showsIconVisual
+    readonly property bool _verticalHasLeading: _verticalLeadingLoading
+        || _verticalLeadingRing || _verticalLeadingIcon
+    // Effective visibility per axis: vertical drops the losing leading visuals.
+    // 各轴的生效可见性: 纵向会隐藏落选的前导视觉。
+    readonly property bool _loadingVisualVisible: verticalLayout
+        ? _verticalLeadingLoading : _showsLoadingRing
+    readonly property bool _featureRingVisible: verticalLayout
+        ? _verticalLeadingRing : _hasFeatureRing
+    readonly property bool _iconVisible: verticalLayout
+        ? _verticalLeadingIcon : _showsIconVisual
     readonly property bool _textVisible: _displayText !== ""
     readonly property real _loadingSlotWidth: _showsLoadingRing ? iconSize : 0
     readonly property real _featureSlotWidth: _hasFeatureRing ? iconSize : 0
@@ -108,7 +127,8 @@ Item {
         ? Math.max(iconSize, contentText.implicitWidth)
         : _placedSlotWidth + Math.max(_placedSlotCount - 1, 0) * _slotGap
     implicitHeight: verticalLayout
-        ? (hasIcon ? iconSize + Enums.spacing.xxs : 0) + contentText.implicitHeight
+        ? (_verticalHasLeading ? iconSize + Enums.spacing.xxs : 0)
+          + contentText.implicitHeight
         : Math.max(_loadingSlotWidth + _featureSlotWidth + _iconSlotWidth > 0
                    ? iconSize : 0,
                    _textSlotWidth > 0 ? contentText.implicitHeight : 0)
@@ -117,7 +137,7 @@ Item {
     Loader {
         id: loadingRingLoader
 
-        active: content.loading
+        active: content._loadingVisualVisible
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
@@ -131,7 +151,7 @@ Item {
     Loader {
         id: featureRingLoader
 
-        active: content._hasFeatureRing
+        active: content._featureRingVisible
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
@@ -146,7 +166,7 @@ Item {
         id: iconLoader
 
         objectName: "buttonContentVisual"
-        active: content._showsIconVisual
+        active: content._iconVisible
         width: active ? content.iconSize : 0
         height: active ? content.iconSize : 0
         x: content.verticalLayout
@@ -165,7 +185,8 @@ Item {
             ? (content.width - implicitWidth) / 2
             : content._textSlotX
         y: content.verticalLayout
-            ? (content.hasIcon ? iconLoader.height + Enums.spacing.xxs : 0)
+            ? (content._verticalHasLeading
+               ? content.iconSize + Enums.spacing.xxs : 0)
             : (content.height - implicitHeight) / 2
         text: content._displayText
         font.family: content.skinContext.fontFamily
