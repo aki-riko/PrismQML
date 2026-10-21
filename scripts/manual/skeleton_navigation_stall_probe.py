@@ -1142,7 +1142,9 @@ class _Run:
             return found
 
         blocks = []
+        subtree = []
         for item in walk(overlay):
+            subtree.append(item)
             try:
                 name = item.objectName()
             except RuntimeError:
@@ -1152,21 +1154,33 @@ class _Run:
 
         report = self.report
         report["skeleton_blocks_found"] = len(blocks)
+        report["skeleton_subtree_size"] = len(subtree)
         changed = 0
         for item in blocks:
             try:
                 if self.args.skeleton_loading_off and item.property("loading") is not None:
                     if item.setProperty("loading", False):
                         changed += 1
-                if self.args.skeleton_layers_off:
-                    # `layer` is a grouped property: reach its own `enabled`.
-                    # `layer` 是分组属性: 需要进入它自身的 `enabled`。
-                    layer = item.property("layer")
-                    if layer is not None and hasattr(layer, "setProperty"):
-                        if layer.setProperty("enabled", False):
-                            changed += 1
             except (RuntimeError, AttributeError, TypeError):
                 continue
+        if self.args.skeleton_layers_off:
+            # The layer lives on unnamed inner items (content container and mask
+            # shape), not on the named Skeleton block itself, so every descendant
+            # must be visited or nothing gets disabled.
+            # layer 挂在未命名的内部项(内容容器与遮罩形状)上, 不在命名的 Skeleton
+            # 块本身, 因此必须遍历全部后代, 否则一个都关不掉。
+            for item in subtree:
+                try:
+                    layer = item.property("layer")
+                except (RuntimeError, AttributeError, TypeError):
+                    continue
+                if layer is None or not hasattr(layer, "setProperty"):
+                    continue
+                try:
+                    if layer.setProperty("enabled", False):
+                        changed += 1
+                except (RuntimeError, AttributeError, TypeError):
+                    continue
         report["skeleton_blocks_changed"] = changed
 
     def _do_switch(self) -> None:
