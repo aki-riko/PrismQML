@@ -156,11 +156,28 @@ QtObject {
     })
 }
 ''')
-loop = QEventLoop()
-QTimer.singleShot(100, loop.quit)
-loop.exec()
-roots = app.engine.rootObjects()
-translated = roots[-1].property("translated") if roots else None
+
+# Poll until the translation resolves instead of waiting a fixed 100 ms. A fixed
+# sleep is a race: the callLater callback plus Translator.setLanguage can take
+# longer than the budget on a loaded CI machine, and the assertion then reads an
+# unresolved value and fails for reasons unrelated to the code under test.
+# 轮询到翻译就绪, 而不是死等固定 100ms。固定等待是竞态: 在负载高的 CI 机器上
+# callLater 回调加 Translator.setLanguage 可能超过该预算, 断言就会读到未解析的值,
+# 因与本测试目标无关的原因失败。
+deadline = 5000.0
+elapsed = 0.0
+step = 10.0
+translated = None
+while elapsed < deadline:
+    loop = QEventLoop()
+    QTimer.singleShot(int(step), loop.quit)
+    loop.exec()
+    elapsed += step
+    roots = app.engine.rootObjects()
+    candidate = roots[-1].property("translated") if roots else None
+    if candidate:
+        translated = candidate
+        break
 App._reset()
 raise SystemExit(0 if translated == "OK" else 3)
 """
