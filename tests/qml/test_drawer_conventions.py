@@ -467,13 +467,21 @@ def test_drawer_outside_mode_tracks_host_in_four_directions(drawer_scene):
 def test_outside_drawer_shadow_silhouette_matches_the_panel(drawer_scene):
     """自绘阴影的轮廓必须与面板逐边重合, 且不得靠 spread 外扩。
 
-    Measured on the real effect at blur 40 / 0.50 black on white: a panel-sized silhouette
-    darkens the panel edge by 21.6% (the DWM calibration target) and fades out within ~40px,
-    while a silhouette grown by `blur` fills the first 40px beside the panel with the full
-    49.8% and doubles the band width — the heavy edge users reported.
-    真实效果实测(blur 40, 0.50 黑, 白底): 轮廓等于面板时面板边缘暗化 21.6% (DWM 标定目标)
-    并在约 40px 内衰减完; 朝外各扩 `blur` 会让紧邻面板的 40px 全是满浓度 49.8%, 像带宽度翻倍
-    —— 即用户报告的浓重边缘。这里读控件真实提交的几何, 而不只是源码表达式。
+    Calibrated against the real DWM window shadow measured on a presenting desktop over a
+    white backdrop (screen grab, per-physical-pixel luminance, median of three samples per
+    edge, repeated on two window sizes): the band is asymmetric because DWM offsets it
+    downwards — the side edges peak at ~11.4% darkening and the bottom edge at ~21.6%. An
+    outside drawer shows exactly one band on the side it is anchored to, so ~11.4% is the
+    parity target. A panel-sized silhouette at 0.27 black lands the panel edge there
+    (measured 29/255 = 11.4% on the real effect); growing the silhouette by `blur` instead
+    filled the first 40px with the full 49.8% and doubled the band width — the heavy edge
+    users reported.
+    标定依据是真实上屏桌面上量得的 DWM 窗口阴影 (白背板, 抓屏后逐物理像素取亮度, 每边三个
+    采样点取中位数, 两种窗口尺寸各复验一次): DWM 阴影向下偏移, 因此像带不对称 —— 侧边峰值
+    约 11.4% 暗化, 下边约 21.6%。外侧抽屉只在所贴那一侧露出一条像带, 因此以约 11.4% 为对齐
+    目标。轮廓取 0.27 黑时真实效果测得面板边缘落在该值 (29/255 = 11.4%); 若把轮廓朝外各扩
+    `blur`, 紧邻面板的 40px 会变成满浓度 49.8% 且像带宽度翻倍 —— 即用户报告的浓重边缘。
+    这里读控件真实提交的几何, 而不只是源码表达式。
     """
     window, drawer, _content_item, _panel, warnings, windows_before = drawer_scene
     drawer.setProperty("mode", window.property("outsideMode"))

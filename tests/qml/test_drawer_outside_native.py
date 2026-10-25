@@ -5,7 +5,9 @@
 """Outside Drawer native-window contracts. 外侧抽屉原生窗口合同。"""
 
 from pathlib import Path, PurePosixPath
+import re
 
+import pytest
 import shiboken6
 from PySide6.QtCore import QMetaObject
 from PySide6.QtQuick import QQuickItem
@@ -38,6 +40,9 @@ OUTSIDE_WINDOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideWi
 SURFACE_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerSurface.qml"
 ANIMATION_HELPER_SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
+)
+SHADOW_METRICS_SOURCE_PATH = (
+    ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsShadow.qml"
 )
 
 
@@ -192,6 +197,67 @@ def test_outside_drawer_shadow_silhouette_never_grows_past_the_panel():
     blur = 24
     spread = blur
     assert spread >= fade_per_blur * blur
+
+
+def test_outside_drawer_side_band_matches_the_dwm_side_edge():
+    """外抽屉的侧边像带不得浓于 DWM 原生窗口阴影的侧边量级。
+
+    The real DWM window shadow was measured on a presenting desktop over a white backdrop
+    (screen grab, per-physical-pixel luminance, median of three samples per edge, repeated
+    on two window sizes). It is asymmetric because DWM offsets the shadow downwards:
+    the left/right (side) edges peak at ~11.4% darkening (255 -> 226) while the bottom edge
+    peaks at ~21.6% (255 -> 200). An outside drawer always shows exactly one outward band,
+    on the side it is anchored to, so the side figure is the parity target. The previous
+    token reused the DWM *bottom* figure on a *side* edge — the heavy band users reported.
+
+    外抽屉的侧边像带不得浓于 DWM 原生窗口阴影的侧边量级。真实 DWM 窗口阴影在白背板上量得
+    (抓屏后逐物理像素取亮度, 每边三个采样点取中位数, 两种窗口尺寸各复验一次): DWM 阴影向下
+    偏移导致像带不对称 —— 左/右边(侧边)峰值约 11.4% 暗化 (255 -> 226), 下边峰值约 21.6%
+    (255 -> 200)。外抽屉永远只在所贴那一侧露出一条外像带, 所以侧边数值才是对齐目标; 旧 token
+    把 DWM 的「下边」浓度用在了「侧边」上 —— 即用户报告的浓重像带。
+    """
+    shadow_source = SHADOW_METRICS_SOURCE_PATH.read_text(encoding="utf-8")
+
+    # Pull the token's colour alpha straight out of the metrics source.
+    # 直接从度量源码里取出该 token 的颜色 alpha。
+    match = re.search(
+        r"windowOutside:\s*QtObject\s*\{(?P<body>.*?)\n    \}",
+        shadow_source,
+        re.DOTALL,
+    )
+    assert match is not None, "windowOutside token not found"
+    body = match.group("body")
+    alpha_match = re.search(
+        r"color:\s*shadow\.isTicket[^\n]*Qt\.rgba\(0,\s*0,\s*0,\s*"
+        r"(?P<alpha>[0-9.]+)\s*\*\s*shadow\._alphaMultiplier\)",
+        body,
+    )
+    assert alpha_match is not None, body
+    alpha = float(alpha_match.group("alpha"))
+
+    # Measured on the real RectangularShadow effect: the panel edge darkening is ~42% of the
+    # token alpha (0.50 -> 21.2% / 54 of 255), so the alpha decides the peak band strength.
+    # 真实 RectangularShadow 效果实测: 面板边缘暗化约为 token alpha 的 42% (0.50 -> 21.2%,
+    # 即 54/255), 因此 alpha 直接决定像带峰值浓度。
+    darkening_ratio = 0.42
+    side_peak = alpha * darkening_ratio * 100.0
+
+    # DWM side-edge measurement 255 -> 226, i.e. 11.37% darkening, with headroom for the
+    # effect's own rounding; the DWM bottom figure (21.6%) must not be reachable from here.
+    # DWM 侧边实测 255 -> 226 即 11.37% 暗化, 留出效果本身取整的余量; 不得再摸到 DWM 下边的
+    # 21.6% 量级。
+    dwm_side_peak = 11.4
+    dwm_bottom_peak = 21.6
+    assert side_peak == pytest.approx(dwm_side_peak, abs=1.5), (
+        f"outside drawer side band {side_peak:.2f}% is not at the DWM side-edge parity "
+        f"target {dwm_side_peak}%"
+    )
+    assert side_peak < dwm_bottom_peak * 0.75
+    # Blur must stay the width control and keep covering the measured fade.
+    # blur 必须继续作为宽度控制, 并覆盖实测衰减跨度。
+    blur_match = re.search(r"blur:\s*shadow\.isTicket\s*\?\s*0\s*:\s*(?P<blur>[0-9.]+)", body)
+    assert blur_match is not None, body
+    assert float(blur_match.group("blur")) == 24
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

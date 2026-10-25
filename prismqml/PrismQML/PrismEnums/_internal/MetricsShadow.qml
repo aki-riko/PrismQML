@@ -88,18 +88,32 @@ QtObject {
     }
 
     // Window outward shadow: replaces the native DWM shadow on an outside drawer HWND.
-    // Measured on the real effect with 0.50 black: the panel edge lands at ~21% darkening for
-    // every blur, and the fade settles at about 0.8x the blur (40 -> 32px, 24 -> 19px,
-    // 16 -> 13px). Blur therefore decides how wide the shadow reads and the follower reserve
-    // has to cover that fade, or the band is cut off on the HWND edge. Offset stays 0 because
-    // a window shadow is centred, unlike the popup elevation levels.
-    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影。真实效果实测(0.50 黑): 面板边缘在
-    // 任何 blur 下都落在约 21% 暗化 —— 即 DWM 量级 —— 衰减跨度约为 blur 的 0.8 倍
-    // (40 -> 32px, 24 -> 19px, 16 -> 13px)。因此 blur 决定阴影的观感宽度, 而附属窗口留白
-    // 必须覆盖该衰减, 否则像带会被 HWND 边界切断。偏移保持 0: 窗口阴影居中, 与弹层不同。
+    // Calibrated against the real DWM window shadow measured on a presenting desktop over a
+    // white backdrop (screen grab, per-physical-pixel luminance, median of three samples per
+    // edge, repeated on two window sizes): DWM's band is asymmetric because its shadow is
+    // offset downwards — the left/right (side) edges peak at ~11.4% darkening (255 -> 226)
+    // and fade out over ~33 logical px, the top edge at ~5%, and the bottom edge at ~21.6%
+    // (255 -> 200) over ~40 logical px. An outside drawer shows exactly one outward band on
+    // the side it is anchored to, so the side measurement is the parity target: a 0.50 black
+    // silhouette put the panel edge at 21.2% (54/255 measured on the real effect) — the DWM
+    // *bottom* figure on a *side* edge, which is the heavy band users reported. The pushout
+    // per unit colour alpha measured on the real effect is ~42% (0.50 -> 21.2%), so 0.27
+    // lands the panel edge at ~11.4%, equal to the DWM side band; blur stays 24 because it
+    // only decides how wide the band reads and the follower reserve has to cover that fade.
+    // Offset stays 0 because a window shadow is centred, unlike the popup elevation levels.
+    // 窗口外阴影: 用于替代外侧抽屉 HWND 的原生 DWM 阴影。标定依据是真实上屏桌面上量得的
+    // DWM 窗口阴影 (白背板, 抓屏后逐物理像素取亮度, 每边三个采样点取中位数, 两种窗口尺寸
+    // 各复验一次): DWM 阴影向下偏移, 因此并不对称 —— 左/右边(侧边)峰值约 11.4% 暗化
+    // (255 -> 226), 约 33 逻辑像素内衰减完; 上边约 5%; 下边约 21.6% (255 -> 200), 衰减
+    // 跨度约 40 逻辑像素。外侧抽屉只在它所贴的那一侧露出一条外阴影, 因此以"侧边"实测值作为
+    // 对齐目标: 轮廓取 0.50 黑时真实效果测得面板边缘 21.2% (54/255) —— 等于把 DWM 的
+    // *下边* 浓度用在 *侧边* 上, 即用户报告的浓重像带。实测每单位颜色 alpha 的推高量约
+    // 42% (0.50 -> 21.2%), 故 0.27 把面板边缘落在约 11.4%, 与 DWM 侧边一致; blur 仍保持
+    // 24, 因为它只决定像带读起来的宽度, 而附属窗口留白必须覆盖该衰减。偏移保持 0:
+    // 窗口阴影居中, 与弹层高度等级不同。
     readonly property QtObject windowOutside: QtObject {
         readonly property real offset: 0
         readonly property real blur: shadow.isTicket ? 0 : 24
-        readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.50 * shadow._alphaMultiplier)
+        readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.27 * shadow._alphaMultiplier)
     }
 }
