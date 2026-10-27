@@ -35,7 +35,7 @@ Fluent.Button {
 
 An external menu must expose `isOpen`, `prewarm()`, `openAtControl(control)`, and `close()`; an explicit warning is emitted for an invalid contract.
 
-## style (7)
+## style (8)
 
 | Value | Description |
 |-------|-------------|
@@ -46,6 +46,31 @@ An external menu must expose `isOpen`, `prewarm()`, `openAtControl(control)`, an
 | `style_text` | Text only |
 | `style_hyperlink` | Hyperlink |
 | `style_gradient` | Gradient |
+| `style_glow` | Bloom glow (accent face plus a soft breathing halo) |
+
+### Glow button `style_glow`
+
+A glow button keeps the `style_primary` face, ink, and press treatment, and only
+adds a soft halo around it:
+
+```qml
+Fluent.Button {
+    text: "Start"
+    style: Fluent.Enums.button.style_glow
+}
+```
+
+- The halo is stacked translucent rounded rectangles, **not a shader blur**: on a
+  real D3D11 window both `RectangularShadow` and `MultiEffect` blur drew nothing
+  behind this surface, while the layered rectangles are visible (`StepperHalo`
+  already uses the same technique).
+- The halo is lazy: only `style_glow` instantiates it, so every other style keeps
+  the object count and pixels it had before.
+- Disabled/loading states keep a faint static halo, hover brightens it and press
+  pulls it in; the breathing loop stops during a countdown and under reduced
+  motion.
+- Ticket paper has zero elevation by design, so the bloom collapses to a plain
+  accent face there.
 
 ## shape
 

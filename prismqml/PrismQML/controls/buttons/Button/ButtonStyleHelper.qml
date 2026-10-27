@@ -53,6 +53,7 @@ QtObject {
         
         switch (style) {
             case Enums.button.style_primary:
+            case Enums.button.style_glow:
                 if (!effectiveEnabled) return Enums.stateColor.primaryDisabled
                 if (pressed) return Qt.darker(Enums.accentColor, 1.1)
                 if (hovered) return Qt.lighter(Enums.accentColor, 1.1)
@@ -114,6 +115,7 @@ QtObject {
             case Enums.button.style_hyperlink:
             case Enums.button.style_primary:
             case Enums.button.style_gradient:
+            case Enums.button.style_glow:
                 return Enums.transparent
             case Enums.button.style_filled:
                 if (!effectiveEnabled) return Enums.stateColor.divider
@@ -144,6 +146,7 @@ QtObject {
             case Enums.button.style_primary:
             case Enums.button.style_gradient:
             case Enums.button.style_filled:
+            case Enums.button.style_glow:
                 if (!effectiveEnabled) return Enums.textColor.tertiary
                 // Filled surfaces carry any semantic or accent colour, so keep the
                 // preferred ink only while it stays legible on the resolved fill.
@@ -183,7 +186,8 @@ QtObject {
     function _neoIsAccentStyle() {
         return style === Enums.button.style_primary ||
                style === Enums.button.style_filled ||
-               style === Enums.button.style_gradient
+               style === Enums.button.style_gradient ||
+               style === Enums.button.style_glow
     }
     function _neoBorderColor() {
         // Neo uses a solid black border for non-transparent styles; transparent, text, and hyperlink styles have none. neo 对非透明样式使用纯黑边框；透明、文本和超链接样式不使用边框。

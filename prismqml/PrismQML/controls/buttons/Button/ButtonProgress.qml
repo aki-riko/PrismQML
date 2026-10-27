@@ -25,7 +25,8 @@ Item {
     // Primary/Filled/Gradient uses foreground color (white) Primary/Filled/Gradient使用前景色（白色）
     readonly property bool _useForegroundColor: style === skinContext.button.style_primary ||
                                                 style === skinContext.button.style_filled ||
-                                                style === skinContext.button.style_gradient
+                                                style === skinContext.button.style_gradient ||
+                                                style === skinContext.button.style_glow
     readonly property color _progressColor: _useForegroundColor ? skinContext.accentForeground : skinContext.accentColor
     readonly property color _trackColor: _useForegroundColor ? skinContext.stateColor.onAccentOverlay : skinContext.stateColor.progressTrack
     

@@ -35,7 +35,7 @@ Fluent.Button {
 
 外部菜单需要提供 `isOpen`、`prewarm()`、`openAtControl(control)` 和 `close()`；不满足契约时会输出明确警告。
 
-## 样式 style（7 种）
+## 样式 style（8 种）
 
 | 值 | 说明 |
 |----|------|
@@ -46,6 +46,23 @@ Fluent.Button {
 | `style_text` | 纯文字 |
 | `style_hyperlink` | 超链接 |
 | `style_gradient` | 渐变 |
+| `style_glow` | 泛光（主色面 + 柔和外圈光晕，带呼吸） |
+
+### 泛光按钮 `style_glow`
+
+泛光沿用 `style_primary` 的主色面、墨色与按压处理，只在外圈额外绘制一层柔和光晕：
+
+```qml
+Fluent.Button {
+    text: "开始"
+    style: Fluent.Enums.button.style_glow
+}
+```
+
+- 光晕由多层半透明圆角矩形叠加而成，**不使用着色器模糊**：真实 D3D11 窗口实测显示，该表面上的 `RectangularShadow` 与 `MultiEffect` 模糊均无绘制，而分层矩形可见（`StepperHalo` 已采用同一技术）。
+- 泛光惰性创建：只有 `style_glow` 会实例化光晕层，其余样式保持原有对象数与像素。
+- 禁用/加载态保留微弱静态泛光，悬停加亮、按压收敛；倒计时与「减少动态效果」开启时停止呼吸循环。
+- 票据皮肤按设计零悬浮，泛光在那里收敛为纯主色面。
 
 ## 形状 shape
 

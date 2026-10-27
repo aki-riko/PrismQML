@@ -44,6 +44,7 @@ Item {
     readonly property bool _useForegroundColor: style === skinContext.button.style_primary
         || style === skinContext.button.style_filled
         || style === skinContext.button.style_gradient
+        || style === skinContext.button.style_glow
     readonly property color _ringColor: _useForegroundColor
         ? skinContext.accentForeground : skinContext.accentColor
     readonly property color _ringBorderColor: _useForegroundColor

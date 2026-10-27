@@ -102,6 +102,8 @@ Widget {
         control.enabled && !control.loading && !control._countdownActive
     readonly property bool _styleToggleChecked:
         feature === _skin.button.feature_toggle && control.checked
+    // Bloom glow: primary face plus the halo painted behind it. 泛光: primary 面 + 光晕。
+    readonly property bool _isGlowStyle: style === _skin.button.style_glow
     readonly property var styleHelper: ButtonStyle.snapshot(
         style, level, _styleEffectiveEnabled, _touchActive, pressed,
         _styleToggleChecked, _skin.isNeobrutalism, _skin.isVintageTicket,
@@ -294,6 +296,8 @@ Widget {
         _targetBgColor = _styleBgColor
         _targetBorderColor = _styleBorderColor
         _colorAnimationsReady = true
+        // Reuse this hook for the on-demand halo so no button gains an extra object.
+        surface._syncGlowLayer()
     }
 
     onPressedChanged: {

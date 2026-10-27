@@ -81,6 +81,7 @@ Item {
                     ComponentCard { label: "style_filled"; Button { style: Fluent.Enums.button.style_filled; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
                     ComponentCard { label: "style_text"; Button { style: Fluent.Enums.button.style_text; level: 1; text: Fluent.Translator.tr("gallery_dd81861811e57bf7", Fluent.Translator._v) } }
                     ComponentCard { label: "style_hyperlink"; Button { style: Fluent.Enums.button.style_hyperlink; text: Fluent.Translator.tr("gallery_4a63f752884096b5", Fluent.Translator._v) } }
+                    ComponentCard { label: "style_glow"; Button { style: Fluent.Enums.button.style_glow; text: Fluent.Translator.tr("gallery_a9cdbb0c43394fc0", Fluent.Translator._v) } }
                 }
             }
             
@@ -251,6 +252,7 @@ Item {
                     ComponentCard { label: "primary+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_5ccd91f4181db651", Fluent.Translator._v) } }
                     ComponentCard { label: "transparent+pill"; Button { style: Fluent.Enums.button.style_transparent; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_9dddd9f908b2b956", Fluent.Translator._v) } }
                     ComponentCard { label: "filled+pill"; Button { style: Fluent.Enums.button.style_filled; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+pill"; Button { style: Fluent.Enums.button.style_glow; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_a9cdbb0c43394fc0", Fluent.Translator._v) } }
                     ComponentCard { label: "text+pill"; Button { style: Fluent.Enums.button.style_text; shape: Fluent.Enums.button.shape_pill; level: 1; text: Fluent.Translator.tr("gallery_dd81861811e57bf7", Fluent.Translator._v) } }
                     ComponentCard { label: "hyperlink+pill"; Button { style: Fluent.Enums.button.style_hyperlink; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_4a63f752884096b5", Fluent.Translator._v) } }
                 }

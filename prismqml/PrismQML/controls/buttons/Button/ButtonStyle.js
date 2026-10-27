@@ -38,6 +38,7 @@ function backgroundColor(style, level, effectiveEnabled, hovered, pressed,
 
     switch (style) {
     case button.style_primary:
+    case button.style_glow:
         if (!effectiveEnabled) return stateColor.primaryDisabled
         if (pressed) return Qt.darker(accentColor, 1.1)
         if (hovered) return Qt.lighter(accentColor, 1.1)
@@ -112,6 +113,7 @@ function borderColor(style, level, effectiveEnabled, isToggleChecked,
     case button.style_hyperlink:
     case button.style_primary:
     case button.style_gradient:
+    case button.style_glow:
         return transparent
     case button.style_filled:
         if (!effectiveEnabled) return stateColor.divider
@@ -125,7 +127,8 @@ function borderColor(style, level, effectiveEnabled, isToggleChecked,
 function _isAccentStyle(style, button) {
     return style === button.style_primary ||
            style === button.style_filled ||
-           style === button.style_gradient
+           style === button.style_gradient ||
+           style === button.style_glow
 }
 
 function _neoTextColor(style, effectiveEnabled, button, opacityLevel, neo) {
@@ -163,6 +166,7 @@ function textColor(style, level, effectiveEnabled, hovered, pressed,
     case button.style_primary:
     case button.style_gradient:
     case button.style_filled:
+    case button.style_glow:
         if (!effectiveEnabled) return textColorTokens.tertiary
         // A filled surface can carry any semantic or accent colour, so keep the
         // preferred ink only while it stays legible and otherwise fall back to the

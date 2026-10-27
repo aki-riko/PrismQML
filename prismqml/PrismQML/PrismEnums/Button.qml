@@ -18,6 +18,7 @@ QtObject {
     readonly property int style_text: 4
     readonly property int style_hyperlink: 5
     readonly property int style_gradient: 6
+    readonly property int style_glow: 7
     
     // Shapes 外观形状
     readonly property int shape_default: 0
@@ -50,6 +51,41 @@ QtObject {
     
     // Color factors 颜色系数
     readonly property real hoverLighten: 1.3        // Hover state lighten factor 悬浮状态变亮系数
+
+    // Bloom glow tokens 泛光令牌
+    // A glow button keeps the accent fill of style_primary and rings it with a soft
+    // bloom. The bloom is stacked translucent rounded rectangles, not a shader
+    // blur: on a real D3D11 window both RectangularShadow and MultiEffect blur drew
+    // nothing for this surface, while the layered discs are visible. StepperHalo
+    // already uses the same technique.
+    // 泛光按钮沿用 style_primary 的主色填充，并在外圈加一层柔和泛光。泛光由多层
+    // 半透明圆角矩形叠加，而不是着色器模糊：真实 D3D11 窗口上该表面上的
+    // RectangularShadow 与 MultiEffect 模糊均无绘制，而分层圆盘可见。
+    // StepperHalo 已采用同一技术。
+    readonly property int glowLayerCount: 12        // Stacked halo discs 叠加光晕层数
+    // Ticket paper has zero elevation by design, so the bloom collapses there and
+    // the style degrades to its accent face. 票据纸面按设计零悬浮, 因此泛光在票据
+    // 皮肤下收敛为纯主色面。
+    readonly property real glowSpread: isTicket ? 0 : 20  // Outermost growth beyond the face 超出按钮面的最外层外扩量
+    // Calibrated on a real D3D11 window by measuring the painted horizontal falloff
+    // of five candidate parameter sets (peak contrast, maximum per-pixel step and
+    // step mean): this set spread the bloom widest (20 px) with the smallest mean
+    // step (3.4 levels), so the banding StepperHalo avoided does not reappear here.
+    // 在真实 D3D11 窗口上量测五组候选参数的实际横向衰减(峰值对比度、逐像素最大步进
+    // 与平均步进): 该组外扩最宽(20 像素)且平均步进最小(3.4 级), 因此 StepperHalo
+    // 曾规避的可见色带不会在这里复现。
+    readonly property real glowLayerOpacity: isTicket ? 0 : 0.05  // Single disc opacity at rest 单层圆盘静息不透明度
+    readonly property real glowLayerFalloff: 0.08   // Per-layer opacity decay outwards 由内向外逐层不透明度衰减
+    readonly property real glowPulseMin: 0.72       // Breathing floor 呼吸下限
+    readonly property real glowPulseMax: 1.0        // Breathing ceiling 呼吸上限
+    readonly property int glowBreatheDuration: 1700 // Half-cycle duration 呼吸半程时长
+    readonly property real glowHoverStrength: 1.3   // Hover multiplier 悬浮强度倍数
+    readonly property real glowPressedStrength: 0.85 // Press multiplier 按压强度倍数
+    // A disabled or loading face keeps a faint static bloom instead of dropping to
+    // nothing, so state changes read as the light dimming rather than the halo
+    // popping in and out. 禁用或加载中的按钮面保留微弱静态泛光而不是完全消失, 使状态
+    // 切换读作"灯光变暗"而非光晕突兀闪现。
+    readonly property real glowDisabledStrength: 0.3 // Disabled/loading multiplier 禁用与加载强度倍数
 
     // Hyperlink visited state 超链接已访问态
     // Only consumed while a hyperlink button is marked visited; the unvisited

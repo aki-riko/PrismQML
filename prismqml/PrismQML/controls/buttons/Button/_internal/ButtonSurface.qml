@@ -28,11 +28,57 @@ Item {
         neoShadowLoader.item ? neoShadowLoader.item.animatedPressShift : 0
     readonly property var pressTransform:
         neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
+    // A halo is only meaningful for the glow style. The layer is created on demand
+    // rather than declared here, because every declaration costs resident objects on
+    // *every* button: a Loader adds one, and an inline Component block adds a
+    // QQmlComponent plus its attached object. That would change the measured object
+    // counts of components that embed buttons (Toast, InfoBar, menus).
+    // 只有泛光样式需要光晕。该层按需创建而不是在此声明: 任何声明都会给每个按钮增加
+    // 常驻对象(Loader 加一个, 内联 Component 块还会再加 QQmlComponent 及其 attached
+    // 对象), 从而改变内嵌按钮组件(Toast、InfoBar、菜单)的实测对象数。
+    readonly property bool _needsGlow: buttonControl._isGlowStyle
+                                       && !buttonControl.flat
 
+    // ==================== Internal Props 内部属性 ====================
+    property Item _glowLayer: null
+
+    // ==================== Internal Methods 内部方法 ====================
+    // Called by ButtonCore from its existing completion/state hooks: the surface
+    // must not declare its own Component.onCompleted, because that attaches one
+    // extra object to every button in the library.
+    // 由 ButtonCore 通过它已有的完成/状态钩子调用: 表面不得声明自己的
+    // Component.onCompleted, 否则会给库内每个按钮附加一个额外对象。
+    function _syncGlowLayer() {
+        if (_needsGlow) {
+            if (_glowLayer !== null) return
+            var component = Qt.createComponent("ButtonGlow.qml")
+            if (!component || component.status !== Component.Ready) {
+                // A failed component is a build-time defect; report it instead of
+                // silently rendering a glow face without its halo.
+                // 组件构建失败属于构建期缺陷; 显式报告而不是静默渲染一个没有光晕的泛光面。
+                console.error("ButtonSurface: cannot create ButtonGlow:",
+                              component ? component.errorString() : "no component")
+                return
+            }
+            _glowLayer = component.createObject(surface, { "button": buttonControl })
+            return
+        }
+        if (_glowLayer !== null) {
+            _glowLayer.destroy()
+            _glowLayer = null
+        }
+    }
+
+    on_NeedsGlowChanged: _syncGlowLayer()
+
+    // ==================== Size 尺寸 ====================
     anchors.fill: parent
 
     // ==================== Content 内容 ====================
     // Fluent shadow surface 流畅阴影表面
+    // A glow face already carries its own bloom, so the Fluent soft shadow is
+    // suppressed there; stacking both would read as a dirty double halo.
+    // 泛光面自带光晕, 因此在泛光样式下抑制 Fluent 软阴影; 两者叠加会读作脏双影。
     RectangularShadow {
         anchors.fill: background
         radius: background.radius
@@ -42,6 +88,7 @@ Item {
         offset.y: _skin.shadow.level2.offset
         visible: !surface.buttonControl.flat && _skin.usesSoftElevation
                  && !_skin.isNeumorphism && !_skin.isNeumorphism
+                 && !surface.buttonControl._isGlowStyle
     }
 
     // Neumorphic shadow surface 新拟态阴影表面

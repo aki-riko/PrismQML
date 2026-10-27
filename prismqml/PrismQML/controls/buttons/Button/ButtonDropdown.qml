@@ -68,7 +68,8 @@ Item {
     // Check if style uses accent foreground (white text/icon) 检查是否使用强调前景色（白色文字/图标）
     readonly property bool _useAccentForeground: parentStyle === skinContext.button.style_primary ||
                                                   parentStyle === skinContext.button.style_filled ||
-                                                  parentStyle === skinContext.button.style_gradient
+                                                  parentStyle === skinContext.button.style_gradient ||
+                                                  parentStyle === skinContext.button.style_glow
 
     // Split button hover/pressed colors based on parent style Split按钮悬浮/按下颜色
     // For accent styles (primary/filled/gradient): use on-accent overlays 强调样式用主色上状态层
