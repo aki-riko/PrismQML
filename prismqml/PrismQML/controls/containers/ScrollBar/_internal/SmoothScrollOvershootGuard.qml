@@ -157,8 +157,20 @@ QtObject {
         var smoothPosition = verticalAxis ? helper._smoothY : helper._smoothX
         var guardedPosition = outward
             ? constrainOutwardValue(smoothPosition) : smoothPosition
+        // Every published frame is capped to the configured overshoot window, on both
+        // legs. The outward leg is already clamped, but the return leg published the
+        // raw animation value: a rebase that lands mid-shrink can leave the driver
+        // above the cap, and the physical-pixel snap then rounds it up again, so a
+        // 150 px budget reached the screen as 152.67 px on a 1.5 device pixel ratio.
+        // 每个上屏帧都夹在配置的越界窗口内, 两条腿都一样。外移腿本已夹紧, 但返回腿发布
+        // 的是原始动画值: 缩小中途重锚会让驱动值停在超出上限之上, 像素对齐再把它向上取整,
+        // 于是 150px 的预算在 1.5 设备像素比上以 152.67px 上屏。
+        var cappedPosition = helper._clamp(
+            guardedPosition,
+            minimum - helper._maxOvershoot,
+            maximum + helper._maxOvershoot)
         var published = helper._publishedPosition(
-            guardedPosition, minimum, maximum)
+            cappedPosition, minimum, maximum)
         var contentPosition = helper._visualOvershootEnabled
             ? helper._clamp(published, minimum, maximum) : published
         // Record intent before assignment; views may clamp synchronously and re-enter.

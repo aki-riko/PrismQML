@@ -819,6 +819,35 @@ def test_nested_blocking_wheel_handler_consumes_wheel_before_outer_area(scroll_s
     assert _new_visible_windows(windows_before, window) == []
 
 
+def test_every_published_frame_is_capped_on_both_legs():
+    """Both bounce legs must publish inside the configured overshoot window.
+
+    两条回弹腿都必须把上屏值限制在配置的越界窗口内。
+    """
+    source = (
+        SOURCE_DIR / "_internal" / "SmoothScrollOvershootGuard.qml"
+    ).read_text(encoding="utf-8")
+    body = _function_body(source, "publishFrame")
+    # The outward leg was capped, but the return leg published the raw animation
+    # value. A rebase landing mid-shrink left the driver above the cap, and the
+    # physical-pixel snap rounded it up again: a 150px budget reached the screen as
+    # 152.67px at a 1.5 device pixel ratio. The cap must therefore be applied to the
+    # position that actually gets published, not only inside the outward branch.
+    # 外移腿已封顶, 但返回腿发布的是原始动画值。缩小中途重锚会让驱动值停在上限之上, 像素
+    # 对齐再向上取整: 150px 预算在 1.5 设备像素比上以 152.67px 上屏。因此封顶必须作用
+    # 于真正上屏的值, 而不能只放在外移分支里。
+    assert "_maxOvershoot" in body
+    # The cap must wrap the published value, i.e. happen before _publishedPosition.
+    capped = body.index("cappedPosition")
+    published = body.index("_publishedPosition")
+    assert capped < published
+    cap_call = body[capped : body.index(";", capped)]
+    assert "minimum - helper._maxOvershoot" in cap_call
+    assert "maximum + helper._maxOvershoot" in cap_call
+    # And the pixel-snapped value must derive from the capped one.
+    assert "_publishedPosition(\n            cappedPosition" in body
+
+
 def test_scroll_bar_sources_follow_conventions():
     violations = []
     source_paths = sorted(SOURCE_DIR.glob("*.qml")) + [
