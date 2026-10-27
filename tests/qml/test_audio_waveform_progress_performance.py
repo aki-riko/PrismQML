@@ -100,6 +100,43 @@ def _opacities(waveform: QQuickItem) -> list[float]:
     return [float(bar.opacity()) for bar in _bars(waveform)]
 
 
+def _assert_scales_approx(
+    actual: list[tuple[float, float]],
+    expected: list[tuple[float, float]],
+    *,
+    rel: float = 1e-6,
+) -> None:
+    """逐分量比较缩放元组列表。
+
+    pytest 9.2.0 起 ``approx()`` 不再接受嵌套结构（元组/元组列表），
+    因此这里显式展开到每个分量，保持原有比较语义。
+    """
+    assert len(actual) == len(expected), (
+        f"缩放条目数不一致: {len(actual)} != {len(expected)}"
+    )
+    for index, (got_pair, want_pair) in enumerate(zip(actual, expected)):
+        for axis, (got, want) in enumerate(zip(got_pair, want_pair)):
+            assert got == pytest.approx(want, rel=rel), (
+                f"{index} 号条目的 {'xy'[axis]}Scale 不一致: {got} != {want}"
+            )
+
+
+def _scale_matches(
+    actual: list[tuple[float, float]],
+    expected: list[tuple[float, float]],
+    *,
+    rel: float = 1e-6,
+) -> bool:
+    """供 ``_wait_for`` 轮询使用的非断言版本：返回是否逐分量近似相等。"""
+    if len(actual) != len(expected):
+        return False
+    for got_pair, want_pair in zip(actual, expected):
+        for got, want in zip(got_pair, want_pair):
+            if abs(got - want) > abs(rel * want) + 1e-12:
+                return False
+    return True
+
+
 def _scale_values(waveform: QQuickItem) -> list[tuple[float, float]]:
     values = []
     for bar in _bars(waveform):
@@ -242,7 +279,7 @@ def test_audio_waveform_hover_scale_preserves_entry_curve_and_resets_exit(qapp):
     try:
         QTest.mouseMove(window, QPoint(350, 110))
         assert _wait_for(lambda: waveform.property("_hovered") is False)
-        assert _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
+        _assert_scales_approx(_scale_values(waveform), [(1.0, 1.0)] * 4)
 
         QTest.mouseMove(window, QPoint(100, 50))
         assert _wait_for(lambda: waveform.property("_hovered") is True)
@@ -253,18 +290,18 @@ def test_audio_waveform_hover_scale_preserves_entry_curve_and_resets_exit(qapp):
             )
         )
         entering = _scale_values(waveform)
-        assert entering == pytest.approx([entering[0]] * 4)
+        _assert_scales_approx(entering, [entering[0]] * 4)
         assert (entering[0][0] - 1.0) / 0.05 == pytest.approx(
             (entering[0][1] - 1.0) / 0.02,
             abs=1e-4,
         )
         assert _wait_for(
-            lambda: _scale_values(waveform) == pytest.approx([(1.05, 1.02)] * 4)
+            lambda: _scale_matches(_scale_values(waveform), [(1.05, 1.02)] * 4)
         )
 
         QTest.mouseMove(window, QPoint(350, 110))
         assert _wait_for(lambda: waveform.property("_hovered") is False)
-        assert _scale_values(waveform) == pytest.approx([(1.0, 1.0)] * 4)
+        _assert_scales_approx(_scale_values(waveform), [(1.0, 1.0)] * 4)
         assert warnings == []
     finally:
         _dispose_scene(engine, component, window)

@@ -138,7 +138,17 @@ def test_data_widget_skeletons_preserve_loading_geometry_across_cycles(qapp):
             (skeleton.x(), skeleton.y(), skeleton.width(), skeleton.height())
             for skeleton in second
         ]
-        assert second_geometry == pytest.approx(first_geometry)
+        # pytest 9.2.0 起 approx() 不再接受嵌套结构（元组/元组列表），
+        # 而几何量是 (x, y, w, h) 元组列表，必须逐分量比较。
+        assert len(second_geometry) == len(first_geometry), (
+            f"骨架数量不一致: {len(second_geometry)} != {len(first_geometry)}"
+        )
+        for index, (got, want) in enumerate(zip(second_geometry, first_geometry)):
+            for axis, (got_value, want_value) in enumerate(zip(got, want)):
+                assert got_value == pytest.approx(want_value), (
+                    f"{index} 号骨架的 {'xywh'[axis]} 不一致: "
+                    f"{got_value} != {want_value}"
+                )
         assert all(skeleton.isVisible() for skeleton in second)
         assert warnings == []
     finally:

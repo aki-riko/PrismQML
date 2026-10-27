@@ -162,7 +162,15 @@ def _new_visible_windows(windows_before, root_window):
 
 
 def _assert_color(actual: QColor, expected: QColor) -> None:
-    assert actual.getRgbF() == pytest.approx(expected.getRgbF(), abs=1 / 65535)
+    # pytest 9.2.0 起 approx() 不再接受嵌套结构（元组），
+    # 而 getRgbF() 返回 (r, g, b, a) 元组，必须逐通道比较。
+    actual_channels = actual.getRgbF()
+    expected_channels = expected.getRgbF()
+    assert len(actual_channels) == len(expected_channels)
+    for index, (got, want) in enumerate(zip(actual_channels, expected_channels)):
+        assert got == pytest.approx(want, abs=1 / 65535), (
+            f"颜色通道 {index} 不一致: {got} != {want}"
+        )
 
 
 def test_color_picker_panel_preserves_defaults_selector_and_clamp(qapp):
