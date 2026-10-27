@@ -243,7 +243,16 @@ def test_color_picker_panel_maps_real_mouse_clicks_and_emits(qapp):
             (0.75, 0.75)
         )
         assert (selector.x(), selector.y()) == pytest.approx((187, 42))
-        assert changed == pytest.approx([(0.25, 0.25), (0.75, 0.75)])
+        # pytest 9.2.0 起 approx() 拒绝「列表套元组」的嵌套结构，
+        # 这里逐项比较，容差语义与原先一致。
+        assert len(changed) == 2, f"变化记录条数异常: {changed}"
+        for index, (got_pair, want_pair) in enumerate(
+            zip(changed, [(0.25, 0.25), (0.75, 0.75)])
+        ):
+            for axis, (got, want) in enumerate(zip(got_pair, want_pair)):
+                assert got == pytest.approx(want), (
+                    f"第 {index} 条记录的 {'xy'[axis]} 不一致: {got} != {want}"
+                )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

@@ -39,7 +39,10 @@ macos = [
     "pyobjc-framework-Cocoa>=9.0",
 ]
 dev = [
-    "pytest>=8.4",
+    # 上限防止 CI 静默拉到会改变断言语义的新 major：
+    # pytest 9.2.0 曾拒绝「列表套元组」的 approx 用法，而本地 9.1.x 仍宽松，
+    # 导致 tag 门禁在 CI 上失败、本地却全绿（表现为版本漂移而非真实回归）。
+    "pytest>=8.4,<10",
     "opencv-python-headless>=4.8,<5",
     "build>=1.2",
     "black>=23.0",
