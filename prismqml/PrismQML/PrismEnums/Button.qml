@@ -61,15 +61,26 @@ QtObject {
     // 泛光按钮沿用 style_primary 的主色填充，外圈由单个 RectangularShadow 绘制柔和
     // 泛光：Qt 6.9+ 用有符号距离场渲染且无离屏图层，这是仓库对矩形表面规定的首选方案
     // （AGENTS.md 6.2），也是真实显示器上唯一真正平滑的变体。
-    // Ticket paper has zero elevation by design, so the bloom collapses there and
-    // the style degrades to its accent face. 票据纸面按设计零悬浮, 因此泛光在票据
-    // 皮肤下收敛为纯主色面。
-    readonly property real glowSpread: isTicket ? 0 : 8   // Outermost growth beyond the face 超出按钮面的最外层外扩量
-    readonly property real glowBlur: isTicket ? 0 : 24    // SDF falloff width 光晕衰减宽度
+    //
+    // The bloom is sized as a ratio of the button height, not in absolute pixels: a
+    // fixed spread that looks right on a 46 px button swallows a 32 px one. Measured
+    // on a real D3D11 window, this ratio puts the visible band at about a quarter of
+    // the face height with a peak tint of ~25/255, which reads as a soft rim instead
+    // of a halo the size of the button itself.
+    // 泛光按按钮高度的比例而不是绝对像素来定尺: 在 46 像素按钮上合适的固定外扩会把
+    // 32 像素按钮整个吞掉。真实 D3D11 窗口实测显示, 该比例让可见带约为面高的四分之一,
+    // 峰值着色约 25/255, 读作柔和描边而不是一个和按钮一样大的光团。
+    readonly property real glowBlurRatio: 0.45       // Falloff width as a share of the button height 衰减宽度占按钮高度的比例
+    readonly property real glowSpreadRatio: 0.10     // Outward growth as a share of the button height 外扩占按钮高度的比例
+    // Every skin that forbids soft elevation reports zero, so the halo is not built
+    // at all: ticket paper is square and shadowless by design.
+    // 任何禁止柔和悬浮的皮肤都报零, 因此光晕根本不会被创建: 票据纸面按设计是直角无阴影。
+    readonly property real glowSpread: isTicket ? 0 : glowSpreadRatio
+    readonly property real glowBlur: isTicket ? 0 : glowBlurRatio
     // Resting halo alpha. Hover opens it, press pulls it in, disabled keeps an ember;
     // all three are multipliers on this single token.
     // 静息光晕 alpha。悬浮发散, 按压收敛, 禁用保留余辉; 三者都是对该令牌的倍数。
-    readonly property real glowHaloAlpha: isTicket ? 0 : 0.38
+    readonly property real glowHaloAlpha: isTicket ? 0 : 0.26
     readonly property real glowPulseMin: 0.72       // Breathing floor 呼吸下限
     readonly property real glowPulseMax: 1.0        // Breathing ceiling 呼吸上限
     readonly property int glowBreatheDuration: 1700 // Half-cycle duration 呼吸半程时长

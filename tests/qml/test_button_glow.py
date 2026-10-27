@@ -325,7 +325,7 @@ def test_glow_bloom_is_one_sdf_shadow():
     # AGENTS.md 6.2 规定矩形表面首选 RectangularShadow ("无离屏渲染")。真实 D3D11
     # 窗口实测确认它产出真正平滑的衰减, 而叠加半透明矩形在真实显示器上出现可见色带。
     assert glow_source.count("RectangularShadow {") == 1
-    assert "blur: root._tokens.glowBlur" in glow_source
+    assert "blur: root._blur" in glow_source
     assert "spread: root._spread" in glow_source
     assert "MultiEffect {" not in glow_source
     # No stacked-disc fallback: the Repeater of Rectangles must be gone.
@@ -338,6 +338,26 @@ def test_glow_bloom_is_one_sdf_shadow():
     # 几何必须保持不变, 使呼吸不会触发按钮面重新布局。
     shadow_block = glow_source[glow_source.index("RectangularShadow {"):]
     assert "glowPulseMin" not in shadow_block.split("}")[0]
+
+
+def test_glow_bloom_scales_with_the_button_height():
+    """A fixed bloom size swallows a small button and dwarfs a large one.
+
+    固定尺寸的泛光会吞掉小按钮、在大按钮上显得太小。
+    """
+    glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
+    tokens_source = BUTTON_ENUM_SOURCE.read_text(encoding="utf-8")
+
+    # Tokens are ratios; the module multiplies them by the host height.
+    # 令牌是比例; 模块用宿主高度去乘它们。
+    assert "readonly property real glowSpreadRatio:" in tokens_source
+    assert "readonly property real glowBlurRatio:" in tokens_source
+    assert "readonly property real _spread: button.height * _tokens.glowSpread" in glow_source
+    assert "readonly property real _blur: button.height * _tokens.glowBlur" in glow_source
+    # Absolute pixel tokens must not come back: they cannot fit every face size.
+    # 绝对像素令牌不得回潮: 它们无法适配所有按钮面尺寸。
+    assert "glowSpread: isTicket ? 0 : 8" not in tokens_source
+    assert "glowBlur: isTicket ? 0 : 24" not in tokens_source
 
 
 def test_glow_halo_follows_the_resolved_face_colour():

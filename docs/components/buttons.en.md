@@ -64,6 +64,10 @@ Fluent.Button {
   field with **no offscreen layer**, which is the repo's mandated first choice for
   rectangular surfaces (`AGENTS.md` 6.2) and the only variant with a genuinely
   smooth falloff on a real display; stacked translucent rectangles band there.
+- The halo is sized as a **ratio of the button height**, not in fixed pixels:
+  `glowBlurRatio` 0.45 and `glowSpreadRatio` 0.10. A fixed size looks oversized on
+  a small button and undersized on a large one; at these ratios the measured
+  near-face tint is about 46/255, which reads as a soft rim rather than a slab.
 - The halo is lazy: only `style_glow` instantiates it, so every other style keeps
   the object count and pixels it had before.
 - The halo follows the resolved face colour, not the raw accent, so a disabled grey

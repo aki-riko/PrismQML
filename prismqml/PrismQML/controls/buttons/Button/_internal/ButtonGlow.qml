@@ -35,10 +35,11 @@ Item {
     readonly property var _skin: button.effectiveSkinContext
     readonly property var _tokens: _skin.button
     // Only the strongest visual signatures are allowed to keep a bloom: ticket paper
-    // has zero elevation by design, so it reports a zero spread and the halo is not
+    // has zero elevation by design, so it reports a zero ratio and the halo is not
     // created at all. 只有允许悬浮的设计语言保留泛光: 票据纸面按设计零悬浮, 因此其
-    // 外扩量为 0, 光晕根本不会被创建。
-    readonly property real _spread: _tokens.glowSpread
+    // 比例为零, 光晕根本不会被创建。
+    readonly property real _spread: button.height * _tokens.glowSpread
+    readonly property real _blur: button.height * _tokens.glowBlur
     // The bloom follows the resolved face colour, not the raw accent: a disabled
     // face is neutral grey, and a blue halo around a grey face reads as a rendering
     // bug rather than as a dimmed light.
@@ -89,7 +90,7 @@ Item {
         color: Qt.rgba(
             root._haloColor.r, root._haloColor.g, root._haloColor.b,
             root._tokens.glowHaloAlpha * root._breath * root._stateStrength)
-        blur: root._tokens.glowBlur
+        blur: root._blur
         spread: root._spread
         offset.x: 0
         offset.y: 0

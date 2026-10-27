@@ -205,6 +205,7 @@ def main() -> int:
         if child.metaObject().className().startswith("ButtonGlow_QMLTYPE_")
     )
     spread = float(halo.property("_spread"))
+    blur = float(halo.property("_blur"))
     window_span = int(round((spread + 2) * ratio))
 
     glow_profile = _edge_profile(image, glow_button, ratio, window_span)
@@ -239,12 +240,11 @@ def main() -> int:
     )
     # 3. containment: the bloom must fade back to background within the shadow's
     # own painted extent. Measured on a real display, a RectangularShadow's visible
-    # band is roughly spread + blur (8 + 24 px here), not spread alone, so the window
-    # is derived from both tokens rather than from spread only.
+    # band is roughly spread + blur, not spread alone, so the window is derived from
+    # both values rather than from spread only.
     # 泛光必须在其自身绘制的范围内衰减回背景。真实显示器实测显示 RectangularShadow
-    # 的可见带约为 spread + blur (此处 8 + 24 像素), 而不是只有 spread, 因此窗口由
-    # 两个令牌共同推出而不是只用 spread。
-    blur = float(halo.property("_tokens").property("glowBlur"))
+    # 的可见带约为 spread + blur, 而不是只有 spread, 因此窗口由两个值共同推出而不是
+    # 只用 spread。
     painted_extent = spread + blur
     details["painted_extent"] = painted_extent
     extent_span = int(round((painted_extent + 6) * ratio))
@@ -254,6 +254,28 @@ def main() -> int:
         abs(glow_extent[0] - background) <= 2 if glow_extent else False
     )
     details.pop("checks", None)
+    # 3b. weight: the bloom must stay a rim, not a slab. Two measured guards:
+    # the near-face tint (the first few device pixels) stays well below a solid
+    # fill, and the visible band does not exceed the face height. The band figure
+    # counts the whole fading tail, so it is compared against the face rather than
+    # against an absolute pixel budget.
+    # 分量: 泛光必须是描边而不是色块。两个实测护栏: 贴边着色明显低于实心填充,
+    # 且可见带不超过面高。可见带计入整条衰减尾迹, 因此与面高比较而非用绝对像素预算。
+    near_face = max(glow_extent[-3:]) if len(glow_extent) >= 3 else background
+    near_face_contrast = background - near_face
+    details["near_face_contrast"] = near_face_contrast
+    # A solid accent face against this background differs by ~241 levels; a rim must
+    # stay far below that.
+    # 该背景下实心主色面与背景约差 241 级; 描边必须远低于它。
+    checks["bloom_stays_a_rim"] = near_face_contrast <= 90
+    band = len(glow_extent) - next(
+        (index for index, value in enumerate(glow_extent) if value < background - 2),
+        len(glow_extent),
+    )
+    face_height = float(glow_button.property("height")) * ratio
+    details["visible_band_px"] = band
+    details["face_height_px"] = face_height
+    checks["band_not_wider_than_face"] = band <= face_height
     # 4. primary reference: a plain primary button has no bloom. Its own edge
     # antialiasing reaches about 6 levels just outside the face, which is far less
     # than the bloom; compare against that measured edge rather than against zero.
