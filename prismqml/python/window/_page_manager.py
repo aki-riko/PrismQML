@@ -162,24 +162,30 @@ class PageManagerMixin(PagePrewarmMixin, ManagedPageLifecycleMixin):
     def _attach_sync_page_content(
         self, index, page_instance, page_container, profile
     ):
-        page_item = _resolve_page_layout_item(page_instance)
-        if page_item:
-            page_item.setParentItem(page_container)
-            profile("setParentItem")
-            bind_size = _make_page_size_binder(
-                page_instance, page_container, False
-            )
-            profile("导入 shiboken")
-            _connect_page_size_binding(
-                page_container,
-                bind_size,
-                (_PAGE_SIZE_BIND_DELAY_MS,),
-                QTimer.singleShot,
-            )
-            profile("绑定尺寸信号")
-        else:
+        # 与异步路径一致：Shiboken 包装器在 C++ 对象被析构后仍为真值，`if page_item:`
+        # 挡不住。先判 None 保持既有 warning 文案，再判存活覆盖「已 delete」新场景。
+        raw_page_item = _resolve_page_layout_item(page_instance)
+        if not raw_page_item:
             warning(f"[_create_page] page_{index} _qml_item 为 None!")
-            profile("_qml_item 为空")
+            return
+        page_item = _live_qt_object(raw_page_item)
+        container = _live_qt_object(page_container)
+        if page_item is None or container is None:
+            warning(f"[_create_page] page_{index} 已析构, 跳过内容挂载")
+            return
+        page_item.setParentItem(container)
+        profile("setParentItem")
+        bind_size = _make_page_size_binder(
+            page_instance, container, False
+        )
+        profile("导入 shiboken")
+        _connect_page_size_binding(
+            container,
+            bind_size,
+            (_PAGE_SIZE_BIND_DELAY_MS,),
+            QTimer.singleShot,
+        )
+        profile("绑定尺寸信号")
 
     def _finalize_sync_page(self, index, item, page_instance, profile):
         self._pages[index] = page_instance
