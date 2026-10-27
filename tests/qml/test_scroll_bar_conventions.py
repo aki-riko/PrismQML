@@ -788,9 +788,19 @@ def _nested_scene_items(items):
 def _wheel_at(window, item, delta):
     """Dispatch a real wheel event through Qt hit testing. 通过 Qt 命中测试派发真实滚轮事件。"""
     center = item.mapToScene(QPointF(item.width() / 2, item.height() / 2))
+    # QTest.wheelEvent takes physical window pixels, not scene (logical) coordinates.
+    # Passing the logical centre at a 1.5 device pixel ratio hunted the wheel 315px
+    # below the intended control, so the nested blocking handler never saw it and the
+    # inner view stayed at -0.0. Measured on D3D11: logical hit missed, dpr-scaled hit
+    # scrolled by 20. offscreen uses dpr 1.0, which is why only D3D11 failed.
+    # QTest.wheelEvent 接收物理窗口像素而不是 scene(逻辑)坐标。1.5 设备像素比下直接传
+    # 逻辑中心会让滚轮命中点偏离目标控件, 嵌套 blocking 处理器收不到事件, 内层视图停在
+    # -0.0。D3D11 实测: 逻辑坐标未命中, 按 dpr 缩放后滚动 20。offscreen 的 dpr 为 1.0,
+    # 因此只有 D3D11 失败。
+    ratio = window.devicePixelRatio()
     QTest.wheelEvent(
         window,
-        QPoint(round(center.x()), round(center.y())),
+        QPoint(round(center.x() * ratio), round(center.y() * ratio)),
         QPoint(0, delta),
     )
     _pump(120)
@@ -845,7 +855,28 @@ def test_every_published_frame_is_capped_on_both_legs():
     assert "minimum - helper._maxOvershoot" in cap_call
     assert "maximum + helper._maxOvershoot" in cap_call
     # And the pixel-snapped value must derive from the capped one.
-    assert "_publishedPosition(\n            cappedPosition" in body
+    published_call = body[published : body.index(";", published)]
+    assert "cappedPosition" in published_call
+
+
+def test_sync_position_publishes_the_adopted_value_verbatim():
+    """syncPosition must not pixel-snap the position it adopts.
+
+    syncPosition 不得对它采纳的位置做像素对齐。
+    """
+    source = (
+        SOURCE_DIR / "_internal" / "SmoothScrollOvershootGuard.qml"
+    ).read_text(encoding="utf-8")
+    body = _function_body(source, "publishFrame")
+    # syncPosition adopts the target's own contentX/Y, so snapping rewrote an
+    # externally set 75 into 75.3333 (= 113/1.5) at a 1.5 device pixel ratio: the sync
+    # silently moved the view it was supposed to follow.
+    # syncPosition 采纳目标自身的 contentX/Y, 像素对齐会把外部设定的 75 改写成
+    # 75.3333(=113/1.5, 设备像素比 1.5): 同步悄悄移动了它本应跟随的视图。
+    assert "helper._syncing" in body
+    # The syncing branch publishes the adopted value, the animated branch snaps.
+    # 同步分支发布采纳值, 动画分支才做像素对齐。
+    assert "_syncing\n            ? cappedPosition\n            : helper._publishedPosition" in body
 
 
 def test_scroll_bar_sources_follow_conventions():

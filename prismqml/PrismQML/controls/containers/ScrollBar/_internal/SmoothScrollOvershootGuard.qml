@@ -169,8 +169,16 @@ QtObject {
             guardedPosition,
             minimum - helper._maxOvershoot,
             maximum + helper._maxOvershoot)
-        var published = helper._publishedPosition(
-            cappedPosition, minimum, maximum)
+        // syncPosition adopts the target's own position, so it must publish that value
+        // verbatim. Snapping it to the physical pixel grid rewrote an externally set
+        // contentY of 75 into 75.3333 (= 113/1.5) at a 1.5 device pixel ratio, i.e. the
+        // sync silently moved the view it was supposed to follow.
+        // syncPosition 采纳的是目标自身的当前位置, 因此必须原样发布该值。把它对齐到物理
+        // 像素网格会把外部设定的 contentY 75 改写成 75.3333(=113/1.5, 设备像素比 1.5),
+        // 也就是同步悄悄移动了它本应跟随的视图。
+        var published = helper._syncing
+            ? cappedPosition
+            : helper._publishedPosition(cappedPosition, minimum, maximum)
         var contentPosition = helper._visualOvershootEnabled
             ? helper._clamp(published, minimum, maximum) : published
         // Record intent before assignment; views may clamp synchronously and re-enter.
