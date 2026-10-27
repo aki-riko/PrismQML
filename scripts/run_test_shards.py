@@ -7,8 +7,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -29,6 +31,13 @@ SERIAL_RUNTIME_FILES = (
     "tests/qml/test_icon_renderer_layer_lifecycle.py",
     "tests/qml/test_layout_container_conventions.py",
     "tests/qml/test_vintage_ticket_component_state_matrix.py",
+    # The vintage-ticket state-matrix fixture asserts that the process owns exactly the
+    # same top-level windows before and after the module, so any neighbour that leaks
+    # one fails the teardown instead of its own test. It is order-sensitive by
+    # construction and needs its own process.
+    # 票据状态矩阵夹具断言模块前后顶层窗口完全一致, 因此任何泄漏窗口的邻接测试都会让
+    # teardown 失败(而不是失败在它自己身上)。这类夹具按构造就顺序敏感, 需要独立进程。
+    "tests/qml/test_vintage_ticket_button_state_matrix.py",
     "tests/qml/test_neumorphism_remaining_surfaces.py",
     "tests/qml/test_timeline_conventions.py",
     "tests/qml/test_effects_page_matrix_controls.py",
@@ -53,6 +62,20 @@ RUNTIME_WEIGHT_HINTS = {
     "tests/qml/test_skin_scope.py": 5_000,
     "tests/qml/test_desktop_notification_geometry.py": 4_180,
 }
+# Measured durations outrank every estimate. File size and the hand-written hints above
+# are only proxies, and they are wrong in the direction that hurts most: a shard can
+# hold a normal byte total while several fixed-wait files land together, which is how
+# qml-2 exhausted a 1200s budget on two separate releases (once on
+# test_vintage_ticket_surfaces.py, once on test_accent_foreground_consumers.py) while
+# the other buckets finished in about three minutes. Each completed shard therefore
+# records per-file seconds, and the partitioner balances on those once available.
+# 实测耗时优先于任何估算。文件大小和上面手写的提示都只是代理量, 且它们的偏差恰好落在
+# 最伤人的方向: 一个分片的总字节数可以正常, 却同时容纳多个固定等待文件——qml-2 正是
+# 这样在两次发布中耗尽 1200s 预算(一次卡在 test_vintage_ticket_surfaces.py, 一次卡在
+# test_accent_foreground_consumers.py), 而其它分片三分钟就完成。因此每个完成的分片都会
+# 记录逐文件秒数, 分片器在有数据后按实测耗时做均衡。
+DURATION_CACHE_NAME = "shard-durations.json"
+DURATION_SAMPLE_LIMIT = 5
 
 
 def _positive_timeout(value: str) -> int:
@@ -109,8 +132,82 @@ def _test_files(root: Path) -> tuple[Path, ...]:
     return tuple(sorted(root.glob("test_*.py")))
 
 
-def _file_weight(path: Path) -> int:
+def _duration_cache_path() -> Path:
+    return _artifact_root() / "python" / DURATION_CACHE_NAME
+
+
+def _load_measured_durations() -> dict[str, float]:
+    """Per-file seconds from previous runs, as a median of recent samples."""
+    path = _duration_cache_path()
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.warning("无法读取耗时缓存 %s: %s", path, exc)
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    measured: dict[str, float] = {}
+    for name, samples in raw.items():
+        if not isinstance(samples, list) or not samples:
+            continue
+        values = sorted(
+            float(value) for value in samples if isinstance(value, (int, float))
+        )
+        if not values:
+            continue
+        measured[name] = values[len(values) // 2]
+    return measured
+
+
+def _record_measured_durations(shard_name: str, log_text: str) -> None:
+    """Persist per-file seconds parsed from one shard's pytest log.
+
+    pytest runs with `--durations=0`, so every test reports its own line and the cache
+    covers the whole shard rather than its slowest entries.
+    pytest 以 `--durations=0` 运行, 因此每个用例都有自己的一行, 缓存覆盖整个分片而不是
+    仅最慢的若干项。
+    """
+    pattern = re.compile(
+        r"^(?P<seconds>\d+\.\d+)s\s+(?:call|setup|teardown)\s+(?P<path>tests/\S+?)::",
+        re.MULTILINE,
+    )
+    per_file: dict[str, float] = {}
+    for match in pattern.finditer(log_text):
+        path = match.group("path")
+        seconds = float(match.group("seconds"))
+        # Sum every reported phase of a file; several top entries may share a file.
+        # 累加同一文件上报的各个阶段; 最慢列表里多个条目可能属于同一文件。
+        per_file[path] = per_file.get(path, 0.0) + seconds
+    if not per_file:
+        return
+    path = _duration_cache_path()
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+        if not isinstance(raw, dict):
+            raw = {}
+        for name, seconds in per_file.items():
+            samples = raw.get(name)
+            if not isinstance(samples, list):
+                samples = []
+            samples.append(round(seconds, 3))
+            raw[name] = samples[-DURATION_SAMPLE_LIMIT:]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(raw, indent=2, sort_keys=True), encoding="utf-8"
+        )
+    except OSError as exc:
+        LOGGER.warning("无法写入耗时缓存 %s: %s (shard=%s)", path, exc, shard_name)
+
+
+def _file_weight(path: Path, measured: dict[str, float]) -> int:
     relative = path.relative_to(ROOT).as_posix()
+    # Measured seconds win outright; they are the only signal that reflects
+    # fixed-wait behaviour rather than source size.
+    # 实测秒数优先; 它是唯一反映固定等待行为而非源码体积的信号。
+    if relative in measured:
+        return max(1, int(measured[relative] * 1_000))
     return max(path.stat().st_size, RUNTIME_WEIGHT_HINTS.get(relative, 0) * 100)
 
 
@@ -118,19 +215,20 @@ def _partition_files(root: Path, count: int) -> tuple[tuple[str, ...], ...]:
     buckets: list[list[Path]] = [[] for _ in range(count)]
     weights = [0] * count
     excluded_files = set(SERIAL_RUNTIME_FILES) | set(NESTED_ENTRYPOINT_FILES)
+    measured = _load_measured_durations()
     files = sorted(
         (
             path
             for path in _test_files(root)
             if path.relative_to(ROOT).as_posix() not in excluded_files
         ),
-        key=lambda path: (_file_weight(path), path.as_posix()),
+        key=lambda path: (_file_weight(path, measured), path.as_posix()),
         reverse=True,
     )
     for path in files:
         bucket = min(range(count), key=lambda index: (weights[index], index))
         buckets[bucket].append(path)
-        weights[bucket] += _file_weight(path)
+        weights[bucket] += _file_weight(path, measured)
     return tuple(
         tuple(path.relative_to(ROOT).as_posix() for path in bucket)
         for bucket in buckets
@@ -196,7 +294,12 @@ def _command(name: str, paths: tuple[str, ...], timeout: int) -> list[str]:
         "-m",
         "pytest",
         "--full-suite",
-        "--durations=20",
+        # Report every duration, not just the slowest twenty: the partitioner balances
+        # on per-file seconds, so a partial list would leave most files on the size
+        # estimate and re-introduce the imbalance. Log growth is a few hundred lines.
+        # 报告全部耗时而非仅最慢二十项: 分片器按逐文件秒数均衡, 部分列表会让多数文件退回
+        # 体积估算, 从而重新引入不均衡。日志增长只有数百行。
+        "--durations=0",
         "-o",
         f"cache_dir={cache_dir}",
         *paths,
@@ -232,6 +335,16 @@ def _finish_shards(processes) -> int:
         return_code = process.wait()
         log_file.close()
         LOGGER.info("分片完成: %s, exit=%s", name, return_code)
+        # Record durations for successful shards only: a timed-out log is truncated at
+        # an arbitrary point, so its per-file numbers would skew the next partition.
+        # 只记录成功分片的耗时: 超时日志在任意点被截断, 其逐文件数值会污染下一次分片。
+        if return_code == 0:
+            try:
+                _record_measured_durations(
+                    name, log_path.read_text(encoding="utf-8", errors="replace")
+                )
+            except OSError as exc:
+                LOGGER.warning("读取分片日志用于耗时统计失败: %s: %s", log_path, exc)
         if return_code != 0:
             failures.append((name, return_code, log_path))
     if failures:
@@ -293,8 +406,11 @@ def main(argv: list[str] | None = None) -> int:
             _start_shards((shard,), args.serial_timeout)
         )
         serial_status = serial_status or status
-        if status:
-            break
+        # Keep going after a failure. Breaking here left the remaining serial shards
+        # never executed, so their logs still showed the previous run's timestamps
+        # while the suite reported a single timeout as if it were the whole picture.
+        # 失败后继续执行。此前的 break 让剩余串行分片根本不运行, 它们的日志仍是上一次运行
+        # 的时间戳, 而套件只报告一个超时, 像是全部情况。
     return (
         python_qml_status
         or tooling_status
