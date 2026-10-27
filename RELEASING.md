@@ -43,6 +43,28 @@ ctest --test-dir .artifacts\cpp\desktop -L native --interactive-debug-mode 0 --o
 
 `tests/test_window_buttons.py`、QML 性能基准和 FPS 探针属于人工可视测试，不得混入自动门禁。Windows 可视性能验收只接受 D3D11，并必须核验实际图形 API；offscreen 仅用于零交互正确性回归。
 
+### 设备像素比门禁（必跑）
+
+`scripts/test_process.py` 默认的 `--qt-platform offscreen` 把设备像素比固定为 1.0，此时
+`Math.round(value * dpr) / dpr` 等物理像素对齐全部退化为恒等操作，`dpr` 缩放也是空操作。
+这会系统性掩盖一整类缺陷。已实测到的三个真实缺陷全部属于此类：150px 的越界预算以
+152.67px 上屏、`syncPosition` 把采纳的 75 改写成 75.3333、滚轮命中坐标整体偏离目标。
+它们在 offscreen 全部通过，仅在真实 1.5 设备像素比窗口上失败。
+
+因此每个运行完整 offscreen 套件的门禁都必须额外运行该门禁，它以保证非整数设备像素比的
+方式重跑物理像素相关文件：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\test_process.py --qt-platform offscreen --timeout 900 -- .\.venv\Scripts\python.exe scripts\device_pixel_ratio_gate.py
+```
+
+- `QT_SCALE_FACTOR` 是宿主比例的**乘数**而非绝对值：1.5 dpr 桌面上设 1.5 得到 2.25。
+  因此门禁只保证结果不可能落回 1.0，不承诺某个具体比例。
+- 覆盖文件清单在 `scripts/device_pixel_ratio_gate.py` 的 `PHYSICAL_PIXEL_FILES`。新增以
+  物理像素、dpr 缩放坐标或小数像素对齐表达合同的测试文件必须登记进去，否则会重新落入
+  该盲区。
+- 该门禁是增量覆盖：offscreen 套件照旧运行，二者不可互相替代。
+
 ## 提交、Tag 与 Release
 
 ```bash

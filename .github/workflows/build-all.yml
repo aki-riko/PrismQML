@@ -115,6 +115,19 @@ jobs:
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 180 --
           python tests/qml/probe_all_components.py
+      # The offscreen suite pins the device pixel ratio to 1.0, where every
+      # physical-pixel snap is an identity. This gate re-runs the physical-pixel
+      # contracts with a non-1.0 factor so dpr-dependent defects surface in CI.
+      # offscreen 套件把设备像素比固定为 1.0, 此时物理像素对齐全部退化为恒等。该门禁以
+      # 非 1.0 因子重跑物理像素合同, 使依赖 dpr 的缺陷在 CI 中暴露。
+      - name: Run device-pixel-ratio gate
+        env:
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 900 --
+          python scripts/device_pixel_ratio_gate.py
 
   # Linux 全量门禁: 除 tag 触发的 release.yml 之外, 唯一在 ubuntu 上跑完整 Python
   # 受保护套件的地方。缺少它时 Linux 专属缺陷(导入期仅 Windows 存在的 ctypes 属性、
@@ -182,6 +195,18 @@ jobs:
         run: >-
           python scripts/test_process.py --qt-platform offscreen --timeout 180 --
           python tests/qml/probe_all_components.py
+      # Same dpr blind spot as the Windows gate: offscreen pins the ratio to 1.0.
+      # 与 Windows 门禁相同的 dpr 盲区: offscreen 把比例固定为 1.0。
+      - name: Run device-pixel-ratio gate
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LD_LIBRARY_PATH: ${{ env.pythonLocation }}/lib
+          QT_PLUGIN_PATH: ""
+          QML2_IMPORT_PATH: ""
+          QML_IMPORT_PATH: ""
+        run: >-
+          python scripts/test_process.py --qt-platform offscreen --timeout 900 --
+          python scripts/device_pixel_ratio_gate.py
 
   # ==================== 桌面三平台 ====================
   desktop:

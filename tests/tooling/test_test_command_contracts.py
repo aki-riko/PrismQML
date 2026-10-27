@@ -323,6 +323,27 @@ def test_build_all_source_gates_keep_the_source_install_contract():
     assert source.count("PYTHONPATH: ${{ github.workspace }}") == 2
 
 
+def test_ci_runs_the_device_pixel_ratio_gate_on_every_python_gate():
+    """The dpr gate must run wherever the full offscreen suite runs.
+
+    在运行完整 offscreen 套件的每个门禁处都必须运行 dpr 门禁。
+    """
+    release = (PROJECT_ROOT / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
+    build_all = (PROJECT_ROOT / ".github" / "workflows" / "build-all.yml").read_text(
+        encoding="utf-8"
+    )
+    # The offscreen ratio is 1.0, so a suite that only runs offscreen cannot see
+    # fractional-pixel defects. Every full-suite gate must therefore also run the gate.
+    # offscreen 比例为 1.0, 因此只跑 offscreen 的套件看不到小数像素缺陷。每个全量门禁都
+    # 必须同时运行该门禁。
+    assert release.count("scripts/device_pixel_ratio_gate.py") == 1
+    # Windows and Linux source gates each need one.
+    # Windows 与 Linux 源门禁各需一处。
+    assert build_all.count("scripts/device_pixel_ratio_gate.py") == 2
+
+
 def test_nested_qt_runtime_matrix_is_isolated_after_parallel_shards():
     shards = run_test_shards._shards()
     python_qml, tooling, serial_phase, nested_entrypoints = (
