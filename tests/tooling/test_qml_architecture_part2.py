@@ -74,9 +74,9 @@ def test_button_core_keeps_behavior_modularized():
     assert "ButtonLogic.prewarmMenu(control, _skin," in source
 
 def test_button_surface_owns_the_lazy_glow_module():
-    """The glow halo stays a surface-owned, lazily created leaf module.
+    """The glow adapter stays surface-owned and lazily created; the effect is shared.
 
-    泛光光晕保持为表面持有、惰性创建的叶模块。
+    泛光适配层由表面持有并惰性创建; 效果本体属于共享效果域。
     """
     surface = _source(
         "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonSurface.qml"
@@ -84,29 +84,35 @@ def test_button_surface_owns_the_lazy_glow_module():
     glow = _source(
         "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonGlow.qml"
     )
+    shared = _source("prismqml/PrismQML/effects/GlowHalo.qml")
     core = _source("prismqml/PrismQML/controls/buttons/Button/ButtonCore.qml")
     surface_source = surface.read_text(encoding="utf-8")
     glow_source = glow.read_text(encoding="utf-8")
+    shared_source = shared.read_text(encoding="utf-8")
     core_source = core.read_text(encoding="utf-8")
 
     assert len(surface_source.splitlines()) < 180
-    assert len(glow_source.splitlines()) < 150
+    assert len(glow_source.splitlines()) < 120
+    assert len(shared_source.splitlines()) < 160
     assert len(core_source.splitlines()) < 430
-    # The halo is created imperatively by the surface and never inlined in the entry.
-    # 光晕由表面以命令式创建, 绝不在入口内联。
+    # The adapter is created imperatively by the surface, never inlined in the entry.
+    # 适配层由表面以命令式创建, 绝不在入口内联。
     assert "function _syncGlowLayer()" in surface_source
     assert "Qt.createComponent(\"ButtonGlow.qml\")" in surface_source
     assert "ButtonGlow {" not in core_source
-    # The leaf receives its host by required property and owns no pointer input.
-    # 叶子以 required property 接收宿主, 且不持有指针输入。
+    # The adapter binds the host by required property and owns no pointer input.
+    # 适配层以 required property 接收宿主, 且不持有指针输入。
     assert "required property var button" in glow_source
     assert "MouseArea {" not in glow_source
     assert "HoverHandler {" not in glow_source
-    # One shared breathing loop, gated by animated, never per-layer loops.
-    # 只用一个共享呼吸循环并由 animated 闸门控制, 不得逐层循环。
-    assert glow_source.count("SequentialAnimation {") == 1
-    assert "running: root.animated" in glow_source
-    assert "loops: Animation.Infinite" in glow_source
+    # Implementation (shadow + pulse) belongs to the shared effect, so the adapter
+    # stays a pure binding layer and the effect remains reusable by other controls.
+    # 实现(阴影与呼吸)属于共享效果, 因此适配层保持纯绑定, 效果本体可被其它控件复用。
+    assert glow_source.count("SequentialAnimation") == 0
+    assert glow_source.count("RectangularShadow") == 0
+    assert shared_source.count("SequentialAnimation {") == 1
+    assert "running: root.animated" in shared_source
+    assert "loops: Animation.Infinite" in shared_source
 
     entry = _source(
         "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonCountdown.qml"

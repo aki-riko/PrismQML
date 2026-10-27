@@ -147,6 +147,7 @@ Item {
     readonly property alias carousel: _carousel
     readonly property alias settingCard: _settingCard
     readonly property alias indicatorBar: _indicatorBar
+    readonly property alias glow: _glow
 
     // Icon registries are global resources; scopes reuse them instead of
     // cloning the icon table. 图标注册表是全局资源；局部范围复用而不复制图标表。
@@ -375,4 +376,5 @@ Item {
     Carousel { id: _carousel }
     SettingsCard { id: _settingCard }
     IndicatorBar { id: _indicatorBar }
+    Glow { id: _glow }
 }

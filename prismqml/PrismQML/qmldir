@@ -27,6 +27,7 @@ ToggleAnimation effects/ToggleAnimation.qml
 HoverBehavior effects/HoverBehavior.qml
 MatrixRain effects/MatrixRain.qml
 FocusVisual effects/FocusVisual.qml
+GlowHalo effects/GlowHalo.qml
 
 # ==================== Icons 图标 ====================
 Icon controls/icons/Icon.qml

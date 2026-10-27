@@ -227,6 +227,7 @@ Item {
     Carousel { id: _carousel }
     SettingsCard { id: _settingCard }
     IndicatorBar { id: _indicatorBar }
+    Glow { id: _glow }
     Accessibility { id: _accessibility }
 
     // ==================== Module Aliases 模块别名 ====================
@@ -274,6 +275,7 @@ Item {
     readonly property alias carousel: _carousel
     readonly property alias settingCard: _settingCard
     readonly property alias indicatorBar: _indicatorBar
+    readonly property alias glow: _glow
     // Icon Enums Icon枚举
     // QML usage: Enums.icon.chevron_up (snake_case) QML侧使用: Enums.icon.chevron_up (小写下划线)
     // Python usage: Icon.CHEVRON_UP (UPPER_SNAKE_CASE) Python侧使用: Icon.CHEVRON_UP (大写下划线)

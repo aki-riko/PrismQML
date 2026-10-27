@@ -25,7 +25,7 @@ Widget {
     property int style: _skin.button.style_default
     property int shape: _skin.button.shape_default
     property int feature: _skin.button.feature_none
-    property int glow: _skin.button.glow_none  // Orthogonal bloom axis 正交泛光轴
+    property int glow: Enums.glow.glow_none  // Orthogonal bloom axis 正交泛光轴
     property bool showDropdownIndicator: true
     property int contentAlignment: feature === _skin.button.feature_dropdown && showDropdownIndicator
                                    ? _skin.button.align_left
@@ -103,7 +103,7 @@ Widget {
         control.enabled && !control.loading && !control._countdownActive
     readonly property bool _styleToggleChecked:
         feature === _skin.button.feature_toggle && control.checked
-    readonly property bool _glowActive: glow !== _skin.button.glow_none  // Orthogonal 正交
+    readonly property bool _glowActive: glow !== Enums.glow.glow_none  // Orthogonal 正交
     readonly property var styleHelper: ButtonStyle.snapshot(
         style, level, _styleEffectiveEnabled, _touchActive, pressed,
         _styleToggleChecked, _skin.isNeobrutalism, _skin.isVintageTicket,

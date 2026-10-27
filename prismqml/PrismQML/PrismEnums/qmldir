@@ -47,3 +47,4 @@ Navigation Navigation.qml
 SettingsCard SettingsCard.qml
 GradientSlider GradientSlider.qml
 IndicatorBar IndicatorBar.qml
+Glow Glow.qml

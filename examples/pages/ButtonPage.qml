@@ -249,12 +249,12 @@ Item {
                 Flow {
                     width: parent ? parent.width : 0
                     spacing: root._flowSpacing
-                    ComponentCard { label: "glow+primary"; Button { style: Fluent.Enums.button.style_primary; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_5ccd91f4181db651", Fluent.Translator._v) } }
-                    ComponentCard { label: "glow+default"; Button { style: Fluent.Enums.button.style_default; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v) } }
-                    ComponentCard { label: "glow+filled"; Button { style: Fluent.Enums.button.style_filled; level: 1; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
-                    ComponentCard { label: "glow+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_a7a690751fb88395", Fluent.Translator._v) } }
-                    ComponentCard { label: "glow+toggle"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_toggle; glow: Fluent.Enums.button.glow_accent; text: "Toggle" } }
-                    ComponentCard { label: "glow+progress"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_progress_bar; progress: 0.6; showProgress: true; glow: Fluent.Enums.button.glow_accent; text: "Progress" } }
+                    ComponentCard { label: "glow+primary"; Button { style: Fluent.Enums.button.style_primary; glow: Fluent.Enums.glow.glow_accent; text: Fluent.Translator.tr("gallery_5ccd91f4181db651", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+default"; Button { style: Fluent.Enums.button.style_default; glow: Fluent.Enums.glow.glow_accent; text: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+filled"; Button { style: Fluent.Enums.button.style_filled; level: 1; glow: Fluent.Enums.glow.glow_accent; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; glow: Fluent.Enums.glow.glow_accent; text: Fluent.Translator.tr("gallery_a7a690751fb88395", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+toggle"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_toggle; glow: Fluent.Enums.glow.glow_accent; text: "Toggle" } }
+                    ComponentCard { label: "glow+progress"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_progress_bar; progress: 0.6; showProgress: true; glow: Fluent.Enums.glow.glow_accent; text: "Progress" } }
                 }
             }
 

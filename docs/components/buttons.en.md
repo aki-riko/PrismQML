@@ -57,7 +57,7 @@ Glow is **not** a style. It is its own axis alongside style / shape /
 Fluent.Button {
     text: "Start"
     style: Fluent.Enums.button.style_primary
-    glow: Fluent.Enums.button.glow_accent
+    glow: Fluent.Enums.glow.glow_accent
 }
 
 // Or on top of any other style or feature
@@ -65,7 +65,7 @@ Fluent.Button {
     text: "Delete"
     style: Fluent.Enums.button.style_filled
     level: 3
-    glow: Fluent.Enums.button.glow_accent
+    glow: Fluent.Enums.glow.glow_accent
 }
 `
 
@@ -93,6 +93,30 @@ Fluent.Button {
 - Ticket paper has zero elevation by design, so the bloom is not created there.
 - A real bloom can only be judged on D3D11: the offscreen Software scene graph
   executes no shader effects. Accept with scripts/manual/glow_button_bloom_probe.py.
+
+### Glow is a general-purpose effect
+
+The bloom itself is ffects/GlowHalo (enumerated as Enums.glow), and any
+rectangular control can use it directly, not just buttons:
+
+`qml
+Rectangle {
+    id: card
+    width: 180; height: 90
+    radius: Enums.radius.large
+    color: Enums.accentColor
+
+    GlowHalo {
+        target: card
+        haloColor: card.color
+    }
+}
+`
+
+GlowHalo needs only a rectangular 	arget plus a haloColor supplied by the
+consumer, because only the consumer knows what surface it painted. Buttons bind
+their own state (pointer states, countdown, skin policy, reduced motion) through
+the thin ButtonGlow adapter.
 
 ## shape
 

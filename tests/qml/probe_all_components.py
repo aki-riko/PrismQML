@@ -75,9 +75,18 @@ EXPECTED_REQUIRED_PROPERTY_SKIPS = {
     "SettingsCardContent": "SettingsCard 内部内容区, type 由 SettingsCard 注入",
     "HorizontalScrollMixin": "Mixin 附着组件, target 由宿主组件注入",
     "ViewportMixin": "Mixin 附着组件, target 由宿主组件注入",
+    "GlowHalo": "泛光效果, target 由宿主控件注入",
 }
 
 REQUIRED_PROPERTY_PROBES = {
+    "GlowHalo": """
+import QtQuick
+import PrismQML
+Item {
+    Rectangle { id: t; width: 100; height: 40; radius: Enums.radius.small; color: Enums.accentColor }
+    GlowHalo { target: t; haloColor: t.color }
+}
+""",
     "ButtonContent": """
 import QtQuick
 import PrismQML

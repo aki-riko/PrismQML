@@ -36,6 +36,10 @@ BUTTON_CORE_SOURCE = QML_ROOT / "controls" / "buttons" / "Button" / "ButtonCore.
 BUTTON_SURFACE_SOURCE = (
     QML_ROOT / "controls" / "buttons" / "Button" / "_internal" / "ButtonSurface.qml"
 )
+GLOW_HALO_SOURCE = QML_ROOT / "effects" / "GlowHalo.qml"
+GLOW_ENUM_SOURCE = QML_ROOT / "PrismEnums" / "Glow.qml"
+EFFECTS_QMLDIR_SOURCE = QML_ROOT / "effects" / "qmldir"
+ROOT_QMLDIR_SOURCE = QML_ROOT / "qmldir"
 BUTTON_GLOW_SOURCE = (
     QML_ROOT / "controls" / "buttons" / "Button" / "_internal" / "ButtonGlow.qml"
 )
@@ -67,7 +71,7 @@ Window {
             objectName: "glowButton"
             width: 160
             height: 48
-            glow: Enums.button.glow_accent
+            glow: Enums.glow.glow_accent
             text: "Glow"
             enabled: window.glowEnabled
             pseudoHovered: window.glowHovered
@@ -104,16 +108,16 @@ Window {
     // Same style with and without glow: the face must be identical.
     // 同一样式有/无泛光: 按钮面必须完全一致。
     Button { objectName: "plainDefault"; x: 10; y: 10; width: 140; height: 40; style: Enums.button.style_default; text: "A" }
-    Button { objectName: "glow_default"; x: 170; y: 10; width: 140; height: 40; style: Enums.button.style_default; glow: Enums.button.glow_accent; text: "A" }
+    Button { objectName: "glow_default"; x: 170; y: 10; width: 140; height: 40; style: Enums.button.style_default; glow: Enums.glow.glow_accent; text: "A" }
     Button { objectName: "plainPrimary"; x: 10; y: 70; width: 140; height: 40; style: Enums.button.style_primary; text: "B" }
-    Button { objectName: "glow_primary"; x: 170; y: 70; width: 140; height: 40; style: Enums.button.style_primary; glow: Enums.button.glow_accent; text: "B" }
+    Button { objectName: "glow_primary"; x: 170; y: 70; width: 140; height: 40; style: Enums.button.style_primary; glow: Enums.glow.glow_accent; text: "B" }
     Button { objectName: "plainFilled"; x: 10; y: 130; width: 140; height: 40; style: Enums.button.style_filled; level: 1; text: "C" }
-    Button { objectName: "glow_filled"; x: 170; y: 130; width: 140; height: 40; style: Enums.button.style_filled; level: 1; glow: Enums.button.glow_accent; text: "C" }
+    Button { objectName: "glow_filled"; x: 170; y: 130; width: 140; height: 40; style: Enums.button.style_filled; level: 1; glow: Enums.glow.glow_accent; text: "C" }
 
     // Shape and feature compose with glow.
-    Button { objectName: "glowPill"; x: 10; y: 200; width: 140; height: 40; style: Enums.button.style_primary; shape: Enums.button.shape_pill; glow: Enums.button.glow_accent; text: "P" }
-    Button { objectName: "glowToggle"; x: 170; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_toggle; glow: Enums.button.glow_accent; text: "T" }
-    Button { objectName: "glowProgress"; x: 330; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_progress_bar; progress: 0.5; showProgress: true; glow: Enums.button.glow_accent; text: "R" }
+    Button { objectName: "glowPill"; x: 10; y: 200; width: 140; height: 40; style: Enums.button.style_primary; shape: Enums.button.shape_pill; glow: Enums.glow.glow_accent; text: "P" }
+    Button { objectName: "glowToggle"; x: 170; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_toggle; glow: Enums.glow.glow_accent; text: "T" }
+    Button { objectName: "glowProgress"; x: 330; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_progress_bar; progress: 0.5; showProgress: true; glow: Enums.glow.glow_accent; text: "R" }
 }
 """.encode("utf-8")
 
@@ -225,10 +229,20 @@ def test_glow_is_an_orthogonal_axis_not_a_style():
         assert f"readonly property int {name}: {value}" in enum_source
     assert "style_glow" not in enum_source
 
-    # Glow is its own enumerated axis, mirroring how eature is declared.
-    # 泛光是自己的枚举轴, 与 eature 的声明方式一致。
-    assert "readonly property int glow_none: 0" in enum_source
-    assert "readonly property int glow_accent: 1" in enum_source
+    # Glow is a shared decoration enumerated in its own PrismEnums module, not a
+    # button-local value: any component may consume the same axis.
+    # 泛光是在独立 PrismEnums 模块中枚举的共享装饰, 不是按钮局部取值: 任何组件都可
+    # 消费同一个轴。
+    glow_enum = GLOW_ENUM_SOURCE.read_text(encoding="utf-8")
+    assert "readonly property int glow_none: 0" in glow_enum
+    assert "readonly property int glow_accent: 1" in glow_enum
+    assert "Glow Glow.qml" in ENUM_QMLDIR_SOURCE.read_text(encoding="utf-8")
+    # Enums and SkinContext each expose the shared instance.
+    # Enums 与 SkinContext 各自暴露该共享实例。
+    for path in (ENUMS_SOURCE, SKIN_CONTEXT_SOURCE):
+        source = path.read_text(encoding="utf-8")
+        assert "Glow { id: _glow }" in source, path
+        assert "readonly property alias glow: _glow" in source, path
 
     # Button is a data resource registered in PrismEnums/qmldir; Enums and
     # SkinContext each own one instance of it, so the value reaches every scope.
@@ -268,137 +282,125 @@ def test_glow_never_leaks_into_the_fill_style_matrix():
     # The public axis is a plain property next to style/shape/feature.
     # 该公开轴是与 style/shape/feature 并列的普通属性。
     core_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
-    assert "property int glow: _skin.button.glow_none" in core_source
-    assert "readonly property bool _glowActive: glow !== _skin.button.glow_none" in core_source
+    assert "property int glow: Enums.glow.glow_none" in core_source
+    assert "readonly property bool _glowActive: glow !== Enums.glow.glow_none" in core_source
 
 
-def test_glow_halo_is_lazy_and_module_owned():
+def test_glow_effect_is_shared_and_button_adapter_is_thin():
+    """Glow lives in effects/ as a reusable decoration; the button only binds it.
+
+    泛光作为可复用装饰住在 effects/, 按钮只做绑定。
+    """
+    halo_source = GLOW_HALO_SOURCE.read_text(encoding="utf-8")
+    adapter_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
+
+    # The effect is a public, root-qmldir registered component so any control can use it.
+    # 该效果是经根 qmldir 注册的公开组件, 因此任何控件都能使用。
+    assert GLOW_HALO_SOURCE.parent.name == "effects"
+    assert "GlowHalo GlowHalo.qml" in EFFECTS_QMLDIR_SOURCE.read_text(encoding="utf-8")
+    assert "GlowHalo effects/GlowHalo.qml" in ROOT_QMLDIR_SOURCE.read_text(encoding="utf-8")
+    # It attaches to any rectangular target instead of a specific button. Assert on
+    # executable lines only, because the prose explains what a button is for.
+    # 它附着到任意矩形目标而不是特定按钮。仅检查可执行行, 因为说明文字会解释按钮。
+    assert "required property Item target" in halo_source
+    halo_code = [
+        line
+        for line in halo_source.splitlines()
+        if line.strip() and not line.strip().startswith("//")
+    ]
+    assert not [line for line in halo_code if "button" in line.lower()]
+    # The button adapter stays a thin binding layer under _internal.
+    # 按钮适配层是 _internal 下的薄绑定。
+    assert BUTTON_GLOW_SOURCE.parent.name == "_internal"
+    assert adapter_source.count("target: button") == 1
+    assert "required property var button" in adapter_source
+    # The heavy lifting (shadow, animation) lives in the shared effect only.
+    # 阴影与动画的重活只存在于共享效果里。
+    assert adapter_source.count("RectangularShadow") == 0
+    assert adapter_source.count("SequentialAnimation") == 0
+    assert halo_source.count("RectangularShadow {") == 1
+    assert halo_source.count("SequentialAnimation {") == 1
+
+
+def test_glow_effect_is_lazily_created_by_the_surface():
     surface_source = BUTTON_SURFACE_SOURCE.read_text(encoding="utf-8")
-    glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
     core_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
 
-    # The surface creates the halo imperatively and has no completion hook of its
-    # own: any resident declaration, or even Component.onCompleted, attaches extra
-    # objects to every button and changes the measured object counts of components
-    # that embed buttons. 表面以命令式创建光晕且没有自己的完成钩子: 任何常驻声明,
-    # 甚至 Component.onCompleted, 都会给每个按钮附加额外对象, 改变内嵌按钮组件的
-    # 实测对象数。
+    # Created imperatively: any resident declaration (Loader, inline Component, or a
+    # Component.onCompleted hook) would add objects to every button and change the
+    # measured counts of components that embed buttons.
+    # 以命令式创建: 任何常驻声明(Loader、内联 Component 或 Component.onCompleted 钩子)
+    # 都会给每个按钮增加对象, 改变内嵌按钮组件的实测对象数。
     assert "function _syncGlowLayer()" in surface_source
     assert "readonly property bool _needsGlow: buttonControl._glowActive" in surface_source
     assert "Qt.createComponent(\"ButtonGlow.qml\")" in surface_source
     assert "_glowLayer.destroy()" in surface_source
     assert "on_NeedsGlowChanged: _syncGlowLayer()" in surface_source
-    # Assert on executable lines only: the explanatory comments mention the same
-    # token, so a plain substring check would read the rationale as a violation.
-    # 仅检查可执行行: 说明性注释里也出现该词, 纯子串断言会把理由误判为违规。
     surface_code = [
         line.strip()
         for line in surface_source.splitlines()
         if line.strip() and not line.strip().startswith("//")
     ]
     assert "Component.onCompleted" not in surface_code
-    # The halo may only be reached through the imperative createComponent path: the
-    # surface's one pre-existing Loader belongs to the neo shadow and must not gain
-    # a glow branch.
-    # 光晕只能经命令式 createComponent 到达: 表面既有的那一个 Loader 属于 neo 阴影,
-    # 不得为泛光新增分支。
-    assert "sourceComponent: ButtonGlow {" not in surface_code
-    assert "active: surface.buttonControl._glowActive" not in surface_code
     assert not [line for line in surface_code if line == "Component {"]
     # The core reuses its existing completion hook instead of declaring a new one.
     # 核心复用它已有的完成钩子, 而不是新声明一个。
     assert core_source.count("Component.onCompleted") == 1
     assert "surface._syncGlowLayer()" in core_source
-    # The glow module itself lives under _internal and takes the host by required
-    # property; it must not reach for parent ids.
-    # 光晕模块本体位于 _internal 并以 required property 接收宿主; 不得访问父级 id。
-    assert BUTTON_GLOW_SOURCE.parent.name == "_internal"
-    assert "required property var button" in glow_source
-    assert "required property var buttonControl" not in glow_source
-    # An imperatively created layer must anchor itself; it cannot rely on a Loader.
-    # 命令式创建的图层必须自行锚定, 不能依赖 Loader。
-    assert "parent: button" in glow_source
-    assert "anchors.fill: parent" in glow_source
-    # A glow face already carries a bloom, so the Fluent soft shadow is suppressed
-    # there instead of stacking a second, dirty halo on top.
-    # 泛光面自带光晕, 因此在泛光样式下抑制 Fluent 软阴影, 而不是叠加一层脏双影。
-    assert "&& !surface.buttonControl._glowActive" in surface_source
-    # ButtonCore only exposes the style predicate; it must not own the visual tree.
-    # ButtonCore 只暴露样式判定; 不得持有视觉树。
-    assert "readonly property bool _glowActive: glow !== _skin.button.glow_none" in core_source
-    assert "ButtonGlow {" not in core_source
-    assert "Rectangle {" not in glow_source.replace("Rectangle {\n            // Layer", "")
 
 
 def test_glow_sources_pass_the_convention_scanner():
-    for path in (BUTTON_GLOW_SOURCE, BUTTON_SURFACE_SOURCE, BUTTON_CORE_SOURCE):
+    for path in (
+        GLOW_HALO_SOURCE,
+        GLOW_ENUM_SOURCE,
+        BUTTON_GLOW_SOURCE,
+        BUTTON_SURFACE_SOURCE,
+        BUTTON_CORE_SOURCE,
+    ):
         relative = PurePosixPath(path.relative_to(ROOT).as_posix())
         violations = scan_source_text(path.read_text(encoding="utf-8"), relative)
         assert [
             violation
             for violation in violations
             if violation.rule in {"QML008", "QML009", "QML010", "QML011"}
-        ] == []
+        ] == [], path
 
 
-def test_glow_bloom_is_one_sdf_shadow():
-    """The bloom must be one RectangularShadow, never stacked translucent discs.
+def test_glow_effect_uses_one_sdf_shadow_with_ratio_geometry():
+    halo_source = GLOW_HALO_SOURCE.read_text(encoding="utf-8")
+    glow_enum = GLOW_ENUM_SOURCE.read_text(encoding="utf-8")
 
-    泛光必须是单个 RectangularShadow, 绝不能用叠加半透明圆盘。
-    """
-    glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
-    tokens_source = BUTTON_ENUM_SOURCE.read_text(encoding="utf-8")
-
-    # AGENTS.md 6.2 mandates RectangularShadow as the first choice for rectangular
-    # surfaces ("无离屏渲染"). Field measurement on a real D3D11 window confirmed it
-    # renders a genuinely smooth falloff, whereas stacked translucent rectangles
-    # band visibly on a real display.
-    # AGENTS.md 6.2 规定矩形表面首选 RectangularShadow ("无离屏渲染")。真实 D3D11
-    # 窗口实测确认它产出真正平滑的衰减, 而叠加半透明矩形在真实显示器上出现可见色带。
-    assert glow_source.count("RectangularShadow {") == 1
-    assert "blur: root._blur" in glow_source
-    assert "spread: root._spread" in glow_source
-    assert "MultiEffect {" not in glow_source
-    # No stacked-disc fallback: the Repeater of Rectangles must be gone.
-    # 不得再有叠加圆盘回退: Repeater 矩形必须已移除。
-    assert "Repeater {" not in glow_source
-    assert "glowLayerCount" not in tokens_source
-    assert "glowLayerOpacity" not in tokens_source
-    assert "glowLayerFalloff" not in tokens_source
-    # Geometry must stay fixed so a pulse never re-lays-out the face.
-    # 几何必须保持不变, 使呼吸不会触发按钮面重新布局。
-    shadow_block = glow_source[glow_source.index("RectangularShadow {"):]
-    assert "glowPulseMin" not in shadow_block.split("}")[0]
+    # AGENTS.md 6.2 mandates RectangularShadow for rectangular surfaces; a real D3D11
+    # window confirmed it gives the smooth falloff the stacked-rectangle fallback lost.
+    # AGENTS.md 6.2 规定矩形表面首选 RectangularShadow; 真实 D3D11 窗口确认它给出
+    # 叠加矩形方案丢失的平滑衰减。
+    assert halo_source.count("RectangularShadow {") == 1
+    assert "MultiEffect {" not in halo_source
+    assert "Repeater {" not in halo_source
+    # Geometry is a ratio of the target's short edge, so any size reads correctly.
+    # 几何按目标短边比例, 因此任何尺寸都正确。
+    assert "Math.min(target.width, target.height)" in halo_source
+    assert "readonly property real _spread: _shortEdge * spreadRatio" in halo_source
+    assert "readonly property real _blur: _shortEdge * blurRatio" in halo_source
+    assert "readonly property real blurRatio: 0.45" in glow_enum
+    assert "readonly property real spreadRatio: 0.10" in glow_enum
+    # Geometry must stay fixed so a pulse never re-lays-out the target.
+    # 几何保持不变, 呼吸不会触发目标重新布局。
+    shadow_block = halo_source[halo_source.index("RectangularShadow {"):]
+    assert "pulseMin" not in shadow_block.split("}")[0]
 
 
-def test_glow_bloom_scales_with_the_button_height():
-    """A fixed bloom size swallows a small button and dwarfs a large one.
+def test_glow_halo_colour_is_supplied_by_the_consumer():
+    halo_source = GLOW_HALO_SOURCE.read_text(encoding="utf-8")
+    adapter_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
 
-    固定尺寸的泛光会吞掉小按钮、在大按钮上显得太小。
-    """
-    glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
-    tokens_source = BUTTON_ENUM_SOURCE.read_text(encoding="utf-8")
-
-    # Tokens are ratios; the module multiplies them by the host height.
-    # 令牌是比例; 模块用宿主高度去乘它们。
-    assert "readonly property real glowSpreadRatio:" in tokens_source
-    assert "readonly property real glowBlurRatio:" in tokens_source
-    assert "readonly property real _spread: button.height * _tokens.glowSpread" in glow_source
-    assert "readonly property real _blur: button.height * _tokens.glowBlur" in glow_source
-    # Absolute pixel tokens must not come back: they cannot fit every face size.
-    # 绝对像素令牌不得回潮: 它们无法适配所有按钮面尺寸。
-    assert "glowSpread: isTicket ? 0 : 8" not in tokens_source
-    assert "glowBlur: isTicket ? 0 : 24" not in tokens_source
-
-
-def test_glow_halo_follows_the_resolved_face_colour():
-    """A grey disabled face must not be ringed by a blue halo.
-
-    灰色禁用面不得被蓝色光晕包围。
-    """
-    glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
-    assert "readonly property color _haloColor: button.flat" in glow_source
-    assert "_skin.accentColor" in glow_source
+    # The shared effect must not guess its hue; the consumer knows what it painted.
+    # 共享效果不得猜测色相; 使用者知道自己画了什么。
+    assert "property color haloColor: Enums.accentColor" in halo_source
+    # The button adapter follows the resolved face, falling back to accent for a
+    # fill-less flat face, so a grey disabled face is never ringed in blue.
+    # 按钮适配层跟随已解析面色, 无填充的扁平面回退到主色, 使灰色禁用面不会被蓝圈包围。
+    assert "haloColor: button.flat ? _skin.accentColor : button._effectiveBgColor" in adapter_source
 
 
 def test_glow_composes_with_every_style_shape_and_feature(qapp):
@@ -512,7 +514,7 @@ def test_glow_pulse_stops_without_destroying_the_halo(qapp):
         assert animation.property("running") is False
         assert _modules(button, "ButtonGlow_QMLTYPE_") == [halo]
         assert halo.property("_stateStrength") == pytest.approx(
-            halo.property("_tokens").property("glowDisabledStrength")
+            halo.property("_tokens").property("disabledStrength")
         )
 
         window.setProperty("glowEnabled", True)

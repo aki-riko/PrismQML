@@ -56,7 +56,7 @@ Fluent.Button {
 Fluent.Button {
     text: "开始"
     style: Fluent.Enums.button.style_primary
-    glow: Fluent.Enums.button.glow_accent
+    glow: Fluent.Enums.glow.glow_accent
 }
 
 // 也可以叠在任何其它样式或功能上
@@ -64,7 +64,7 @@ Fluent.Button {
     text: "删除"
     style: Fluent.Enums.button.style_filled
     level: 3
-    glow: Fluent.Enums.button.glow_accent
+    glow: Fluent.Enums.glow.glow_accent
 }
 `
 
@@ -75,12 +75,32 @@ Fluent.Button {
 
 - 光晕取**当前样式已解析出的面色相**：主色按钮泛蓝、成功后填充泛绿、中性默认按钮泛浅灰，因此与所有填充样式都能协调组合。
 - 由单个 RectangularShadow 绘制。Qt 6.9+ 用有符号距离场渲染且**无离屏图层**，这是 AGENTS.md 6.2 规定的矩形表面首选方案，也是真实显示器上唯一真正平滑的衰减。
-- 尺寸按**按钮高度比例**（glowBlurRatio 0.45 / glowSpreadRatio 0.10），在 32~60px 按钮上观感一致。
+- 尺寸按**按钮高度比例**（lurRatio 0.45 / spreadRatio 0.10），在 32~60px 按钮上观感一致。
 - 惰性创建：只有 glow_accent 才实例化光晕层，其余按钮保持原有对象数与像素。
 - 呼吸只调制阴影色 alpha，几何不变；禁用、加载、倒计时、减少动态效果与窗口隐藏时停止。
 - 无填充的扁平样式（style_transparent / style_text / style_hyperlink）没有可衬托光晕的面，因此不绘制。
 - 票据皮肤按设计零悬浮，泛光在那里不创建。
 - 真实泛光只能在 D3D11 上判定：offscreen 的 Software 场景图不执行着色器效果；验收跑 scripts/manual/glow_button_bloom_probe.py。
+
+### 泛光是通用效果
+
+泛光本体是 ffects/GlowHalo（枚举 Enums.glow），任何矩形控件都能直接用，不必是按钮：
+
+`qml
+Rectangle {
+    id: card
+    width: 180; height: 90
+    radius: Enums.radius.large
+    color: Enums.accentColor
+
+    GlowHalo {
+        target: card
+        haloColor: card.color
+    }
+}
+`
+
+GlowHalo 只要求一个矩形 	arget，并接受 haloColor（由使用者提供，因为只有使用者知道自己画了什么表面）。按钮通过 ButtonGlow 适配层把按钮状态（指针态、倒计时、皮肤策略、减少动态效果）绑定上去。
 
 ## 形状 shape
 

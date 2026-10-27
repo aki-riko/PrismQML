@@ -11,3 +11,4 @@ ToggleAnimation ToggleAnimation.qml
 HoverBehavior HoverBehavior.qml
 MatrixRain MatrixRain.qml
 FocusVisual FocusVisual.qml
+GlowHalo GlowHalo.qml
