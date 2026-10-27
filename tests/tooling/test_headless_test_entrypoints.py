@@ -82,6 +82,12 @@ MANUAL_VISIBLE_ENTRYPOINTS = {
     # 的退场时机。它诊断的卡死只在真实上屏的 D3D11 桌面上复现: offscreen 平台回退到
     # Software 场景图, 不执行着色器效果也不会让孵化队列停滞, 因此那里观测不到失败信号。
     Path("scripts/manual/skeleton_navigation_stall_probe.py"),
+    # Measures the glow button's SDF bloom on a real window: the offscreen platform
+    # falls back to the Software scene graph, which executes no shader effects, so
+    # an effect-based bloom is invisible there regardless of correctness. 在真实窗口
+    # 上测量泛光按钮的 SDF 光晕: offscreen 平台回退到 Software 场景图, 不执行着色器
+    # 效果, 因此基于效果的泛光在那里无论对错都不可见。
+    Path("scripts/manual/glow_button_bloom_probe.py"),
 }
 BOOTSTRAP_NAME = "configure_qml_test_process"
 BOOTSTRAP_MODULE = "_test_process_bootstrap"

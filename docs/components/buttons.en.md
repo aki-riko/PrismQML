@@ -60,17 +60,21 @@ Fluent.Button {
 }
 ```
 
-- The halo is stacked translucent rounded rectangles, **not a shader blur**: on a
-  real D3D11 window both `RectangularShadow` and `MultiEffect` blur drew nothing
-  behind this surface, while the layered rectangles are visible (`StepperHalo`
-  already uses the same technique).
+- The halo is one `RectangularShadow`. Qt 6.9+ renders it from a signed-distance
+  field with **no offscreen layer**, which is the repo's mandated first choice for
+  rectangular surfaces (`AGENTS.md` 6.2) and the only variant with a genuinely
+  smooth falloff on a real display; stacked translucent rectangles band there.
 - The halo is lazy: only `style_glow` instantiates it, so every other style keeps
   the object count and pixels it had before.
-- Disabled/loading states keep a faint static halo, hover brightens it and press
-  pulls it in; the breathing loop stops during a countdown and under reduced
-  motion.
+- The halo follows the resolved face colour, not the raw accent, so a disabled grey
+  face is ringed by grey rather than by blue.
+- The pulse animates only the shadow colour's alpha and never the geometry, so it
+  never triggers a re-layout; it stops during a countdown, under reduced motion,
+  and while the host window is hidden.
 - Ticket paper has zero elevation by design, so the bloom collapses to a plain
   accent face there.
+- A real bloom can only be judged on D3D11: the `offscreen` Software scene graph
+  executes no shader effects. Accept with `scripts/manual/glow_button_bloom_probe.py`.
 
 ## shape
 
