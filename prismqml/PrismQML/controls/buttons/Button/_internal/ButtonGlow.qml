@@ -40,12 +40,16 @@ Item {
     // 比例为零, 光晕根本不会被创建。
     readonly property real _spread: button.height * _tokens.glowSpread
     readonly property real _blur: button.height * _tokens.glowBlur
-    // The bloom follows the resolved face colour, not the raw accent: a disabled
-    // face is neutral grey, and a blue halo around a grey face reads as a rendering
-    // bug rather than as a dimmed light.
-    // 泛光跟随已解析的面色而不是原始主色: 禁用面是中性灰, 灰面配蓝色光晕会读作渲染
-    // 缺陷而不是变暗的灯光。
-    readonly property color _haloColor: button._effectiveBgColor
+    // The bloom takes the hue of whatever face the style resolved, so it composes
+    // with every fill style: an accent primary blooms blue, a filled success button
+    // blooms green, a neutral default button blooms grey. A face with no fill of its
+    // own (transparent/text/hyperlink) has nothing to bloom from, so those styles
+    // fall back to the accent hue instead.
+    // 泛光取当前样式已解析出的面色相, 因此可与所有填充样式组合: 主色按钮泛蓝, 成功
+    // 语义填充泛绿, 中性默认按钮泛灰。自身无填充的面(透明/纯文字/超链接)没有可泛光的
+    // 底色, 因此这些样式改用主色。
+    readonly property color _haloColor: button.flat
+        ? _skin.accentColor : button._effectiveBgColor
     // Pulse only while the host can actually show a bloom. A hidden window must not
     // keep animating: Qt still drives the animation clock for invisible windows.
     // 仅当宿主真能显示泛光时呼吸。隐藏窗口不得继续动画: Qt 对不可见窗口仍驱动动画

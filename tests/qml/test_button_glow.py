@@ -19,7 +19,7 @@ from pathlib import PurePosixPath
 import pytest
 from PySide6.QtCore import QEventLoop, QObject, QPointF, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication, QImage
-from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickWindow
 
 from prismqml import Skin, Theme, getSkin, getTheme, register_types, setSkin, setTheme
@@ -67,7 +67,7 @@ Window {
             objectName: "glowButton"
             width: 160
             height: 48
-            style: Enums.button.style_glow
+            glow: Enums.button.glow_accent
             text: "Glow"
             enabled: window.glowEnabled
             pseudoHovered: window.glowHovered
@@ -85,6 +85,37 @@ Window {
     }
 }
 """
+
+COMPOSE_SCENE_SOURCE = """
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: window
+
+    readonly property int pillShape: Enums.button.shape_pill
+    readonly property int toggleFeature: Enums.button.feature_toggle
+
+    width: 900
+    height: 520
+    visible: false
+
+    // Same style with and without glow: the face must be identical.
+    // 同一样式有/无泛光: 按钮面必须完全一致。
+    Button { objectName: "plainDefault"; x: 10; y: 10; width: 140; height: 40; style: Enums.button.style_default; text: "A" }
+    Button { objectName: "glow_default"; x: 170; y: 10; width: 140; height: 40; style: Enums.button.style_default; glow: Enums.button.glow_accent; text: "A" }
+    Button { objectName: "plainPrimary"; x: 10; y: 70; width: 140; height: 40; style: Enums.button.style_primary; text: "B" }
+    Button { objectName: "glow_primary"; x: 170; y: 70; width: 140; height: 40; style: Enums.button.style_primary; glow: Enums.button.glow_accent; text: "B" }
+    Button { objectName: "plainFilled"; x: 10; y: 130; width: 140; height: 40; style: Enums.button.style_filled; level: 1; text: "C" }
+    Button { objectName: "glow_filled"; x: 170; y: 130; width: 140; height: 40; style: Enums.button.style_filled; level: 1; glow: Enums.button.glow_accent; text: "C" }
+
+    // Shape and feature compose with glow.
+    Button { objectName: "glowPill"; x: 10; y: 200; width: 140; height: 40; style: Enums.button.style_primary; shape: Enums.button.shape_pill; glow: Enums.button.glow_accent; text: "P" }
+    Button { objectName: "glowToggle"; x: 170; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_toggle; glow: Enums.button.glow_accent; text: "T" }
+    Button { objectName: "glowProgress"; x: 330; y: 200; width: 140; height: 40; style: Enums.button.style_primary; feature: Enums.button.feature_progress_bar; progress: 0.5; showProgress: true; glow: Enums.button.glow_accent; text: "R" }
+}
+""".encode("utf-8")
 
 SCENE_URL = QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "button-glow.qml"))
 
@@ -171,11 +202,15 @@ def _stable_image(window: QQuickWindow) -> QImage:
 # ==================== Source contracts 源码合同 ====================
 
 
-def test_glow_style_is_registered_once_across_the_enum_surface():
+def test_glow_is_an_orthogonal_axis_not_a_style():
+    """Glow must compose with every style, not replace one.
+
+    泛光必须与所有样式组合, 而不是取代其中一种。
+    """
     enum_source = BUTTON_ENUM_SOURCE.read_text(encoding="utf-8")
-    assert "readonly property int style_glow: 7" in enum_source
-    # The existing style values must not be renumbered: consumers persist them.
-    # 既有样式取值不得重排: 消费者会持久化这些数值。
+
+    # The style axis keeps exactly its original seven fills: glow is not a fill.
+    # 样式轴保持原有的七种填充: 泛光不是一种填充。
     for value, name in enumerate(
         (
             "style_default",
@@ -188,6 +223,12 @@ def test_glow_style_is_registered_once_across_the_enum_surface():
         )
     ):
         assert f"readonly property int {name}: {value}" in enum_source
+    assert "style_glow" not in enum_source
+
+    # Glow is its own enumerated axis, mirroring how eature is declared.
+    # 泛光是自己的枚举轴, 与 eature 的声明方式一致。
+    assert "readonly property int glow_none: 0" in enum_source
+    assert "readonly property int glow_accent: 1" in enum_source
 
     # Button is a data resource registered in PrismEnums/qmldir; Enums and
     # SkinContext each own one instance of it, so the value reaches every scope.
@@ -199,10 +240,10 @@ def test_glow_style_is_registered_once_across_the_enum_surface():
         assert "Button { id: _button" in source, path
 
 
-def test_glow_style_shares_the_primary_face_matrix():
-    """Glow keeps the primary face; only the halo and shadow differ.
+def test_glow_never_leaks_into_the_fill_style_matrix():
+    """A glow request must not change the resolved face of any style.
 
-    泛光沿用 primary 的按钮面, 仅光晕与阴影不同。
+    泛光请求不得改变任何样式的已解析按钮面。
     """
     style_source = (
         BUTTON_CORE_SOURCE.parent / "ButtonStyle.js"
@@ -211,34 +252,24 @@ def test_glow_style_shares_the_primary_face_matrix():
         BUTTON_CORE_SOURCE.parent / "ButtonStyleHelper.qml"
     ).read_text(encoding="utf-8")
 
-    # Fill: the same accent derivation as style_primary.
-    # 填充: 与 style_primary 完全相同的主色推导。
-    assert (
-        "    case button.style_primary:\n"
-        "    case button.style_glow:\n"
-    ) in style_source
-    assert (
-        "            case Enums.button.style_primary:\n"
-        "            case Enums.button.style_glow:\n"
-    ) in helper_source
-    # Border: transparent, exactly like the other accent styles.
-    # 描边: 与其它主色样式一样透明。
-    assert "    case button.style_glow:\n        return transparent" in style_source
-    assert (
-        "            case Enums.button.style_glow:\n"
-        "                return Enums.transparent"
-    ) in helper_source
-    # Ink and progress/ring colours treat glow as an accent style.
-    # 墨色与进度环颜色把泛光当作主色样式处理。
-    assert "           style === button.style_glow" in style_source
-    assert "               style === Enums.button.style_glow" in helper_source
+    # No fill/border/ink branch may mention glow: the face is decided by style
+    # alone, which is exactly what makes the combination orthogonal.
+    # 任何填充/描边/墨色分支都不得提到泛光: 按钮面只由 style 决定, 这正是该组合
+    # 正交的原因。
+    assert "style_glow" not in style_source
+    assert "style_glow" not in helper_source
     for consumer in (
         BUTTON_CORE_SOURCE.parent / "ButtonContent.qml",
         BUTTON_CORE_SOURCE.parent / "ButtonProgress.qml",
         BUTTON_CORE_SOURCE.parent / "ButtonDropdown.qml",
     ):
-        source = consumer.read_text(encoding="utf-8")
-        assert "style_glow" in source, consumer
+        assert "style_glow" not in consumer.read_text(encoding="utf-8"), consumer
+
+    # The public axis is a plain property next to style/shape/feature.
+    # 该公开轴是与 style/shape/feature 并列的普通属性。
+    core_source = BUTTON_CORE_SOURCE.read_text(encoding="utf-8")
+    assert "property int glow: _skin.button.glow_none" in core_source
+    assert "readonly property bool _glowActive: glow !== _skin.button.glow_none" in core_source
 
 
 def test_glow_halo_is_lazy_and_module_owned():
@@ -253,7 +284,7 @@ def test_glow_halo_is_lazy_and_module_owned():
     # 甚至 Component.onCompleted, 都会给每个按钮附加额外对象, 改变内嵌按钮组件的
     # 实测对象数。
     assert "function _syncGlowLayer()" in surface_source
-    assert "readonly property bool _needsGlow: buttonControl._isGlowStyle" in surface_source
+    assert "readonly property bool _needsGlow: buttonControl._glowActive" in surface_source
     assert "Qt.createComponent(\"ButtonGlow.qml\")" in surface_source
     assert "_glowLayer.destroy()" in surface_source
     assert "on_NeedsGlowChanged: _syncGlowLayer()" in surface_source
@@ -272,7 +303,7 @@ def test_glow_halo_is_lazy_and_module_owned():
     # 光晕只能经命令式 createComponent 到达: 表面既有的那一个 Loader 属于 neo 阴影,
     # 不得为泛光新增分支。
     assert "sourceComponent: ButtonGlow {" not in surface_code
-    assert "active: surface.buttonControl._isGlowStyle" not in surface_code
+    assert "active: surface.buttonControl._glowActive" not in surface_code
     assert not [line for line in surface_code if line == "Component {"]
     # The core reuses its existing completion hook instead of declaring a new one.
     # 核心复用它已有的完成钩子, 而不是新声明一个。
@@ -291,10 +322,10 @@ def test_glow_halo_is_lazy_and_module_owned():
     # A glow face already carries a bloom, so the Fluent soft shadow is suppressed
     # there instead of stacking a second, dirty halo on top.
     # 泛光面自带光晕, 因此在泛光样式下抑制 Fluent 软阴影, 而不是叠加一层脏双影。
-    assert "&& !surface.buttonControl._isGlowStyle" in surface_source
+    assert "&& !surface.buttonControl._glowActive" in surface_source
     # ButtonCore only exposes the style predicate; it must not own the visual tree.
     # ButtonCore 只暴露样式判定; 不得持有视觉树。
-    assert "readonly property bool _isGlowStyle: style === _skin.button.style_glow" in core_source
+    assert "readonly property bool _glowActive: glow !== _skin.button.glow_none" in core_source
     assert "ButtonGlow {" not in core_source
     assert "Rectangle {" not in glow_source.replace("Rectangle {\n            // Layer", "")
 
@@ -366,14 +397,72 @@ def test_glow_halo_follows_the_resolved_face_colour():
     灰色禁用面不得被蓝色光晕包围。
     """
     glow_source = BUTTON_GLOW_SOURCE.read_text(encoding="utf-8")
-    assert "readonly property color _haloColor: button._effectiveBgColor" in glow_source
-    assert "readonly property color _haloColor: _skin.accentColor" not in glow_source
+    assert "readonly property color _haloColor: button.flat" in glow_source
+    assert "_skin.accentColor" in glow_source
+
+
+def test_glow_composes_with_every_style_shape_and_feature(qapp):
+    """The point of a separate axis: it combines, it does not replace.
+
+    独立轴的意义就是可组合, 而不是取代。
+    """
+    engine = QQmlEngine()
+    warnings: list[str] = []
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+    component = QQmlComponent(engine)
+    component.setData(COMPOSE_SCENE_SOURCE, QUrl("inline:button-glow-compose.qml"))
+    for _ in range(50):
+        if not component.isLoading():
+            break
+        _pump()
+    window = component.create()
+    assert window is not None, [error.toString() for error in component.errors()]
+    try:
+        # Glow changes nothing about the face: only the halo layer appears.
+        # 泛光不改变按钮面: 只多出光晕层。
+        for pair in (
+            ("default", "plainDefault"),
+            ("primary", "plainPrimary"),
+            ("filled", "plainFilled"),
+        ):
+            glow_name, plain_name = f"glow_{pair[0]}", pair[1]
+            glow_item = window.findChild(QObject, glow_name)
+            plain_item = window.findChild(QObject, plain_name)
+            assert glow_item is not None and plain_item is not None, pair
+            assert glow_item.property("_styleBgColor") == plain_item.property("_styleBgColor"), pair
+            assert glow_item.property("_styleTextColor") == plain_item.property("_styleTextColor"), pair
+            # Exactly one halo on the glowing one, none on the plain one.
+            # 泛光实例恰有一个光晕, 普通实例没有。
+            assert len(_modules(glow_item, "ButtonGlow_QMLTYPE_")) == 1, pair
+            assert _modules(plain_item, "ButtonGlow_QMLTYPE_") == [], pair
+
+        # Shape and feature compose too: a pill and a toggle both keep their own
+        # behaviour while carrying a halo.
+        # 形状与功能同样可组合: 药丸与 toggle 各自保持行为同时携带光晕。
+        for name in ("glowPill", "glowToggle", "glowProgress"):
+            item = window.findChild(QObject, name)
+            assert item is not None, name
+            assert len(_modules(item, "ButtonGlow_QMLTYPE_")) == 1, name
+        pill = window.findChild(QObject, "glowPill")
+        assert pill.property("shape") == window.property("pillShape")
+        toggle = window.findChild(QObject, "glowToggle")
+        assert toggle.property("feature") == window.property("toggleFeature")
+        assert warnings == []
+    finally:
+        window.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        _pump(1)
 
 
 # ==================== Runtime behaviour 运行时行为 ====================
 
 
-def test_halo_is_created_only_for_the_glow_style(qapp):
+def test_halo_is_created_only_when_glow_is_requested(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, warnings = _create_scene()
     try:
@@ -381,8 +470,8 @@ def test_halo_is_created_only_for_the_glow_style(qapp):
         plain_button = window.findChild(QObject, "plainPrimaryButton")
         assert glow_button is not None and plain_button is not None
 
-        assert glow_button.property("_isGlowStyle") is True
-        assert plain_button.property("_isGlowStyle") is False
+        assert glow_button.property("_glowActive") is True
+        assert plain_button.property("_glowActive") is False
         assert len(_modules(glow_button, "ButtonGlow_QMLTYPE_")) == 1
         assert _modules(plain_button, "ButtonGlow_QMLTYPE_") == []
         # The halo is the only looping animation a glow button adds.

@@ -76,7 +76,8 @@ Window {
         y: 100
         width: 200
         height: 46
-        style: Enums.button.style_glow
+        style: Enums.button.style_primary
+        glow: Enums.button.glow_accent
         text: "Glow"
     }
 

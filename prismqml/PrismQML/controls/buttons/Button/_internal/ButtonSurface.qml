@@ -28,15 +28,17 @@ Item {
         neoShadowLoader.item ? neoShadowLoader.item.animatedPressShift : 0
     readonly property var pressTransform:
         neoShadowLoader.item ? neoShadowLoader.item.pressTransform : null
-    // A halo is only meaningful for the glow style. The layer is created on demand
-    // rather than declared here, because every declaration costs resident objects on
-    // *every* button: a Loader adds one, and an inline Component block adds a
-    // QQmlComponent plus its attached object. That would change the measured object
-    // counts of components that embed buttons (Toast, InfoBar, menus).
-    // 只有泛光样式需要光晕。该层按需创建而不是在此声明: 任何声明都会给每个按钮增加
-    // 常驻对象(Loader 加一个, 内联 Component 块还会再加 QQmlComponent 及其 attached
-    // 对象), 从而改变内嵌按钮组件(Toast、InfoBar、菜单)的实测对象数。
-    readonly property bool _needsGlow: buttonControl._isGlowStyle
+    // Glow is an orthogonal layer: any style can request it. The layer is created on
+    // demand rather than declared here, because every declaration costs resident
+    // objects on *every* button: a Loader adds one, and an inline Component block
+    // adds a QQmlComponent plus its attached object. That would change the measured
+    // object counts of components that embed buttons (Toast, InfoBar, menus).
+    // 泛光是正交图层: 任何样式都可请求它。该层按需创建而不是在此声明: 任何声明都会给
+    // 每个按钮增加常驻对象(Loader 加一个, 内联 Component 块还会再加 QQmlComponent 及
+    // 其 attached 对象), 从而改变内嵌按钮组件(Toast、InfoBar、菜单)的实测对象数。
+    // A flat face has no fill for a bloom to sit behind, so it is excluded.
+    // 无填充的扁平按钮没有可衬托光晕的面, 因此排除。
+    readonly property bool _needsGlow: buttonControl._glowActive
                                        && !buttonControl.flat
 
     // ==================== Internal Props 内部属性 ====================
@@ -88,7 +90,7 @@ Item {
         offset.y: _skin.shadow.level2.offset
         visible: !surface.buttonControl.flat && _skin.usesSoftElevation
                  && !_skin.isNeumorphism && !_skin.isNeumorphism
-                 && !surface.buttonControl._isGlowStyle
+                 && !surface.buttonControl._glowActive
     }
 
     // Neumorphic shadow surface 新拟态阴影表面

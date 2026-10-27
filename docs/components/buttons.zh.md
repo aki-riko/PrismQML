@@ -35,37 +35,52 @@ Fluent.Button {
 
 外部菜单需要提供 `isOpen`、`prewarm()`、`openAtControl(control)` 和 `close()`；不满足契约时会输出明确警告。
 
-## 样式 style（8 种）
+## 样式 style（7 种）
 
 | 值 | 说明 |
 |----|------|
-| `style_default` | 默认（白底/描边） |
-| `style_primary` | 主色填充（自动用主题色；neo 下为橙） |
-| `style_transparent` | 透明 |
-| `style_filled` | 状态色填充（按 `level` 取成功/危险等） |
-| `style_text` | 纯文字 |
-| `style_hyperlink` | 超链接 |
-| `style_gradient` | 渐变 |
-| `style_glow` | 泛光（主色面 + 柔和外圈光晕，带呼吸） |
+| style_default | 默认（白底/描边） |
+| style_primary | 主色填充（自动用主题色；neo 下为橙） |
+| style_transparent | 透明 |
+| style_filled | 状态色填充（按 level 取成功/危险等） |
+| style_text | 纯文字 |
+| style_hyperlink | 超链接 |
+| style_gradient | 渐变 |
 
-### 泛光按钮 `style_glow`
+## 泛光 glow（正交维度）
 
-泛光沿用 `style_primary` 的主色面、墨色与按压处理，只在外圈额外绘制一层柔和光晕：
+泛光**不是**一种样式，而是与 style / shape / eature 并列的独立轴，可与任意组合叠加：
 
-```qml
+`qml
+// 主色按钮 + 泛光
 Fluent.Button {
     text: "开始"
-    style: Fluent.Enums.button.style_glow
+    style: Fluent.Enums.button.style_primary
+    glow: Fluent.Enums.button.glow_accent
 }
-```
 
-- 光晕由单个 `RectangularShadow` 绘制。Qt 6.9+ 用有符号距离场渲染且**无离屏图层**，这是 `AGENTS.md` 6.2 规定的矩形表面首选方案，也是真实显示器上唯一真正平滑的衰减；叠加半透明矩形的方案会在真实屏幕上出现可见色带。
-- 光晕尺寸按**按钮高度的比例**而不是固定像素：`glowBlurRatio` 0.45、`glowSpreadRatio` 0.10。固定尺寸会在小按钮上显得过大、在大按钮上显得过小；实测该比例下贴边着色约 46/255，读作柔和描边而不是色团。
-- 泛光惰性创建：只有 `style_glow` 会实例化光晕层，其余样式保持原有对象数与像素。
-- 光晕色跟随已解析的按钮面（而不是原始主色），因此禁用态是灰面配灰光晕，不会出现灰面配蓝光晕。
-- 呼吸只调制阴影色的 alpha，几何保持不变，不会触发按钮面重新布局；禁用、加载、倒计时、减少动态效果与窗口隐藏时停止呼吸。
-- 票据皮肤按设计零悬浮，泛光在那里收敛为纯主色面。
-- 真实泛光只能在 D3D11 上判定：`offscreen` 的 Software 场景图不执行着色器效果。验收请跑 `scripts/manual/glow_button_bloom_probe.py`。
+// 也可以叠在任何其它样式或功能上
+Fluent.Button {
+    text: "删除"
+    style: Fluent.Enums.button.style_filled
+    level: 3
+    glow: Fluent.Enums.button.glow_accent
+}
+`
+
+| 值 | 说明 |
+|----|------|
+| glow_none | 无泛光（默认） |
+| glow_accent | 跟随按钮面颜色的泛光 |
+
+- 光晕取**当前样式已解析出的面色相**：主色按钮泛蓝、成功后填充泛绿、中性默认按钮泛浅灰，因此与所有填充样式都能协调组合。
+- 由单个 RectangularShadow 绘制。Qt 6.9+ 用有符号距离场渲染且**无离屏图层**，这是 AGENTS.md 6.2 规定的矩形表面首选方案，也是真实显示器上唯一真正平滑的衰减。
+- 尺寸按**按钮高度比例**（glowBlurRatio 0.45 / glowSpreadRatio 0.10），在 32~60px 按钮上观感一致。
+- 惰性创建：只有 glow_accent 才实例化光晕层，其余按钮保持原有对象数与像素。
+- 呼吸只调制阴影色 alpha，几何不变；禁用、加载、倒计时、减少动态效果与窗口隐藏时停止。
+- 无填充的扁平样式（style_transparent / style_text / style_hyperlink）没有可衬托光晕的面，因此不绘制。
+- 票据皮肤按设计零悬浮，泛光在那里不创建。
+- 真实泛光只能在 D3D11 上判定：offscreen 的 Software 场景图不执行着色器效果；验收跑 scripts/manual/glow_button_bloom_probe.py。
 
 ## 形状 shape
 

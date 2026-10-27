@@ -81,7 +81,6 @@ Item {
                     ComponentCard { label: "style_filled"; Button { style: Fluent.Enums.button.style_filled; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
                     ComponentCard { label: "style_text"; Button { style: Fluent.Enums.button.style_text; level: 1; text: Fluent.Translator.tr("gallery_dd81861811e57bf7", Fluent.Translator._v) } }
                     ComponentCard { label: "style_hyperlink"; Button { style: Fluent.Enums.button.style_hyperlink; text: Fluent.Translator.tr("gallery_4a63f752884096b5", Fluent.Translator._v) } }
-                    ComponentCard { label: "style_glow"; Button { style: Fluent.Enums.button.style_glow; text: Fluent.Translator.tr("gallery_a9cdbb0c43394fc0", Fluent.Translator._v) } }
                 }
             }
             
@@ -240,6 +239,25 @@ Item {
                 }
             }
             
+            // ==================== Glow 泛光（正交维度） ====================
+            // Glow is its own axis, so it combines with every style, shape, and
+            // feature instead of occupying one style slot.
+            // 泛光是独立轴, 因此与所有样式、形状与功能组合, 而不是占用一个样式位.
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_a9cdbb0c43394fc0", Fluent.Translator._v)
+                description: "glow + style / shape / feature"
+                Flow {
+                    width: parent ? parent.width : 0
+                    spacing: root._flowSpacing
+                    ComponentCard { label: "glow+primary"; Button { style: Fluent.Enums.button.style_primary; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_5ccd91f4181db651", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+default"; Button { style: Fluent.Enums.button.style_default; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_844b8cc8dff7c1d8", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+filled"; Button { style: Fluent.Enums.button.style_filled; level: 1; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; glow: Fluent.Enums.button.glow_accent; text: Fluent.Translator.tr("gallery_a7a690751fb88395", Fluent.Translator._v) } }
+                    ComponentCard { label: "glow+toggle"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_toggle; glow: Fluent.Enums.button.glow_accent; text: "Toggle" } }
+                    ComponentCard { label: "glow+progress"; Button { style: Fluent.Enums.button.style_primary; feature: Fluent.Enums.button.feature_progress_bar; progress: 0.6; showProgress: true; glow: Fluent.Enums.button.glow_accent; text: "Progress" } }
+                }
+            }
+
             // ==================== Style + Shape 组合 ====================
             ExampleCard {
                 title: Fluent.Translator.tr("gallery_9da0be8d3424c2f6", Fluent.Translator._v)
@@ -252,7 +270,6 @@ Item {
                     ComponentCard { label: "primary+pill"; Button { style: Fluent.Enums.button.style_primary; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_5ccd91f4181db651", Fluent.Translator._v) } }
                     ComponentCard { label: "transparent+pill"; Button { style: Fluent.Enums.button.style_transparent; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_9dddd9f908b2b956", Fluent.Translator._v) } }
                     ComponentCard { label: "filled+pill"; Button { style: Fluent.Enums.button.style_filled; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_05fb7cba476bd2e9", Fluent.Translator._v) } }
-                    ComponentCard { label: "glow+pill"; Button { style: Fluent.Enums.button.style_glow; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_a9cdbb0c43394fc0", Fluent.Translator._v) } }
                     ComponentCard { label: "text+pill"; Button { style: Fluent.Enums.button.style_text; shape: Fluent.Enums.button.shape_pill; level: 1; text: Fluent.Translator.tr("gallery_dd81861811e57bf7", Fluent.Translator._v) } }
                     ComponentCard { label: "hyperlink+pill"; Button { style: Fluent.Enums.button.style_hyperlink; shape: Fluent.Enums.button.shape_pill; text: Fluent.Translator.tr("gallery_4a63f752884096b5", Fluent.Translator._v) } }
                 }

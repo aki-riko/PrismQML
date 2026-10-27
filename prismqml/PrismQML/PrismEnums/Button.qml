@@ -18,7 +18,6 @@ QtObject {
     readonly property int style_text: 4
     readonly property int style_hyperlink: 5
     readonly property int style_gradient: 6
-    readonly property int style_glow: 7
     
     // Shapes 外观形状
     readonly property int shape_default: 0
@@ -39,6 +38,14 @@ QtObject {
     readonly property int align_center: 0           // Center alignment 居中对齐
     readonly property int align_left: 1             // Left alignment 左对齐
     readonly property int align_right: 2            // Right alignment 右对齐
+
+    // Glow 泛光（正交维度，可与任意 style / shape / feature 叠加）
+    // Glow is not a fill style: it paints a bloom behind whatever face the style
+    // already resolves, so it composes with every style instead of replacing one.
+    // 泛光不是填充风格: 它在样式已解析出的按钮面背后绘制光晕, 因此与所有样式叠加
+    // 而不是取代其中一种。
+    readonly property int glow_none: 0              // No bloom 无泛光
+    readonly property int glow_accent: 1            // Face-following bloom 跟随按钮面的泛光
     
     // Countdown defaults 倒计时默认值
     readonly property int countdownDefault: 60      // Default countdown seconds 默认倒计时秒数
@@ -53,14 +60,16 @@ QtObject {
     readonly property real hoverLighten: 1.3        // Hover state lighten factor 悬浮状态变亮系数
 
     // Bloom glow tokens 泛光令牌
-    // A glow button keeps the accent fill of style_primary and rings it with a soft
-    // bloom drawn by one RectangularShadow: Qt 6.9+ renders it from a signed-distance
-    // field with no offscreen layer, which is the repo's mandated first choice for
-    // rectangular surfaces (AGENTS.md 6.2) and the only variant with a genuinely
-    // smooth falloff on a real display.
-    // 泛光按钮沿用 style_primary 的主色填充，外圈由单个 RectangularShadow 绘制柔和
-    // 泛光：Qt 6.9+ 用有符号距离场渲染且无离屏图层，这是仓库对矩形表面规定的首选方案
-    // （AGENTS.md 6.2），也是真实显示器上唯一真正平滑的变体。
+    // Glow is an orthogonal visual layer, not a fill style: it rings whatever face
+    // the current style already resolves, so any style, shape, and feature can be
+    // combined with it. The bloom is one RectangularShadow: Qt 6.9+ renders it from
+    // a signed-distance field with no offscreen layer, which is the repo's mandated
+    // first choice for rectangular surfaces (AGENTS.md 6.2) and the only variant
+    // with a genuinely smooth falloff on a real display.
+    // 泛光是正交视觉层而不是填充风格: 它在当前 style 已解析出的按钮面外圈绘制,
+    // 因此可与任意样式、形状与功能组合。光晕由单个 RectangularShadow 绘制:
+    // Qt 6.9+ 用有符号距离场渲染且无离屏图层, 这是仓库对矩形表面规定的首选方案
+    // (AGENTS.md 6.2), 也是真实显示器上唯一真正平滑的变体。
     //
     // The bloom is sized as a ratio of the button height, not in absolute pixels: a
     // fixed spread that looks right on a 46 px button swallows a 32 px one. Measured
