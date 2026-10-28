@@ -349,9 +349,14 @@ def test_combo_box_tree_source_conventions():
     assert "function _hasMatchingDescendants(" not in source
     assert "function _collectExpandableNodes(" not in source
     assert "function _flattenTree(" not in source
-    assert 'property: "_animatedPopupContentHeight"' in source
-    assert "duration: Enums.duration.fast" in source
-    assert "easing.type: Easing.OutCubic" in source
+    # 高度算术与生长动画已移入共用件 TreePopupSizer（单树/多选树同一套口径）
+    assert 'id: treePopupSizer' in source
+    assert "TreePopupSizer {" in source
+    assert "treePopupSizer.update()" in source
+    # 行增量同步已移入共用件 ComboBoxTreeRows.js
+    assert 'import "_internal/ComboBoxTreeRows.js" as TreeRows' in source
+    assert 'TreeRows.syncRows(treeRowModel, rows, "nodeId", animate)' in source
+    assert 'TreeRows.syncRowFields(treeRowModel, rows, "nodeId", ["expanded", "text"])' in source
     assert "if ((_safeModel || []).length > 0)" not in source
     assert "if (_safeModel.length > 0)" not in source
     assert [

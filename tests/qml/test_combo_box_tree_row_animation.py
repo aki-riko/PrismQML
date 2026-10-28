@@ -279,8 +279,9 @@ def test_tree_rows_use_incremental_model_and_transitions():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     assert "ListModel {" in source
     assert "function _syncRows(flat, animate)" in source
-    assert "treeRowModel.insert(" in source
-    assert "treeRowModel.remove(" in source
+    # 差异算法与行同步在共用件里（单树/多选树同一套）
+    assert 'import "_internal/ComboBoxTreeRows.js" as TreeRows' in source
+    assert 'TreeRows.syncRows(treeRowModel, rows, "nodeId", animate)' in source
     assert "model: control._rowModel" in source
     assert 'PropertyAction { property: "opacity"; value: 0 }' in source
     assert "PauseAnimation { duration: Enums.duration.ultraFast }" in source
@@ -288,3 +289,8 @@ def test_tree_rows_use_incremental_model_and_transitions():
     # 可编辑输入框必须把文字镜像进查询，且收起后丢弃查询。
     assert "onTextEdited: function(text)" in source
     assert "onPopupVisibleChanged:" in source
+    # 非可编辑树打开即把焦点交给弹层搜索框（弹层窗口懒创建，必须允许下一拍重试）。
+    assert "function _focusPopupSearch()" in source
+    assert "_searchBox.focusInput()" in source
+    assert "if (editable || !searchEnabled || !isOpen) return" in source
+    assert "Qt.callLater(_focusPopupSearch)" in source

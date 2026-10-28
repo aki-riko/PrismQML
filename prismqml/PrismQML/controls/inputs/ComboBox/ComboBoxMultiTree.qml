@@ -6,6 +6,7 @@ import "../../.."
 import ".."
 import "_internal"
 import "_internal/ComboBoxTreeNodes.js" as TreeNodes
+import "_internal/ComboBoxTreeRows.js" as TreeRows
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxMultiTree - Tree multi-select dropdown with search 带搜索的树形多选下拉框
@@ -28,6 +29,13 @@ ComboBoxCore {
     property string _searchText: ""
     property real _targetX: 0
     property real _smoothContentX: 0
+    //: 弹层高度（按行数算 + 生长动画 + 原生窗口跟随）由共用件持有，与单树同一口径。
+    property var _sizer: multiTreeSizer
+    //: 只有展开/折叠给行增删走过渡动画；搜索收窄与换模型整体重建，逐键不闪。
+    property bool _animateRowChange: false
+    //: 弹层里搜索框的引用（由 popupContent 实例化时回写），用于「打开即聚焦搜索框」
+    //: 与「点分类展开后把焦点还给它」——弹层内容是独立 Component，作用域够不到它的 id。
+    property var _searchBox: null
     property alias _flatListModel: multiTreeContent.flatListModel
     property alias tokenFlickable: multiTreeContent.tokenFlickable
 
@@ -80,7 +88,7 @@ ComboBoxCore {
     }
 
     function _rebuildFlatModel() {
-        _flatListModel.clear()
+        var rows = []
         var searchText = _searchText.toLowerCase()
         TreeNodes.flatten(
             _safeModel,
@@ -88,17 +96,30 @@ ComboBoxCore {
             function (row) {
                 // Selection state is this control's own concern 选中状态是本控件自有语义
                 var selectionState = control._getSelectionState(row.node, row.path)
-                _flatListModel.append({
+                rows.push({
                     text: row.text,
                     depth: row.depth,
                     nodeId: row.nodeId,
-                    path: JSON.stringify(row.path),  // ListModel needs primitive types ListModel需要基本类型
+                    // ListModel 只存基本类型；path 序列化后由本控件反解
+                    path: JSON.stringify(row.path),
                     hasChildren: row.hasChildren,
                     expanded: row.expanded,
                     selected: selectionState === 2,
                     isPartialSelected: selectionState === 1
                 })
             })
+        var animate = _animateRowChange
+        _animateRowChange = false
+        // 行增删只做最小结构变更（展开/折叠是单段插入/删除），过渡动画才有对象可动。
+        TreeRows.syncRows(_flatListModel, rows, "nodeId", animate)
+        _updatePopupContentHeight()
+    }
+
+    /// 弹层高度：按行数算目标高度并让原生窗口跟随（与单树共用 `TreePopupSizer`）。
+    function _updatePopupContentHeight() {
+        multiTreeSizer.itemCount = _flatListModel.count
+        multiTreeSizer.searchEnabled = searchEnabled
+        multiTreeSizer.update()
     }
 
     // Get selection state for a node 获取节点的选中状态
@@ -121,6 +142,7 @@ ComboBoxCore {
     }
 
     function _toggleExpand(nodeId) {
+        _animateRowChange = true
         _expandedNodes = TreeNodes.toggleExpanded(_expandedNodes, nodeId)
     }
 
@@ -261,10 +283,22 @@ ComboBoxCore {
     function openPopup() {
         _rebuildFlatModel()
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
-        _popup.popupHeight = Enums.comboBoxMetrics.treePopupHeight
         _popup.openAtControl(control)
         isOpen = true
         _searchText = ""
+        _focusPopupSearch()
+    }
+
+    /// 弹层自己抢焦点、搜索框就在弹层里：打开即聚焦它，用户可以直接打字收窄。
+    /// `_searchBox` 由弹层内容的 `Component.onCompleted` 回写，而弹层窗口是懒创建的，
+    /// 所以这一刻可能还是 null —— 下一拍再试（弹层关了或已就绪就停）。
+    function _focusPopupSearch() {
+        if (!searchEnabled || !isOpen) return
+        if (_searchBox) {
+            _searchBox.focusInput()
+            return
+        }
+        Qt.callLater(_focusPopupSearch)
     }
 
     // Base property overrides 基类属性覆盖
@@ -291,8 +325,18 @@ ComboBoxCore {
 
     // Use base class wheel signal 使用基类滚轮信号
     onWheelScrolled: (delta) => smoothScrollTo(_targetX - delta * 0.8)
+    onIsOpenChanged: {
+        if (!isOpen) multiTreeSizer.heightAnimation.stop()
+    }
 
     // ==================== Content 内容 ====================
+    // Popup height owner (shared with the single tree) 弹层高度所有者（与单树共用）
+    TreePopupSizer {
+        id: multiTreeSizer
+
+        host: control
+    }
+
     ComboBoxMultiTreeContent {
         id: multiTreeContent
         comboControl: control

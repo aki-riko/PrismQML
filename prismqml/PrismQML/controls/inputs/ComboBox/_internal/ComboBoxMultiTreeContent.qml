@@ -38,6 +38,8 @@ Item {
             anchors.fill: parent
             spacing: Enums.spacing.none
 
+            Component.onCompleted: content.comboControl._searchBox = searchBox
+
             // Search box 搜索框
             PopupSearchBox {
                 id: searchBox
@@ -51,7 +53,11 @@ Item {
             Item {
                 id: treeContainer
 
-                readonly property bool needsScroll: treeListView.contentHeight > treeListView.height
+                // 需要滚动条 = 行数 × 行高 超过可视高度。
+                // 🔴 不能拿 `treeListView.contentHeight` 判：展开/收起的让位动画期间它逐帧
+                // 变化，而它又驱动 rightMargin → 宽度 → 内容高度，正好凑成绑定环。
+                readonly property bool needsScroll: content.comboControl._flatListModel.count
+                    * Enums.comboBoxMetrics.itemHeight > treeListView.height
 
                 width: parent.width
                 height: parent.height - (content.comboControl.searchEnabled
@@ -78,6 +84,29 @@ Item {
 
                         onToggleExpand: content.comboControl._toggleExpand(model.nodeId)
                         onCheckToggled: content.comboControl._toggleSelection(JSON.parse(model.path))
+                    }
+
+                    // 展开/收起动画：与单树同一口径 —— 下面的行先平滑让位，新行再淡入。
+                    // 顺序不能反：新行先摆到终点再淡入，会与仍在让位的旧行叠出文字重影。
+                    add: Transition {
+                        SequentialAnimation {
+                            PropertyAction { property: "opacity"; value: 0 }
+                            PauseAnimation { duration: Enums.duration.ultraFast }
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 0
+                                to: 1
+                                duration: Enums.duration.fast
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+                    displaced: Transition {
+                        NumberAnimation {
+                            property: "y"
+                            duration: Enums.duration.fast
+                            easing.type: Easing.OutCubic
+                        }
                     }
 
                     // Smooth scroll 平滑滚动

@@ -12,6 +12,7 @@ import "../../containers/ScrollBar"
 import "../../menus"
 import "_internal"
 import "_internal/ComboBoxTreeNodes.js" as TreeNodes
+import "_internal/ComboBoxTreeRows.js" as TreeRows
 import QtQuick  // After library import: unprefixed native types stay unshadowed 置于库import后:去前缀后保原生类型不被库覆盖
 
 // ComboBoxTree - Tree combo box with search and expandable nodes 树形下拉框
@@ -36,13 +37,15 @@ ComboBoxCore {
     //: 弹层里搜索框的引用（由 popupContent 实例化时回写）。用于「点分类展开后把焦点还给搜索框」：
     //: 弹层内容是独立 Component，外层函数作用域够不到它的 id。
     property var _searchBox: null
-    property real _animatedPopupContentHeight: 0
+    //: 弹层高度（按行数算 + 生长动画 + 原生窗口跟随）由共用件持有，
+    //: 单树与多选树同一套口径。
+    property var _sizer: treePopupSizer
     //: 下一次重建是否给「插入/删除的行」走过渡动画。只有展开/折叠置位；搜索收窄与
     //: 换模型走整体重建，避免逐键闪动。
     property bool _animateRowChange: false
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property bool _popupHeightAnimating: popupHeightAnimation.running
+    readonly property bool _popupHeightAnimating: treePopupSizer.running
     //: 行视图模型（`_flatModel` 的增量镜像）。委托绑它而不是整表替换的数组，
     //: 展开/折叠才有「插入/删除/让位」可动；`_flatModel` 仍是数据真相源。
     readonly property var _rowModel: treeRowModel
@@ -56,44 +59,32 @@ ComboBoxCore {
         _popup.popupWidth = Math.max(control.width, Enums.comboBoxMetrics.treePopupMinWidth)
         _popup.openAtControl(control)
         isOpen = true
+        _focusPopupSearch()
+    }
+
+    /// 非可编辑树的弹层自己抢焦点、搜索框就在弹层里：打开即把焦点交给它，用户可以直接
+    /// 打字收窄（旧实现要先用鼠标点一下搜索框，体感像坏了）。可编辑树把焦点留在宿主
+    /// 输入框（`onTextEdited` 镜像进 `_searchText`），不能抢。
+    ///
+    /// ⚠️ `_searchBox` 由弹层内容的 `Component.onCompleted` 回写，而弹层窗口是**懒创建**
+    /// 的（预热/首次 open 之后才实例化），所以 `openPopup()` 里这一刻可能还是 null：
+    /// 先立刻试一次，没拿到就等下一次窗口可见再试。
+    function _focusPopupSearch() {
+        if (editable || !searchEnabled || !isOpen) return
+        if (_searchBox) {
+            _searchBox.focusInput()
+            return
+        }
+        // 下一拍再试：弹层窗口的懒创建/预热发生在本次调用之后。弹层已关或表面已建好
+        // 却没有搜索框时不再重试（`isOpen`/`_searchBox` 两个出口都在上面）。
+        Qt.callLater(_focusPopupSearch)
     }
 
     // ==================== Internal Methods 内部方法 ====================
     function _updatePopupContentHeight() {
-        var itemCount = _flatModel.length
-        var searchHeight = searchEnabled ? Enums.comboBoxMetrics.searchBoxHeight : 0
-        var targetHeight = Math.min(
-            itemCount * Enums.comboBoxMetrics.itemHeight + searchHeight,
-            Math.max(0, Enums.comboBoxMetrics.treePopupHeight
-                - 2 * _popup.contentPadding))
-        popupHeightAnimation.stop()
-        if (!isOpen || _animatedPopupContentHeight === targetHeight) {
-            _animatedPopupContentHeight = targetHeight
-            return
-        }
-        popupHeightAnimation.from = _animatedPopupContentHeight
-        popupHeightAnimation.to = targetHeight
-        popupHeightAnimation.start()
-    }
-
-    function _syncOpenPopupGeometry() {
-        _popup.stabilizeInteraction()
-        _popup._clipHeight = _popup.popupHeight
-        var popupWindow = _popup._popupWindow
-        if (!popupWindow) return
-        popupWindow.width = _popup._outerWidth
-        popupWindow.height = _popup._outerHeight
-        _popup._applyTrackedPosition(control.mapToGlobal(0, 0))
-        var bounds = _popup._screenBoundsAt(popupWindow.x, popupWindow.y, control)
-        if (!bounds) return
-        popupWindow.x = Math.max(
-            bounds.left,
-            Math.min(popupWindow.x, bounds.right - _popup._outerWidth)
-        )
-        popupWindow.y = Math.max(
-            bounds.top,
-            Math.min(popupWindow.y, bounds.bottom - _popup._outerHeight)
-        )
+        treePopupSizer.itemCount = _flatModel.length
+        treePopupSizer.searchEnabled = searchEnabled
+        treePopupSizer.update()
     }
 
     function _initTree() {
@@ -151,62 +142,21 @@ ComboBoxCore {
     }
 
     function _resetRows(flat) {
-        treeRowModel.clear()
-        for (var i = 0; i < flat.length; i++) treeRowModel.append(_rowData(flat[i]))
+        var rows = []
+        for (var i = 0; i < flat.length; i++) rows.push(_rowData(flat[i]))
+        TreeRows.resetRows(treeRowModel, rows)
     }
 
     /// 把 `treeRowModel` 调整成 `flat`。
     ///
     /// 展开/折叠永远是**单段插入或单段删除**（被展开节点的整棵子树连续出现/消失），
-    /// 命中这两条就只增删那几行，让 ListView 的 add/remove/displaced 过渡把「张开、
-    /// 收起、其余行让位」演出来 —— 弹层高度已经顶到 `treePopupHeight` 时，高度动画
-    /// 无从发生，动画全靠这一层。其它变更（搜索收窄、换模型）整体重建，逐键不闪。
+    /// 只有这两条会触发过渡动画；其它变更（搜索收窄、换模型）整体重建，逐键不闪。
+    /// 差异算法在共用件 `ComboBoxTreeRows.js` 里（单树与多选树同一套）。
     function _syncRows(flat, animate) {
-        if (!animate || treeRowModel.count === 0) {
-            _resetRows(flat)
-            return
-        }
-        var current = treeRowModel.count
-        var prefix = 0
-        while (prefix < current && prefix < flat.length
-                && treeRowModel.get(prefix).nodeId === flat[prefix].nodeId) prefix++
-        var suffix = 0
-        while (suffix < current - prefix && suffix < flat.length - prefix
-                && treeRowModel.get(current - 1 - suffix).nodeId
-                    === flat[flat.length - 1 - suffix].nodeId) suffix++
-        var oldEnd = current - suffix
-        var newEnd = flat.length - suffix
-        if (oldEnd === prefix && newEnd === prefix) {
-            _updateRowFlags(flat)
-            return
-        }
-        if (oldEnd === prefix) {
-            for (var i = prefix; i < newEnd; i++) {
-                treeRowModel.insert(i, _rowData(flat[i]))
-            }
-            _updateRowFlags(flat)
-            return
-        }
-        if (newEnd === prefix) {
-            for (var j = oldEnd - 1; j >= prefix; j--) treeRowModel.remove(j)
-            _updateRowFlags(flat)
-            return
-        }
-        _resetRows(flat)
-    }
-
-    /// 结构同步之后刷新仍在位的那几行的展示字段（展开态翻转驱动箭头旋转）。
-    function _updateRowFlags(flat) {
-        for (var i = 0; i < flat.length && i < treeRowModel.count; i++) {
-            var current = treeRowModel.get(i)
-            if (current.nodeId !== flat[i].nodeId) continue
-            if (current.expanded !== flat[i].expanded) {
-                treeRowModel.setProperty(i, "expanded", flat[i].expanded)
-            }
-            if (current.text !== flat[i].text) {
-                treeRowModel.setProperty(i, "text", flat[i].text)
-            }
-        }
+        var rows = []
+        for (var i = 0; i < flat.length; i++) rows.push(_rowData(flat[i]))
+        TreeRows.syncRows(treeRowModel, rows, "nodeId", animate)
+        TreeRows.syncRowFields(treeRowModel, rows, "nodeId", ["expanded", "text"])
     }
 
     function _toggleExpand(nodeId) {
@@ -277,12 +227,8 @@ ComboBoxCore {
     on_ExpandedNodesChanged: _rebuildFlatModel()
     on_SearchTextChanged: _rebuildFlatModel()
     onSearchEnabledChanged: _updatePopupContentHeight()
-    on_AnimatedPopupContentHeightChanged: {
-        _popup.implicitContentHeight = Math.round(_animatedPopupContentHeight)
-        if (isOpen) _syncOpenPopupGeometry()
-    }
     onIsOpenChanged: {
-        if (!isOpen) popupHeightAnimation.stop()
+        if (!isOpen) treePopupSizer.heightAnimation.stop()
     }
     // 可编辑模式下候选展开期间焦点留在宿主输入框（弹层刻意不抢焦点），因此「输入即
     // 搜索」只能由输入框驱动：把输入文字镜像进 `_searchText`，弹层里的搜索框同步显示，
@@ -401,13 +347,11 @@ ComboBoxCore {
         }
     }
 
-    NumberAnimation {
-        id: popupHeightAnimation
+    // Popup height owner (shared with the multi-select tree) 弹层高度所有者（与多选树共用）
+    TreePopupSizer {
+        id: treePopupSizer
 
-        target: control
-        property: "_animatedPopupContentHeight"
-        duration: Enums.duration.fast
-        easing.type: Easing.OutCubic
+        host: control
     }
 
     // Row view model for the popup ListView: incremental mirror of `_flatModel`
