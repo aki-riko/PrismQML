@@ -5,6 +5,7 @@
 """QML convention scanner regression tests. QML 规范扫描器回归测试。"""
 
 from pathlib import Path, PurePosixPath
+import re
 import subprocess
 
 import pytest
@@ -490,3 +491,65 @@ def test_repository_theme_entrypoints_are_unified():
     ]
 
     assert theme_violations == []
+
+
+# ==================== DeferredDelete teardown guard 延迟删除清理门禁 ====================
+# `QApplication.processEvents()` alone never drains DeferredDelete, so a scene teardown
+# that only calls it left the loaded `Window` alive as a top-level window. That zombie
+# leaked into whichever test captured `topLevelWindows()` next in the same process and
+# made `test_status_bar_runtime` fail depending on shard order (verified as an existing
+# flake on the v0.7.1.6 baseline, then reproduced with a two-file pair).
+# 只调 `processEvents()` 不会处理 DeferredDelete，因此仅做它的场景清理会把加载的
+# `Window` 留成顶层窗口。该僵尸窗口会泄漏给同进程下一个读取 `topLevelWindows()` 的用例，
+# 使 `test_status_bar_runtime` 随分片顺序失败（已在 v0.7.1.6 基线上确认是既有 flaky，
+# 并用两文件对复现）。
+_WINDOW_SCENE_MARKERS = ("QQmlApplicationEngine", "QQmlComponent")
+# Only a real `sendPostedEvents(..., DeferredDelete)` call drains the queue. Matching
+# the bare word would let a comment satisfy the gate — a mutation test proved exactly
+# that: deleting the call but keeping its explanatory comment still passed.
+# 只有真正的 `sendPostedEvents(..., DeferredDelete)` 调用才会冲刷队列。只匹配裸词会让
+# 注释也算数——变异测试正好证明了这点：删掉调用、保留解释注释仍然通过。
+_DRAIN_CALL_PATTERN = re.compile(
+    r"sendPostedEvents\(\s*[^)]*DeferredDelete\s*\)"
+)
+
+
+def _window_scene_teardowns_missing_flush(root: Path) -> list[str]:
+    """QML tests that load a `Window` scene in-process but never flush DeferredDelete.
+
+    Files that drive their scene through `subprocess.run` execute the scene script in
+    its own process, which reclaims every window at exit, so they cannot leak into a
+    later in-process test and are exempt.
+    通过 `subprocess.run` 驱动场景的文件在自己的进程里执行脚本，退出即回收全部窗口，
+    不可能泄漏给同进程的后续用例，因此豁免。
+    """
+    offenders: list[str] = []
+    for path in sorted((root / "tests" / "qml").glob("test_*.py")):
+        source = path.read_text(encoding="utf-8")
+        if _DRAIN_CALL_PATTERN.search(source):
+            continue
+        if "subprocess" in source:
+            continue
+        if not any(marker in source for marker in _WINDOW_SCENE_MARKERS):
+            continue
+        # A `Window {` root in the inline scene source is what actually allocates a
+        # top-level window; `Item {` roots never do. 内联场景里的 `Window {` 根才会
+        # 真正创建顶层窗口，`Item {` 根不会。
+        if not any(
+            line.strip().startswith("Window {")
+            for line in source.splitlines()
+        ):
+            continue
+        if "processEvents()" not in source and "qWait(" not in source:
+            continue
+        offenders.append(path.relative_to(root).as_posix())
+    return offenders
+
+
+def test_window_scene_teardowns_drain_deferred_delete():
+    """加载 Window 场景的 QML 测试必须在清理时冲刷 DeferredDelete。"""
+    offenders = _window_scene_teardowns_missing_flush(ROOT)
+    assert offenders == [], (
+        "这些 QML 测试加载了 Window 根却没有在清理时派发 DeferredDelete，"
+        "会把僵尸顶层窗口泄漏给同进程的下一个用例：" + repr(offenders)
+    )

@@ -17,7 +17,7 @@ from combo_box_core_conventions_shared import (
     _pump,
     _wait_for,
 )
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtWidgets import QApplication
@@ -195,6 +195,7 @@ Window {
 def scene():
     app = QApplication.instance() or QApplication([])
     engine = None
+    component = None
     window = None
     try:
         import prismqml
@@ -224,7 +225,19 @@ def scene():
         if window is not None:
             window.close()
             window.deleteLater()
-        del engine, app
+        if component is not None:
+            component.deleteLater()
+        if engine is not None:
+            engine.collectGarbage()
+            engine.clearComponentCache()
+            engine.deleteLater()
+        del engine, component, app
+        # `processEvents()` alone never drains DeferredDelete, so the loaded
+        # `Window` stayed alive as a top-level window and leaked into whichever
+        # test ran next in the same process. Flush it the same way conftest does.
+        # 只调 processEvents() 不会处理 DeferredDelete，加载的 Window 会作为顶层窗口
+        # 存活并泄漏给同进程的下一个用例；按 conftest 的既有做法显式冲刷。
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def _read(item: QQuickItem, name: str):

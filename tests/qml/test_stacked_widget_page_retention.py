@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlExpression, QQmlEngine
 
 from prismqml import register_types
@@ -103,6 +103,7 @@ def test_retention_radius_releases_far_source_pages_and_reloads_on_return(qapp, 
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_default_retention_keeps_existing_lazy_page_resident(qapp, tmp_path):
@@ -118,6 +119,7 @@ def test_default_retention_keeps_existing_lazy_page_resident(qapp, tmp_path):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_retention_keeps_previous_page_during_transition(qapp, tmp_path):
@@ -136,3 +138,4 @@ def test_retention_keeps_previous_page_during_transition(qapp, tmp_path):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

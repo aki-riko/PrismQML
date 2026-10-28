@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 
 import pytest
-from PySide6.QtCore import QObject, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -109,4 +109,5 @@ def test_toasts_use_visual_edge_stack_gap(qapp, position, stacks_upward):
         root.deleteLater()
         del component
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QGuiApplication.processEvents()

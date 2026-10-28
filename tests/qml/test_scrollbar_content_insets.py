@@ -597,7 +597,18 @@ def test_specialized_virtual_and_widget_views_reserve_scrollbar_gutter(qapp):
                 )
             return result
 
-        assert _wait_for(lambda: all(value > 0 for value in insets().values()))
+        # Wait for the settled contract value, not merely "greater than zero": a view
+        # that has not laid out yet can already report a positive-but-wrong inset (the
+        # chat message list reported 0.0 while the settled value was 12.0), and a bare
+        # `> 0` gate returns before the layout actually settles.
+        # 等待稳定后的合同值，而不是仅"大于零"：尚未完成布局的视图可能先报出错误的正值
+        # （聊天消息列表报 0.0，稳定值是 12.0），只用 `> 0` 会在布局真正稳定前就放行。
+        def _settled(values) -> bool:
+            return all(value > 0 for value in values.values()) and all(
+                abs(value - expected) <= 0.5 for value in values.values()
+            )
+
+        assert _wait_for(lambda: _settled(insets()))
         assert insets() == {name: expected for name in controls}
         assert warnings == []
         assert [

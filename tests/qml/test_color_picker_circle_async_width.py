@@ -7,7 +7,7 @@
 from pathlib import Path, PurePosixPath
 
 import pytest
-from PySide6.QtCore import QEventLoop, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -117,6 +117,7 @@ def test_public_circle_async_loader_preserves_runtime_width(qapp):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
 
 

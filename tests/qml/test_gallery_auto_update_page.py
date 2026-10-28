@@ -8,7 +8,7 @@
 import time
 from pathlib import Path
 
-from PySide6.QtCore import Property, QMetaObject, QObject, Signal, Slot, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, Property, QMetaObject, QObject, Signal, Slot, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
@@ -135,6 +135,7 @@ def test_gallery_auto_update_page_is_safe_without_python_backend(qapp):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
 
 
@@ -195,6 +196,7 @@ def test_gallery_dry_run_shows_download_progress_and_simulates_install(qapp):
         window.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
 
 
@@ -230,4 +232,5 @@ def test_gallery_auto_update_page_binds_backend_metadata(qapp):
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()

@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import (
     QQmlApplicationEngine,
     QQmlComponent,
@@ -118,6 +118,7 @@ Item {
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_source_pages_only_receive_declared_activity_properties(qapp, tmp_path):
@@ -185,3 +186,4 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

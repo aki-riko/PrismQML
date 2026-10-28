@@ -155,6 +155,34 @@ def _dispose_scene(engine, component, window) -> None:
 def segmented_scene(qapp):
     scene = _create_scene()
     try:
+        window = scene[2]
+        control = window.findChild(QQuickItem, "segmentedControl")
+        assert control is not None
+        # The indicator starts at the first delegate's centre only after the layout
+        # pass has real delegate widths. `_create_scene` pumps a fixed 80ms, which is
+        # enough on an idle machine but not when the same process has just run other
+        # QML scenes: `start_x` then samples the pre-layout 0.0 while the animation
+        # actually begins at the settled offset (observed 561.0 vs 0.0). Wait for the
+        # settled geometry instead of trusting the fixed pump.
+        # 指示器只有在布局拿到真实委托宽度后才落在首项中心。`_create_scene` 只泵固定
+        # 80ms：空闲机器够用，但同一进程刚跑过别的 QML 场景时不够，`start_x` 会采到布局前
+        # 的 0.0，而动画实际从稳定偏移开始（实测 561.0 对 0.0）。改为等待稳定几何。
+        settled = _wait_for(
+            lambda: [
+                item
+                for item in _visual_descendants(control)
+                if item.metaObject().indexOfProperty("indicatorX") >= 0
+            ]
+            and float(
+                next(
+                    item
+                    for item in _visual_descendants(control)
+                    if item.metaObject().indexOfProperty("indicatorX") >= 0
+                ).property("indicatorX")
+            )
+            > 0.0
+        )
+        assert settled, "indicator never reached its settled start offset"
         yield scene
     finally:
         _dispose_scene(*scene[:3])

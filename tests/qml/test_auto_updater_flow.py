@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
     QMetaObject,
     QObject,
     QPointF,
@@ -232,6 +234,8 @@ def auto_updater_scene(qapp):
         root.deleteLater()
         del component
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        qapp.processEvents()
 
 
 def _backend(root):

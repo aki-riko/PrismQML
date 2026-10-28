@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Overlay dialogs declared inside a layout. 声明在布局内的覆盖式对话框。"""
 
-from PySide6.QtCore import QtMsgType, QUrl, qInstallMessageHandler
+from PySide6.QtCore import QCoreApplication, QEvent, QtMsgType, QUrl, qInstallMessageHandler
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtTest import QTest
@@ -75,5 +75,6 @@ def test_overlay_dialog_inside_layout_has_no_anchor_warning(qapp):
         if window is not None:
             window.close()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()
         qInstallMessageHandler(previous_handler)

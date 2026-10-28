@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QMetaObject, QObject, Property, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QMetaObject, QObject, Property, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 from prismqml import register_types
@@ -219,6 +219,12 @@ def _dispose(engine, component, obj) -> None:
     engine.collectGarbage()
     engine.clearComponentCache()
     engine.deleteLater()
+    # Nothing here drains DeferredDelete, so a scene whose root is a `Window` stayed
+    # alive as a top-level window and leaked into whichever test ran next in the same
+    # process. Flush it the same way conftest does.
+    # 这里原本没有任何地方冲刷 DeferredDelete，根为 `Window` 的场景会作为顶层窗口存活，
+    # 泄漏给同进程的下一个用例；按 conftest 的既有做法显式冲刷。
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def _read(obj, name):

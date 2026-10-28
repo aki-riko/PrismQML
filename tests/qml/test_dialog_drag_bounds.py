@@ -4,7 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Dialog drag boundary regression tests. 对话框拖拽边界回归测试。"""
 
-from PySide6.QtCore import QPoint, QUrl, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QUrl, Qt
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem
 from PySide6.QtTest import QTest
@@ -74,4 +74,10 @@ def test_messagebox_drag_stays_inside_overlay(qapp):
     finally:
         window.close()
         engine.deleteLater()
+        # `processEvents()` alone never drains DeferredDelete, so the loaded
+        # `Window` stayed alive as a top-level window and leaked into whichever
+        # test ran next in the same process. Flush it the same way conftest does.
+        # 只调 processEvents() 不会处理 DeferredDelete，加载的 Window 会作为顶层窗口
+        # 存活并泄漏给同进程的下一个用例；按 conftest 的既有做法显式冲刷。
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         qapp.processEvents()

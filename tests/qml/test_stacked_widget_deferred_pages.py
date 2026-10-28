@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlExpression, QQmlEngine
 
 from prismqml import register_types
@@ -86,6 +86,7 @@ Item {
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_deferred_and_source_pages_report_conflict_without_implicit_priority(qapp):
@@ -110,6 +111,7 @@ Item {
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_switching_from_deferred_component_to_url_clears_stale_component(qapp, tmp_path):
@@ -153,6 +155,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_replacing_source_while_loading_uses_latest_url(qapp, tmp_path):
@@ -216,3 +219,4 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

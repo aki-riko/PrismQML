@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QEventLoop, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QObject, QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import (
@@ -532,9 +532,16 @@ def test_chat_style_tokens_render_in_hidden_window_and_remain_fixed(qapp):
         setSkin(Skin.FLUENT)
         setTheme(Theme.LIGHT)
         if window is not None:
+            window.close()
             window.deleteLater()
         del component
         engine.deleteLater()
+        # `_pump(1)` never drains DeferredDelete, so the loaded `Window` stayed alive
+        # as a top-level window and leaked into whichever test ran next in the same
+        # process. Flush it the same way conftest does.
+        # 只 `_pump(1)` 不会处理 DeferredDelete，加载的 Window 会作为顶层窗口存活并泄漏给
+        # 同进程的下一个用例；按 conftest 的既有做法显式冲刷。
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump(1)
 
 
@@ -638,7 +645,11 @@ def test_chat_bubble_surface_tail_follows_the_role(qapp):
         setSkin(Skin.FLUENT)
         if component is not None:
             component.deleteLater()
+        if window is not None:
+            window.close()
+            window.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump(1)
 
 
@@ -674,7 +685,11 @@ def test_chat_bubble_surface_shadow_policy_per_role(qapp):
         setSkin(Skin.FLUENT)
         if component is not None:
             component.deleteLater()
+        if window is not None:
+            window.close()
+            window.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump(1)
 
 
@@ -709,5 +724,9 @@ def test_chat_bubble_surface_tail_survives_a_skin_switch(qapp):
         setSkin(Skin.FLUENT)
         if component is not None:
             component.deleteLater()
+        if window is not None:
+            window.close()
+            window.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         _pump(1)

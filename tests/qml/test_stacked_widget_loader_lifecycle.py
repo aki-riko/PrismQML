@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import QEventLoop, QMetaObject, QObject, QTimer, QUrl
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QMetaObject, QObject, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent, QQmlEngine, QQmlExpression
 
 from prismqml import register_types
@@ -84,6 +84,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_shrinking_page_sources_clamps_current_page(qapp, tmp_path):
@@ -158,6 +159,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_direct_children_keep_initial_current_index(qapp):
@@ -195,6 +197,7 @@ StackedWidget {
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_dynamic_stack_push_pop_preserves_lazy_loading_and_initial_properties(qapp, tmp_path):
@@ -278,6 +281,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def _dynamic_retain_scene(tmp_path, retain_depth=None):
@@ -374,6 +378,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_dynamic_stack_without_retain_depth_still_destroys_popped_page(qapp, tmp_path):
@@ -430,6 +435,7 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def test_source_mode_current_widget_is_null_until_loader_is_registered(qapp, tmp_path):
@@ -471,3 +477,4 @@ Item {{
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

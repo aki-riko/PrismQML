@@ -478,7 +478,7 @@ def test_gallery_vertical_panels_switch_selection_on_real_click(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, window, page, component, engine)
 
 
 def test_gallery_navigation_indicator_recovers_after_page_stack_switch(
@@ -556,7 +556,7 @@ def test_gallery_fluent_panels_keep_selected_indicator_visible(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, window, page, component, engine)
         setSkin(previous_skin)
 
 
@@ -686,7 +686,7 @@ def test_gallery_navigation_pane_collapse_is_animated(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, window, page, component, engine)
 
 
 def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
@@ -755,4 +755,4 @@ def test_gallery_navigation_pane_expands_and_collapses_in_place(qapp):
     finally:
         if window is not None:
             window.close()
-        _release(qapp, page, component, engine)
+        _release(qapp, window, page, component, engine)

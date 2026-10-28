@@ -11,7 +11,7 @@ from pathlib import Path
 import time
 
 import pytest
-from PySide6.QtCore import QObject, QPointF, QUrl, Slot
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, QPointF, QUrl, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
@@ -323,6 +323,7 @@ def _dispose(
     root.deleteLater()
     del component
     engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QGuiApplication.processEvents()
 
 
