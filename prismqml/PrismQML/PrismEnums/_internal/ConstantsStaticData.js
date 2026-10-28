@@ -8,11 +8,18 @@
 // Plain objects keep static data out of the QML object tree without adding types.
 // 使用普通对象承载静态数据，避免为数据命名空间新增 QML 类型。
 
+// Light semantic fills must all clear WCAG 4.5:1 against white ink so a filled
+// surface keeps one consistent ink across every level. attention and caution used
+// to be too light (#0a93a8 3.65:1, #b88600 3.26:1), so ContrastInk fell back to
+// black for those two levels only and they read as a different visual family.
+// 浅色语义填充必须对白色墨色全部达到 WCAG 4.5:1，填充表面才能在每一级保持一致墨色。
+// attention 与 caution 原先偏浅（#0a93a8 3.65:1、#b88600 3.26:1），ContrastInk 只对
+// 这两级回退成黑字，观感上成了另一套视觉家族。
 function semanticColors() {
     return {
         infoLight: "#676767", successLight: "#0f7b0f", warningLight: "#9d5d00",
-        errorLight: "#c42b1c", processingLight: "#7b2cbf", attentionLight: "#0a93a8",
-        cautionLight: "#b88600", infoDark: "#a3a3a3", successDark: "#6ccb5f",
+        errorLight: "#c42b1c", processingLight: "#7b2cbf", attentionLight: "#087d8f",
+        cautionLight: "#7a6200", infoDark: "#a3a3a3", successDark: "#6ccb5f",
         warningDark: "#c09000", errorDark: "#ff99a4", processingDark: "#d8b4fe",
         attentionDark: "#33b5bf", cautionDark: "#e8c547", infoBgLight: "#cce4f7",
         successBgLight: "#dff6dd", warningBgLight: "#fff4ce", errorBgLight: "#fde7e9",
