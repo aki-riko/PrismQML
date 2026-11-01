@@ -119,7 +119,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
+        # Pin the macOS image instead of macos-latest so the toolchain never moves under a release.
+        # 固定 macOS 镜像而非 macos-latest, 避免工具链在发版期间悄悄迁移。
+        os: [ubuntu-latest, windows-latest, macos-26]
     steps:
       - uses: actions/checkout@v4
 
