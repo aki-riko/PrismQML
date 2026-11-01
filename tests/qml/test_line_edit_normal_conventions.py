@@ -306,6 +306,45 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         assert _new_visible_windows(windows_before) == []
 
 
+def test_password_text_stops_before_clear_button(qapp):
+    """密码框同时显示清除与显隐按钮时, 文本区不得伸到清除按钮下方。
+
+    Measured before the fix: the text area ended at 262 while the clear button spanned
+    242..262, so the last 20px of bullets rendered under the dismiss icon.
+    修复前实测: 文本区止于 262, 清除按钮占 242..262, 末尾 20px 圆点压在关闭图标下。
+    """
+    windows_before = tuple(QGuiApplication.topLevelWindows())
+    engine, component, window, inputs, warnings = _create_scene()
+    try:
+        content = window.contentItem()
+
+        def span(item: QQuickItem) -> tuple[float, float]:
+            left = item.mapToItem(content, QPointF(0, 0)).x()
+            return left, left + item.width()
+
+        password = _normal_module(inputs["passwordInput"])
+        text_input = _text_input(password)
+        clear_button = _clear_button(password)
+        action_button = _action_button(password)
+        assert clear_button.property("visible")
+        assert action_button.property("visible")
+        clear_left, clear_right = span(clear_button)
+        action_left, _ = span(action_button)
+        assert clear_right <= action_left
+        assert span(text_input)[1] <= clear_left
+
+        # With no text the clear button hides and the text area runs to the eye button.
+        # 清空后清除按钮隐藏, 文本区退回以显隐按钮为右界。
+        inputs["passwordInput"].setProperty("text", "")
+        _pump()
+        assert not clear_button.property("visible")
+        assert clear_left < span(text_input)[1] <= action_left
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        assert _new_visible_windows(windows_before) == []
+
+
 def test_collapsible_search_animates_width_and_keeps_action_height(qapp):
     windows_before = tuple(QGuiApplication.topLevelWindows())
     engine, component, window, inputs, warnings = _create_scene()

@@ -109,7 +109,7 @@ Item {
     TextInput {
         id: textInput
         anchors.left: parent.left
-        anchors.right: actionBtn.visible ? actionBtn.left : (clearBtn.visible ? clearBtn.left : parent.right)
+        anchors.right: clearBtn.visible ? clearBtn.left : (actionBtn.visible ? actionBtn.left : parent.right) // Clear button bounds text first 清除按钮优先作右界
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: normalInput.paddingLeft
         anchors.rightMargin: normalInput.paddingRight
