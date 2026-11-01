@@ -100,8 +100,8 @@ def test_outside_window_owns_its_outward_shadow():
 
     # The HWND reserves the window-outward shadow padding and paints that shadow itself.
     assert (
-        "readonly property real _outsideShadowSpread: "
-        "Enums.shadow.windowOutside.blur" in _lines(source)
+        "readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur\n"
+        "        + Enums.shadow.windowOutside.offset" in source
     )
     assert (
         "readonly property real _outsideWindowExtent: "
@@ -188,15 +188,17 @@ def test_outside_drawer_shadow_silhouette_never_grows_past_the_panel():
     assert "outsideDrawerWindow.panelOffsetX - blur" not in helper_source
     assert "outsideDrawerWindow.panelOffsetY - blur" not in helper_source
     assert (
-        "readonly property real _outsideShadowSpread: "
-        "Enums.shadow.windowOutside.blur" in _lines(source)
+        "readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur\n"
+        "        + Enums.shadow.windowOutside.offset" in source
     )
 
-    # Measured fade width per blur unit. 实测的每单位 blur 对应的衰减跨度。
-    fade_per_blur = 0.8
-    blur = 24
-    spread = blur
-    assert spread >= fade_per_blur * blur
+    # Measured on the real effect (D3D11, DPR 1.5): blur 64 / offset 14 fades out below the
+    # panel after ~72 logical px, the longest tail of the four edges.
+    # 真实效果实测 (D3D11, DPR 1.5): blur 64 / 偏移 14 在面板下方约 72 逻辑像素衰减完, 是四边中
+    # 最长的尾巴。
+    blur, offset, measured_bottom_tail = 64, 14, 72
+    spread = blur + offset
+    assert spread >= measured_bottom_tail
 
 
 def test_outside_drawer_side_band_matches_the_dwm_side_edge():
@@ -253,11 +255,21 @@ def test_outside_drawer_side_band_matches_the_dwm_side_edge():
         f"target {dwm_side_peak}%"
     )
     assert side_peak < dwm_bottom_peak * 0.75
-    # Blur must stay the width control and keep covering the measured fade.
-    # blur 必须继续作为宽度控制, 并覆盖实测衰减跨度。
+    # Blur and the downward offset reproduce DWM's band shape so the drawer's top/bottom
+    # bands meet the host's own DWM bands at the seam: fitted on the real effect, blur 64 /
+    # offset 14 starts the bottom band at 42/255 and fades it over ~72px, against 44/255 and
+    # ~72px measured below a real host window. blur 24 / offset 0 stopped after ~19px.
+    # blur 与向下偏移复现 DWM 像带形状, 使抽屉上下像带在接缝处与宿主自己的 DWM 像带相接:
+    # 真实效果拟合 blur 64 / 偏移 14 时下边起始 42/255、约 72px 衰减完, 真实宿主窗口下方实测为
+    # 44/255、约 72px; blur 24 / 偏移 0 约 19px 即结束。
     blur_match = re.search(r"blur:\s*shadow\.isTicket\s*\?\s*0\s*:\s*(?P<blur>[0-9.]+)", body)
     assert blur_match is not None, body
-    assert float(blur_match.group("blur")) == 24
+    assert float(blur_match.group("blur")) == 64
+    offset_match = re.search(
+        r"offset:\s*shadow\.isTicket\s*\?\s*0\s*:\s*(?P<offset>[0-9.]+)", body
+    )
+    assert offset_match is not None, body
+    assert float(offset_match.group("offset")) == 14
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

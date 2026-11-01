@@ -52,14 +52,13 @@ OverlayDialogCore {
     readonly property var _hostWindow: control.Window.window
     readonly property int _outsideCollapsedExtent: Enums.border.thin
     readonly property real _outsideFullExtent: isHorizontal ? drawerWidth : drawerHeight
-    // Outward padding reserved inside the follower HWND for the drawer's own window shadow.
-    // Measured on the real effect the band settles within about 0.8x the blur (blur 24 ->
-    // ~19px), so the reserve takes the whole blur and the fading tail stays clear of the HWND
-    // edge; the shadow silhouette is the panel itself (see DrawerOutsideWindow).
-    // 附属 HWND 内侧为抽屉自绘窗口阴影预留的外扩留白。实测像带在约 0.8 倍 blur 内衰减完
-    // (blur 24 -> 约 19px), 因此留白取整个 blur, 让正在衰减的尾部不落在 HWND 边界上;
-    // 阴影轮廓等于面板本身(见 DrawerOutsideWindow)。
+    // Outward padding inside the follower HWND for the drawer's own (panel-sized) shadow.
+    // The shadow is offset downwards, so its bottom tail reaches blur + offset (measured
+    // ~72px for blur 64 / offset 14); the reserve covers it so no tail is cut on the HWND edge.
+    // 附属 HWND 内为抽屉自绘(面板大小)阴影预留的外扩留白。阴影向下偏移, 底部尾巴延伸到
+    // blur + offset (blur 64 / 偏移 14 实测约 72px); 留白覆盖该范围, 尾巴不会切在 HWND 边界上。
     readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur
+        + Enums.shadow.windowOutside.offset
     readonly property real _outsideWindowExtent: _outsideFullExtent + _outsideShadowSpread
     // The outward shadow only exists once the full panel is revealed.
     // 只有在面板完全显露后才有外侧阴影。

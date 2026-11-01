@@ -472,14 +472,14 @@ def test_outside_drawer_shadow_silhouette_matches_the_panel(drawer_scene):
     edge, repeated on two window sizes): the band is asymmetric because DWM offsets it
     downwards — the side edges peak at ~11.4% darkening and the bottom edge at ~21.6%. An
     outside drawer shows exactly one band on the side it is anchored to, so ~11.4% is the
-    parity target. A panel-sized silhouette at 0.27 black lands the panel edge there
-    (measured 29/255 = 11.4% on the real effect); growing the silhouette by `blur` instead
+    parity target. A panel-sized silhouette at 0.26 black with blur 64 lands the side edge
+    near it (measured 26/255 on the real effect); growing the silhouette by `blur` instead
     filled the first 40px with the full 49.8% and doubled the band width — the heavy edge
     users reported.
     标定依据是真实上屏桌面上量得的 DWM 窗口阴影 (白背板, 抓屏后逐物理像素取亮度, 每边三个
     采样点取中位数, 两种窗口尺寸各复验一次): DWM 阴影向下偏移, 因此像带不对称 —— 侧边峰值
     约 11.4% 暗化, 下边约 21.6%。外侧抽屉只在所贴那一侧露出一条像带, 因此以约 11.4% 为对齐
-    目标。轮廓取 0.27 黑时真实效果测得面板边缘落在该值 (29/255 = 11.4%); 若把轮廓朝外各扩
+    目标。轮廓取 0.26 黑、blur 64 时真实效果测得侧边约 26/255, 贴近该值; 若把轮廓朝外各扩
     `blur`, 紧邻面板的 40px 会变成满浓度 49.8% 且像带宽度翻倍 —— 即用户报告的浓重边缘。
     这里读控件真实提交的几何, 而不只是源码表达式。
     """
@@ -493,13 +493,14 @@ def test_outside_drawer_shadow_silhouette_matches_the_panel(drawer_scene):
     assert isinstance(outside_panel, QQuickItem)
 
     blur = shadow.property("blur")
+    offset = shadow.property("offset").y()
     spread = drawer.property("_outsideShadowSpread")
-    # Measured on the real effect: the band settles within about 0.8x the blur, so the reserve
-    # has to cover that fade or the visible tail is cut on the HWND edge (a hard-edged shadow).
-    # 真实效果实测: 像带在约 0.8 倍 blur 内衰减完, 留白必须覆盖该衰减, 否则仍有浓度的尾部
-    # 会被切在 HWND 边界上 —— 观感即"阴影很硬"。
-    assert spread == pytest.approx(blur)
-    assert spread >= 0.8 * blur
+    # The shadow is offset downwards, so its bottom tail reaches blur + offset; the reserve
+    # has to cover it or the still-visible tail is cut on the HWND edge (a hard-edged shadow).
+    # 阴影向下偏移, 底部尾巴延伸到 blur + offset; 留白必须覆盖它, 否则仍有浓度的尾部会被切在
+    # HWND 边界上 —— 观感即"阴影很硬"。
+    assert offset > 0
+    assert spread == pytest.approx(blur + offset)
     # The silhouette must not be inflated through the effect's own `spread` either.
     # 轮廓也不得通过该效果的 `spread` 属性被放大。
     assert shadow.property("spread") == 0
