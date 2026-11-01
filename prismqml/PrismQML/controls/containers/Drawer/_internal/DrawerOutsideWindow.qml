@@ -85,28 +85,8 @@ Window {
     Component.onDestruction: control._unregisterOutsideWindow()
 
     // ==================== Content 内容 ====================
-    RectangularShadow {
-        id: outsideDrawerShadow
-
-        objectName: "outsideDrawerShadow"
-        // The silhouette must stay equal to the panel. Measured on the real effect at
-        // blur 40 / 0.50 black on white: a panel-sized silhouette reaches 21.6% darkening
-        // at the panel edge — the DWM calibration target — and fades out within ~40px.
-        // Growing the silhouette outwards by `blur` instead fills the first 40px beside the
-        // panel with the full 49.8% and doubles the band width: the heavy edge users see.
-        // 轮廓必须与面板等大。真实效果实测(blur 40, 0.50 黑, 白底): 轮廓等于面板时面板边缘
-        // 暗化 21.6% —— 即 DWM 标定目标 —— 约 40px 内衰减完; 把轮廓朝外各扩 `blur` 会让紧邻
-        // 面板的 40px 全是满浓度 49.8%, 并把像带宽度翻倍, 形成用户看到的浓重边缘。
-        x: outsideDrawerWindow.panelOffsetX
-        y: outsideDrawerWindow.panelOffsetY
-        width: outsideDrawerWindow.panelWidth
-        height: outsideDrawerWindow.panelHeight
-        radius: outsideDrawerPanel.radius
-        blur: Enums.shadow.windowOutside.blur
-        color: Enums.shadow.windowOutside.color
-        offset.x: 0
-        offset.y: Enums.shadow.windowOutside.offset
-        visible: control._outsideShadowActive && !Enums.isVintageTicket
+    DrawerOutsideShadow {
+        hostWindow: outsideDrawerWindow
     }
 
     // Clipped reveal viewport 裁剪显露视口

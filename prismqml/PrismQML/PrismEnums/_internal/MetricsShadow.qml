@@ -104,9 +104,15 @@ QtObject {
     // 在接缝处读作截断。真实 RectangularShadow 网格扫描 (D3D11, DPR 1.5) 拟合出 blur 64、
     // 偏移 14、alpha 0.26: 下边 42/255 约 72px, 侧边 26/255 (约 10%), 上边 17/255。附属窗口
     // 留白取 blur + offset, 使向下偏移的底部尾巴仍落在 HWND 内。
+    // DWM rounds the host's own band away over its ~8px corner right beside the seam (measured
+    // 45 -> 29 /255 within 9 physical px), so the drawer mirrors that dip with a linear opacity
+    // ramp `rampWidth` logical px wide on its seam side, then the full band.
+    // DWM 在紧贴接缝的宿主约 8px 圆角上把宿主像带淡掉 (9 物理像素内 45 -> 29 /255), 抽屉在接缝
+    // 侧用 `rampWidth` 逻辑像素宽的线性不透明度渐变对称镜像该凹陷, 之后为完整像带。
     readonly property QtObject windowOutside: QtObject {
         readonly property real offset: shadow.isTicket ? 0 : 14
         readonly property real blur: shadow.isTicket ? 0 : 64
         readonly property color color: shadow.isTicket ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(0, 0, 0, 0.26 * shadow._alphaMultiplier)
+        readonly property real rampWidth: 6
     }
 }

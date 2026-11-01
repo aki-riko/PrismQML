@@ -37,6 +37,7 @@ SOURCE_PATH = (
     / "Drawer.qml"
 )
 OUTSIDE_WINDOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideWindow.qml"
+OUTSIDE_SHADOW_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerOutsideShadow.qml"
 SURFACE_SOURCE_PATH = SOURCE_PATH.parent / "_internal" / "DrawerSurface.qml"
 ANIMATION_HELPER_SOURCE_PATH = (
     ROOT / "prismqml" / "PrismQML" / "_internal" / "WindowAnimationHelper.qml"
@@ -54,7 +55,7 @@ def _lines(source: str) -> list[str]:
 
 
 def test_drawer_source_follows_conventions():
-    for source_path in (SOURCE_PATH, OUTSIDE_WINDOW_SOURCE_PATH):
+    for source_path in (SOURCE_PATH, OUTSIDE_WINDOW_SOURCE_PATH, OUTSIDE_SHADOW_SOURCE_PATH):
         source = source_path.read_text(encoding="utf-8")
         path = PurePosixPath(source_path.relative_to(ROOT).as_posix())
         violations = scan_source_text(source, path)
@@ -111,41 +112,49 @@ def test_outside_window_owns_its_outward_shadow():
         "readonly property bool _outsideShadowActive: _outsidePrepared && _isOpen"
         in source
     )
-    assert "RectangularShadow {" in helper_source
-    # The silhouette must stay equal to the panel. Measured on the real effect at blur 40 /
-    # 0.50 black on white, a panel-sized silhouette darkens the panel edge by 21.6% (the DWM
-    # calibration target) and fades out within ~40px, while growing it outwards by `blur`
-    # fills the first 40px with the full 49.8% and doubles the band width.
-    # 轮廓必须与面板等大。真实效果实测(blur 40, 0.50 黑, 白底): 轮廓等于面板时面板边缘暗化
-    # 21.6% (即 DWM 标定目标) 并在约 40px 内衰减完; 朝外各扩 `blur` 会让紧邻面板的 40px 全是
-    # 满浓度 49.8%, 像带宽度翻倍。
-    assert "x: outsideDrawerWindow.panelOffsetX" in _lines(helper_source)
-    assert "y: outsideDrawerWindow.panelOffsetY" in _lines(helper_source)
-    assert "width: outsideDrawerWindow.panelWidth" in _lines(helper_source)
-    assert "height: outsideDrawerWindow.panelHeight" in _lines(helper_source)
-    assert "outsideDrawerWindow.panelWidth + 2 * blur" not in helper_source
-    assert "outsideDrawerWindow.panelOffsetX - blur" not in helper_source
-    assert "anchors.fill: outsideDrawerViewport" not in helper_source
-    assert "blur: Enums.shadow.windowOutside.blur" in helper_source
-    assert "color: Enums.shadow.windowOutside.color" in helper_source
-    assert "offset.x: 0" in helper_source
-    assert "offset.y: Enums.shadow.windowOutside.offset" in helper_source
-    assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in helper_source
-    # Panel and shadow share one silhouette at full strength, so the bands run into the
-    # seam and continue the host window's own shadow band on the other side. No fade,
-    # retract or per-corner override is allowed back in.
+    shadow_source = OUTSIDE_SHADOW_SOURCE_PATH.read_text(encoding="utf-8")
+    assert "DrawerOutsideShadow {" in helper_source
+    assert "hostWindow: outsideDrawerWindow" in helper_source
+    assert "RectangularShadow {" not in helper_source
+    assert "RectangularShadow {" in shadow_source
+    # The silhouette must stay equal to the panel in every slice: growing it outwards by
+    # `blur` fills the band beside the panel at full strength and doubles its width.
+    # 每个切片的轮廓都必须与面板等大: 朝外各扩 `blur` 会让紧邻面板的像带满浓度并使宽度翻倍。
+    assert "x: outsideShadow.hostWindow.panelOffsetX - slice.x" in _lines(shadow_source)
+    assert "y: outsideShadow.hostWindow.panelOffsetY - slice.y" in _lines(shadow_source)
+    assert "width: outsideShadow.hostWindow.panelWidth" in _lines(shadow_source)
+    assert "height: outsideShadow.hostWindow.panelHeight" in _lines(shadow_source)
+    assert "radius: outsideShadow.hostWindow.panel.radius" in _lines(shadow_source)
+    assert "panelWidth + 2 * blur" not in shadow_source
+    assert "panelOffsetX - blur" not in shadow_source
+    assert "blur: outsideShadow.token.blur" in _lines(shadow_source)
+    assert "color: outsideShadow.token.color" in _lines(shadow_source)
+    assert "offset.x: 0" in _lines(shadow_source)
+    assert "offset.y: outsideShadow.token.offset" in _lines(shadow_source)
+    assert "readonly property var token: Enums.shadow.windowOutside" in _lines(shadow_source)
+    assert "visible: control._outsideShadowActive && !Enums.isVintageTicket" in shadow_source
     assert "radius: control._effectiveRadius" in helper_source
-    assert "radius: outsideDrawerPanel.radius" in helper_source
     for name in (
         "topLeftRadius:",
         "topRightRadius:",
         "bottomLeftRadius:",
         "bottomRightRadius:",
     ):
-        assert name not in helper_source
-    assert "seamFade" not in helper_source
-    assert "readonly property real retract:" not in helper_source
-    assert "anchors.leftMargin" not in helper_source
+        assert name not in shadow_source
+    # The only seam treatment is the narrow, pixel-snapped opacity ramp that mirrors the
+    # host's DWM corner dip; the 40px silhouette retract, enlarged seam corners and margin
+    # insets tried before stay out (they narrowed the band or moved it off the panel).
+    # 接缝侧唯一允许的处理是镜像宿主 DWM 圆角凹陷的窄幅、按物理像素对齐的不透明度渐变;
+    # 以前试过的 40px 轮廓内收、放大接缝圆角、边距内缩不得回流 (会让像带变窄或偏离面板)。
+    assert "readonly property real retract:" not in shadow_source
+    assert "anchors.leftMargin" not in shadow_source
+    assert "model: outsideShadow.rampStrips" in _lines(shadow_source)
+    assert (
+        "readonly property int rampStrips: "
+        "Math.max(1, Math.round(token.rampWidth * dpr))" in _lines(shadow_source)
+    )
+    assert "near: index / outsideShadow.dpr" in _lines(shadow_source)
+    assert "far: (index + 1) / outsideShadow.dpr" in _lines(shadow_source)
 
 
 def test_outside_window_uses_a_window_type_that_can_take_keyboard_focus():
@@ -177,16 +186,16 @@ def test_outside_drawer_shadow_silhouette_never_grows_past_the_panel():
     边界上, 观感即"阴影很硬"。
     """
     source = SOURCE_PATH.read_text(encoding="utf-8")
-    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+    shadow_source = OUTSIDE_SHADOW_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "x: outsideDrawerWindow.panelOffsetX" in _lines(helper_source)
-    assert "y: outsideDrawerWindow.panelOffsetY" in _lines(helper_source)
-    assert "width: outsideDrawerWindow.panelWidth" in _lines(helper_source)
-    assert "height: outsideDrawerWindow.panelHeight" in _lines(helper_source)
-    assert "outsideDrawerWindow.panelWidth + 2 * blur" not in helper_source
-    assert "outsideDrawerWindow.panelHeight + 2 * blur" not in helper_source
-    assert "outsideDrawerWindow.panelOffsetX - blur" not in helper_source
-    assert "outsideDrawerWindow.panelOffsetY - blur" not in helper_source
+    assert "x: outsideShadow.hostWindow.panelOffsetX - slice.x" in _lines(shadow_source)
+    assert "y: outsideShadow.hostWindow.panelOffsetY - slice.y" in _lines(shadow_source)
+    assert "width: outsideShadow.hostWindow.panelWidth" in _lines(shadow_source)
+    assert "height: outsideShadow.hostWindow.panelHeight" in _lines(shadow_source)
+    assert "panelWidth + 2 * blur" not in shadow_source
+    assert "panelHeight + 2 * blur" not in shadow_source
+    assert "panelOffsetX - blur" not in shadow_source
+    assert "panelOffsetY - blur" not in shadow_source
     assert (
         "readonly property real _outsideShadowSpread: Enums.shadow.windowOutside.blur\n"
         "        + Enums.shadow.windowOutside.offset" in source
@@ -270,6 +279,12 @@ def test_outside_drawer_side_band_matches_the_dwm_side_edge():
     )
     assert offset_match is not None, body
     assert float(offset_match.group("offset")) == 14
+    # The seam ramp mirrors the host's DWM corner dip, measured 45 -> 29 /255 within
+    # 9 physical px (6 logical px at DPR 1.5). 接缝渐变镜像宿主 DWM 圆角凹陷, 实测 9 物理像素
+    # (DPR 1.5 下 6 逻辑像素) 内 45 -> 29 /255。
+    ramp_match = re.search(r"rampWidth:\s*(?P<ramp>[0-9.]+)", body)
+    assert ramp_match is not None, body
+    assert float(ramp_match.group("ramp")) == 6
 
 
 def test_drawer_source_keeps_native_window_above_host_without_overlap():

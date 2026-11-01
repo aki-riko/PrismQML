@@ -53,6 +53,15 @@ def test_drawer_keeps_outside_window_modularized():
     assert len(source.splitlines()) < 500
     assert helper.exists()
     assert len(helper_source.splitlines()) < 150
+    shadow = _source(
+        "prismqml/PrismQML/controls/containers/Drawer/_internal/"
+        "DrawerOutsideShadow.qml"
+    )
+    shadow_source = shadow.read_text(encoding="utf-8")
+    assert len(shadow_source.splitlines()) < 100
+    assert "required property var hostWindow" in shadow_source
+    assert "DrawerOutsideShadow {" in helper_source
+    assert "RectangularShadow {" not in helper_source
     assert 'import "_internal" as DrawerInternal' in source
     assert "DrawerInternal.DrawerOutsideWindow {" in source
     assert "property var drawerControl: control" in source
