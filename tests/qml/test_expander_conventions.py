@@ -558,3 +558,98 @@ def test_expander_sources_follow_conventions():
             if violation.rule in {"QML008", "QML009"}
         )
     assert violations == []
+
+
+HEADER_METRICS_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "containers"
+    / "Expander"
+    / "_internal"
+    / "HeaderMetrics.qml"
+)
+
+
+def _wait_component_ready(engine, component, timeout_ms=5000):
+    """组件编译是异步的，必须按 statusChanged 有界等待而不是立刻断言。"""
+    deadline = 0
+    while component.status() == QQmlComponent.Status.Loading and deadline < timeout_ms:
+        _pump()
+        deadline += 30
+    return component.status()
+
+
+def _create_header_metrics(engine, control):
+    """构造 HeaderMetrics，control 可为 None 以模拟尚未赋值/已解绑的宿主。"""
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(HEADER_METRICS_PATH)))
+    assert _wait_component_ready(engine, component) == QQmlComponent.Status.Ready, [
+        error.toString() for error in component.errors()
+    ]
+    metrics = component.createWithInitialProperties(
+        {
+            "expanderControl": control,
+            "hostWidth": 880.0,
+            "titleLineHeight": 20.0,
+            "contentLineHeight": 16.0,
+            "hasContent": True,
+            "hasHeaderContent": True,
+            "headerContentWidth": 72.0,
+        }
+    )
+    assert metrics is not None
+    return component, metrics
+
+
+def test_expander_header_metrics_survive_an_unset_host(qapp):
+    """宿主尚未赋值或已解绑时，头部度量不得抛错、更不得静默塌成 0。
+
+    回归来源：宽度绑定在宿主解绑后被重新求值，直接读 expanderControl.icon 会抛
+    "Cannot read property 'icon' of undefined"；绑定一旦失败 trailingWidth 会静默
+    变成 0，把展开按钮挤出卡片。这里锁定「不报错」与「不塌陷」两点。
+    """
+
+    warnings = []
+    engine = QQmlApplicationEngine()
+    engine.warnings.connect(
+        lambda errors: warnings.extend(error.toString() for error in errors)
+    )
+    engine.addImportPath(str(ROOT / "prismqml"))
+    register_types(engine)
+
+    control_component = QQmlComponent(engine)
+    control_component.setData(
+        b"""
+import QtQuick
+QtObject { property string icon: ""; property bool disabled: false }
+""",
+        QUrl("inline:/header-metrics-control.qml"),
+    )
+    assert _wait_component_ready(
+        engine, control_component
+    ) == QQmlComponent.Status.Ready
+    control_without_icon = control_component.create()
+    assert control_without_icon is not None
+
+    # 无 icon 的正常宿主 = 期望基线；空宿主必须与之一致，而不是塌成 0
+    metrics_component, valid = _create_header_metrics(engine, control_without_icon)
+    _pump()
+    expected = valid.property("trailingWidth")
+    assert expected > 0
+
+    _metrics_component, unset = _create_header_metrics(engine, None)
+    _pump()
+    assert unset.property("trailingWidth") == pytest.approx(expected)
+    assert unset.property("textColumnWidth") > 0
+    # 报错文本会经由 warning 通道出现，必须一条都没有
+    assert [w for w in warnings if "Cannot read property" in w] == []
+    assert warnings == []
+
+    metrics_component.deleteLater()
+    _metrics_component.deleteLater()
+    control_component.deleteLater()
+    engine.collectGarbage()
+    engine.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()

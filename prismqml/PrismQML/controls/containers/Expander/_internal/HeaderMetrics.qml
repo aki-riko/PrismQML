@@ -24,10 +24,21 @@ QtObject {
     required property real headerContentWidth
 
     // ==================== Readonly State 只读状态 ====================
+    // The host control can still be unset or already torn down while a width
+    // binding re-evaluates (host resize, header-content change, teardown). Read
+    // it through this guard: touching `.icon` on an unset host throws
+    // "Cannot read property 'icon' of undefined" and the failed binding then
+    // silently collapses trailingWidth to 0, which pushes the expand button out
+    // of the card. The guarded value is identical whenever the host is valid.
+    // 宿主控件在宽度绑定重新求值时可能尚未赋值或已随拆卸解绑（宿主改尺寸、
+    // 头部内容变化、销毁过程）。统一经此判断读取：对未赋值的宿主直接取 .icon
+    // 会抛 "Cannot read property 'icon' of undefined"，而绑定一旦失败
+    // trailingWidth 会静默塌成 0，把展开按钮挤出卡片。宿主有效时取值完全一致。
+    readonly property bool _hasIcon: expanderControl !== undefined
+        && expanderControl !== null && expanderControl.icon !== ""
     // Expand button, its gap and the icon column 展开按钮、其间距与图标列
     readonly property real trailingWidth: Enums.controlSize.expanderIconSize
-        + (expanderControl.icon !== ""
-            ? (Enums.iconSize.m + Enums.spacing.xl) : 0)
+        + (_hasIcon ? (Enums.iconSize.m + Enums.spacing.xl) : 0)
         + (hasHeaderContent ? Enums.spacing.xl : 0)
         + Enums.spacing.m
     // Inner width left for the title column 标题列可用的内部宽度
