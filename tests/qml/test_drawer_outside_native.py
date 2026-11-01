@@ -281,13 +281,30 @@ def test_drawer_source_keeps_native_window_above_host_without_overlap():
     # (无缝隙, 抽屉阴影也不压宿主)。
     assert "readonly property real panelWidth: control.isHorizontal" in helper_source
     assert (
-        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
+        "width: control.isHorizontal ? panelWidth + spread : hostWidth + 2 * spread"
         in helper_source
     )
     assert (
-        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
+        "height: control.isHorizontal ? hostHeight + 2 * spread : panelHeight + spread"
         in helper_source
     )
+
+
+def test_outside_panel_spans_the_committed_hwnd_across_the_seam():
+    """跨接缝方向面板必须读取已提交的 HWND 尺寸, 而非宿主客户区尺寸。
+
+    The native follower RECT spans the host's whole frame (title bar included). A panel
+    sized from the host client area stops short of that RECT, so host content shows below
+    the drawer and the seam-flush HWND edge cuts the shadow corner.
+    原生附属 RECT 覆盖宿主整个外框 (含标题栏)。按客户区取尺寸的面板比该 RECT 短,
+    宿主内容会从抽屉下方露出, 与接缝齐平的 HWND 边界会切断阴影角。
+    """
+    helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
+
+    assert "? control._outsideFullExtent : width - 2 * spread" in helper_source
+    assert "? height - 2 * spread : control._outsideFullExtent" in helper_source
+    assert "? hostHeight : control._outsideFullExtent" not in helper_source
+    assert "? control._outsideFullExtent : hostWidth" not in helper_source
 
 
 def test_outside_window_size_matches_the_native_follower_rect():
@@ -302,16 +319,18 @@ def test_outside_window_size_matches_the_native_follower_rect():
     helper_source = OUTSIDE_WINDOW_SOURCE_PATH.read_text(encoding="utf-8")
 
     assert (
-        "width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread"
+        "width: control.isHorizontal ? panelWidth + spread : hostWidth + 2 * spread"
         in helper_source
     )
     assert (
-        "height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread"
+        "height: control.isHorizontal ? hostHeight + 2 * spread : panelHeight + spread"
         in helper_source
     )
 
     def qml_window_size(is_horizontal, panel_width, panel_height, spread):
-        # Mirror of the two expressions above. 上面两个表达式的镜像。
+        # Mirror of the two expressions above; across the seam the panel equals the
+        # host extent before the native commit. 上面两个表达式的镜像; 原生提交前跨接缝
+        # 方向面板等于宿主尺寸。
         width = panel_width + spread if is_horizontal else panel_width + 2 * spread
         height = panel_height + 2 * spread if is_horizontal else panel_height + spread
         return width, height

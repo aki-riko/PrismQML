@@ -25,13 +25,13 @@ Window {
         ? control._hostWindow.width : control.drawerWidth
     readonly property real hostHeight: control._hostWindow
         ? control._hostWindow.height : control.drawerHeight
-    // The panel keeps its requested extent; the HWND grows by `spread` away from the host
-    // edge and by `spread` on both sides across it, exactly like _follower_rect_for_extent.
-    // 面板保持请求尺寸; HWND 朝外与跨接缝两侧各长 `spread`, 与 _follower_rect_for_extent 一致。
+    // HWND = panel + `spread` outward and on both cross sides (_follower_rect_for_extent); across the seam the panel reads the committed HWND, which spans the host's whole frame.
+    // HWND 朝外与跨接缝两侧各比面板长 `spread`; 跨接缝方向面板读取已提交的 HWND 尺寸,
+    // 它覆盖宿主整个外框(含标题栏), 按客户区取尺寸会比宿主短并让接缝切断阴影角。
     readonly property real panelWidth: control.isHorizontal
-        ? control._outsideFullExtent : hostWidth
+        ? control._outsideFullExtent : width - 2 * spread
     readonly property real panelHeight: control.isHorizontal
-        ? hostHeight : control._outsideFullExtent
+        ? height - 2 * spread : control._outsideFullExtent
     readonly property real panelOffsetX: control.isHorizontal
         ? (control.position === Enums.position.left ? spread : 0) : spread
     readonly property real panelOffsetY: control.isHorizontal
@@ -54,8 +54,8 @@ Window {
     // Native size, owned by _follower_rect_for_extent; the `width - clipExtent` reveal
     // below reads the same value.
     // 原生尺寸归 _follower_rect_for_extent 所有; 下面的 `width - clipExtent` 显露视口读同一个值。
-    width: control.isHorizontal ? panelWidth + spread : panelWidth + 2 * spread
-    height: control.isHorizontal ? panelHeight + 2 * spread : panelHeight + spread
+    width: control.isHorizontal ? panelWidth + spread : hostWidth + 2 * spread
+    height: control.isHorizontal ? hostHeight + 2 * spread : panelHeight + spread
     visible: control._outsideVisible && control._hostWindow !== null
     opacity: control._outsidePrepared ? 1 : 0
     // The outside drawer must accept keyboard focus. 外侧抽屉必须允许键盘焦点。
