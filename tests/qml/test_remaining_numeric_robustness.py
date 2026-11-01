@@ -15,6 +15,7 @@ from prismqml import configure_qml_environment, register_types
 
 
 ROOT = Path(__file__).resolve().parents[2]
+COMPONENT_LOAD_TIMEOUT_MS = 10_000
 SLIDER_CASES = (
     (
         ROOT / "prismqml" / "PrismQML" / "controls" / "inputs" / "ColorPicker" / "GradientSlider.qml",
@@ -361,6 +362,24 @@ def _pump(milliseconds: int = 20) -> None:
     loop.exec()
 
 
+def _wait_for_component(component: QQmlComponent) -> None:
+    """等待内联场景的异步依赖编译完成，超时或失败时报出组件错误。"""
+    if component.status() == QQmlComponent.Status.Loading:
+        loop = QEventLoop()
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(loop.quit)
+        component.statusChanged.connect(loop.quit)
+        timer.start(COMPONENT_LOAD_TIMEOUT_MS)
+        while component.status() == QQmlComponent.Status.Loading and timer.isActive():
+            loop.exec()
+        component.statusChanged.disconnect(loop.quit)
+    assert component.status() == QQmlComponent.Status.Ready, (
+        component.status(),
+        [error.toString() for error in component.errors()],
+    )
+
+
 def _visual_tree(root: QQuickItem) -> list[QQuickItem]:
     result = [root]
     pending = list(root.childItems())
@@ -380,13 +399,7 @@ def test_nullable_lists_and_zero_geometry_stay_finite(qapp):
     register_types(engine)
     component = QQmlComponent(engine)
     component.setData(SCENE, QUrl("inline:remaining-numeric-robustness.qml"))
-    for _ in range(250):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump()
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
+    _wait_for_component(component)
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     try:
@@ -496,13 +509,7 @@ def test_nullable_public_collections_have_no_qml_runtime_errors(qapp):
         NULLABLE_COLLECTION_SCENE,
         QUrl("inline:nullable-public-collections.qml"),
     )
-    for _ in range(50):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump()
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
+    _wait_for_component(component)
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     try:
@@ -551,13 +558,7 @@ def test_nullable_collection_elements_have_no_qml_runtime_errors(qapp):
         NULLABLE_ELEMENT_SCENE,
         QUrl("inline:nullable-public-collection-elements.qml"),
     )
-    for _ in range(50):
-        if component.status() != QQmlComponent.Status.Loading:
-            break
-        _pump()
-    assert component.status() == QQmlComponent.Status.Ready, [
-        error.toString() for error in component.errors()
-    ]
+    _wait_for_component(component)
     root = component.create(engine.rootContext())
     assert root is not None, [error.toString() for error in component.errors()]
     try:
