@@ -69,10 +69,12 @@ import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需�
 | `WindowsCore` | 应用主窗口镶边：标题栏、窗口图标、系统按钮、RTL 镜像、关闭收拢动画、QML/原生阴影、启动动画 | 主窗口、导航窗口 |
 | `FramelessWindowCore` | 只做无边框窗口的最小职责：圆角面板 + 拖动 + 缩放 + 关闭语义 | 登录窗、协议确认窗、向导首屏等**启动期轻量窗口** |
 
-- 实测同一尺寸空壳：`WindowsCore` 解析 42.6ms / 创建 18.8ms / **109 个 QObject**；
-  `FramelessWindowCore` 解析 0.9ms / 创建 1.2ms / **18 个 QObject**。
+- **冷缓存实测（每轮独立子进程 + 独立 QML 缓存目录，交替顺序各 3 轮取中位数）**：
+  `WindowsCore` 空壳解析 **345.2ms** / 创建 **17.7ms** / **102 个 QObject**；
+  `FramelessWindowCore` 空壳解析 **266.5ms** / 创建 **10.5ms** / **18 个 QObject**。
+  （热缓存下两者都只有 1ms 量级，别用热缓存数字做选型依据 —— 首次启动是冷的。）
 - 启动路径上的窗口（用户开机后最先看到的那一个）必须用 `FramelessWindowCore`；
-  它拖入的 100+ 对象全部落在首屏之前的主线程上。
+  它拖入的 100 个对象全部落在首屏之前的主线程上。
 - `FramelessWindowCore` 不提供标题栏、原生阴影、显示动画：需要时由消费方自己补，
   不要为了拿到这些而换回 `WindowsCore`。
 - 防回流门禁：`tests/qml/test_frameless_window_core.py` 锁定对象数比例与最小语义，
