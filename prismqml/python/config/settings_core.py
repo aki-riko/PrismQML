@@ -275,13 +275,9 @@ class SettingsCore(QObject):
         Qt 对象拍平,让后台线程只碰纯 Python 数据。
 
         注意: 这里**不是**宽松兜底。真正不可序列化的值(如任意 object())必须
-        继续让 json.dump 抛错并拒绝提交,否则会破坏
-        test_non_serializable_values_leave_no_partial_commit 所锁定的既有契约:
-        不可序列化的值不落盘、不改变原值、不留半截文件。因此只转换 Qt 类型,
-        其余原样返回交给 json 自己判断。
+        继续让 json.dump 抛错并拒绝提交,否则会破坏既有契约(不可序列化的值
+        不落盘、不改变原值、不留半截文件)。因此只转换 Qt 类型,其余原样返回。
         """
-        if value is None or isinstance(value, (bool, int, float, str)):
-            return value
         if isinstance(value, dict):
             return {
                 SettingsCore._json_safe(key): SettingsCore._json_safe(item)
@@ -289,18 +285,26 @@ class SettingsCore(QObject):
             }
         if isinstance(value, (list, tuple)):
             return [SettingsCore._json_safe(item) for item in value]
-        if not SettingsCore._is_qt_value(value):
-            return value
-        # Qt 的 color 等轻量值对象实现了 name()/toString(),优先取稳定字符串,
-        # 避免退化成带内存地址的 repr。
+        if SettingsCore._is_qt_value(value):
+            return SettingsCore._flatten_qt_value(value)
+        return value
+
+    @staticmethod
+    def _flatten_qt_value(value) -> str:
+        """把一个 Qt 值对象转成稳定字符串。
+
+        优先 name()/toString():避免退化成带内存地址的 repr,也让颜色等值保持
+        可读、可比对的形态。取不到时退回 str()。
+        """
         for attribute in ("name", "toString"):
             method = getattr(value, attribute, None)
-            if callable(method):
-                try:
-                    return str(method())
-                except Exception as exc:
-                    debug(f"快照 Qt 值 {attribute}() 转换失败,退化为 str: {exc}")
-                    break
+            if not callable(method):
+                continue
+            try:
+                return str(method())
+            except Exception as exc:
+                debug(f"快照 Qt 值 {attribute}() 转换失败,退化为 str: {exc}")
+                break
         return str(value)
 
     @staticmethod
