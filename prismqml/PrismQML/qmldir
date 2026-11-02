@@ -7,6 +7,7 @@ singleton DpiManager DpiManager.qml
 singleton Touch Touch.qml
 singleton WheelEventUtils WheelEventUtils.qml
 WindowsCore WindowsCore.qml
+FramelessWindowCore FramelessWindowCore.qml
 NavigationWindowCore NavigationWindowCore.qml
 Windows Windows.qml
 

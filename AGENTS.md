@@ -60,6 +60,24 @@ import PrismQML as Fluent                              // ✅ 模块名引入（
 import "../prismqml/PrismQML/controls/buttons"        // 目录引入（按需）
 ```
 
+#### 窗口基类选型（铁律）
+
+两个窗口基类并存，**按窗口职责选，不得为了省事一律用 `WindowsCore`**：
+
+| 基类 | 职责 | 典型用途 |
+|------|------|----------|
+| `WindowsCore` | 应用主窗口镶边：标题栏、窗口图标、系统按钮、RTL 镜像、关闭收拢动画、QML/原生阴影、启动动画 | 主窗口、导航窗口 |
+| `FramelessWindowCore` | 只做无边框窗口的最小职责：圆角面板 + 拖动 + 缩放 + 关闭语义 | 登录窗、协议确认窗、向导首屏等**启动期轻量窗口** |
+
+- 实测同一尺寸空壳：`WindowsCore` 解析 42.6ms / 创建 18.8ms / **109 个 QObject**；
+  `FramelessWindowCore` 解析 0.9ms / 创建 1.2ms / **18 个 QObject**。
+- 启动路径上的窗口（用户开机后最先看到的那一个）必须用 `FramelessWindowCore`；
+  它拖入的 100+ 对象全部落在首屏之前的主线程上。
+- `FramelessWindowCore` 不提供标题栏、原生阴影、显示动画：需要时由消费方自己补，
+  不要为了拿到这些而换回 `WindowsCore`。
+- 防回流门禁：`tests/qml/test_frameless_window_core.py` 锁定对象数比例与最小语义，
+  往轻量基类里加回窗口镶边会让它变红。
+
 ### 1.2 Python 依赖方向与运行时装配（铁律）
 
 - `prismqml/python/core/` 是底层叶子层，只允许依赖标准库、PySide6 与同层
