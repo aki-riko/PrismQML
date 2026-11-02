@@ -12,7 +12,6 @@ from typing import Any, Callable, Dict, Optional, Tuple
 from PySide6.QtCore import (
     QCoreApplication,
     QObject,
-    QThread,
     QTimer,
     Qt,
     Signal,
@@ -20,6 +19,8 @@ from PySide6.QtCore import (
 )
 
 from .logger import exception
+from . import _task_exit_guard as _exit_guard
+from .utils import is_app_thread
 from ._task_execution import (
     _CURRENT_TASK,
     _TaskControl,
@@ -267,10 +268,11 @@ def _create_task(
     app = QCoreApplication.instance()
     if app is None:
         raise RuntimeError("A QCoreApplication is required before starting a task")
-    if QThread.currentThread() != app.thread():
+    if not is_app_thread():
         raise RuntimeError(
             "Background tasks must be started from the Qt application thread"
         )
+    _exit_guard.ensure_installed(shutdown_tasks)
     if not callable(function):
         raise TypeError("Background task function must be callable")
     control = _TaskControl()
@@ -359,7 +361,7 @@ def shutdown_tasks(timeout_ms: Optional[int] = None) -> TaskShutdownReport:
     app = QCoreApplication.instance()
     if app is None:
         raise RuntimeError("A QCoreApplication is required before shutting down tasks")
-    if QThread.currentThread() != app.thread():
+    if not is_app_thread():
         raise RuntimeError("shutdown_tasks() must be called from the Qt application thread")
     _validate_timeout_ms(timeout_ms, "Task shutdown timeout")
     handles = _active_handles()
@@ -376,7 +378,6 @@ def shutdown_tasks(timeout_ms: Optional[int] = None) -> TaskShutdownReport:
         else:
             pending.append(handle)
     return TaskShutdownReport(len(handles), stopped_count, tuple(pending))
-
 
 __all__ = [
     "PoolSubmitPolicy",

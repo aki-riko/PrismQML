@@ -212,3 +212,66 @@ def test_qml_legal_window_types_commit_once(qml_config_bridge, window_type):
     ] == window_type
     assert window_changes == [True]
     assert config_changes == [True]
+
+
+def test_finish_persistence_defers_the_continuation_out_of_signal_delivery(
+    qml_config_bridge,
+):
+    """Finishing one write must not launch the next one on the spot.
+
+    一次写盘完成时不得就地启动下一次。
+
+    ``_finish_persistence`` is reached from ``TaskHandle.finished``. Launching the next
+    snapshot inline constructed a fresh ``TaskHandle`` in that signal delivery and
+    connected its bridge signals there; the real deadlock stack captured during a CI
+    shard timeout was exactly::
+
+        task_runner.py:158 _connect_events
+        task_runner.py:82  TaskHandle.__init__
+        task_runner.py:352 run_in_thread
+        config_manager.py:325 _launch_persistence
+        config_manager.py:309 _start_next_persistence
+        config_manager.py:359 _finish_persistence
+
+    The continuation is now queued on the Qt thread, so a launch must never happen
+    inside ``_finish_persistence`` itself. This drives that state directly so the
+    contract does not depend on write timing.
+    ``_finish_persistence`` 由 ``TaskHandle.finished`` 进入。就地启动下一次快照会在该信号派发
+    中新建 ``TaskHandle`` 并在其中连接桥接信号; CI 分片超时时捕获的真实死锁栈正是上面这段。
+    续跑现已排队到 Qt 线程, 因此 ``_finish_persistence`` 自身内部绝不允许发生启动。本用例直接
+    构造该状态, 使合同不依赖写盘时序。
+    """
+    manager, _bridge, _path = qml_config_bridge
+
+    class _FakeHandle:
+        failure = None
+
+    manager._active_persistence = (_FakeHandle(), None, None, None, None)
+    manager._pending_updates.append(
+        (manager._cfg.dpi_scale, 150, None, None)
+    )
+
+    launches_inside_finish = []
+    original_launch = manager._launch_persistence
+    depth = {"inside": False}
+
+    def record_launch(update, after_commit, after_failure):
+        if depth["inside"]:
+            launches_inside_finish.append(update[1])
+        return original_launch(update, after_commit, after_failure)
+
+    manager._launch_persistence = record_launch
+
+    depth["inside"] = True
+    try:
+        manager._finish_persistence()
+    finally:
+        depth["inside"] = False
+
+    assert launches_inside_finish == [], (
+        "续跑不得在 _finish_persistence 内就地启动写盘(即任务信号派发过程中): "
+        + repr(launches_inside_finish)
+    )
+    assert manager._persistence_launch_scheduled is True, (
+        "续跑必须被排队到 Qt 线程, 而不是就地执行"
+    )

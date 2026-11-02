@@ -42,13 +42,23 @@ SUB_PIXEL_DELTA = 3
 
 
 def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
+    # This probe drives a real Windows window, so it pays full DWM/acrylic setup cost.
+    # 该探针驱动真实 Windows 窗口, 因此要付出完整的 DWM/亚克力初始化成本。
+    # Measured: 81.3s alone on an idle 28-core machine. The previous 120s inner budget
+    # left only 1.5x headroom, so once sibling shards saturated the cores the child was
+    # killed at exit=124 with no Python frame -- indistinguishable from a deadlock in CI
+    # logs. Both budgets now scale with the measured cost while staying far below the
+    # 1200s shard budget.
+    # 实测: 在空闲的 28 核机器上单独跑需 81.3s。原先 120s 的内部预算只剩 1.5 倍余量,
+    # 一旦兄弟分片占满核心, 子进程就会以 exit=124 被杀且没有 Python 帧——在 CI 日志里与
+    # 死锁无法区分。两个预算现按实测成本设定, 同时远低于 1200s 分片预算。
     command = [
         sys.executable,
         str(RUNNER),
         "--qt-platform",
         "windows",
         "--timeout",
-        "120",
+        "600",
         "--",
         sys.executable,
         str(PROBE),
@@ -62,7 +72,7 @@ def _run_probe(report_path: Path) -> subprocess.CompletedProcess[str]:
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=150,
+        timeout=720,
         check=False,
     )
 

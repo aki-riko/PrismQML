@@ -32,6 +32,28 @@ def configure_qml_environment(allow_file_read: bool = True) -> None:
     _enable_quick_window_alpha_buffer()
 
 
+def is_app_thread() -> bool:
+    """Report whether the caller runs on the Qt application thread.
+
+    报告调用方是否运行在 Qt 应用线程上。
+
+    Qt signals, timers and thread affinity all key off this thread, so callers that
+    must decide whether the event loop can deliver work use this instead of comparing
+    ``QThread.currentThread()`` against the application instance by hand. Returns
+    ``False`` when no ``QCoreApplication`` exists, because nothing can deliver events
+    then either.
+    Qt 的信号、定时器与线程亲和性都以该线程为准, 因此需要判断事件循环能否投递任务的调用方
+    应使用本函数, 而不是自行比较 ``QThread.currentThread()`` 与应用实例。没有
+    ``QCoreApplication`` 时返回 ``False``, 因为那时同样无法投递事件。
+    """
+    from PySide6.QtCore import QCoreApplication, QThread
+
+    app = QCoreApplication.instance()
+    if app is None:
+        return False
+    return QThread.currentThread() is app.thread()
+
+
 def qml_path(relative_path: str = "") -> Path:
     """获取QML文件路径
 

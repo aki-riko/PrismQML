@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -56,10 +57,24 @@ def _wait_component(component: QQmlComponent) -> None:
     """Wait for direct-file QML compilation. 等待 QML 编译。"""
     if component.status() != QQmlComponent.Status.Loading:
         return
-    loop = QEventLoop()
-    component.statusChanged.connect(lambda _status: loop.quit())
-    QTimer.singleShot(3000, loop.quit)
-    loop.exec()
+    # Keep waiting for the whole budget instead of a single 3s window. A loaded runner
+    # can take longer than 3s to finish compiling this file, and the old single-shot
+    # quit returned while the component was still Loading, so the caller's
+    # ``status == Ready`` assertion failed for a machine-speed reason rather than a
+    # real regression. The deadline is now an actual upper bound, not a one-shot wait.
+    # 在整个预算内持续等待, 而不是只等一次 3 秒窗口。负载高的机器编译该文件可能超过 3 秒,
+    # 旧的单次 quit 会在组件仍为 Loading 时返回, 于是调用方的 ``status == Ready`` 断言
+    # 因机器速度而非真实回归失败。现在该截止时间才是真正的上限, 而不是一次性等待。
+    deadline = time.monotonic() + 20.0
+    while (
+        component.status() == QQmlComponent.Status.Loading
+        and time.monotonic() < deadline
+    ):
+        loop = QEventLoop()
+        component.statusChanged.connect(lambda _status: loop.quit())
+        QTimer.singleShot(500, loop.quit)
+        loop.exec()
+
 
 
 def _source_for(path: Path, source_kind: str) -> str:

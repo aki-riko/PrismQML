@@ -23,7 +23,10 @@ env:
   # 分片通常数分钟完成；每片保留 20 分钟，外层再留 5 分钟做清理诊断。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
   PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "1500"
-  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "180"
+  # 串行分片逐文件隔离运行，为场景泄漏兜底。实测同一文件单独跑 0.5s，
+  # 在五个兄弟进程争抢四个核心时需要 19-42s(约 40-84 倍退化)，
+  # 原先的 180s 仅剩约 4 倍余量，会以 exit=124 误杀健康分片(无 faulthandler 帧)。
+  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "900"
 
 jobs:
   qml_conventions:

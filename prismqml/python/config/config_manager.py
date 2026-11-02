@@ -27,6 +27,7 @@ from ._app_config_schema import (
     resolve_app_config_path,
 )
 from ..core import debug, error, exception, warning
+from ..core.utils import is_app_thread
 
 
 def _write_window_mapping_preserving_appearance(
@@ -133,6 +134,7 @@ class ConfigManager(QObject):
             self._reset_loaded_appearance()
         self._pending_updates = deque()
         self._active_persistence = None
+        self._persistence_launch_scheduled = False
         self._runtime_overrides = {}
         self._runtime_request_id = 0
         self._appearance_runtime = None
@@ -356,6 +358,39 @@ class ConfigManager(QObject):
             if after_failure is not None:
                 after_failure()
         self._active_persistence = None
+        # Defer the next launch out of the current signal delivery. 推迟到本次信号派发之外。
+        # Starting it inline re-enters Qt's signal machinery while a task signal is
+        # still being delivered: ``_finish_persistence`` is reached from
+        # ``TaskHandle.finished``, and the inline launch immediately constructs a new
+        # ``TaskHandle`` and connects its internal bridge signals. On a loaded runner
+        # that nested connect can block inside Qt's signal lock for the rest of the
+        # shard budget. Queuing the continuation keeps one write in flight without
+        # touching the public contract: ``persistencePending`` stays true until the
+        # queued launch actually runs.
+        # 就地启动会在任务信号仍在派发时重入 Qt 的信号机制: 本方法由 TaskHandle.finished 进入,
+        # 就地启动会立刻新建 TaskHandle 并连接其内部桥接信号; 在负载高的机器上, 这次嵌套的
+        # connect 可能卡在 Qt 的信号锁里直到分片预算耗尽。改为排队续跑即可保持"串行单写盘",
+        # 且不改变对外契约: persistencePending 在排队启动真正执行前仍为真。
+        self._schedule_next_persistence()
+
+    def _schedule_next_persistence(self):
+        """Queue one serial launch on the Qt thread. 在 Qt 线程排队一次串行启动。"""
+        if self._persistence_launch_scheduled:
+            return
+        if not is_app_thread():
+            # The Qt event loop cannot deliver the queued launch here, so run inline.
+            # 此处 Qt 事件循环无法投递排队的启动, 因此就地执行。
+            self._start_next_persistence()
+            return
+        self._persistence_launch_scheduled = True
+        QTimer.singleShot(0, self._run_scheduled_persistence)
+
+    @Slot()
+    def _run_scheduled_persistence(self):
+        """Run one queued serial launch. 执行一次排队的串行启动。"""
+        if not self._persistence_launch_scheduled:
+            return
+        self._persistence_launch_scheduled = False
         self._start_next_persistence()
 
     @Slot("QVariant", result=bool)

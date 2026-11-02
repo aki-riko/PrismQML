@@ -7,7 +7,9 @@
 import threading
 from typing import Any, Dict, Tuple
 
-from PySide6.QtCore import QCoreApplication, QThread, QThreadPool
+from PySide6.QtCore import QCoreApplication, QThreadPool
+
+from .utils import is_app_thread
 
 
 class TaskThreadPool(QThreadPool):
@@ -76,10 +78,9 @@ _GLOBAL_TASK_POOL_LOCK = threading.Lock()
 
 def global_task_pool() -> TaskThreadPool:
     """Return the process-wide managed task pool. 返回进程级受管任务线程池。"""
-    app = QCoreApplication.instance()
-    if app is None:
+    if QCoreApplication.instance() is None:
         raise RuntimeError("A QCoreApplication is required before accessing the task pool")
-    if QThread.currentThread() != app.thread():
+    if not is_app_thread():
         raise RuntimeError("The task pool must be accessed from the Qt application thread")
     global _GLOBAL_TASK_POOL
     with _GLOBAL_TASK_POOL_LOCK:

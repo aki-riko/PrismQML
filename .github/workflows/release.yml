@@ -13,7 +13,9 @@ env:
   # 完整套件已拆成隔离分片；每片 20 分钟，外层再留 5 分钟清理诊断余量。
   PRISM_FULL_PYTEST_TIMEOUT_SECONDS: "1200"
   PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS: "1500"
-  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "180"
+  # 串行分片逐文件隔离运行。实测同一文件单独跑 0.5s，在五个兄弟进程争抢四个核心时
+  # 需要 19-42s(约 40-84 倍退化)，180s 仅剩约 4 倍余量会误杀健康分片(exit=124，无栈)。
+  PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "900"
 
 jobs:
   quality_gate:

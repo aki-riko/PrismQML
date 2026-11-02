@@ -120,3 +120,38 @@ def test_shard_layout_is_derived_and_reproducible():
         )
     )
     assert total == expected
+
+
+def test_serial_budget_matches_every_workflow_and_leaves_headroom():
+    """The serial budget must be identical everywhere and survive core contention.
+
+    串行预算必须在各处一致, 并能承受核心争抢。
+
+    ``serial-runtime-*`` shards run one file per process so a QML scene cannot leak
+    into a neighbour. Under six-way parallelism on a four-core runner the same file
+    that needs 0.5s alone needs 19-42s (measured, ~40-84x), so a 180s budget left only
+    about four times headroom and killed healthy shards with ``exit=124`` and no
+    faulthandler frame. The budget is now 900s; this gate keeps the script default and
+    both release workflows from drifting apart again.
+    ``serial-runtime-*`` 分片每进程只跑一个文件, 避免 QML 场景泄漏给相邻用例。在四核机器上
+    六路并行时, 同样一个文件单独跑 0.5s 需要 19-42s(实测约 40-84 倍), 180s 预算仅剩约四倍
+    余量, 会以 ``exit=124`` 且无 faulthandler 帧的方式误杀健康分片。预算现为 900s; 本门禁
+    保证脚本默认值与两个发布工作流不再各说各话。
+    """
+    scripts = _load_shards()
+    assert scripts.DEFAULT_SERIAL_TIMEOUT_SECONDS == 900
+
+    workflows = ROOT / ".github" / "workflows"
+    for name in ("build-all.yml", "release.yml"):
+        text = (workflows / name).read_text(encoding="utf-8")
+        assert 'PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS: "900"' in text, (
+            f"{name} 的 PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS 必须与 "
+            "scripts/run_test_shards.py 的 DEFAULT_SERIAL_TIMEOUT_SECONDS 一致(900)"
+        )
+
+    # The supervisor must stay above the shard budget so cleanup gets a margin.
+    assert (
+        scripts.DEFAULT_SUPERVISOR_TIMEOUT_SECONDS
+        > scripts.DEFAULT_SERIAL_TIMEOUT_SECONDS
+    )
+    assert scripts.DEFAULT_SUPERVISOR_TIMEOUT_SECONDS > scripts.DEFAULT_TIMEOUT_SECONDS

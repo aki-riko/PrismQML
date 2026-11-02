@@ -19,7 +19,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TIMEOUT_SECONDS = 1200
 DEFAULT_SUPERVISOR_TIMEOUT_SECONDS = 1500
-DEFAULT_SERIAL_TIMEOUT_SECONDS = 180
+# Serial shards run one file at a time so their scenes cannot leak into a neighbour.
+# 串行分片逐文件运行, 其场景不会泄漏给相邻用例。
+# 180s was too tight for that job: the same file that takes 0.5s alone needs 19-42s
+# while five sibling processes compete for four cores, so a shard that only *looks*
+# fast still consumed most of its budget before the supervisor killed it with exit=124
+# (no faulthandler frame, because nothing was deadlocked -- it was simply out of time).
+# 180s 对这项职责过于紧张: 同样一个文件单独跑 0.5s, 在五个兄弟进程争抢四个核心时需要
+# 19-42s, 于是"看着很快"的分片仍会在 supervisor 以 exit=124 杀掉它前耗尽大半预算
+# (没有 faulthandler 帧, 因为并未死锁, 只是时间不够)。
+DEFAULT_SERIAL_TIMEOUT_SECONDS = 900
 LOGGER = logging.getLogger("prismqml.test_shards")
 SHARD_LAYOUT = (
     ("python", ROOT / "tests", 2),

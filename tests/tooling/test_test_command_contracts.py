@@ -262,7 +262,7 @@ def test_ci_automated_test_commands_use_process_runner():
             "$env:PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS",
             "$env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS",
             1200,
-            180,
+            900,
             1500,
         ),
         (
@@ -271,7 +271,7 @@ def test_ci_automated_test_commands_use_process_runner():
             "$PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS",
             "$PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS",
             1200,
-            180,
+            900,
             1500,
         ),
     ),
