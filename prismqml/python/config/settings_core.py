@@ -236,6 +236,10 @@ class SettingsCore(QObject):
             if persist:
                 codec = entry.clone()
                 payload = codec.encode(self._isolate(entry, value))
+                # 必须在主线程把 payload 拍平成纯 JSON 数据:写盘发生在后台线程,
+                # 而 _isolate 对 Qt 对象会退化成原引用,直接传过去会与主线程 GC
+                # 并发访问同一 Qt 对象,触发访问冲突。
+                payload = self._json_safe(payload)
             else:
                 payload = value
 
@@ -261,6 +265,55 @@ class SettingsCore(QObject):
                 warning(f"清理配置临时文件失败: {tmp_path}: {exc}")
 
     @staticmethod
+    def _json_safe(value):
+        """把 Qt 值对象拍平成纯 JSON 数据,其余值原样返回。
+
+        背景(真实崩溃): 配置写盘在独立 QThread 上执行 `json.dump`。`_isolate()`
+        对无法 deepcopy 的值(QPixmap / QObject 子类等)会返回**原对象引用**,
+        该引用若进入快照,后台线程读取它时主线程可能正在做 Python GC,两者并发
+        访问同一个 Qt 对象即触发访问冲突(段错误)。因此必须在主线程这里就把
+        Qt 对象拍平,让后台线程只碰纯 Python 数据。
+
+        注意: 这里**不是**宽松兜底。真正不可序列化的值(如任意 object())必须
+        继续让 json.dump 抛错并拒绝提交,否则会破坏
+        test_non_serializable_values_leave_no_partial_commit 所锁定的既有契约:
+        不可序列化的值不落盘、不改变原值、不留半截文件。因此只转换 Qt 类型,
+        其余原样返回交给 json 自己判断。
+        """
+        if value is None or isinstance(value, (bool, int, float, str)):
+            return value
+        if isinstance(value, dict):
+            return {
+                SettingsCore._json_safe(key): SettingsCore._json_safe(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [SettingsCore._json_safe(item) for item in value]
+        if not SettingsCore._is_qt_value(value):
+            return value
+        # Qt 的 color 等轻量值对象实现了 name()/toString(),优先取稳定字符串,
+        # 避免退化成带内存地址的 repr。
+        for attribute in ("name", "toString"):
+            method = getattr(value, attribute, None)
+            if callable(method):
+                try:
+                    return str(method())
+                except Exception as exc:
+                    debug(f"快照 Qt 值 {attribute}() 转换失败,退化为 str: {exc}")
+                    break
+        return str(value)
+
+    @staticmethod
+    def _is_qt_value(value) -> bool:
+        """判断是否 PySide6/Qt 的值对象或 QObject 子类。
+
+        只认 PySide6 类型,避免把第三方自定义对象也当成 Qt 值而绕过
+        不可序列化契约。
+        """
+        module = type(value).__module__ or ""
+        return module.startswith(("PySide6", "shiboken6"))
+
+    @staticmethod
     def _write_mapping_file(file_path: Path, mapping: dict):
         """Write one pure snapshot without touching QObjects. 后台写入纯快照。"""
         file_path = Path(file_path)
@@ -271,6 +324,9 @@ class SettingsCore(QObject):
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
                 tmp_fd = None
+                # 这里刻意不加 default 兜底: 不可序列化的值必须抛错并放弃提交,
+                # 这是既有契约(test_non_serializable_values_leave_no_partial_commit)。
+                # Qt 对象已在主线程由 _json_safe 拍平,不会走到这里。
                 json.dump(mapping, fp, ensure_ascii=False, indent=2)
             os.replace(tmp_path, file_path)
             tmp_path = None

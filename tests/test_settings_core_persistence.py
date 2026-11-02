@@ -483,3 +483,59 @@ def test_config_manager_property_signal_is_silent_on_save_failure(
         assert len(diagnostics) == 1
     finally:
         ConfigManager._instance = original_instance
+
+
+def test_qt_objects_never_reach_the_background_writer(tmp_path):
+    """快照送进后台写盘线程前,必须已在主线程拍平成纯 JSON 数据。
+
+    Regression origin(真实崩溃): 配置写盘在独立 QThread 上执行 json.dump。
+    `_isolate()` 对无法 deepcopy 的值(QPixmap / QObject 子类)会返回原对象引用,
+    该引用随之进入快照;后台线程读取它时主线程若正在做 Python GC,两者并发访问
+    同一个 Qt 对象即触发访问冲突(段错误)。该崩溃表现为「所有用例都通过、整个
+    分片退出时 exit=3221226356」,极易被误判成被测控件的问题。
+
+    这里直接对真实快照断言: 任何 Qt 类型的值都不得以对象形式出现,必须已是
+    可 json.dumps 的纯数据。
+    """
+
+    class _QtValueConfig(SettingsCore):
+        color = SettingEntry("Appearance", "Accent", "#000000")
+        pixmap = SettingEntry("Appearance", "Preview", None)
+
+    from PySide6.QtCore import QObject
+    from PySide6.QtGui import QColor, QPixmap
+
+    config = _QtValueConfig()
+    config.file = tmp_path / "settings.json"
+    config.color.value = QColor("#ff8800")
+    config.pixmap.value = QPixmap(4, 4)
+
+    mapping = config._to_mapping()
+
+    # 快照必须能直接序列化,且不得残留任何 Qt 对象。
+    json.dumps(mapping)
+    stack = [mapping]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            stack.extend(node.keys())
+            stack.extend(node.values())
+            continue
+        if isinstance(node, (list, tuple)):
+            stack.extend(node)
+            continue
+        assert not isinstance(node, (QObject, QColor, QPixmap)), (
+            f"快照里残留 Qt 对象: {type(node).__name__}"
+        )
+
+    # Qt 颜色取 name() 形态,而不是带内存地址的 repr。
+    assert mapping["Appearance"]["Accent"] == "#ff8800"
+    # 真正不可序列化的值仍必须被拒绝,不能被宽松兜底救活。
+    class _PoisonConfig(SettingsCore):
+        value = SettingEntry("General", "Value", "old")
+
+    poison = _PoisonConfig()
+    poison.file = tmp_path / "poison.json"
+    assert poison.set(poison.value, object()) is False
+    assert poison.value.value == "old"
+    assert not poison.file.exists()
