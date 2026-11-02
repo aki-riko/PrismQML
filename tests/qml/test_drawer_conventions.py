@@ -320,13 +320,20 @@ def test_drawer_inside_mode_honours_overlay_target(drawer_scene):
     assert QMetaObject.invokeMethod(scoped_drawer, "open")
     assert _wait_for(lambda: scoped_drawer.property("opened"))
 
-    # 挂载点必须是页面容器，而不是窗口内容项。
-    assert scoped_drawer.parentItem() is page
-    # 几何必须收敛到容器尺寸；若退回窗口级，这里会量到整窗尺寸。
-    assert (scoped_drawer.width(), scoped_drawer.height()) == pytest.approx(
-        (page.width(), page.height())
-    )
-    assert scoped_drawer.width() < window.width()
+    try:
+        # 挂载点必须是页面容器，而不是窗口内容项。
+        assert scoped_drawer.parentItem() is page
+        # 几何必须收敛到容器尺寸；若退回窗口级，这里会量到整窗尺寸。
+        assert (scoped_drawer.width(), scoped_drawer.height()) == pytest.approx(
+            (page.width(), page.height())
+        )
+        assert scoped_drawer.width() < window.width()
+    finally:
+        # 用例结束前显式收起：抽屉带着遮罩 MouseArea 留在打开态进入场景析构，
+        # 属于无谓的残留状态；收干净再交给 teardown，避免给后续用例留隐患。
+        QMetaObject.invokeMethod(scoped_drawer, "close")
+        _wait_for(lambda: not scoped_drawer.property("opened"))
+        assert _wait_for(lambda: not scoped_drawer.property("_isClosing"))
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 
