@@ -15,10 +15,15 @@ Item {
     readonly property var contentItem: contentLoader.item
     property bool _targetReady: false
     property bool _pageLoadedReported: false
+    // Python 侧就绪兜底开关：页面在限时内既不报错也永不就绪时由 AsyncQmlPage 置 true，
+    // 强制揭幕，避免导航 loading 遮罩永久停留（2026-11-02 下游实测事故）。
+    property bool readyDeadlineExpired: false
 
     // ==================== Readonly State 只读状态 ====================
     readonly property bool pageLoading: contentLoader.status === Loader.Loading
-    readonly property bool pageReady: contentLoader.status === Loader.Ready && _targetReady
+    // 兜底生效时不再要求目标自报就绪：内容已孵化出来（Loader.Ready）就够了。
+    readonly property bool pageReady: contentLoader.status === Loader.Ready
+        && (_targetReady || readyDeadlineExpired)
     readonly property bool _asynchronousPageLoaderEnabled:
         typeof PrismQmlAsynchronousPageLoaderEnabled === "undefined" ||
         PrismQmlAsynchronousPageLoaderEnabled
@@ -32,6 +37,7 @@ Item {
         if (!loadRequested || pageSource.toString() === "") return
         root._targetReady = false
         root._pageLoadedReported = false
+        root.readyDeadlineExpired = false
         contentLoader.setSource(pageSource, {"backend": backend})
         contentLoader.active = true
     }

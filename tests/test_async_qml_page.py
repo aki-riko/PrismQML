@@ -390,3 +390,67 @@ def test_window_reveals_managed_async_page_without_regular_animation(qapp, tmp_p
         )
     finally:
         _dispose_window(window)
+
+
+# ==================== 就绪兜底（2026-11-02）====================
+# 背景：遮罩只由 page_ready / page_failed 释放。对「页面建出来了、既不报错
+# 也永不就绪」此前没有任何超时，_pythonLoading 永远为 true、遮罩永久停留
+# （下游 Kaleidos 2.0.2.284 用户报告「游戏库一直转圈、永远进不去」即此形态）。
+# 下面两条用例分别钉住「永不就绪必须在兜底时长后被放行」与
+# 「正常就绪不得被兜底提前打断」。
+
+
+def test_page_ready_deadline_releases_never_ready_page(qapp, tmp_path):
+    """页面永不就绪时，兜底必须放行遮罩门，而不是永久等待。"""
+    page_path = tmp_path / "NeverReadyPage.qml"
+    # gated=True 但 ready_delay_ms 极大：模拟「判据永不为 true」。
+    _write_page(page_path, gated=True, ready_delay_ms=600_000)
+    engine = QQmlApplicationEngine()
+    EngineManager.set_engine(engine)
+    controller = install_incubation_controller(engine)
+    try:
+        backend = _Backend()
+        page = AsyncQmlPage(page_path, backend=backend, page_ready_deadline_ms=200)
+        ready = []
+        page.page_ready.connect(lambda: ready.append(True))
+
+        page.start_loading()
+        assert page.is_ready is False
+        assert page._ready_deadline_timer is not None, "开始加载后必须布下兜底计时"
+
+        assert _pump_until(lambda: page.is_ready, timeout_ms=3000), (
+            "页面在兜底时长后仍未被放行，遮罩会永久停留"
+        )
+        assert ready == [True]
+        assert page._ready_deadline_expired is True
+        assert page.load_error == "", "兜底放行不是加载失败，不得置 load_error"
+        # 兜底后宿主必须真的揭幕（visible 由 pageReady 驱动）。
+        assert _pump_until(lambda: page._qml_item.property("pageReady") is True)
+    finally:
+        controller._timer.stop()
+        EngineManager.reset()
+
+
+def test_page_ready_deadline_does_not_disturb_normal_ready(qapp, tmp_path):
+    """正常就绪路径必须撤销兜底计时，且只发一次 page_ready。"""
+    page_path = tmp_path / "FastReadyPage.qml"
+    _write_page(page_path, gated=True, ready_delay_ms=50)
+    engine = QQmlApplicationEngine()
+    EngineManager.set_engine(engine)
+    controller = install_incubation_controller(engine)
+    try:
+        backend = _Backend()
+        # 兜底时长远大于真实就绪时间：正常路径应当先落地。
+        page = AsyncQmlPage(page_path, backend=backend, page_ready_deadline_ms=5000)
+        ready = []
+        page.page_ready.connect(lambda: ready.append(True))
+
+        page.start_loading()
+        assert _pump_until(lambda: page.is_ready, timeout_ms=3000)
+
+        assert page._ready_deadline_expired is False, "正常就绪不得被标记成兜底放行"
+        assert page._ready_deadline_timer is None, "正常就绪后必须撤销兜底计时"
+        assert ready == [True], "page_ready 必须只发一次"
+    finally:
+        controller._timer.stop()
+        EngineManager.reset()
