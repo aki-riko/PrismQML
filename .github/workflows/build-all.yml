@@ -107,6 +107,15 @@ jobs:
           --timeout $env:PRISM_FULL_PYTEST_TIMEOUT_SECONDS
           --serial-timeout $env:PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS
           --supervisor-timeout $env:PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
+      # The console keeps only a 12000-char tail; a hang's thread dump needs the full log.
+      # 控制台只保留 12000 字符尾部, 卡死时的线程栈转储需要完整日志。
+      - name: Upload shard logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-shard-logs-windows
+          path: .artifacts/python/test-shards/*/pytest.log
+          if-no-files-found: warn
       - name: Probe source QML components
         env:
           QT_PLUGIN_PATH: ""
@@ -185,6 +194,14 @@ jobs:
           --timeout $PRISM_FULL_PYTEST_TIMEOUT_SECONDS
           --serial-timeout $PRISM_SERIAL_RUNTIME_TIMEOUT_SECONDS
           --supervisor-timeout $PRISM_FULL_PYTEST_SUPERVISOR_TIMEOUT_SECONDS
+      # Same 12000-char console tail as the Windows gate. 与 Windows 门禁相同的控制台截断。
+      - name: Upload shard logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-shard-logs-linux
+          path: .artifacts/python/test-shards/*/pytest.log
+          if-no-files-found: warn
       - name: Probe source QML components
         env:
           QT_QPA_PLATFORM: offscreen

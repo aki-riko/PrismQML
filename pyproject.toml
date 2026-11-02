@@ -93,3 +93,9 @@ addopts = [
 ]
 cache_dir = ".artifacts/python/pytest-cache"
 pythonpath = ["."]
+# Dump every thread's stack and exit once a single test passes 300s (slowest seen: 66s),
+# so an intermittent hang leaves its call site instead of a silent 1200s shard timeout.
+# 单个用例超过 300 秒(实测最慢 66 秒)即转储全部线程栈并退出, 让偶发卡死留下调用点,
+# 而不是静默等满 1200 秒分片超时。
+faulthandler_timeout = 300
+faulthandler_exit_on_timeout = true
