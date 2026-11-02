@@ -119,9 +119,17 @@ Item {
     function _openPaletteDialog() {
         if (_mainWindow && _mainWindow.contentItem) {
             _paletteDialogRequested = true
-            contentLayer.paletteDialogLoader.parent = _mainWindow.contentItem
-            contentLayer.paletteDialogLoader.anchors.fill = _mainWindow.contentItem
+            // The palette dialog follows the same overlay contract as the primary one:
+            // host it on this control's parent scope when possible, and only fall back to
+            // the window content item when there is no parent scope. Hardcoding the window
+            // forced an always-window-level overlay that overlayTarget cannot correct.
+            // 调色板对话框与主对话框遵循同一覆盖契约: 优先挂到本控件的父级作用域,
+            // 没有父级时才回退窗口内容项。原先硬编码窗口级, overlayTarget 无法纠正。
+            var paletteHost = control.parent ? control.parent : _mainWindow.contentItem
+            contentLayer.paletteDialogLoader.parent = paletteHost
+            contentLayer.paletteDialogLoader.anchors.fill = paletteHost
             if (contentLayer.paletteDialogLoader.item) {
+                contentLayer.paletteDialogLoader.item.overlayTarget = paletteHost
                 contentLayer.paletteDialogLoader.item.selectedColor = control.selectedColor
                 contentLayer.paletteDialogLoader.item.open()
             }

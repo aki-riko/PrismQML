@@ -95,6 +95,33 @@ Window {
             }
         }
     }
+
+    // Component-level overlay host: a page-sized container that is deliberately smaller
+    // than the window, so a drawer that ignores `overlayTarget` (and rebases to the window
+    // content item) is distinguishable by geometry alone.
+    Item {
+        id: scopedHost
+        objectName: "scopedOverlayHost"
+        x: 0
+        y: 0
+        width: 320
+        height: 260
+
+        Drawer {
+            id: scopedDrawer
+            objectName: "scopedDrawer"
+            mode: Enums.drawer.mode_inside
+            position: Enums.position.right
+            drawerWidth: 140
+            animationDuration: 0
+            overlayTarget: scopedHost
+
+            Rectangle {
+                width: 60
+                height: 30
+            }
+        }
+    }
 }
 """
 
@@ -269,6 +296,37 @@ def test_drawer_four_direction_geometry(drawer_scene):
             (panel.width() - 32, panel.height() - 32)
         )
         _close(drawer)
+    assert warnings == []
+    assert _new_visible_windows(windows_before, window) == []
+
+
+def test_drawer_inside_mode_honours_overlay_target(drawer_scene):
+    """组件级覆盖契约：设了 overlayTarget 的页面级抽屉不得被升级成全窗口。
+
+    Regression origin（真实缺陷）：Drawer.open() 曾把内侧模式的挂载点硬编码成
+    Window.contentItem，完全无视基类 OverlayDialogCore 公开的 overlayTarget。
+    结果是任何想在页面/局部容器里用内侧抽屉的调用方，都被静默升级成整窗遮罩，
+    遮罩吃掉整页交互。这里用一个非窗口尺寸的子容器当宿主，直接量真实几何：
+    抽屉必须挂在那个容器下、尺寸等于容器而非窗口，遮罩也只能覆盖容器范围。
+    """
+    window, _drawer, _content_item, _panel, warnings, windows_before = drawer_scene
+    page = window.findChild(QQuickItem, "scopedOverlayHost")
+    assert isinstance(page, QQuickItem), "场景里缺少页面级宿主容器"
+    assert (page.width(), page.height()) != pytest.approx(
+        (window.width(), window.height())
+    ), "宿主容器必须小于窗口，否则本用例无法区分页面级与窗口级覆盖"
+
+    scoped_drawer = window.findChild(QQuickItem, "scopedDrawer")
+    assert QMetaObject.invokeMethod(scoped_drawer, "open")
+    assert _wait_for(lambda: scoped_drawer.property("opened"))
+
+    # 挂载点必须是页面容器，而不是窗口内容项。
+    assert scoped_drawer.parentItem() is page
+    # 几何必须收敛到容器尺寸；若退回窗口级，这里会量到整窗尺寸。
+    assert (scoped_drawer.width(), scoped_drawer.height()) == pytest.approx(
+        (page.width(), page.height())
+    )
+    assert scoped_drawer.width() < window.width()
     assert warnings == []
     assert _new_visible_windows(windows_before, window) == []
 

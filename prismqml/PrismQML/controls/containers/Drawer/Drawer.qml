@@ -82,15 +82,16 @@ OverlayDialogCore {
             _originalParent = control.parent
         }
 
-        // Rebase the first inside opening to the window edge before animating
-        // 首次内侧打开先按窗口边缘重定位,再启动动画
+        // Rebase the first inside opening to the overlay host: caller's overlayTarget
+        // when set, else the window content item; 优先 overlayTarget, 否则窗口内容项。
         if (!control._isOutside && control.Window && control.Window.window) {
-            var windowContent = control.Window.window.contentItem
-            if (windowContent && control.parent !== windowContent) {
+            var overlayHost = control.overlayTarget
+                || control.Window.window.contentItem
+            if (overlayHost && control.parent !== overlayHost) {
                 if (control._insideOpenPending) return
                 control._insideOpenPending = true
                 control._insideAnimationReady = false
-                control.parent = windowContent
+                control.parent = overlayHost
                 control._fillOverlayHost()
                 Qt.callLater(control._completeInsideOpen)
                 return

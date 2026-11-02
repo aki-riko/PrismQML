@@ -47,6 +47,17 @@ MessageBox {
         initialColor = selectedColor
         updateHsvFromColor()
 
+        // A subclass that overrides open() must still honour the whole OverlayDialogCore
+        // contract, not just the reparenting: capture the skin scope before moving out of
+        // the originating scope, re-bind parent geometry, and run the layout hook. Skipping
+        // these degraded theming back to global Enums and left stale Layout-driven size.
+        // 子类重写 open() 时必须兑现 OverlayDialogCore 的完整契约,而不只是重新挂载:
+        // 搬离来源范围前捕获皮肤作用域、重建父级几何、执行布局钩子。漏掉这些会让主题
+        // 回退到全局 Enums,并留下被 Layout 接管过的旧尺寸。
+        if (!skinContext && !_capturedSkinContext) {
+            _capturedSkinContext = effectiveSkinContext
+        }
+
         // Save original parent 保存原始父组件
         if (!_originalParent) {
             _originalParent = control.parent
@@ -58,6 +69,8 @@ MessageBox {
             control.parent = target
         }
 
+        _fillOverlayHost()
+        _prepareOpen()
         _isOpen = true
     }
 
