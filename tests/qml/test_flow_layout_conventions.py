@@ -18,9 +18,22 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+import shiboken6
 
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
+
+
+def _live_windows():
+    """Return only top-level windows whose C++ object still exists. 只取仍存活的顶层窗口。
+
+    ``topLevelWindows()`` can hold Python wrappers whose C++ object is already gone;
+    comparing those by identity produces the confusing
+    ``libshiboken: Internal C++ object already deleted`` diff instead of a real leak.
+    比较这些已销毁的包装对象只会得到
+    ``libshiboken: Internal C++ object already deleted`` 这种噪声, 而不是真实的泄漏。
+    """
+    return [win for win in QGuiApplication.topLevelWindows() if shiboken6.isValid(win)]
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -337,13 +350,24 @@ def _dispose_scene(engine, component, root) -> None:
 
 @pytest.fixture
 def flow_scene(qapp):
-    windows_before = tuple(QGuiApplication.topLevelWindows())
+    # Drain DeferredDelete before sampling the baseline. A previous test that only
+    # called deleteLater leaves its window in topLevelWindows() as an already-deleted
+    # wrapper, so the baseline would contain a zombie and the teardown comparison below
+    # fails with `libshiboken: Internal C++ object (QQuickWindow) already deleted`.
+    # 采样基线前先排空 DeferredDelete。上一个用例若只 deleteLater, 它的窗口会以"已删除
+    # 包装"的形式留在 topLevelWindows() 里, 基线于是包含僵尸, 下面的 teardown 比较会因
+    # `libshiboken: Internal C++ object (QQuickWindow) already deleted` 失败。
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+    windows_before = tuple(_live_windows())
     engine, component, root, warnings = _create_scene()
     try:
         yield root, warnings, windows_before
     finally:
         _dispose_scene(engine, component, root)
-        assert tuple(QGuiApplication.topLevelWindows()) == windows_before
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        QCoreApplication.processEvents()
+        assert tuple(_live_windows()) == windows_before
 
 
 def test_flow_layout_modes_preserve_current_geometry(flow_scene):
