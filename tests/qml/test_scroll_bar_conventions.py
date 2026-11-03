@@ -3,6 +3,8 @@
 # This file is part of PrismQML, licensed under MIT.
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Domain bucket 1/1 of the former test_scroll_bar_conventions.py."""
+import time  # noqa: F401
+
 import pytest  # noqa: F401
 from PySide6.QtCore import Q_ARG  # noqa: F401
 from PySide6.QtQml import QQmlEngine  # noqa: F401
@@ -26,9 +28,28 @@ def test_smooth_helpers_clamp_animate_and_sync(scroll_scene):
 
     assert QMetaObject.invokeMethod(window, "scrollVertical")
     assert window.property("verticalTarget") == pytest.approx(180)
-    assert _wait_for(lambda: window.property("verticalY") > 0)
-    assert window.property("verticalY") < 180
-    assert _wait_for(lambda: window.property("verticalY") == pytest.approx(180))
+    # The contract is that the scroll *animates* instead of jumping straight to the
+    # target. Sampling verticalY once after it first becomes non-zero is racy: on a
+    # loaded runner the animation has already finished by then, so verticalY is exactly
+    # 180 and `verticalY < 180` fails for a machine-speed reason rather than a real
+    # regression. Watching the whole transition keeps the same contract without
+    # depending on when the sample lands.
+    # 契约是滚动要"动画"而不是瞬间跳到目标。在 verticalY 首次非零后只采样一次具有竞态:
+    # 负载高的机器上动画此时已结束, verticalY 正好是 180, 于是 `verticalY < 180` 会因机器
+    # 速度而非真实回归失败。观察整段过渡即可保持同一契约, 又不依赖采样时机。
+    samples = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        samples.append(window.property("verticalY"))
+        if window.property("verticalY") == pytest.approx(180):
+            break
+        _pump()
+    assert samples, "没有采样到滚动过程"
+    assert all(value <= 180 for value in samples), samples
+    assert any(0 < value < 180 for value in samples), (
+        "滚动必须是渐进的, 不能一帧跳到目标: " + repr(samples)
+    )
+    assert window.property("verticalY") == pytest.approx(180)
 
     assert QMetaObject.invokeMethod(window, "overshootVertical")
     assert window.property("verticalTarget") == pytest.approx(480)
