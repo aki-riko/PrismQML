@@ -134,6 +134,22 @@ def _link_at(item: QQuickItem, x: float, y: float) -> str:
     )
 
 
+def _wait_for_settled(window: QQuickWindow, item: QQuickItem) -> None:
+    # Open animations scale the link under a stationary pointer; scan only once
+    # its scene geometry stops moving. 开场动画会缩放链接，几何稳定后再扫描。
+    def scene_rect():
+        rect = item.mapRectToItem(window.contentItem(), item.boundingRect())
+        return (rect.x(), rect.y(), rect.width(), rect.height())
+
+    readings = [scene_rect()]
+
+    def stable() -> bool:
+        readings.append(scene_rect())
+        return len(readings) >= 4 and len(set(readings[-4:])) == 1
+
+    assert _wait_for(stable)
+
+
 def _find_link_target(root, expected_url: str):
     for item in _descendants(root):
         if not isinstance(item, QQuickItem):
@@ -145,13 +161,32 @@ def _find_link_target(root, expected_url: str):
         )
         if not has_link_at:
             continue
-        width = max(1, math.ceil(item.width()))
-        height = max(1, math.ceil(item.height()))
-        for y in range(0, height, 2):
-            for x in range(0, width, 2):
-                if _link_at(item, float(x), float(y)) == expected_url:
-                    return item, QPointF(x, y)
+        if not _link_hits(item, expected_url, first_only=True):
+            continue
+        _wait_for_settled(root, item)
+        hits = _link_hits(item, expected_url)
+        assert hits, f"link target moved away: {expected_url}"
+        # Edge samples round off the glyph box once mapped to integer mouse
+        # coordinates; aim at the hit nearest the link centre instead.
+        # 边缘采样点映射为整数鼠标坐标后会落到字形框外，改取最靠近链接中心的命中点。
+        cx = sum(point.x() for point in hits) / len(hits)
+        cy = sum(point.y() for point in hits) / len(hits)
+        point = min(hits, key=lambda p: (p.x() - cx) ** 2 + (p.y() - cy) ** 2)
+        return item, point
     raise AssertionError(f"link target not found: {expected_url}")
+
+
+def _link_hits(item: QQuickItem, expected_url: str, first_only: bool = False):
+    hits = []
+    width = max(1, math.ceil(item.width()))
+    height = max(1, math.ceil(item.height()))
+    for y in range(0, height, 2):
+        for x in range(0, width, 2):
+            if _link_at(item, float(x), float(y)) == expected_url:
+                hits.append(QPointF(x, y))
+                if first_only:
+                    return hits
+    return hits
 
 
 LABEL_HOVER_SCENE = b"""
