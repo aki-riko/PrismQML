@@ -48,6 +48,14 @@ CMAKE_OPTIONS = (
 PLATFORM_CMAKE_OPTIONS: Mapping[str, Tuple[str, ...]] = {
     "win32": ("-DSENTRY_BUILD_RUNTIMESTATIC=ON",),
 }
+# Linux RelWithDebInfo binaries embed DWARF (36 MB -> 2.3 MB once stripped); the
+# unstripped copies stay in the build tree. macOS is not stripped: stripping an
+# arm64 binary can invalidate its ad-hoc signature and stop the handler from starting.
+# Linux 的 RelWithDebInfo 产物内嵌 DWARF（strip 后 36 MB -> 2.3 MB），未 strip 副本留在构建树；
+# macOS 不 strip：arm64 strip 后可能使 ad-hoc 签名失效，导致 handler 无法启动。
+PLATFORM_INSTALL_OPTIONS: Mapping[str, Tuple[str, ...]] = {
+    "linux": ("--strip",),
+}
 # Files a crash reporter loads or launches, per platform 各平台崩溃上报运行时文件
 RUNTIME_FILES: Mapping[str, Tuple[str, ...]] = {
     "win32": ("sentry.dll", "crashpad_handler.exe", "crashpad_wer.dll"),
@@ -154,7 +162,10 @@ def build_commands(
         *PLATFORM_CMAKE_OPTIONS.get(platform, ()),
     ]
     build = [cmake, "--build", str(layout.build), "--config", BUILD_CONFIG, "--parallel"]
-    install = [cmake, "--install", str(layout.build), "--config", BUILD_CONFIG]
+    install = [
+        cmake, "--install", str(layout.build), "--config", BUILD_CONFIG,
+        *PLATFORM_INSTALL_OPTIONS.get(platform, ()),
+    ]
     return configure, build, install
 
 

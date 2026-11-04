@@ -96,6 +96,13 @@ def test_windows_build_links_the_crt_statically(tmp_path):
     assert not any("RUNTIMESTATIC" in option for option in linux)
 
 
+def test_only_linux_strips_installed_binaries(tmp_path):
+    layout = _layout(tmp_path)
+    for platform, stripped in (("linux", True), ("darwin", False), ("win32", False)):
+        _, _, install = crash_runtime.build_commands(layout, "cmake", platform)
+        assert ("--strip" in install) is stripped, platform
+
+
 def test_checkout_clones_pinned_tag_with_submodules(tmp_path):
     layout = _layout(tmp_path)
     git = _FakeGit()

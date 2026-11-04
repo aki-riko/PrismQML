@@ -155,16 +155,27 @@ jobs:
           CIBW_BUILD: "cp39-*"
           # 通过 config-settings 把 --py-limited-api 传给 setuptools bdist_wheel(产出 abi3 wheel)
           CIBW_CONFIG_SETTINGS: "--build-option=--py-limited-api=cp39"
-          # Install the OpenSSL 3 runtime and Rust in each Linux container 每个 Linux 容器内安装 OpenSSL 3 运行库与 Rust
+          # Install the OpenSSL 3 runtime, Rust and libcurl headers in each Linux container.
+          # Crashpad links libcurl on Linux even with SENTRY_TRANSPORT=none; auditwheel then
+          # grafts libcurl and its dependencies into the wheel (unused at runtime, no upload).
+          # 每个 Linux 容器内安装 OpenSSL 3 运行库、Rust 与 libcurl 头文件。Crashpad 在 Linux 上即使
+          # SENTRY_TRANSPORT=none 也链接 libcurl，auditwheel 会把它及其依赖打进 wheel（运行时不调用、不上传）。
           CIBW_BEFORE_ALL_LINUX: >-
             dnf install -y "$PRISM_EPEL_RELEASE_RPM" &&
-            dnf install -y openssl3-libs &&
+            dnf install -y openssl3-libs libcurl-devel &&
             curl -sSf https://sh.rustup.rs | sh -s -- -y
+          # Build the pinned sentry-native crash runtime that setup.py bundles into the wheel
+          # 构建 setup.py 打进 wheel 的固定版本 sentry-native 崩溃运行时
+          CIBW_BEFORE_BUILD: python "{package}/scripts/build_crash_runtime.py"
+          # Platform variants are set separately, so each repeats PRISM_REQUIRE_CRASH_RUNTIME
+          # 各平台变量分别设置，因此每个都重复 PRISM_REQUIRE_CRASH_RUNTIME
           CIBW_ENVIRONMENT_LINUX: >-
             PATH=$HOME/.cargo/bin:$PATH
             QT_QPA_PLATFORM=offscreen
             PRISM_EPEL_RELEASE_RPM=https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-          CIBW_ENVIRONMENT_WINDOWS: "PYTHONIOENCODING=utf-8"
+            PRISM_REQUIRE_CRASH_RUNTIME=1
+          CIBW_ENVIRONMENT_WINDOWS: "PYTHONIOENCODING=utf-8 PRISM_REQUIRE_CRASH_RUNTIME=1"
+          CIBW_ENVIRONMENT_MACOS: "PRISM_REQUIRE_CRASH_RUNTIME=1"
           # PySide6 6.9+ 的 Linux wheel 以 manylinux_2_28 为最低平台基线
           CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
           # 跳过 musllinux(rusqlite bundled 在 musl 上编译慢) + 32位i686(PySide6不支持,rustup装不上)
@@ -178,10 +189,12 @@ jobs:
             --timeout 180 -- python "{project}/tests/qml/probe_all_components.py"
             --installed &&
             python "{project}/scripts/test_process.py" --qt-platform offscreen
-            --timeout 180 -- python "{project}/tests/test_provider_lifecycle.py"
+            --timeout 180 -- python "{project}/tests/test_provider_lifecycle.py" &&
+            python "{project}/scripts/test_process.py" --qt-platform offscreen
+            --timeout 180 -- python "{project}/tests/crash_reporter_probe.py"
 
       - name: Validate wheel structure
-        run: python scripts/validate_dist.py --expect-wheels 1 "wheelhouse/*.whl"
+        run: python scripts/validate_dist.py --expect-wheels 1 --expect-crash-runtime "wheelhouse/*.whl"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -236,6 +249,9 @@ jobs:
           python "$GITHUB_WORKSPACE/scripts/test_process.py" \
             --qt-platform offscreen --timeout 180 -- python \
             "$GITHUB_WORKSPACE/tests/test_provider_lifecycle.py"
+          python "$GITHUB_WORKSPACE/scripts/test_process.py" \
+            --qt-platform offscreen --timeout 180 -- python \
+            "$GITHUB_WORKSPACE/tests/crash_reporter_probe.py"
 
   build_sdist:
     name: Build source distribution
@@ -301,7 +317,7 @@ jobs:
           path: .artifacts/python/dist
           merge-multiple: true
       - name: Revalidate merged release artifacts
-        run: python scripts/validate_dist.py --expect-sdist --expect-wheels 3 ".artifacts/python/dist/*"
+        run: python scripts/validate_dist.py --expect-sdist --expect-wheels 3 --expect-crash-runtime ".artifacts/python/dist/*"
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

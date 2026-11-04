@@ -120,6 +120,22 @@ abi3 配置缺一不可：
 
 wheel 内 Windows 扩展应为无 Python 小版本后缀的 `prismqml_rs.pyd`；出现 `prismqml_rs.cp3XX-win_amd64.pyd` 表示退化成单版本 wheel。本地构建只用于诊断，正式产物由 CI 生成和发布。
 
+### 崩溃运行时
+
+三平台 wheel 都内置 sentry-native（Crashpad）崩溃运行时，位于 `prismqml/_native/crash/`：
+
+- cibuildwheel 的 `CIBW_BEFORE_BUILD` 先运行 `scripts/build_crash_runtime.py`，按
+  `scripts/crash_runtime_pin.json` 固定的提交构建；`PRISM_REQUIRE_CRASH_RUNTIME=1` 使 `setup.py`
+  在运行时缺失时直接失败，不会产出缺运行时的 wheel。
+- `validate_dist.py --expect-crash-runtime` 在单平台构建后和 publish 前各校验一次文件清单与 POSIX
+  handler 可执行位；`tests/crash_reporter_probe.py` 在安装后的 wheel 上让两个应用各崩溃一次，
+  要求各自目录留下且仅留下 1 份 dump。
+- Linux 上 Crashpad 即使 `SENTRY_TRANSPORT=none` 也链接 libcurl，auditwheel 会把 libcurl 及其依赖
+  （含 manylinux_2_28 的 OpenSSL 1.1.1）打进 wheel。运行时不发起网络请求，但安全扫描会报告这些库；这是
+  已评审的取舍，不要用 `--exclude` 静默改变。
+- 升级 sentry-native 时同时修改 pin 文件的 tag 与完整 commit。sdist 不含运行时，从 sdist 安装时
+  `install_crash_reporter()` 返回 `False`。
+
 ## 下游生效
 
 发布 PrismQML 不会自动更新下游应用。Gitora、quicksketch、Kaleidos 等各自使用独立虚拟环境，必须升级依赖并重新打包：
