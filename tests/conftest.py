@@ -75,4 +75,15 @@ def qapp():
     app = QApplication.instance()
     if app is None:
         app = QApplication([])
+    # instance() returns whatever application exists. If an earlier test created a
+    # QGuiApplication or QCoreApplication, the first QWidget aborts the whole
+    # process (0xC0000409) with no Python traceback, so fail here by name instead.
+    # instance() 会返回已存在的任意应用实例。若前面的用例建了 QGuiApplication 或
+    # QCoreApplication，首个 QWidget 会让整个进程中止（0xC0000409）且无 Python 栈，
+    # 因此在这里直接点名失败。
+    if not isinstance(app, QApplication):
+        pytest.fail(
+            f"a {type(app).__name__} already exists; QWidget tests need a QApplication. "
+            "Use the qapp fixture instead of constructing a Qt application in a test."
+        )
     yield app

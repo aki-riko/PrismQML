@@ -18,7 +18,6 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QUrl
-from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -28,13 +27,12 @@ import prismqml  # noqa: F401  确保资源/导入路径生效
 
 
 @pytest.fixture(scope="module")
-def app():
-    existing = QGuiApplication.instance()
-    if existing is not None:
-        yield existing
-        return
-    instance = QGuiApplication(sys.argv)
-    yield instance
+def app(qapp):
+    # Reuse the session QApplication. A QGuiApplication created here would be the
+    # process's only application, and every later QWidget would abort the process.
+    # 复用会话级 QApplication。在此创建 QGuiApplication 会成为进程内唯一的应用实例，
+    # 之后任何 QWidget 都会让进程中止。
+    yield qapp
 
 
 def _load_qml(app, source: str):
