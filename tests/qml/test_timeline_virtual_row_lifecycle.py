@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """Timeline virtual-row branch lifecycle regressions. 时间线虚拟行分支生命周期回归。"""
 
+import gc
 from pathlib import Path
 
 import pytest
@@ -146,6 +147,20 @@ def _has_list_view_ancestor(item):
     return False
 
 
+def _collect_stale_wrappers() -> None:
+    """Free dead wrappers left in reference cycles. 回收残留在引用环中的失效包装。
+
+    An earlier test can leave an item wrapper whose C++ object is gone in a reference
+    cycle. Once ``metaObject()`` was called on it, that wrapper keeps the QML
+    metaobject's wrapper registered under a freed heap address; a new delegate reusing
+    the address is then returned by ``childItems()`` as that stale ``QMetaObject``.
+    先前用例可能把 C++ 已销毁的 item 包装留在引用环里。若曾对它调用 ``metaObject()``,
+    该包装会让 QML 元对象的包装继续登记在已释放的堆地址上; 新委托复用这个地址时,
+    ``childItems()`` 就会返回这个陈旧的 ``QMetaObject``。
+    """
+    gc.collect()
+
+
 def _create_scene():
     engine = QQmlApplicationEngine()
     warnings = []
@@ -187,6 +202,7 @@ def _dispose_scene(engine, component, window) -> None:
 def timeline_virtual_row_scene(qapp):
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+    _collect_stale_wrappers()
     windows_before = tuple(QGuiApplication.topLevelWindows())
     scene = _create_scene()
     try:
