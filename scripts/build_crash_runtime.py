@@ -36,17 +36,19 @@ CMAKE_OPTIONS = (
     "-DSENTRY_BUILD_SHARED_LIBS=ON",
     "-DSENTRY_BUILD_TESTS=OFF",
     "-DSENTRY_BUILD_EXAMPLES=OFF",
-    # Compile Crashpad's bundled zlib instead of linking the system one, so the
-    # runtime adds no shared-library dependency beyond the platform baseline
-    # 编译 Crashpad 自带 zlib 而非链接系统库，不额外引入共享库依赖
-    "-DCRASHPAD_ZLIB_SYSTEM=OFF",
 )
-# crashpad_handler.exe runs as its own process and crashpad_wer.dll is loaded by
-# WerFault, so neither can rely on the host's VC++ runtime. Link it statically.
-# crashpad_handler.exe 是独立进程、crashpad_wer.dll 由 WerFault 加载，二者都不能依赖宿主的
-# VC++ 运行库，因此静态链接。
+# Windows: crashpad_handler.exe runs as its own process and crashpad_wer.dll is
+# loaded by WerFault, so neither can rely on the host's VC++ runtime; link it
+# statically (MSVC already uses Crashpad's bundled zlib).
+# Linux: compile the bundled zlib so the wheel needs no system zlib. Not on macOS,
+# where that zlib copy fails to compile against the Xcode 26 SDK (fdopen macro)
+# and the system libz is always present.
+# Windows：handler 与 WerFault 加载的 crashpad_wer.dll 都不能依赖宿主 VC++ 运行库，故静态链接
+# （MSVC 本就用自带 zlib）。Linux：编译自带 zlib，wheel 不依赖系统 zlib。macOS 不用：该 zlib 与
+# Xcode 26 SDK 的 fdopen 宏冲突无法编译，且系统 libz 必然存在。
 PLATFORM_CMAKE_OPTIONS: Mapping[str, Tuple[str, ...]] = {
     "win32": ("-DSENTRY_BUILD_RUNTIMESTATIC=ON",),
+    "linux": ("-DCRASHPAD_ZLIB_SYSTEM=OFF",),
 }
 # Linux RelWithDebInfo binaries embed DWARF (36 MB -> 2.3 MB once stripped); the
 # unstripped copies stay in the build tree. macOS is not stripped: stripping an

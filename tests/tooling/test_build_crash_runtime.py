@@ -80,7 +80,6 @@ def test_build_commands_use_crashpad_without_transport(tmp_path):
     configure, build, install = crash_runtime.build_commands(layout, "cmake")
     assert "-DSENTRY_BACKEND=crashpad" in configure
     assert "-DSENTRY_TRANSPORT=none" in configure
-    assert "-DCRASHPAD_ZLIB_SYSTEM=OFF" in configure
     assert "-DSENTRY_BUILD_SHARED_LIBS=ON" in configure
     assert f"-DCMAKE_INSTALL_PREFIX={layout.install}" in configure
     assert configure[configure.index("-B") + 1] == str(layout.build)
@@ -94,6 +93,15 @@ def test_windows_build_links_the_crt_statically(tmp_path):
     linux, _, _ = crash_runtime.build_commands(layout, "cmake", "linux")
     assert "-DSENTRY_BUILD_RUNTIMESTATIC=ON" in windows
     assert not any("RUNTIMESTATIC" in option for option in linux)
+
+
+def test_only_linux_compiles_the_bundled_zlib(tmp_path):
+    # macOS keeps the system libz: the bundled copy breaks on the Xcode 26 SDK
+    # macOS 保留系统 libz：自带副本在 Xcode 26 SDK 上编译失败
+    layout = _layout(tmp_path)
+    for platform, bundled in (("linux", True), ("darwin", False), ("win32", False)):
+        configure, _, _ = crash_runtime.build_commands(layout, "cmake", platform)
+        assert ("-DCRASHPAD_ZLIB_SYSTEM=OFF" in configure) is bundled, platform
 
 
 def test_only_linux_strips_installed_binaries(tmp_path):
