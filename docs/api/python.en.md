@@ -191,8 +191,9 @@ task call raises `RuntimeError` immediately instead of waiting for itself.
 
 Applications must call `install_crash_reporter()` explicitly. Call it after
 `QCoreApplication.setApplicationName()` and before creating `QApplication` so startup crashes are
-covered. Dumps go to `<AppLocalDataLocation>/crashpad/reports/` by default, one directory per
-application. Without an application name (or with an interpreter name such as `python`) and without
+covered. Dumps go to the Crashpad database under `<AppLocalDataLocation>/crashpad/` by default,
+one directory per application. The subdirectory holding the `.dmp` files differs by platform
+(`reports/` on Windows, `pending/` on Linux), so search the whole directory. Without an application name (or with an interpreter name such as `python`) and without
 `database_dir`, the call refuses and returns `False`, so programs never share a directory.
 `max_reports` (default 20), `max_age_days` (default 30) and `max_size_mb` (default 200) prune old
 dumps on every start; pass 0 to disable a limit. The runtime ships in the official wheels. Source

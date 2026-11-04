@@ -171,7 +171,8 @@ PrismQML 任务；原生 `QThreadPool` 无法通知框架哪些非自动删除�
 
 `install_crash_reporter()` 需要应用显式调用，建议在创建 `QApplication` 之前、设置
 `QCoreApplication.setApplicationName()` 之后调用，以覆盖启动期崩溃。dump 默认写入
-`<AppLocalDataLocation>/crashpad/reports/`，每个应用一个目录；未设置应用名（或应用名是
+`<AppLocalDataLocation>/crashpad/` 下的 Crashpad 数据库，每个应用一个目录；`.dmp` 所在子目录因平台
+而异（Windows 为 `reports/`，Linux 为 `pending/`），查找时应搜索整个目录。未设置应用名（或应用名是
 `python` 这类解释器名）且未传 `database_dir` 时拒绝启用并返回 `False`，避免多个程序共用目录。
 `max_reports`（默认 20）、`max_age_days`（默认 30）、`max_size_mb`（默认 200）在每次启用时清理旧
 dump，传 0 表示不限制该项。运行时随官方 wheel 分发；源码检出或从 sdist 构建时没有运行时，函数记录告警并

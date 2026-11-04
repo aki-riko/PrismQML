@@ -36,6 +36,10 @@ CMAKE_OPTIONS = (
     "-DSENTRY_BUILD_SHARED_LIBS=ON",
     "-DSENTRY_BUILD_TESTS=OFF",
     "-DSENTRY_BUILD_EXAMPLES=OFF",
+    # Compile Crashpad's bundled zlib instead of linking the system one, so the
+    # runtime adds no shared-library dependency beyond the platform baseline
+    # 编译 Crashpad 自带 zlib 而非链接系统库，不额外引入共享库依赖
+    "-DCRASHPAD_ZLIB_SYSTEM=OFF",
 )
 # crashpad_handler.exe runs as its own process and crashpad_wer.dll is loaded by
 # WerFault, so neither can rely on the host's VC++ runtime. Link it statically.

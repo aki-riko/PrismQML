@@ -6,14 +6,13 @@
 """Native crash reporter contracts and real-crash checks. 原生崩溃转储契约与真实崩溃验证。"""
 
 import os
-import subprocess
 import sys
-import time
 from pathlib import Path
 
 import pytest
 
 import prismqml
+from crash_reporter_probe import crash_failure, run_crash_child, wait_for_dumps
 from prismqml.python.core import crash_reporter
 from scripts import build_crash_runtime
 
@@ -22,36 +21,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # Set to "1" where the runtime must exist (release CI) so a missing build fails
 # 必须有运行时的环境（发布 CI）设为 "1"，缺失时失败而非跳过
 REQUIRE_RUNTIME_ENV = "PRISM_REQUIRE_CRASH_RUNTIME"
-DUMP_WAIT_SECONDS = 10.0
-CHILD_TIMEOUT_SECONDS = 60
-CRASH_CHILD = """
-import ctypes
-import os
-import sys
-
-root, runtime, app_name, database, max_reports = sys.argv[1:6]
-sys.path.insert(0, root)
-os.environ["PRISM_CRASH_RUNTIME_DIR"] = runtime
-from PySide6.QtCore import QCoreApplication
-from prismqml import install_crash_reporter
-
-QCoreApplication.setApplicationName(app_name)
-installed = install_crash_reporter(database or None, max_reports=int(max_reports))
-print(f"installed={installed}", flush=True)
-if not installed:
-    raise SystemExit(3)
-if sys.platform == "win32":
-    # A thread entered at address 0 faults outside ctypes' SEH guard 线程入口为 0 触发真实访问违例
-    kernel32 = ctypes.WinDLL("kernel32")
-    kernel32.CreateThread.restype = ctypes.c_void_p
-    kernel32.CreateThread.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p,
-                                      ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p]
-    thread = kernel32.CreateThread(None, 0, None, None, 0, None)
-    kernel32.WaitForSingleObject(ctypes.c_void_p(thread), 0xFFFFFFFF)
-else:
-    ctypes.string_at(0)
-raise SystemExit(4)
-"""
 
 
 @pytest.fixture
@@ -86,27 +55,15 @@ def crash_runtime_files():
 
 
 def _crash(runtime: Path, app: str, database: Path, max_reports: int = 0) -> None:
-    cache_prefix = os.environ["PYTHONPYCACHEPREFIX"]
-    # -I drops PYTHONUTF8, so force UTF-8 explicitly; native handler output may still
-    # carry locale bytes, hence errors="replace"
-    # -I 会忽略 PYTHONUTF8，故显式指定 UTF-8；原生 handler 输出仍可能含区域编码字节，故用 replace
-    result = subprocess.run(
-        [sys.executable, "-I", "-X", "utf8", "-X", f"pycache_prefix={cache_prefix}",
-         "-c", CRASH_CHILD, str(REPO_ROOT), str(runtime), app, str(database), str(max_reports)],
-        check=False, capture_output=True, encoding="utf-8", errors="replace",
-        timeout=CHILD_TIMEOUT_SECONDS,
+    result = run_crash_child(
+        app, database, root=REPO_ROOT, runtime=runtime, max_reports=max_reports
     )
-    assert "installed=True" in result.stdout, result.stdout + result.stderr
-    assert result.returncode not in (0, 3, 4), (result.returncode, result.stderr)
+    failure = crash_failure(result)
+    assert failure is None, failure
 
 
 def _dumps(database: Path, expected: int) -> list:
-    deadline = time.monotonic() + DUMP_WAIT_SECONDS
-    while True:
-        dumps = sorted((database / "reports").glob("*.dmp"))
-        if len(dumps) >= expected or time.monotonic() > deadline:
-            return dumps
-        time.sleep(0.1)
+    return wait_for_dumps(database, expected)
 
 
 def test_root_package_exports_the_core_installer():

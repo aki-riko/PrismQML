@@ -80,6 +80,7 @@ def test_build_commands_use_crashpad_without_transport(tmp_path):
     configure, build, install = crash_runtime.build_commands(layout, "cmake")
     assert "-DSENTRY_BACKEND=crashpad" in configure
     assert "-DSENTRY_TRANSPORT=none" in configure
+    assert "-DCRASHPAD_ZLIB_SYSTEM=OFF" in configure
     assert "-DSENTRY_BUILD_SHARED_LIBS=ON" in configure
     assert f"-DCMAKE_INSTALL_PREFIX={layout.install}" in configure
     assert configure[configure.index("-B") + 1] == str(layout.build)
