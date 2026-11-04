@@ -20,6 +20,7 @@ from PySide6.QtCore import (
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickItem
 
+from async_page_diagnostics import pump_until_overlay_gone
 from prismqml import AsyncQmlPage, Window, WindowType
 from prismqml.python.core.engine import EngineManager
 from prismqml.python.core.incubation import install_incubation_controller
@@ -331,9 +332,11 @@ def test_window_reveals_managed_async_page_without_regular_animation(qapp, tmp_p
         assert animation_finished == []
         capture_page_state()
         assert page_states[-1] == (True, 1.0, 0.0)
-        assert _pump_until(
-            lambda: window._window.findChild(QObject, "loadingOverlay") is None
+        overlay_gone, last_state = pump_until_overlay_gone(
+            _pump_until,
+            window._window, stack, page_transition, circle_transition
         )
+        assert overlay_gone, last_state
         assert _pump_until(
             lambda: page_transition.property("active") is False
         )
