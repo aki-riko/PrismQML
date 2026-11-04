@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/getsentry/sentry-native.git",
+  "tag": "0.17.5",
+  "commit": "af9e9367913edf07f54e4f2f9655ce96af0c1681"
+}

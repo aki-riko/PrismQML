@@ -4,5 +4,6 @@
 - `_qml_lint/` 保存 QML 规范扫描器内部实现；公开入口是 `check_qml_conventions.py`。
 - `_test_support/` 保存自动测试进程隔离内部实现；公开入口是 `test_process.py`。
 - `manual/` 保存会打开窗口或仅在人工维护时使用的脚本与数据，不进入自动门禁。
+- `build_crash_runtime.py` 按 `crash_runtime_pin.json` 固定的提交构建 sentry-native（Crashpad 后端、无网络传输），运行时文件暂存到 `.artifacts/cpp/sentry-native/runtime/`。升级版本时同时修改 tag 与完整 commit。
 
 自动测试和探针必须通过 `test_process.py` 启动，生成内容必须写入 `.artifacts/`。
