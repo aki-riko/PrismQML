@@ -20,9 +20,6 @@ import shutil
 from pathlib import Path
 from typing import List, Mapping, Optional
 
-from setuptools import setup
-from setuptools.command.build_py import build_py
-
 
 logger = logging.getLogger("prismqml.build")
 ARTIFACT_ROOT_ENV = "PRISM_ARTIFACT_ROOT"
@@ -61,24 +58,35 @@ def copy_crash_runtime(source: Path, build_lib: Path, required: bool) -> List[Pa
     return copied
 
 
-class BuildPyWithCrashRuntime(build_py):
-    """build_py that also bundles the crash runtime. 同时打包崩溃运行时的 build_py。"""
+def build_py_with_crash_runtime():
+    """Return a build_py that also bundles the crash runtime. 返回同时打包崩溃运行时的 build_py。
 
-    def run(self):
-        super().run()
-        if getattr(self, "editable_mode", False):
-            return
-        required = os.environ.get(REQUIRE_RUNTIME_ENV) == "1"
-        self._crash_runtime_outputs = copy_crash_runtime(
-            crash_runtime_dir(), Path(self.build_lib), required
-        )
-        for path in self._crash_runtime_outputs:
-            logger.info("bundled crash runtime file %s", path)
+    setuptools is imported here, not at module level, so the helpers above stay
+    importable where setuptools is absent (the Python 3.12+ test venvs).
+    setuptools 在此导入而非模块顶层，使上面的辅助函数在无 setuptools 的环境中仍可导入。
+    """
+    from setuptools.command.build_py import build_py
 
-    def get_outputs(self, include_bytecode=1):
-        outputs = super().get_outputs(include_bytecode)
-        return outputs + [str(path) for path in getattr(self, "_crash_runtime_outputs", [])]
+    class BuildPyWithCrashRuntime(build_py):
+        def run(self):
+            super().run()
+            if getattr(self, "editable_mode", False):
+                return
+            required = os.environ.get(REQUIRE_RUNTIME_ENV) == "1"
+            self._crash_runtime_outputs = copy_crash_runtime(
+                crash_runtime_dir(), Path(self.build_lib), required
+            )
+            for path in self._crash_runtime_outputs:
+                logger.info("bundled crash runtime file %s", path)
+
+        def get_outputs(self, include_bytecode=1):
+            outputs = super().get_outputs(include_bytecode)
+            return outputs + [str(path) for path in getattr(self, "_crash_runtime_outputs", [])]
+
+    return BuildPyWithCrashRuntime
 
 
 if __name__ == "__main__":
-    setup(cmdclass={"build_py": BuildPyWithCrashRuntime})
+    from setuptools import setup
+
+    setup(cmdclass={"build_py": build_py_with_crash_runtime()})

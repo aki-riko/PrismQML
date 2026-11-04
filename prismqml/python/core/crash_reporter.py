@@ -42,8 +42,8 @@ RUNTIME_FILES = {
     "linux": ("libsentry.so", "crashpad_handler"),
     "darwin": ("libsentry.dylib", "crashpad_handler"),
 }
-# Names Qt derives from a bare interpreter; every script would share them
-# Qt 从裸解释器推导出的名字；所有脚本都会共用
+# Interpreter names; every script run by that interpreter would share them
+# 解释器名；由它运行的所有脚本都会共用
 _INTERPRETER_NAME = re.compile(r"^pythonw?(\d+(\.\d+)?)?$", re.IGNORECASE)
 
 _lock = threading.Lock()
@@ -62,12 +62,31 @@ def runtime_dir() -> Path:
     return Path(configured) if configured else DEFAULT_RUNTIME_DIR
 
 
+def _fallback_names(core_application) -> set:
+    """Names Qt may use when no application name was set. Qt 未设置应用名时可能使用的名字。
+
+    Without an explicit name Qt derives one from the program: the executable on
+    Windows (``python``), ``arguments()[0]`` on Linux (``main.py``, ``-c``). Any
+    of these is shared by unrelated programs, so it never identifies one.
+    未显式设置时 Qt 从程序推导：Windows 取可执行文件（``python``），Linux 取
+    ``arguments()[0]``（``main.py``、``-c``）。这些名字会被无关程序共用，不能标识应用。
+    """
+    arguments = core_application.arguments() if core_application.instance() else []
+    programs = [arguments[0] if arguments else "", sys.argv[0] if sys.argv else "", sys.executable]
+    names = set()
+    for program in filter(None, programs):
+        path = Path(program)
+        names.update((path.name.casefold(), path.stem.casefold()))
+    return names - {""}
+
+
 def default_database_dir() -> Optional[Path]:
     """Return the per-application dump directory, or None if unnamed. 返回应用专属转储目录。"""
     from PySide6.QtCore import QCoreApplication, QStandardPaths
 
     name = QCoreApplication.applicationName().strip()
-    if not name or _INTERPRETER_NAME.match(name):
+    if (not name or _INTERPRETER_NAME.match(name)
+            or name.casefold() in _fallback_names(QCoreApplication)):
         return None
     location = QStandardPaths.writableLocation(
         QStandardPaths.StandardLocation.AppLocalDataLocation
@@ -130,6 +149,20 @@ def _start(database: Path, limits) -> bool:
     return True
 
 
+def _prepare_database(database_dir) -> Optional[Path]:
+    database = Path(database_dir) if database_dir is not None else default_database_dir()
+    if database is None:
+        logger.error("[CrashReporter] 未设置专属应用名且未传 database_dir，拒绝启用")
+        return None
+    database = database.expanduser().resolve()
+    try:
+        database.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logger.error(f"[CrashReporter] 创建转储目录 {database} 失败: {exc}")
+        return None
+    return database
+
+
 def install_crash_reporter(
     database_dir: Union[str, os.PathLike, None] = None,
     *,
@@ -139,13 +172,7 @@ def install_crash_reporter(
 ) -> bool:
     """Write native crash dumps to an application-owned directory. 启用原生崩溃转储。
 
-    ``database_dir`` defaults to ``<AppLocalDataLocation>/crashpad``, which needs a
-    distinct ``QCoreApplication.setApplicationName``; without one (or with the bare
-    interpreter's name) installation is refused so applications never share a
-    directory. Limits are applied on every start; 0 disables a limit. Returns
-    True once active; repeated calls keep the first configuration.
-    ``database_dir`` 默认 ``<AppLocalDataLocation>/crashpad``，需先设置专属应用名，否则拒绝
-    安装以免多个应用共用目录。上限在每次启动时生效，0 表示不限制。重复调用保留首次配置。
+    See docs/api/python.*.md for the directory rule and limits 目录规则与上限见 API 文档。
     """
     _validate_limits(max_reports=max_reports, max_age_days=max_age_days, max_size_mb=max_size_mb)
     global _installed_dir
@@ -153,17 +180,8 @@ def install_crash_reporter(
         if _installed_dir is not None:
             logger.warning(f"[CrashReporter] 已在 {_installed_dir} 启用，忽略重复调用")
             return True
-        database = Path(database_dir) if database_dir is not None else default_database_dir()
-        if database is None:
-            logger.error("[CrashReporter] 未设置专属应用名且未传 database_dir，拒绝启用")
-            return False
-        database = database.expanduser().resolve()
-        try:
-            database.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            logger.error(f"[CrashReporter] 创建转储目录 {database} 失败: {exc}")
-            return False
-        if not _start(database, (max_reports, max_age_days, max_size_mb)):
+        database = _prepare_database(database_dir)
+        if database is None or not _start(database, (max_reports, max_age_days, max_size_mb)):
             return False
         _installed_dir = database
     logger.info(f"[CrashReporter] 崩溃转储已启用: {database}")

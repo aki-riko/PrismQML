@@ -88,6 +88,25 @@ def test_default_database_refuses_shared_names(app_name, name):
     assert crash_reporter.default_database_dir() is None
 
 
+def _program_names():
+    from PySide6.QtCore import QCoreApplication
+
+    programs = (QCoreApplication.arguments()[0], sys.argv[0], sys.executable)
+    return sorted({name for program in programs
+                   for name in (Path(program).name, Path(program).stem) if name})
+
+
+def test_default_database_refuses_names_qt_derives_from_the_program(app_name):
+    # Qt falls back to the executable (Windows) or arguments()[0] (Linux: "main.py",
+    # "-c"); unrelated programs share these, so none may name a dump directory
+    # Qt 回退到可执行文件（Windows）或 arguments()[0]（Linux），无关程序会共用，均不得作为目录名
+    for name in _program_names():
+        app_name(name)
+        assert crash_reporter.default_database_dir() is None, name
+        app_name(name.upper())
+        assert crash_reporter.default_database_dir() is None, name.upper()
+
+
 def test_default_database_is_per_application(app_name):
     from PySide6.QtCore import QStandardPaths
 

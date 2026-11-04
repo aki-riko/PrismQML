@@ -74,6 +74,17 @@ def test_validator_file_lists_match_build_script():
     } == dict(crash_runtime.RUNTIME_FILES)
 
 
+def test_setup_hook_imports_setuptools_only_when_building():
+    # Python 3.12+ venvs ship without setuptools; importing the hook must not need it
+    # Python 3.12+ 的 venv 不含 setuptools；导入钩子不得依赖它
+    source = (PROJECT_ROOT / "setup.py").read_text(encoding="utf-8")
+    top_level = [line for line in source.splitlines() if line.startswith(("import ", "from "))]
+    assert not any("setuptools" in line for line in top_level), top_level
+    setuptools = pytest.importorskip("setuptools")
+    command = setup_hook.build_py_with_crash_runtime()
+    assert issubclass(command, setuptools.Command)
+
+
 def test_copy_bundles_staged_files_and_drops_stale_ones(tmp_path):
     source = tmp_path / "runtime"
     source.mkdir()
