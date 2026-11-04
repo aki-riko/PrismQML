@@ -37,6 +37,13 @@ CMAKE_OPTIONS = (
     "-DSENTRY_BUILD_TESTS=OFF",
     "-DSENTRY_BUILD_EXAMPLES=OFF",
 )
+# crashpad_handler.exe runs as its own process and crashpad_wer.dll is loaded by
+# WerFault, so neither can rely on the host's VC++ runtime. Link it statically.
+# crashpad_handler.exe 是独立进程、crashpad_wer.dll 由 WerFault 加载，二者都不能依赖宿主的
+# VC++ 运行库，因此静态链接。
+PLATFORM_CMAKE_OPTIONS: Mapping[str, Tuple[str, ...]] = {
+    "win32": ("-DSENTRY_BUILD_RUNTIMESTATIC=ON",),
+}
 # Files a crash reporter loads or launches, per platform 各平台崩溃上报运行时文件
 RUNTIME_FILES: Mapping[str, Tuple[str, ...]] = {
     "win32": ("sentry.dll", "crashpad_handler.exe", "crashpad_wer.dll"),
@@ -131,13 +138,16 @@ def cmake_command(environ: Optional[Mapping[str, str]] = None) -> str:
     return env.get(CMAKE_COMMAND_ENV) or "cmake"
 
 
-def build_commands(layout: Layout, cmake: str) -> Tuple[list, list, list]:
+def build_commands(
+    layout: Layout, cmake: str, platform: str = sys.platform
+) -> Tuple[list, list, list]:
     """Return configure, build and install commands. 返回配置、构建与安装命令。"""
     configure = [
         cmake, "-S", str(layout.source), "-B", str(layout.build),
         f"-DCMAKE_BUILD_TYPE={BUILD_CONFIG}",
         f"-DCMAKE_INSTALL_PREFIX={layout.install}",
         *CMAKE_OPTIONS,
+        *PLATFORM_CMAKE_OPTIONS.get(platform, ()),
     ]
     build = [cmake, "--build", str(layout.build), "--config", BUILD_CONFIG, "--parallel"]
     install = [cmake, "--install", str(layout.build), "--config", BUILD_CONFIG]

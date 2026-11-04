@@ -87,6 +87,14 @@ def test_build_commands_use_crashpad_without_transport(tmp_path):
     assert install[install.index("--config") + 1] == crash_runtime.BUILD_CONFIG
 
 
+def test_windows_build_links_the_crt_statically(tmp_path):
+    layout = _layout(tmp_path)
+    windows, _, _ = crash_runtime.build_commands(layout, "cmake", "win32")
+    linux, _, _ = crash_runtime.build_commands(layout, "cmake", "linux")
+    assert "-DSENTRY_BUILD_RUNTIMESTATIC=ON" in windows
+    assert not any("RUNTIMESTATIC" in option for option in linux)
+
+
 def test_checkout_clones_pinned_tag_with_submodules(tmp_path):
     layout = _layout(tmp_path)
     git = _FakeGit()
