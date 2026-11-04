@@ -186,6 +186,26 @@ def test_stage_rejects_duplicate_file(tmp_path):
         crash_runtime.stage_runtime(layout, "linux")
 
 
+def test_stage_ignores_macos_dsym_copies(tmp_path):
+    # Reproduces the macos-26 CI install tree: the dSYM's DWARF file has the same name
+    # 复现 macos-26 CI 的安装树：dSYM 内的 DWARF 文件与二进制同名
+    layout = _layout(tmp_path)
+    library = layout.install / "lib" / "libsentry.dylib"
+    handler = layout.install / "bin" / "crashpad_handler"
+    dwarf = (layout.install / "lib" / "libsentry.dylib.dSYM" / "Contents" / "Resources"
+             / "DWARF" / "libsentry.dylib")
+    for path, data in ((library, b"binary"), (handler, b"handler"), (dwarf, b"dwarf")):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+
+    staged = crash_runtime.stage_runtime(layout, "darwin")
+
+    assert staged["libsentry.dylib"].read_bytes() == b"binary"
+    assert sorted(path.name for path in layout.runtime.iterdir()) == [
+        "crashpad_handler", "libsentry.dylib",
+    ]
+
+
 def test_stage_rejects_unknown_platform(tmp_path):
     with pytest.raises(ValueError, match="unsupported platform"):
         crash_runtime.stage_runtime(_layout(tmp_path), "sunos5")

@@ -172,7 +172,13 @@ def build_commands(
 
 
 def _find_unique(root: Path, name: str) -> Path:
-    matches = sorted(path for path in root.rglob(name) if path.is_file())
+    # macOS installs <name>.dSYM/Contents/Resources/DWARF/<name> beside the binary;
+    # that file holds debug info only, so skip anything inside a .dSYM bundle
+    # macOS 会在二进制旁安装同名 DWARF 文件，它只含调试信息，故跳过 .dSYM 包内的文件
+    matches = sorted(
+        path for path in root.rglob(name)
+        if path.is_file() and not any(part.endswith(".dSYM") for part in path.parts)
+    )
     if len(matches) != 1:
         raise FileNotFoundError(f"expected exactly one {name} under {root}, found {matches}")
     return matches[0]
