@@ -187,6 +187,19 @@ task call raises `RuntimeError` immediately instead of waiting for itself.
 | `Icon` / `make_icon` / `make_theme_icon` | Icons |
 | `IconProvider` / `register_icon_provider` | Explicit icon path provider with only `getPath(name)` / `isValid(name)`; windows do not inject the `Icon` context by default |
 | `ShadowManager` / `getShadowManager` / `installDwmSyncFilter` | Window shadow |
+| `install_crash_reporter` | Native crash dumps (sentry-native / Crashpad, local only, nothing is uploaded) |
+
+Applications must call `install_crash_reporter()` explicitly. Call it after
+`QCoreApplication.setApplicationName()` and before creating `QApplication` so startup crashes are
+covered. Dumps go to `<AppLocalDataLocation>/crashpad/reports/` by default, one directory per
+application. Without an application name (or with an interpreter name such as `python`) and without
+`database_dir`, the call refuses and returns `False`, so programs never share a directory.
+`max_reports` (default 20), `max_age_days` (default 30) and `max_size_mb` (default 200) prune old
+dumps on every start; pass 0 to disable a limit. The runtime ships in the official wheels. Source
+checkouts and wheels built from the sdist have no runtime: the call logs a warning and returns
+`False`; point `PRISM_CRASH_RUNTIME_DIR` at the output of `scripts/build_crash_runtime.py` to use one.
+Each start spends about a dozen milliseconds synchronously on the calling thread and launches one
+extra `crashpad_handler` process.
 
 For `Updater(..., api_base_url="https://github.example/api/v3")`, the explicit value wins, followed by `PRISMQML_UPDATER_API_BASE_URL`, then the public GitHub API. Whitespace and trailing `/` characters are normalized.
 

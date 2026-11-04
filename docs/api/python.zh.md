@@ -167,6 +167,16 @@ PrismQML 任务；原生 `QThreadPool` 无法通知框架哪些非自动删除�
 | `Icon` / `make_icon` / `make_theme_icon` | 图标 |
 | `IconProvider` / `register_icon_provider` | 显式图标路径提供器，仅公开 `getPath(name)` / `isValid(name)`；窗口默认不注入 `Icon` context |
 | `ShadowManager` / `getShadowManager` / `installDwmSyncFilter` | 窗口阴影 |
+| `install_crash_reporter` | 原生崩溃转储（sentry-native / Crashpad，仅本地，不上传） |
+
+`install_crash_reporter()` 需要应用显式调用，建议在创建 `QApplication` 之前、设置
+`QCoreApplication.setApplicationName()` 之后调用，以覆盖启动期崩溃。dump 默认写入
+`<AppLocalDataLocation>/crashpad/reports/`，每个应用一个目录；未设置应用名（或应用名是
+`python` 这类解释器名）且未传 `database_dir` 时拒绝启用并返回 `False`，避免多个程序共用目录。
+`max_reports`（默认 20）、`max_age_days`（默认 30）、`max_size_mb`（默认 200）在每次启用时清理旧
+dump，传 0 表示不限制该项。运行时随官方 wheel 分发；源码检出或从 sdist 构建时没有运行时，函数记录告警并
+返回 `False`，可用 `PRISM_CRASH_RUNTIME_DIR` 指向 `scripts/build_crash_runtime.py` 的产物目录。
+每次启用会在主线程同步执行约十几毫秒的初始化，并多启动一个 `crashpad_handler` 进程。
 
 `Updater(..., api_base_url="https://github.example/api/v3")` 的显式地址优先，其次读取 `PRISMQML_UPDATER_API_BASE_URL`，最后使用 GitHub 公共 API；空白和尾部 `/` 会被归一化。
 

@@ -47,6 +47,8 @@ __all__ = [
     # Single Instance
     "SingleInstance",
     "Updater",
+    # Crash reporting
+    "install_crash_reporter",
     # Window
     "App",
     "Window",
@@ -165,6 +167,8 @@ _LAZY_EXPORTS = {
     # Single Instance / Updater
     "SingleInstance": (".python.core.single_instance", "SingleInstance"),
     "Updater": (".python.core.updater", "Updater"),
+    # Crash reporting
+    "install_crash_reporter": (".python.core.crash_reporter", "install_crash_reporter"),
     # Window
     "App": (".python.window.app", "App"),
     "Window": (".python.window.fluent_window", "Window"),
