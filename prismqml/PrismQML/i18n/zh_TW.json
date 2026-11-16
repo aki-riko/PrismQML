@@ -1176,5 +1176,12 @@
   "gallery_902b4f14042a75f3": "報表",
   "gallery_0d0e1a86b3aa7877": "使用者",
   "gallery_a32d0d34c1d45e87": "載入樣式",
-  "gallery_199b07ee284d2126": "切換延遲載入頁面的等待呈現方式"
+  "gallery_199b07ee284d2126": "切換延遲載入頁面的等待呈現方式",
+  "gallery_e0a6b43fe4b2bdc9": "底部面板",
+  "gallery_e4bcd80e412a88ae": "開啟底部面板",
+  "gallery_f0f12178c50d3b62": "再疊一層",
+  "gallery_60fcddc9934b1909": "第一層",
+  "gallery_7f794680f7947c64": "第二層",
+  "gallery_dc3b9930c0ba4a58": "第三層",
+  "gallery_81fe4cbeb1ff4404": "拖動頂部控點可展開或關閉，最多疊三層"
 }

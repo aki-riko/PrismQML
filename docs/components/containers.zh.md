@@ -46,6 +46,47 @@ Fluent.GroupBox {
 
 边缘滑入面板。
 
+## BottomSheet 底部弹层
+
+从窗口底部滑出的页内弹层，可以一层叠一层。新打开的弹层压在上一层上面，下层会缩小、
+上移、压暗，顶边从上层上方露出。拖动顶部手柄可以展开、收起或关闭。
+
+在一个 `BottomSheet` 内部声明另一个，就构成嵌套：
+
+```qml
+import PrismQML as Fluent
+
+Fluent.BottomSheet {
+    id: settingsSheet
+    Fluent.Button { text: "高级选项"; onClicked: advancedSheet.open() }
+
+    Fluent.BottomSheet {
+        id: advancedSheet
+        detent: Fluent.Enums.sheet.detent_large
+        // 内容
+    }
+}
+```
+
+| 成员 | 说明 |
+|------|------|
+| `open()` / `close()` | 打开或关闭。关闭父层时，声明在它内部的子层会一起关闭 |
+| `detent: int` | 停靠高度：`Enums.sheet.detent_medium`（窗口高度的一半，默认）或 `detent_large`（几乎占满） |
+| `allowLargeDetent: bool` | 是否允许上拉或点按手柄展开到 `detent_large`，默认 `true` |
+| `showGrabber: bool` | 是否显示顶部手柄，默认 `true` |
+| `expand()` / `collapse()` | 切换到 `detent_large` / `detent_medium` |
+| `sheetMaxWidth: int` | 宽窗口下的最大宽度，弹层水平居中 |
+| `opened: bool` | 只读，是否处于打开状态 |
+| `stackIndex: int` | 只读，在当前窗口栈中的位置（自底向上，从 0 开始）；完全关闭后为 `-1` |
+
+交互规则：
+
+- 只有栈顶弹层的手柄可以拖动。向下拖过停靠高度的四分之一，或者快速下甩，就会关闭
+  （在 `detent_large` 下先收回到 `detent_medium`）；向上拖则展开。
+- `Escape` 和点击遮罩都只关闭栈顶一层。焦点会交还给下一层，所以连按 `Escape` 可以逐层关闭。
+- 只有最底层画遮罩，叠多少层，背景亮度都不变。超过三层时，最下面的层会淡出。
+- 弹层会被重挂到窗口内容项上，不受父容器裁剪；它不会越出宿主窗口。
+
 ## Timeline 时间线
 
 虚拟化时间线（大数据量不掉帧）。

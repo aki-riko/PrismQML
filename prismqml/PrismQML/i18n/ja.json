@@ -1176,5 +1176,12 @@
   "gallery_902b4f14042a75f3": "レポート",
   "gallery_0d0e1a86b3aa7877": "ユーザー",
   "gallery_a32d0d34c1d45e87": "読み込みスタイル",
-  "gallery_199b07ee284d2126": "遅延読み込みページの待機表示を切り替える"
+  "gallery_199b07ee284d2126": "遅延読み込みページの待機表示を切り替える",
+  "gallery_e0a6b43fe4b2bdc9": "ボトムシート",
+  "gallery_e4bcd80e412a88ae": "ボトムシートを開く",
+  "gallery_f0f12178c50d3b62": "もう一層重ねる",
+  "gallery_60fcddc9934b1909": "第1層",
+  "gallery_7f794680f7947c64": "第2層",
+  "gallery_dc3b9930c0ba4a58": "第3層",
+  "gallery_81fe4cbeb1ff4404": "上部のハンドルをドラッグして展開・閉じる。最大3層まで重ねられます"
 }

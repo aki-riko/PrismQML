@@ -48,6 +48,52 @@ Fluent.GroupBox {
 
 Edge-slide panel.
 
+## BottomSheet
+
+An in-window sheet that slides up from the bottom and stacks. Each newly opened sheet
+covers the previous one; the sheets below shrink, move up and dim, with their top edge
+peeking above the sheet on top. Drag the top handle to expand, collapse or close.
+
+Declare one `BottomSheet` inside another to nest them:
+
+```qml
+import PrismQML as Fluent
+
+Fluent.BottomSheet {
+    id: settingsSheet
+    Fluent.Button { text: "Advanced"; onClicked: advancedSheet.open() }
+
+    Fluent.BottomSheet {
+        id: advancedSheet
+        detent: Fluent.Enums.sheet.detent_large
+        // content
+    }
+}
+```
+
+| Member | Description |
+|--------|-------------|
+| `open()` / `close()` | Open or close. Closing a sheet also closes the sheets declared inside it |
+| `detent: int` | Resting height: `Enums.sheet.detent_medium` (half the window height, default) or `detent_large` (nearly full) |
+| `allowLargeDetent: bool` | Whether dragging up or tapping the handle can reach `detent_large`; default `true` |
+| `showGrabber: bool` | Whether the top handle is shown; default `true` |
+| `expand()` / `collapse()` | Switch to `detent_large` / `detent_medium` |
+| `sheetMaxWidth: int` | Maximum width in wide windows; the sheet is centered horizontally |
+| `opened: bool` | Read-only; whether the sheet is open |
+| `stackIndex: int` | Read-only; position in the window's stack, bottom first, from 0; `-1` once fully closed |
+
+Interaction rules:
+
+- Only the top sheet's handle drags. Dragging down past a quarter of the resting height,
+  or flicking down, closes the sheet (from `detent_large` it first collapses to
+  `detent_medium`); dragging up expands it.
+- `Escape` and a scrim click close only the top sheet. Focus returns to the sheet below,
+  so repeated `Escape` presses close the stack one sheet at a time.
+- Only the bottom sheet draws the scrim, so the page never gets darker as sheets stack.
+  Beyond three levels the lowest sheets fade out.
+- Sheets reparent to the window content item, so parent containers do not clip them;
+  they never extend past the host window.
+
 ## Timeline
 
 Virtualized timeline (no frame drops on large datasets).

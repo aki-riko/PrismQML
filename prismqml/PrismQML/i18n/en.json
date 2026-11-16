@@ -1176,5 +1176,12 @@
   "gallery_af9996bc4d45ff49": "Folders",
   "gallery_d6e61888b07853ea": "Advanced",
   "gallery_a32d0d34c1d45e87": "Loading style",
-  "gallery_199b07ee284d2126": "Change how lazy-loaded pages present their wait state"
+  "gallery_199b07ee284d2126": "Change how lazy-loaded pages present their wait state",
+  "gallery_e0a6b43fe4b2bdc9": "Bottom sheet",
+  "gallery_e4bcd80e412a88ae": "Open bottom sheet",
+  "gallery_f0f12178c50d3b62": "Stack another",
+  "gallery_60fcddc9934b1909": "First level",
+  "gallery_7f794680f7947c64": "Second level",
+  "gallery_dc3b9930c0ba4a58": "Third level",
+  "gallery_81fe4cbeb1ff4404": "Drag the top handle to expand or close; stacks up to three levels"
 }

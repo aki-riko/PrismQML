@@ -255,6 +255,16 @@ Item {
                     ComponentCard { label: "position.bottom"; Button { text: Fluent.Translator.tr("gallery_c9cd0c54442b0a16", Fluent.Translator._v); onClicked: outsideBottomDrawer.open() } }
                 }
             }
+
+            // BottomSheet 底部弹层
+            ExampleCard {
+                title: Fluent.Translator.tr("gallery_e0a6b43fe4b2bdc9", Fluent.Translator._v)
+                description: Fluent.Translator.tr("gallery_81fe4cbeb1ff4404", Fluent.Translator._v)
+                GalleryFlow {
+                    spacing: Fluent.Enums.spacing.l
+                    ComponentCard { label: "BottomSheet"; Button { objectName: "galleryBottomSheetOpenButton"; text: Fluent.Translator.tr("gallery_e4bcd80e412a88ae", Fluent.Translator._v); onClicked: firstSheet.open() } }
+                }
+            }
             
             
             // QR code 二维码
@@ -477,6 +487,40 @@ Item {
             anchors.centerIn: parent; spacing: Fluent.Enums.spacing.l
             Text { text: Fluent.Translator.tr("gallery_8c4f369c0ee4bc8d", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
             Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: bottomDrawer.close() }
+        }
+    }
+
+    // Nested bottom sheets: each level opens the next 嵌套底部弹层：每层打开下一层
+    BottomSheet {
+        id: firstSheet
+        objectName: "galleryFirstSheet"
+        Column {
+            spacing: Fluent.Enums.spacing.l
+            Text { text: Fluent.Translator.tr("gallery_60fcddc9934b1909", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+            Button { text: Fluent.Translator.tr("gallery_f0f12178c50d3b62", Fluent.Translator._v); onClicked: secondSheet.open() }
+            Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: firstSheet.close() }
+        }
+
+        BottomSheet {
+            id: secondSheet
+            objectName: "gallerySecondSheet"
+            detent: Fluent.Enums.sheet.detent_large
+            Column {
+                spacing: Fluent.Enums.spacing.l
+                Text { text: Fluent.Translator.tr("gallery_7f794680f7947c64", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+                Button { text: Fluent.Translator.tr("gallery_f0f12178c50d3b62", Fluent.Translator._v); onClicked: thirdSheet.open() }
+                Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: secondSheet.close() }
+            }
+
+            BottomSheet {
+                id: thirdSheet
+                objectName: "galleryThirdSheet"
+                Column {
+                    spacing: Fluent.Enums.spacing.l
+                    Text { text: Fluent.Translator.tr("gallery_dc3b9930c0ba4a58", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }
+                    Button { text: Fluent.Translator.tr("gallery_3fd47edce45b3603", Fluent.Translator._v); onClicked: thirdSheet.close() }
+                }
+            }
         }
     }
 
