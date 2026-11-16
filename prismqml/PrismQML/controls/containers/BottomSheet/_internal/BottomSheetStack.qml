@@ -44,6 +44,16 @@ QtObject {
         return stack.hostSheets(host, sheets).length
     }
 
+    // Topmost sheet still open on the host, or null; closing sheets are skipped
+    // 宿主上仍处于打开状态的栈顶弹层，没有则为 null；跳过正在关闭的弹层
+    function topOf(host, sheets) {
+        var hosted = stack.hostSheets(host, sheets)
+        for (var i = hosted.length - 1; i >= 0; --i) {
+            if (hosted[i]._isOpen) return hosted[i]
+        }
+        return null
+    }
+
     // The sheet directly above, or null 正上方的弹层，没有则为 null
     function above(sheet, sheets) {
         var hosted = stack.hostSheets(sheet.parent, sheets)

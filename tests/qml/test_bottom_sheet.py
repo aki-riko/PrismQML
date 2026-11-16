@@ -19,6 +19,7 @@ from PySide6.QtCore import (
     QUrl,
     Qt,
 )
+from PySide6.QtGui import QAccessible, QAccessibleActionInterface
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
@@ -657,3 +658,83 @@ def test_pausing_before_release_cancels_a_flick(sheet_scene):
 
     assert _wait_for(lambda: _resting(sheet))
     assert sheet.property("opened") is True
+
+
+# ==================== Keyboard and accessibility 键盘与无障碍 ====================
+
+
+def _activate(window) -> None:
+    window.requestActivate()
+    _wait_for(lambda: window.isActive(), 500)
+
+
+def test_open_sheet_takes_keyboard_focus(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _activate(window)
+
+    _open(sheet)
+
+    assert _wait_for(lambda: sheet.hasActiveFocus())
+
+
+def test_escape_closes_only_the_top_sheet(nested_scene):
+    window, sheets, _panels, warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+    _activate(window)
+    _open_all(first, second)
+    assert _wait_for(lambda: second.hasActiveFocus())
+
+    QTest.keyClick(window, Qt.Key.Key_Escape)
+
+    assert _wait_for(lambda: not second.isVisible())
+    assert first.property("opened") is True
+    # Focus returns to the sheet below, so the next Escape closes it
+    # 焦点交还给下一层，再按一次 Escape 即关闭它
+    assert _wait_for(lambda: first.hasActiveFocus())
+    QTest.keyClick(window, Qt.Key.Key_Escape)
+    assert _wait_for(lambda: not first.isVisible())
+    assert warnings == []
+
+
+def test_scrim_click_reaches_only_the_top_sheet(nested_scene):
+    window, sheets, panels, _warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+    _open_all(first, second)
+
+    # Above every panel: the covered sheet's scrim lies under the top sheet's
+    # 位于所有面板上方：被覆盖层的遮罩在栈顶弹层遮罩之下
+    point = QPoint(window.width() // 2, round(panels["first"].y()) // 2)
+    assert point.y() > 0
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point
+    )
+
+    assert _wait_for(lambda: not second.isVisible())
+    assert first.property("opened") is True
+
+
+def test_sheet_and_grabber_expose_accessible_roles(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _open(sheet)
+    grabber = sheet.findChild(QQuickItem, "bottomSheetGrabber")
+
+    sheet_iface = QAccessible.queryAccessibleInterface(sheet)
+    grabber_iface = QAccessible.queryAccessibleInterface(grabber)
+
+    assert sheet_iface is not None and grabber_iface is not None
+    assert sheet_iface.role() == QAccessible.Role.Dialog
+    assert grabber_iface.role() == QAccessible.Role.Button
+    assert grabber_iface.text(QAccessible.Text.Name) != ""
+
+
+def test_grabber_press_action_cycles_the_detent(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _open(sheet)
+    grabber = sheet.findChild(QQuickItem, "bottomSheetGrabber")
+    action = QAccessible.queryAccessibleInterface(grabber).actionInterface()
+    assert action is not None
+
+    action.doAction(QAccessibleActionInterface.pressAction())
+
+    assert _wait_for(lambda: _resting(sheet)
+                     and sheet.property("detent") == window.property("detentLarge"))

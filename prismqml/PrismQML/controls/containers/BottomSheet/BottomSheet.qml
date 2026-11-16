@@ -7,6 +7,7 @@ import "../../.."
 import "../../dialogs"
 import "_internal" as SheetInternal
 import "_internal/BottomSheetGesture.js" as SheetGesture
+import "../../utils"
 
 // BottomSheet - Bottom sheet overlay 底部弹层
 // Slides up from the host bottom over a scrim; inherits OverlayDialogCore for
@@ -147,6 +148,14 @@ OverlayDialogCore {
         else expand()
     }
 
+    // Keyboard goes to the top sheet; closing hands it back to the one below.
+    // 键盘焦点交给栈顶弹层；关闭后交还给下一层。
+    function _focusTop() {
+        var top = SheetInternal.BottomSheetStack.topOf(control.parent,
+            SheetInternal.BottomSheetStack.openSheets)
+        if (top) top.forceActiveFocus()
+    }
+
     // Overlay overrides 覆盖层配置
     dismissOnScrimClick: true
     // Only the bottom sheet dims the page, so stacking never darkens it further.
@@ -157,15 +166,25 @@ OverlayDialogCore {
     // stay visible until the panel has actually left the host.
     // 基类按恢复计时器隐藏，与本组件的滑出动画无关；保持可见直到面板真正离开宿主。
     visible: _isOpen || _isClosing || _revealProgress > 0
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_dialog)
 
+    // Escape closes the top sheet only: lower sheets never hold the focus.
+    // Escape 只关闭栈顶弹层：下层弹层不会持有焦点。
+    Keys.onEscapePressed: (event) => {
+        event.accepted = true
+        control.close()
+    }
     onDetentChanged: _settle()
     Component.onCompleted: _previousDetent = detent
     onOpenedChanged: {
         if (control._isOpen) {
             SheetInternal.BottomSheetStack.push(control)
+            // After the open reparenting settles 等打开时的重挂载稳定后再取焦点
+            Qt.callLater(control._focusTop)
         } else {
             // Nested sheets close with their parent 嵌套子层随父层一起关闭
             SheetInternal.BottomSheetStack.closeNested(control)
+            if (control.activeFocus) Qt.callLater(control._focusTop)
         }
     }
     onRevealProgressChanged: {

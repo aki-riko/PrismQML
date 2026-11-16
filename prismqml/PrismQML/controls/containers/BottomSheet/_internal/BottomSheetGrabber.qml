@@ -4,6 +4,7 @@
 
 import QtQuick
 import "../../../.."
+import "../../../utils"
 
 // BottomSheetGrabber - Top drag handle of a bottom sheet 底部弹层顶部拖拽手柄
 // Only the handle drags, so scrolling content inside the sheet never competes with it.
@@ -26,6 +27,10 @@ Item {
     objectName: "bottomSheetGrabber"
     height: _skin.sheet.grabberHeight
     enabled: sheetControl._isOpen && sheetControl._sheetAbove === null
+    // Screen readers press it to cycle detents, matching a tap 读屏器按下即切换停靠，与点按一致
+    Accessible.role: AccessibilityHelper.roleValue(Enums.accessibility.role_button)
+    Accessible.name: { Translator._v; return Translator.tr("sheet_grabber") }
+    Accessible.onPressAction: if (grabber.enabled) grabber.tapped()
 
     // ==================== Content 内容 ====================
     Rectangle {

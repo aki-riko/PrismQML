@@ -366,3 +366,12 @@ def test_bottom_sheet_keeps_surface_modularized():
     for token in ("function dragState(", "function releaseTarget("):
         assert token in gesture_source
         assert token not in source
+
+    # Keyboard and accessibility stay on the entry and the grabber
+    # 键盘与无障碍由入口和手柄持有
+    assert "Keys.onEscapePressed" in source
+    assert "Enums.accessibility.role_dialog" in source
+    assert "function topOf(host, sheets)" in stack_source
+    assert "Enums.accessibility.role_button" in grabber_source
+    assert 'Translator.tr("sheet_grabber")' in grabber_source
+    assert "Accessible.onPressAction" in grabber_source
