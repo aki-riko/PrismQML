@@ -15,7 +15,10 @@ ButtonCore {
     property bool collapsed: false  // Collapsed mode (for search) 折叠模式
     property int collapsedSize: Enums.controlSize.inputHeight  // Collapsed size 折叠尺寸
     property bool fillParentHeight: false  // Match the parent input height 匹配父输入框高度
-    
+    // Item whose height sizes the button; defaults to the parent, a Loader host
+    // passes the input instead. 用于计算尺寸的高度来源；默认是父对象，经 Loader 加载时传入输入框。
+    property Item sizingParent: parent
+
     // Match regular Button hover feedback only while collapsed.
     // 仅在收起态匹配普通 Button 的悬浮反馈。
     style: collapsed ? Enums.button.style_default : Enums.button.style_transparent
@@ -24,8 +27,8 @@ ButtonCore {
     // Keep compact by default; collapsible search can fill the input height
     // 默认保持紧凑；可折叠搜索框可填满输入框高度
     preferredHeight: collapsed ? collapsedSize
-        : (fillParentHeight && parent ? parent.height
-           : (parent ? parent.height * 0.75 : Enums.controlSize.closeButtonSize))
+        : (fillParentHeight && sizingParent ? sizingParent.height
+           : (sizingParent ? sizingParent.height * 0.75 : Enums.controlSize.closeButtonSize))
     preferredWidth: preferredHeight
     
     // Keep the collapsed search surface filled with the input's square bounds.

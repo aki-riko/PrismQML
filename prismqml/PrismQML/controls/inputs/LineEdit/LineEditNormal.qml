@@ -59,6 +59,11 @@ Item {
     readonly property bool expanded: !collapsible || textInput.activeFocus || textInput.text.length > 0
     // Collapsible: cover entire area when collapsed 收起时覆盖整个区域
     readonly property bool _isCollapsedSearch: normalInput._isSearch && normalInput.collapsible && !normalInput.expanded
+    // Each embedded button is a full ButtonCore (~1ms to create, measured), so it
+    // is only created while shown; the text area keys its right edge off these.
+    // 每个内嵌按钮都是完整 ButtonCore（实测创建约 1ms），只在显示时创建；文本区据此定右界。
+    readonly property bool _clearButtonShown: clearButtonEnabled && textInput.text.length > 0 && !_isSearch
+    readonly property bool _actionButtonShown: _isPassword || _isSearch
 
     // ==================== Signals 信号 ====================
     signal textEdited(string text)
@@ -109,7 +114,8 @@ Item {
     TextInput {
         id: textInput
         anchors.left: parent.left
-        anchors.right: clearBtn.visible ? clearBtn.left : (actionBtn.visible ? actionBtn.left : parent.right) // Clear button bounds text first 清除按钮优先作右界
+        anchors.right: normalInput._clearButtonShown ? clearBtnLoader.left
+            : (normalInput._actionButtonShown ? actionBtnLoader.left : parent.right) // Clear button bounds text first 清除按钮优先作右界
         anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: normalInput.paddingLeft
         anchors.rightMargin: normalInput.paddingRight
@@ -156,51 +162,34 @@ Item {
         }
     }
 
-    // Clear button 清除按钮 (transparent Button, never steals input focus 透明按钮, 不抢输入焦点)
-    Button {
-        id: clearBtn; objectName: "closeBtn"
-        anchors.right: actionBtn.visible ? actionBtn.left : parent.right
-        anchors.rightMargin: Enums.spacing.m
-        anchors.verticalCenter: parent.verticalCenter
-        style: Enums.button.style_transparent
-        icon: Enums.icon.dismiss
-        width: Enums.controlSize.lineEditClearButtonSize
-        height: Enums.controlSize.lineEditClearButtonSize
-        radius: width / 2
-        iconSize: Enums.controlSize.checkboxInner
-        focusOnPress: false  // Never steal focus from the input 不抢输入框焦点
-        visible: normalInput.clearButtonEnabled && textInput.text.length > 0 && !normalInput._isSearch
-        onClicked: {
-            textInput.text = ""
-            normalInput.cleared()
-        }
+    LineEditInternal.LineEditNormalButtons {
+        id: embeddedButtons
+
+        host: normalInput
     }
 
-    // Action button for password and search 密码与搜索操作按钮
-    InputActionButton {
-        id: actionBtn
-        anchors.centerIn: _isCollapsedSearch ? parent : undefined
-        anchors.right: _isCollapsedSearch ? undefined : parent.right
-        anchors.rightMargin: _isCollapsedSearch ? 0 : Enums.spacing.s
-        anchors.verticalCenter: _isCollapsedSearch ? undefined : parent.verticalCenter
-        visible: normalInput._isPassword || normalInput._isSearch
-        collapsed: _isCollapsedSearch
-        collapsedSize: normalInput.collapsedWidth
-        fillParentHeight: normalInput._isSearch
-        icon: normalInput._isPassword 
-            ? (normalInput.showPassword ? Enums.icon.eye_off : Enums.icon.eye)
-            : Enums.icon.search
-        onClicked: {
-            if (normalInput._isPassword) {
-                normalInput.showPassword = !normalInput.showPassword
-            } else if (normalInput._isSearch) {
-                if (_isCollapsedSearch) {
-                    textInput.forceActiveFocus()
-                } else {
-                    normalInput.searched(textInput.text)
-                }
-            }
-        }
+    // Clear button, created only while shown 清除按钮，仅显示时创建
+    Loader {
+        id: clearBtnLoader
+
+        anchors.right: normalInput._actionButtonShown ? actionBtnLoader.left : parent.right
+        anchors.rightMargin: Enums.spacing.m
+        anchors.verticalCenter: parent.verticalCenter
+        active: normalInput._clearButtonShown
+        sourceComponent: embeddedButtons.clearButtonComponent
+    }
+
+    // Password/search action button; the Loader takes the button's own size
+    // 密码与搜索操作按钮；Loader 取按钮自身尺寸
+    Loader {
+        id: actionBtnLoader
+
+        anchors.centerIn: normalInput._isCollapsedSearch ? parent : undefined
+        anchors.right: normalInput._isCollapsedSearch ? undefined : parent.right
+        anchors.rightMargin: normalInput._isCollapsedSearch ? 0 : Enums.spacing.s
+        anchors.verticalCenter: normalInput._isCollapsedSearch ? undefined : parent.verticalCenter
+        active: normalInput._actionButtonShown
+        sourceComponent: embeddedButtons.actionButtonComponent
     }
     // Hover detection 悬浮检测
     HoverHandler {

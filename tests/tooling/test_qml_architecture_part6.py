@@ -122,6 +122,19 @@ def test_line_edit_normal_keeps_hide_timer_modularized():
     assert "onTriggered: if (!host.expanded) host._textInputVisible = false" in helper_source
     assert "onTriggered: if (!normalInput.expanded)" not in source
 
+    # Embedded buttons are created only while shown 内嵌按钮仅在显示时创建
+    buttons = _source(
+        "prismqml/PrismQML/controls/inputs/LineEdit/_internal/LineEditNormalButtons.qml"
+    )
+    buttons_source = buttons.read_text(encoding="utf-8")
+    assert len(buttons_source.splitlines()) < 100
+    assert "required property var host" in buttons_source
+    assert "LineEditInternal.LineEditNormalButtons {" in source
+    assert "active: normalInput._clearButtonShown" in source
+    assert "active: normalInput._actionButtonShown" in source
+    for token in ("\n    Button {", "\n    InputActionButton {"):
+        assert token not in source
+
 def test_pivot_keeps_indicator_sync_timer_modularized():
     entry = _source("prismqml/PrismQML/controls/navigation/Pivot.qml")
     helper = _source(

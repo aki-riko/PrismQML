@@ -47,6 +47,16 @@ HIDE_TIMER_SOURCE_PATH = (
     / "_internal"
     / "LineEditNormalHideTimer.qml"
 )
+BUTTONS_PATH = (
+    ROOT
+    / "prismqml"
+    / "PrismQML"
+    / "controls"
+    / "inputs"
+    / "LineEdit"
+    / "_internal"
+    / "LineEditNormalButtons.qml"
+)
 METRICS_PATH = ROOT / "prismqml" / "PrismQML" / "PrismEnums" / "_internal" / "MetricsControlSize.js"
 SCENE_URL = QUrl.fromLocalFile(
     str(ROOT / "tests" / "qml" / "line-edit-normal-conventions.qml")
@@ -140,16 +150,20 @@ def _normal_module(line_edit: QQuickItem) -> QQuickItem:
     return matches[0]
 
 
-def _clear_button(normal_module: QQuickItem) -> QQuickItem:
-    # Located by objectName: the clear affordance is now a transparent Button.
-    # 按 objectName 定位：清除入口现在是透明 Button。
-    matches = [
+def _clear_buttons(normal_module: QQuickItem) -> list:
+    # Located by objectName: the clear affordance is a transparent Button, created
+    # only while shown. 按 objectName 定位：清除入口是透明 Button，只在显示时创建。
+    return [
         child
         for child in _descendants(normal_module)
         if isinstance(child, QQuickItem)
         and child.objectName() == "closeBtn"
         and child.metaObject().indexOfProperty("iconSize") >= 0
     ]
+
+
+def _clear_button(normal_module: QQuickItem) -> QQuickItem:
+    matches = _clear_buttons(normal_module)
     assert len(matches) == 1, [item.objectName() for item in matches]
     return matches[0]
 
@@ -270,7 +284,8 @@ def test_line_edit_normal_password_search_parent_chains(qapp):
         _pump()
         assert inputs["normalInput"].property("text") == ""
         assert cleared == [True]
-        assert not clear_button.property("visible")
+        # Hidden means not created at all 隐藏即完全不创建
+        assert _wait_for(lambda: _clear_buttons(normal) == [])
 
         password = _normal_module(inputs["passwordInput"])
         password_action = _action_button(password)
@@ -337,7 +352,7 @@ def test_password_text_stops_before_clear_button(qapp):
         # 清空后清除按钮隐藏, 文本区退回以显隐按钮为右界。
         inputs["passwordInput"].setProperty("text", "")
         _pump()
-        assert not clear_button.property("visible")
+        assert _clear_buttons(password) == []
         assert clear_left < span(text_input)[1] <= action_left
         assert warnings == []
     finally:
@@ -422,8 +437,11 @@ def test_line_edit_normal_source_conventions_and_clear_button_token():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
-    assert "width: Enums.controlSize.lineEditClearButtonSize" in source
-    assert "size: 20" not in source
+    # The clear button now lives in the embedded-buttons helper; the token moved with it
+    # 清除按钮已移到内嵌按钮 helper，尺寸令牌随之迁移
+    buttons = BUTTONS_PATH.read_text(encoding="utf-8")
+    assert "width: Enums.controlSize.lineEditClearButtonSize" in buttons
+    assert "size: 20" not in source and "size: 20" not in buttons
     metrics = METRICS_PATH.read_text(encoding="utf-8")
     assert "lineEditClearButtonSize: 20" in metrics
 
@@ -437,3 +455,27 @@ def test_line_edit_normal_hide_timer_source_conventions():
         for violation in violations
         if violation.rule in {"QML008", "QML009"}
     ] == []
+
+
+
+def test_hidden_embedded_buttons_are_not_created(qapp):
+    """Embedded buttons are full ButtonCore instances; hidden ones must not exist.
+
+    内嵌按钮是完整的 ButtonCore，隐藏时不得被创建。
+    """
+    engine, component, window, inputs, warnings = _create_scene()
+    try:
+        normal = _normal_module(inputs["normalInput"])
+        inputs["normalInput"].setProperty("text", "")
+        _pump()
+        buttons = [
+            child for child in _descendants(normal)
+            if child.metaObject().className().startswith(("ButtonCore", "InputActionButton"))
+        ]
+        assert buttons == [], [b.metaObject().className() for b in buttons]
+
+        inputs["normalInput"].setProperty("text", "x")
+        assert _wait_for(lambda: len(_clear_buttons(normal)) == 1)
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
