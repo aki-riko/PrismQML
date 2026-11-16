@@ -174,7 +174,12 @@ def test_infobar_reuses_one_close_timer_for_both_modes(qapp):
         # measured object cost of that consolidation, not extra timers or handlers.
         # 66 -> 95: 关闭入口改为透明 Button（表面 + 内容加载器）以取代被移除的轻量
         # CloseButton 组件；这是合并带来的实测对象成本，不是新增定时器或处理器。
-        assert object_count == 95
+        # 95 -> 99: each of the two tinted icons (status icon, close button icon) now
+        # draws through a host Item plus one ShaderEffect instead of a lazily created
+        # layer effect; creating an icon got no slower (58 -> 54ms per 500, D3D11).
+        # 95 -> 99: 两个着色图标（状态图标、关闭按钮图标）改为宿主 Item 加一个 ShaderEffect，
+        # 不再用延迟创建的 layer 效果；单个图标创建并未变慢（D3D11 每 500 个 58 -> 54ms）。
+        assert object_count == 99
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

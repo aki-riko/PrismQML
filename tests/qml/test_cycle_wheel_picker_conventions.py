@@ -247,7 +247,12 @@ def test_cycle_wheel_picker_repeat_timers_preserve_both_directions(qapp):
             and child.property("repeat")
             and child.property("interval") == root.property("expectedRepeatDelay")
         ]
-        assert len(descendants) == 33
+        # +4: each image icon (2 here) now keeps a host Item and one ShaderEffect
+        # for tinting instead of a lazily created offscreen layer (first frame per
+        # icon about 0.28ms -> 0.06ms on D3D11).
+        # +4: 每个图片图标（此处 2 个）改为常驻宿主 Item 与一个着色 ShaderEffect，
+        # 取代延迟创建的离屏层（D3D11 每个图标首帧约 0.28ms -> 0.06ms）。
+        assert len(descendants) == 37
         assert len(repeat_timers) == 1
 
         repeat_timer = repeat_timers[0]

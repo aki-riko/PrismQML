@@ -229,11 +229,13 @@ def test_action_tooltip_preserves_delay_and_timer_lifecycle(qapp):
             shown_objects,
             restored_objects,
             ) == (
-                31,
-                31,
-                37,
-                60,
-                31,
+                # +8 throughout: four image icons, each now a host Item plus one
+                # tint ShaderEffect. 全程 +8：四个图片图标，各为宿主 Item 加一个着色 ShaderEffect。
+                39,
+                39,
+                45,
+                68,
+                39,
         )
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

@@ -179,7 +179,12 @@ def test_toast_keeps_two_close_timers(qapp):
         # Declarative skin lookup adds no signal-handler objects. 声明式皮肤查找不增加信号处理对象。
         # 66 -> 95: same measured cost as InfoBar, see test_infobar_progress_lifecycle.
         # 66 -> 95: 与 InfoBar 相同的实测成本, 见 test_infobar_progress_lifecycle。
-        assert object_count == 95
+        # 95 -> 99: each of the two tinted icons (status icon, close button icon) now
+        # draws through a host Item plus one ShaderEffect instead of a lazily created
+        # layer effect; creating an icon got no slower (58 -> 54ms per 500, D3D11).
+        # 95 -> 99: 两个着色图标（状态图标、关闭按钮图标）改为宿主 Item 加一个 ShaderEffect，
+        # 不再用延迟创建的 layer 效果；单个图标创建并未变慢（D3D11 每 500 个 58 -> 54ms）。
+        assert object_count == 99
         assert all(timer.property("running") is False for timer in timers)
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []

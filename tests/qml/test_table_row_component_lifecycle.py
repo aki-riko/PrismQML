@@ -35,7 +35,11 @@ SCENE_URL = QUrl.fromLocalFile(
 # 表头每列拥有标题行、排序图标和点击区域；声明式皮肤查找不增加信号处理对象。
 # The released-row guard adds one object, one timer and one connection, independent of row count.
 # 退场兜底增加一个对象、一个定时器和一条连接，与行数无关。
-EXPECTED_NORMAL_OBJECTS = 971
+# 971 -> 962: the three header sort icons no longer build an offscreen tint layer
+# (ColorOverlay, its source proxy and two ShaderEffectSource each, -12) and each
+# gains one host Item (+3). 971 -> 962：三个表头排序图标不再建立离屏着色层
+# （各含 ColorOverlay、源代理与两个 ShaderEffectSource，-12），各多一个宿主 Item（+3）。
+EXPECTED_NORMAL_OBJECTS = 962
 SCENE_SOURCE = b"""
 import QtQuick
 import QtQuick.Window

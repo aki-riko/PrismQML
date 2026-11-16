@@ -47,6 +47,20 @@ def _renderer(icon: QQuickItem) -> QQuickItem | None:
     return item if isinstance(item, QQuickItem) else None
 
 
+def _image_renderer(icon: QQuickItem) -> bool:
+    """The image renderer is a host Item holding one Image and its tint pass.
+
+    图片渲染器是一个宿主 Item, 内含一个 Image 与其着色层。"""
+    renderer = _renderer(icon)
+    if renderer is None:
+        return False
+    names = [child.metaObject().className() for child in renderer.childItems()]
+    return (
+        sum(name.startswith("QQuickImage") for name in names) == 1
+        and sum(name.startswith("QQuickShaderEffect") for name in names) == 1
+    )
+
+
 def _local_components(icon: QQuickItem) -> list[QObject]:
     return [
         child
@@ -83,7 +97,7 @@ def test_icons_share_renderer_components_and_keep_runtime_switching(qapp):
 
         assert _renderer(empty_icon) is None
         assert _renderer(text_icon).metaObject().className().startswith("QQuickText")
-        assert _renderer(svg_icon).metaObject().className().startswith("QQuickImage")
+        assert _image_renderer(svg_icon)
         assert _local_components(empty_icon) == []
         assert _local_components(text_icon) == []
         assert _local_components(svg_icon) == []
@@ -93,7 +107,7 @@ def test_icons_share_renderer_components_and_keep_runtime_switching(qapp):
         assert _renderer(empty_icon).metaObject().className().startswith("QQuickText")
         assert empty_icon.setProperty("icon", "Settings")
         _pump()
-        assert _renderer(empty_icon).metaObject().className().startswith("QQuickImage")
+        assert _image_renderer(empty_icon)
         assert empty_icon.setProperty("icon", "")
         _pump()
         assert _renderer(empty_icon) is None

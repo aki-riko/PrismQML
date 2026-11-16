@@ -308,7 +308,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
                 and _evaluate(avatar_image, "status === Image.Ready")
             )
         loading_layers = (
-            QQmlProperty(svg_image, "layer.enabled").read(),
+            QQmlProperty(svg_image.parentItem(), "_tinted").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
         )
         loading_objects = len(window.findChildren(QObject))
@@ -325,7 +325,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             assert not first_ready_image.isNull()
             ready_image = _stable_window_image(window)
         ready_layers = (
-            QQmlProperty(svg_image, "layer.enabled").read(),
+            QQmlProperty(svg_image.parentItem(), "_tinted").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
         )
         ready_objects = len(window.findChildren(QObject))
@@ -340,7 +340,7 @@ def test_async_icon_renderers_preserve_loading_and_first_ready_frames(qapp):
             _stable_window_image(window) if capture_pixels else QImage()
         )
         error_layers = (
-            QQmlProperty(svg_image, "layer.enabled").read(),
+            QQmlProperty(svg_image.parentItem(), "_tinted").read(),
             QQmlProperty(avatar_image, "layer.enabled").read(),
         )
         error_objects = len(window.findChildren(QObject))

@@ -894,8 +894,10 @@ def test_spin_box_unit_icon_theme_awareness_controls_tinting(qapp):
             lambda: _evaluate(tinted, "status === Image.Ready")
             and _evaluate(untinted, "status === Image.Ready")
         )
-        assert _evaluate(tinted, "layer.enabled") is True
-        assert _evaluate(untinted, "layer.enabled") is False
+        # Tinting is a shader pass gated by the renderer host, not a layer.
+        # 着色是由渲染宿主门控的着色器绘制，而不是 layer。
+        assert tinted.parentItem().property("_tinted") is True
+        assert untinted.parentItem().property("_tinted") is False
         assert warnings == []
         assert _new_visible_windows(windows_before, window) == []
     finally:

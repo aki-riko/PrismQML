@@ -232,28 +232,40 @@ def test_color_overlay_source_keeps_multieffect_contract():
     assert "#" not in code_only
 
 
-def test_icon_renderer_still_routes_svg_through_color_overlay():
-    """Pins the consumer wiring so the recolor path cannot silently detach.
+def test_icon_renderer_tints_svg_through_shared_shader():
+    """Pins the icon recolor wiring so it cannot silently detach.
 
-    锁定消费方接线, 使着色路径不会静默脱开。
+    Icons no longer use ColorOverlay: a layer.effect rendered each icon into its
+    own offscreen texture first (about 0.28ms of first frame per icon on D3D11).
+    They draw through one ShaderEffect that samples the Image directly.
+    锁定图标着色接线, 使其不会静默脱开。图标不再走 ColorOverlay: layer.effect 会先把
+    每个图标渲染进各自的离屏纹理(D3D11 实测每个图标首帧多约 0.28ms), 现改为一个直接
+    采样 Image 的 ShaderEffect。
     """
     source = ICON_RENDERER_SOURCE.read_text(encoding="utf-8")
 
-    assert "layer.effect: ColorOverlay {" in source
-    assert "color: imageIcon.parent.iconControl.color" in source
+    assert "ColorOverlay" not in source
+    assert 'fragmentShader: Qt.resolvedUrl("../../shaders/icon_tint.frag.qsb")' in source
+    assert "readonly property var source: imageIcon" in source
+    assert "readonly property color tintColor: imageHost.iconControl.color" in source
 
     # Recolor is gated on two conjoined conditions; both terms must stay.
-    # ``themeAware: false`` keeps the original artwork by never attaching the
-    # layer at all, and a not-ready image has nothing to tint. Dropping either
-    # term silently regresses one of those two behaviours.
-    # 着色同时以两个条件为门控, 两项都必须保留。``themeAware: false`` 通过完全
-    # 不挂层来保留原图原色, 未就绪的图片无内容可着色。任一项脱开都会静默回归
-    # 其中一种行为。
-    gate = re.search(
-        r"layer\.enabled:\s*(.+?)\s*\n\s*layer\.effect:", source, re.DOTALL
-    )
-    assert gate is not None, "layer.enabled must gate layer.effect directly"
+    # ``themeAware: false`` keeps the original artwork, and a not-ready image has
+    # nothing to tint. Dropping either term silently regresses one behaviour.
+    # 着色同时以两个条件为门控, 两项都必须保留。``themeAware: false`` 保留原图原色,
+    # 未就绪的图片无内容可着色。任一项脱开都会静默回归其中一种行为。
+    gate = re.search(r"readonly property bool _tinted:\s*(.+?)\n\n", source, re.DOTALL)
+    assert gate is not None, "_tinted must gate the tint pass"
     gate_terms = " ".join(gate.group(1).split())
-    assert "imageIcon.parent.iconControl.themeAware" in gate_terms
+    assert "iconControl.themeAware" in gate_terms
     assert "imageIcon.status === Image.Ready" in gate_terms
     assert "&&" in gate_terms
+    # The tint pass replaces the image rather than drawing over it.
+    # 着色层代替原图绘制, 而不是叠在原图之上。
+    assert "visible: imageHost._tinted" in source
+    assert "opacity: imageHost._tinted ? 0 : 1" in source
+
+    shader = ICON_RENDERER_SOURCE.parents[2] / "shaders" / "icon_tint.frag"
+    assert "texture(source, qt_TexCoord0).a" in shader.read_text(encoding="utf-8")
+    binary = shader.with_suffix(".frag.qsb")
+    assert binary.is_file() and binary.stat().st_size > 0
