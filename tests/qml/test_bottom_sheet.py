@@ -66,7 +66,7 @@ def _wait_for(predicate, timeout_ms: int = 2000) -> bool:
     return predicate()
 
 
-def _create_scene():
+def _create_scene(source=SCENE_SOURCE, scene_url=SCENE_URL):
     engine = QQmlApplicationEngine()
     warnings = []
     engine.warnings.connect(
@@ -75,7 +75,7 @@ def _create_scene():
     engine.addImportPath(str(ROOT / "prismqml"))
     register_types(engine)
     component = QQmlComponent(engine)
-    component.setData(SCENE_SOURCE, SCENE_URL)
+    component.setData(source, scene_url)
     assert component.status() == QQmlComponent.Status.Ready, [
         error.toString() for error in component.errors()
     ]
@@ -147,7 +147,10 @@ def test_bottom_sheet_rests_at_medium_detent_on_window_overlay(sheet_scene):
 
     assert sheet.isVisible()
     assert sheet.parentItem() is window.contentItem()
-    assert sheet.z() == window.property("modalZ")
+    assert sheet.property("stackIndex") == 0
+    # One stack slot above the modal level, still below the next zIndex level
+    # 比 modal 层高一个叠层间隔，仍低于下一 zIndex 级
+    assert window.property("modalZ") < sheet.z() < window.property("modalZ") + 1
     expected_height = window.height() * window.property("mediumRatio")
     assert panel.height() == pytest.approx(expected_height)
     assert panel.y() == pytest.approx(window.height() - expected_height)
@@ -207,3 +210,195 @@ def test_bottom_sheet_opens_without_warnings_in_every_skin(qapp, skin):
         _dispose_scene(engine, component, window)
         setSkin(previous_skin)
         _pump()
+
+
+NESTED_SCENE_URL = QUrl.fromLocalFile(
+    str(ROOT / "tests" / "qml" / "bottom-sheet-nested.qml")
+)
+NESTED_SCENE_SOURCE = b"""
+import QtQuick
+import QtQuick.Window
+import PrismQML
+
+Window {
+    id: root
+    objectName: "window"
+
+    readonly property int stackPeek: Enums.sheet.stackPeek
+    readonly property int topInset: Enums.sheet.topInset
+    readonly property real stackScaleStep: Enums.sheet.stackScaleStep
+    readonly property int maxVisibleDepth: Enums.sheet.maxVisibleDepth
+    readonly property color transparentColor: Enums.transparent
+
+    width: 800
+    height: 600
+    visible: true
+
+    BottomSheet {
+        objectName: "first"
+
+        BottomSheet {
+            objectName: "second"
+            detent: Enums.sheet.detent_large
+
+            BottomSheet {
+                objectName: "third"
+            }
+        }
+    }
+
+    BottomSheet {
+        objectName: "fourth"
+    }
+}
+"""
+
+SHEET_NAMES = ("first", "second", "third", "fourth")
+
+
+@pytest.fixture
+def nested_scene(qapp):
+    engine, component, window, warnings = _create_scene(
+        NESTED_SCENE_SOURCE, NESTED_SCENE_URL
+    )
+    try:
+        sheets = {name: window.findChild(QQuickItem, name) for name in SHEET_NAMES}
+        assert all(sheets.values()), sheets
+        panels = {
+            name: sheet.findChild(QQuickItem, "bottomSheetPanel")
+            for name, sheet in sheets.items()
+        }
+        yield window, sheets, panels, warnings
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def _settled(*sheets) -> bool:
+    return all(
+        sheet.property("revealProgress") in (0, 1)
+        and sheet.property("stackLift") == int(sheet.property("stackLift"))
+        for sheet in sheets
+    )
+
+
+def _open_all(*sheets) -> None:
+    for sheet in sheets:
+        _open(sheet)
+    assert _wait_for(lambda: _settled(*sheets))
+
+
+def test_nested_sheets_stack_in_open_order(nested_scene):
+    window, sheets, panels, warnings = nested_scene
+    first, second, third = sheets["first"], sheets["second"], sheets["third"]
+
+    _open_all(first, second, third)
+
+    host = window.contentItem()
+    assert all(sheet.parentItem() is host for sheet in (first, second, third))
+    assert [s.property("stackIndex") for s in (first, second, third)] == [0, 1, 2]
+    assert first.z() < second.z() < third.z()
+    assert [s.property("stackLift") for s in (first, second, third)] == [2, 1, 0]
+    step = window.property("stackScaleStep")
+    assert panels["first"].scale() == pytest.approx(1 - 2 * step)
+    assert panels["second"].scale() == pytest.approx(1 - step)
+    assert panels["third"].scale() == 1
+    assert warnings == []
+
+
+def test_covered_sheets_peek_above_the_sheet_on_top(nested_scene):
+    window, sheets, panels, _warnings = nested_scene
+    first, second, third = sheets["first"], sheets["second"], sheets["third"]
+
+    _open_all(first, second, third)
+
+    peek = window.property("stackPeek")
+    # A covered sheet rises one peek above the higher of its own resting top and the
+    # top of the sheet above, never past the host top. Second (large) already rests
+    # above third (medium), so it rises from its own resting top.
+    # 被覆盖层从"自身静止顶边"与"上层顶边"中较高者再上移一个露边距离，且不越过宿主顶部。
+    # 第二层（全展开）静止时已高于第三层（中档），因此从自身静止顶边上移。
+    second_rest = window.property("topInset")
+    assert panels["second"].y() == pytest.approx(
+        max(0, min(second_rest, panels["third"].y()) - peek)
+    )
+    first_rest = window.height() - panels["first"].height()
+    assert panels["first"].y() == pytest.approx(
+        max(0, min(first_rest, panels["second"].y()) - peek)
+    )
+    assert panels["first"].y() < panels["second"].y() < panels["third"].y()
+
+
+def test_only_the_bottom_sheet_dims_the_page(nested_scene):
+    window, sheets, _panels, _warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+
+    _open_all(first, second)
+
+    assert first.property("maskColor") != window.property("transparentColor")
+    assert second.property("maskColor") == window.property("transparentColor")
+    dim = first.findChild(QQuickItem, "bottomSheetDim")
+    assert dim.isVisible() and dim.opacity() > 0
+    assert not second.findChild(QQuickItem, "bottomSheetDim").isVisible()
+
+
+def test_closing_the_top_sheet_restores_the_one_below(nested_scene):
+    _window, sheets, panels, warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+
+    _open(first)
+    resting_y = panels["first"].y()
+    _open_all(first, second)
+    assert panels["first"].y() < resting_y
+
+    _close(second)
+
+    assert _wait_for(lambda: _settled(first))
+    assert second.property("stackIndex") == -1
+    assert first.property("stackLift") == 0
+    assert panels["first"].scale() == 1
+    assert panels["first"].y() == pytest.approx(resting_y)
+    assert warnings == []
+
+
+def test_closing_a_parent_closes_its_nested_sheets(nested_scene):
+    _window, sheets, _panels, warnings = nested_scene
+    first, second, third = sheets["first"], sheets["second"], sheets["third"]
+
+    _open_all(first, second, third)
+    first.metaObject().invokeMethod(first, "close")
+
+    assert _wait_for(
+        lambda: not any(s.isVisible() for s in (first, second, third))
+    )
+    assert all(s.property("stackIndex") == -1 for s in (first, second, third))
+    assert warnings == []
+
+
+def test_reopened_sheet_returns_to_the_top(nested_scene):
+    _window, sheets, _panels, _warnings = nested_scene
+    first, fourth = sheets["first"], sheets["fourth"]
+
+    _open_all(first, fourth)
+    _close(first)
+    _open(first)
+    assert _wait_for(lambda: _settled(first, fourth))
+
+    assert first.property("stackIndex") == 1
+    assert fourth.property("stackIndex") == 0
+    assert first.z() > fourth.z()
+
+
+def test_sheets_past_the_visible_depth_fade_out(nested_scene):
+    window, sheets, _panels, _warnings = nested_scene
+    ordered = [sheets[name] for name in SHEET_NAMES]
+
+    _open_all(*ordered)
+
+    depth = window.property("maxVisibleDepth")
+    assert ordered[0].property("stackLift") == depth
+    surface = ordered[0].findChild(QQuickItem, "bottomSheetPanel").parentItem()
+    assert surface.opacity() == 0
+    assert all(
+        s.findChild(QQuickItem, "bottomSheetPanel").parentItem().opacity() == 1
+        for s in ordered[1:]
+    )

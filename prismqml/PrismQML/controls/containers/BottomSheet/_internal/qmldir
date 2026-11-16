@@ -1,0 +1,4 @@
+module _internal
+
+BottomSheetSurface BottomSheetSurface.qml
+singleton BottomSheetStack BottomSheetStack.qml

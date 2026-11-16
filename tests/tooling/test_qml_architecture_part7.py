@@ -330,5 +330,20 @@ def test_bottom_sheet_keeps_surface_modularized():
         "DragHandler {",
         "\n        id: panel\n",
         "\n            id: contentItem\n",
+        "openSheets = ",
     ):
         assert token not in source
+
+    stack = _source(
+        "prismqml/PrismQML/controls/containers/BottomSheet/_internal/"
+        "BottomSheetStack.qml"
+    )
+    stack_source = stack.read_text(encoding="utf-8")
+    qmldir = _source(
+        "prismqml/PrismQML/controls/containers/BottomSheet/_internal/qmldir"
+    ).read_text(encoding="utf-8")
+    assert len(stack_source.splitlines()) < 120
+    assert "pragma Singleton" in stack_source
+    assert "singleton BottomSheetStack BottomSheetStack.qml" in qmldir
+    assert "SheetInternal.BottomSheetStack.push(control)" in source
+    assert "SheetInternal.BottomSheetStack.remove(control)" in source

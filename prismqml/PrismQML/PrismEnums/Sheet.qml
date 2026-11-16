@@ -17,4 +17,11 @@ QtObject {
     readonly property int grabberHeight: 24    // Grabber hit area height 手柄可点击区域高度
     readonly property int grabberBarWidth: 36  // Grabber pill width 手柄胶囊宽度
     readonly property int grabberBarHeight: 5  // Grabber pill height 手柄胶囊高度
+
+    // ==================== Stacking 叠层 ====================
+    readonly property int stackPeek: 12           // Covered sheet edge shown above the next one 被覆盖层露出的顶边
+    readonly property real stackScaleStep: 0.05   // Scale lost per covered level 每被覆盖一层缩小的比例
+    readonly property int maxVisibleDepth: 3      // Deeper sheets fade out 更深的层淡出
+    readonly property real stackZStep: 0.01       // z gap between stacked sheets, stays below the next zIndex level 叠层 z 间隔，不越过下一 zIndex 级
+    readonly property real stackDimOpacity: 0.5   // Covered sheet dim layer opacity 被覆盖层压暗不透明度
 }

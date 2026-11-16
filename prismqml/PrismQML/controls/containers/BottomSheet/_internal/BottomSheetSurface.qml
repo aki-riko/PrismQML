@@ -22,8 +22,12 @@ Item {
     readonly property var _skin: sheetControl._skin
     readonly property real _radius: _skin.surfaceRadius(_skin.radius.xlarge)
     readonly property bool _shown: sheetControl._isOpen || sheetControl._isClosing
+    readonly property real _lift: sheetControl.stackLift
+    readonly property int _maxDepth: _skin.sheet.maxVisibleDepth
 
     anchors.fill: parent
+    // Sheets past the visible depth fade out 超出可见深度的层淡出
+    opacity: Math.max(0, Math.min(1, _maxDepth - _lift))
 
     // ==================== Content 内容 ====================
     // Soft elevation shadow 柔和投影
@@ -50,9 +54,13 @@ Item {
 
         objectName: "bottomSheetPanel"
         x: (surface.width - width) / 2
-        y: surface.height - surface.sheetControl.revealProgress * height
+        y: surface.sheetControl.panelTop
         width: surface.sheetControl.sheetWidth
         height: surface.sheetControl.sheetHeight
+        // Covered sheets shrink about their top edge 被覆盖层以顶边为基准缩小
+        transformOrigin: Item.Top
+        scale: 1 - surface._skin.sheet.stackScaleStep
+               * Math.min(surface._lift, surface._maxDepth)
         color: surface._skin.cardColor
         topLeftRadius: surface._radius
         topRightRadius: surface._radius
@@ -77,6 +85,17 @@ Item {
             objectName: "contentItem"  // For Python findChild 供Python查找
             anchors.fill: parent
             anchors.margins: surface._skin.spacing.xl
+        }
+
+        // Dim layer over covered sheets 被覆盖层的压暗层
+        Rectangle {
+            objectName: "bottomSheetDim"
+            anchors.fill: parent
+            color: surface._skin.stateColor.dialogOverlay
+            topLeftRadius: surface._radius
+            topRightRadius: surface._radius
+            opacity: Math.min(1, surface._lift) * surface._skin.sheet.stackDimOpacity
+            visible: opacity > 0
         }
     }
 }
