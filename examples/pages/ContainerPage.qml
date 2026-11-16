@@ -504,7 +504,6 @@ Item {
         BottomSheet {
             id: secondSheet
             objectName: "gallerySecondSheet"
-            detent: Fluent.Enums.sheet.detent_large
             Column {
                 spacing: Fluent.Enums.spacing.l
                 Text { text: Fluent.Translator.tr("gallery_7f794680f7947c64", Fluent.Translator._v); font.bold: true; font.pixelSize: Fluent.Enums.typography.subtitle; color: Fluent.Enums.textColor.primary }

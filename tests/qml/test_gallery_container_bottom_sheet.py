@@ -64,6 +64,9 @@ def test_gallery_bottom_sheet_demo_stacks_three_levels(qapp):
 
         assert _wait_for(qapp, lambda: all(s.property("opened") for s in sheets))
         assert [s.property("stackIndex") for s in sheets] == [0, 1, 2]
+        # Same detent on every level, so each covered sheet shows only its top edge
+        # 各层停靠高度一致，被覆盖层只露出顶边
+        assert len({s.property("detent") for s in sheets}) == 1
         assert all(s.parentItem() is window.contentItem() for s in sheets)
 
         QMetaObject.invokeMethod(sheets[0], "close")
