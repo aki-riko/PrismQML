@@ -167,7 +167,18 @@ def test_button_core_keeps_surface_visuals_modularized():
     assert "readonly property real animatedPressShift:" in helper_source
     assert "readonly property var pressTransform:" in helper_source
     assert "RectangularShadow {" in helper_source
-    assert "NeumorphicShadow {" in helper_source
+    # The neumorphic shadow loads by URL only under that skin: a hidden instance
+    # still costs its bindings, and an inline Component would add a resident object.
+    # 新拟态阴影仅在该皮肤下按 URL 加载：隐藏实例仍要付绑定成本，内联 Component 会多一个常驻对象。
+    neumorphic = _source(
+        "prismqml/PrismQML/controls/buttons/Button/_internal/ButtonNeumorphicShadow.qml"
+    )
+    neumorphic_source = neumorphic.read_text(encoding="utf-8")
+    assert "NeumorphicShadow {" not in helper_source
+    assert 'source: active ? "ButtonNeumorphicShadow.qml" : ""' in helper_source
+    assert "active: !surface.buttonControl.flat && _skin.isNeumorphism" in helper_source
+    assert "readonly property var surfaceHost: surface" in helper_source
+    assert neumorphic_source.count("NeumorphicShadow {") == 1
     assert "sourceComponent: ButtonNeoShadow" in helper_source
     assert "ColorAnimation {" in helper_source
     assert "RectangularShadow {" not in source
