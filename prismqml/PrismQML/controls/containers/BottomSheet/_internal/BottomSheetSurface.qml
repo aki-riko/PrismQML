@@ -79,12 +79,28 @@ Item {
             anchors.fill: parent
         }
 
+        BottomSheetGrabber {
+            id: grabber
+
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            visible: surface.sheetControl.showGrabber
+            sheetControl: surface.sheetControl
+            onDragStarted: surface.sheetControl._beginDrag()
+            onDragMoved: (translationY) => surface.sheetControl._dragTo(translationY)
+            onDragReleased: (translationY, velocityY) =>
+                surface.sheetControl._endDrag(translationY, velocityY)
+            onTapped: surface.sheetControl._toggleDetent()
+        }
+
         Item {
             id: contentItem
 
             objectName: "contentItem"  // For Python findChild 供Python查找
             anchors.fill: parent
             anchors.margins: surface._skin.spacing.xl
+            anchors.topMargin: grabber.visible ? grabber.height : surface._skin.spacing.xl
         }
 
         // Dim layer over covered sheets 被覆盖层的压暗层

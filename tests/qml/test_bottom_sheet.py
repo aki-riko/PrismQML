@@ -4,13 +4,24 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """BottomSheet runtime contracts. BottomSheet 运行时合同。"""
 
+import time
 from pathlib import Path
 
 import pytest
 import shiboken6
-from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
+from PySide6.QtCore import (
+    QCoreApplication,
+    QEvent,
+    QEventLoop,
+    QPoint,
+    QPointF,
+    QTimer,
+    QUrl,
+    Qt,
+)
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
+from PySide6.QtTest import QTest
 
 from prismqml import Skin, getSkin, register_types, setSkin
 
@@ -402,3 +413,247 @@ def test_sheets_past_the_visible_depth_fade_out(nested_scene):
         s.findChild(QQuickItem, "bottomSheetPanel").parentItem().opacity() == 1
         for s in ordered[1:]
     )
+
+
+# ==================== Drag and detents 拖拽与停靠 ====================
+
+
+def _grabber_point(window, sheet) -> QPoint:
+    grabber = sheet.findChild(QQuickItem, "bottomSheetGrabber")
+    assert grabber is not None and grabber.isVisible()
+    center = grabber.mapToItem(
+        window.contentItem(), QPointF(grabber.width() / 2, grabber.height() / 2)
+    )
+    return QPoint(round(center.x()), round(center.y()))
+
+
+def _wall_wait(milliseconds: int) -> None:
+    """Spin the event loop for a real wall-clock span.
+
+    The QTest ``delay`` argument does not reliably separate events on this
+    platform: a probe saw QML handle a move and the following release 0.2ms apart
+    despite a 300ms delay. Measured gaps must come from real time.
+    按真实墙钟时长转动事件循环。QTest 的 ``delay`` 参数在此平台不能可靠拉开事件间隔：
+    探针实测设置 300ms 延迟后，QML 处理移动与随后松手只隔 0.2ms。需要测量的间隔必须来自真实时间。
+    """
+    deadline = time.perf_counter() + milliseconds / 1000
+    while time.perf_counter() < deadline:
+        _pump(5)
+
+
+def _drag_grabber(window, sheet, distance: int, steps: int = 8, step_ms: int = 40,
+                  pause_ms: int = 0):
+    """Drag the grabber vertically with real time between events.
+
+    竖直拖动手柄，事件之间间隔真实时间。
+    """
+    start = _grabber_point(window, sheet)
+    QTest.mouseMove(window, start)
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start
+    )
+    for index in range(1, steps + 1):
+        _wall_wait(step_ms)
+        QTest.mouseMove(
+            window, QPoint(start.x(), start.y() + distance * index // steps)
+        )
+    _wall_wait(pause_ms or step_ms)
+    end = QPoint(start.x(), start.y() + distance)
+    QTest.mouseRelease(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, end
+    )
+
+
+def _resting(sheet) -> bool:
+    return (
+        sheet.property("revealProgress") in (0, 1)
+        and sheet.property("_heightExtra") == 0
+    )
+
+
+def test_small_drag_springs_back_to_the_detent(sheet_scene):
+    window, sheet, panel, warnings = sheet_scene
+    _open(sheet)
+    resting_y = panel.y()
+
+    _drag_grabber(window, sheet, 30)
+
+    assert _wait_for(lambda: _resting(sheet))
+    assert sheet.property("opened") is True
+    assert sheet.property("detent") == window.property("detentMedium")
+    assert panel.y() == pytest.approx(resting_y)
+    assert warnings == []
+
+
+def test_drag_down_past_threshold_closes_from_medium(sheet_scene):
+    window, sheet, _panel, warnings = sheet_scene
+    _open(sheet)
+
+    _drag_grabber(window, sheet, 160)
+
+    assert _wait_for(lambda: not sheet.isVisible())
+    assert sheet.property("opened") is False
+    assert sheet.property("stackIndex") == -1
+    assert sheet.property("_heightExtra") == 0
+    assert warnings == []
+
+
+def test_drag_up_expands_medium_to_large(sheet_scene):
+    window, sheet, panel, warnings = sheet_scene
+    _open(sheet)
+
+    _drag_grabber(window, sheet, -160)
+
+    assert _wait_for(lambda: _resting(sheet))
+    assert sheet.property("detent") == window.property("detentLarge")
+    assert panel.y() == pytest.approx(window.property("topInset"))
+    assert warnings == []
+
+
+def test_drag_down_from_large_collapses_to_medium(sheet_scene):
+    window, sheet, panel, warnings = sheet_scene
+    sheet.setProperty("detent", window.property("detentLarge"))
+    _open(sheet)
+
+    _drag_grabber(window, sheet, 160)
+
+    assert _wait_for(lambda: _resting(sheet))
+    assert sheet.property("opened") is True
+    assert sheet.property("detent") == window.property("detentMedium")
+    medium_height = window.height() * window.property("mediumRatio")
+    assert panel.y() == pytest.approx(window.height() - medium_height)
+    assert warnings == []
+
+
+def test_fast_flick_down_closes_despite_short_distance(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _open(sheet)
+
+    # 60px is below the dismiss distance; 20px per 10ms is ~2000 px/s, a flick.
+    # 60px 未达关闭距离；每 10ms 移动 20px 约合 2000 像素/秒，属于甩动。
+    _drag_grabber(window, sheet, 60, steps=3, step_ms=10)
+
+    assert _wait_for(lambda: not sheet.isVisible())
+    assert sheet.property("opened") is False
+
+
+def test_drag_up_is_capped_when_large_detent_is_disallowed(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    sheet.setProperty("allowLargeDetent", False)
+    _open(sheet)
+    resting_y = panel.y()
+
+    _drag_grabber(window, sheet, -160)
+
+    assert _wait_for(lambda: _resting(sheet))
+    assert sheet.property("detent") == window.property("detentMedium")
+    assert panel.y() == pytest.approx(resting_y)
+
+
+def test_tapping_the_grabber_toggles_the_detent(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    _open(sheet)
+
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+        _grabber_point(window, sheet),
+    )
+    assert _wait_for(lambda: _resting(sheet)
+                     and sheet.property("detent") == window.property("detentLarge"))
+    assert panel.y() == pytest.approx(window.property("topInset"))
+
+    QTest.mouseClick(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+        _grabber_point(window, sheet),
+    )
+    assert _wait_for(lambda: _resting(sheet)
+                     and sheet.property("detent") == window.property("detentMedium"))
+
+
+def test_detent_switch_keeps_the_top_edge_still(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    sheet.setProperty("detent", window.property("detentLarge"))
+    _open(sheet)
+    top_before = panel.y()
+
+    sheet.setProperty("detent", window.property("detentMedium"))
+
+    # Same event-loop turn: no jump, the panel then slides down to medium.
+    # 同一事件循环轮次内不跳变，随后面板滑到中档。
+    assert panel.y() == pytest.approx(top_before)
+    assert _wait_for(lambda: _resting(sheet))
+    medium_height = window.height() * window.property("mediumRatio")
+    assert panel.y() == pytest.approx(window.height() - medium_height)
+
+
+def test_only_the_top_sheet_grabber_drags(nested_scene):
+    _window, sheets, _panels, _warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+
+    _open_all(first, second)
+
+    assert not first.findChild(QQuickItem, "bottomSheetGrabber").isEnabled()
+    assert second.findChild(QQuickItem, "bottomSheetGrabber").isEnabled()
+
+
+def test_hidden_grabber_gives_content_the_top_space(qapp):
+    source = SCENE_SOURCE.replace(
+        b'objectName: "sheet"', b'objectName: "sheet"\n        showGrabber: false'
+    )
+    engine, component, window, _warnings = _create_scene(source)
+    try:
+        sheet = window.findChild(QQuickItem, "sheet")
+        _open(sheet)
+        grabber = sheet.findChild(QQuickItem, "bottomSheetGrabber")
+        content = sheet.findChild(QQuickItem, "contentItem")
+        assert not grabber.isVisible()
+        assert content.y() < grabber.height()
+    finally:
+        _dispose_scene(engine, component, window)
+
+
+def test_panel_follows_the_finger_mid_drag(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    sheet.setProperty("allowLargeDetent", False)
+    _open(sheet)
+    resting_y = panel.y()
+    start = _grabber_point(window, sheet)
+    QTest.mouseMove(window, start)
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start
+    )
+    try:
+        for step in range(1, 7):
+            _wall_wait(30)
+            QTest.mouseMove(window, QPoint(start.x(), start.y() + 10 * step))
+        # Down: the top edge tracks the finger past the drag threshold
+        # 向下：越过拖拽阈值后顶边跟随手指
+        down_y = panel.y()
+        assert resting_y + 30 < down_y <= resting_y + 60
+        for step in range(1, 11):
+            _wall_wait(30)
+            QTest.mouseMove(window, QPoint(start.x(), start.y() + 60 - 12 * step))
+        # Up past the tallest detent: rubber band moves less than the finger
+        # 向上越过最高停靠：阻尼使面板位移小于手指位移
+        up_shift = resting_y - panel.y()
+        assert 0 < up_shift < 60
+    finally:
+        _wall_wait(30)
+        QTest.mouseRelease(
+            window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+            QPoint(start.x(), start.y() - 60),
+        )
+    assert _wait_for(lambda: _resting(sheet))
+    assert panel.y() == pytest.approx(resting_y)
+
+
+def test_pausing_before_release_cancels_a_flick(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _open(sheet)
+
+    # Same flick as the close case, but held still well past the stale window
+    # 与关闭用例相同的甩动，但抬起前静止明显超过失效窗口
+    _drag_grabber(window, sheet, 60, steps=3, step_ms=10, pause_ms=300)
+
+    assert _wait_for(lambda: _resting(sheet))
+    assert sheet.property("opened") is True

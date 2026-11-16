@@ -347,3 +347,22 @@ def test_bottom_sheet_keeps_surface_modularized():
     assert "singleton BottomSheetStack BottomSheetStack.qml" in qmldir
     assert "SheetInternal.BottomSheetStack.push(control)" in source
     assert "SheetInternal.BottomSheetStack.remove(control)" in source
+
+    internal = "prismqml/PrismQML/controls/containers/BottomSheet/_internal/"
+    grabber = _source(internal + "BottomSheetGrabber.qml")
+    grabber_source = grabber.read_text(encoding="utf-8")
+    gesture = _source(internal + "BottomSheetGesture.js")
+    gesture_source = gesture.read_text(encoding="utf-8")
+    assert len(grabber_source.splitlines()) < 120
+    assert len(gesture_source.splitlines()) < 80
+    assert "BottomSheetGrabber BottomSheetGrabber.qml" in qmldir
+    assert "required property var sheetControl" in grabber_source
+    assert "DragHandler {" in grabber_source
+    assert "BottomSheetGrabber {" in surface_source
+    assert ".pragma library" in gesture_source
+    assert 'import "_internal/BottomSheetGesture.js" as SheetGesture' in source
+    assert "SheetGesture.dragState(" in source
+    assert "SheetGesture.releaseTarget(" in source
+    for token in ("function dragState(", "function releaseTarget("):
+        assert token in gesture_source
+        assert token not in source

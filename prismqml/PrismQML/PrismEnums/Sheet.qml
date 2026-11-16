@@ -24,4 +24,10 @@ QtObject {
     readonly property int maxVisibleDepth: 3      // Deeper sheets fade out 更深的层淡出
     readonly property real stackZStep: 0.01       // z gap between stacked sheets, stays below the next zIndex level 叠层 z 间隔，不越过下一 zIndex 级
     readonly property real stackDimOpacity: 0.5   // Covered sheet dim layer opacity 被覆盖层压暗不透明度
+
+    // ==================== Drag 拖拽 ====================
+    readonly property real dismissRatio: 0.25       // Release distance / detent height that commits 松手生效距离占停靠高度比例
+    readonly property int velocityThreshold: 800    // Flick speed in px/s that commits 甩动生效速度（像素/秒）
+    readonly property int velocityStaleMs: 100      // Pause before release that cancels a flick 松手前停顿超过此值不算甩动
+    readonly property real dragResistance: 0.3      // Rubber band factor past the tallest detent 超出最高停靠后的阻尼系数
 }
