@@ -13,7 +13,7 @@ QtObject {
     // ==================== Geometry 几何 ====================
     readonly property real mediumRatio: 0.5    // Medium detent height / host height 中档高度占宿主比例
     readonly property int topInset: 48         // Large detent gap above the sheet 完全展开时顶部留白
-    readonly property int maxWidth: 640        // Centered width cap on wide hosts 宽宿主居中限宽
+    readonly property real widthRatio: 0.9     // Sheet width / host width, centered 弹层宽度占宿主比例，水平居中
     readonly property int grabberHeight: 24    // Grabber hit area height 手柄可点击区域高度
     readonly property int grabberBarWidth: 36  // Grabber pill width 手柄胶囊宽度
     readonly property int grabberBarHeight: 5  // Grabber pill height 手柄胶囊高度

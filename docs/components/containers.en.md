@@ -78,7 +78,7 @@ Fluent.BottomSheet {
 | `allowLargeDetent: bool` | Whether dragging up or tapping the handle can reach `detent_large`; default `true` |
 | `showGrabber: bool` | Whether the top handle is shown; default `true` |
 | `expand()` / `collapse()` | Switch to `detent_large` / `detent_medium` |
-| `sheetMaxWidth: int` | Maximum width in wide windows; the sheet is centered horizontally |
+| `sheetWidthRatio: real` | Sheet width as a fraction of the window width, default `0.9`; centered horizontally |
 | `opened: bool` | Read-only; whether the sheet is open |
 | `stackIndex: int` | Read-only; position in the window's stack, bottom first, from 0; `-1` once fully closed |
 

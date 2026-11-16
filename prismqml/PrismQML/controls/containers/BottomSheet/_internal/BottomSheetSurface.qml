@@ -24,22 +24,43 @@ Item {
     readonly property bool _shown: sheetControl._isOpen || sheetControl._isClosing
     readonly property real _lift: sheetControl.stackLift
     readonly property int _maxDepth: _skin.sheet.maxVisibleDepth
+    readonly property bool _softShadow: _skin.usesSoftElevation && !_skin.isNeumorphism
+                                        && _shown
 
     anchors.fill: parent
     // Sheets past the visible depth fade out 超出可见深度的层淡出
     opacity: Math.max(0, Math.min(1, _maxDepth - _lift))
 
     // ==================== Content 内容 ====================
-    // Soft elevation shadow 柔和投影
+    // The sheet rises from the host bottom, so its shadows cast upward: a downward
+    // offset would land below the window edge where nothing shows. A tight contact
+    // shadow defines the seam over the sheet below; a wide ambient one gives lift.
+    // 弹层从宿主底部升起，阴影须向上投：向下偏移会落到窗口底边以外，看不见。
+    // 贴边的接触阴影勾出压在下层上的接缝，宽幅的环境阴影提供抬升感。
     RectangularShadow {
+        objectName: "bottomSheetAmbientShadow"
         anchors.fill: panel
         radius: surface._radius
         color: surface._skin.shadow.level28.color
         blur: surface._skin.shadow.level28.blur
         offset.x: 0
-        offset.y: surface._skin.shadow.level28.offset
-        visible: surface._skin.usesSoftElevation && !surface._skin.isNeumorphism
-                 && surface._shown
+        offset.y: -surface._skin.shadow.level28.offset
+        scale: panel.scale
+        transformOrigin: Item.Top
+        visible: surface._softShadow
+    }
+
+    RectangularShadow {
+        objectName: "bottomSheetContactShadow"
+        anchors.fill: panel
+        radius: surface._radius
+        color: surface._skin.shadow.level4.color
+        blur: surface._skin.shadow.level4.blur
+        offset.x: 0
+        offset.y: -surface._skin.shadow.level4.offset
+        scale: panel.scale
+        transformOrigin: Item.Top
+        visible: surface._softShadow
     }
 
     NeumorphicShadow {
@@ -101,6 +122,22 @@ Item {
             anchors.fill: parent
             anchors.margins: surface._skin.spacing.xl
             anchors.topMargin: grabber.visible ? grabber.height : surface._skin.spacing.xl
+        }
+
+        // Edge highlight: shadows barely show against a dark page, so a hairline keeps
+        // the panel's silhouette. Its bottom edge is pushed below the panel, off the host.
+        // 边缘高光：深色页面上阴影几乎不可见，用细描边保住面板轮廓。底边推到面板下方，
+        // 落在宿主之外。
+        Rectangle {
+            objectName: "bottomSheetEdge"
+            anchors.fill: parent
+            anchors.bottomMargin: -surface._radius
+            color: surface._skin.transparent
+            topLeftRadius: surface._radius
+            topRightRadius: surface._radius
+            border.width: surface._skin.border.thin
+            border.color: surface._skin.stateColor.border
+            visible: surface._softShadow && !surface._skin.hasOutlinedSurfaces
         }
 
         // Dim layer over covered sheets 被覆盖层的压暗层

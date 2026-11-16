@@ -20,13 +20,13 @@ OverlayDialogCore {
     property int detent: Enums.sheet.detent_medium      // Resting height 停靠高度
     property bool allowLargeDetent: true                // Drag or tap up to large 允许上拉或点按展开
     property bool showGrabber: true                     // Top drag handle 顶部拖拽手柄
-    property int sheetMaxWidth: Enums.sheet.maxWidth    // Centered width cap 居中限宽
+    property real sheetWidthRatio: Enums.sheet.widthRatio   // Width / host width 宽度占宿主比例
     default property alias content: sheetSurface.content
     // Qt-style state alias Qt风格状态别名
     property alias opened: control._isOpen
 
     // ==================== Readonly State 只读状态 ====================
-    readonly property real sheetWidth: Math.min(width, sheetMaxWidth)
+    readonly property real sheetWidth: width * Math.max(0, Math.min(1, sheetWidthRatio))
     // Detent height plus the transient drag/settle extension 停靠高度加拖拽/回弹中的临时伸长
     readonly property real sheetHeight: _detentHeight(detent) + _heightExtra
     // Reveal progress: 0 hides the panel below the host, 1 rests it at the detent.

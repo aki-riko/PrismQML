@@ -41,7 +41,7 @@ Window {
     readonly property int detentLarge: Enums.sheet.detent_large
     readonly property real mediumRatio: Enums.sheet.mediumRatio
     readonly property int topInset: Enums.sheet.topInset
-    readonly property int maxWidth: Enums.sheet.maxWidth
+    readonly property real widthRatio: Enums.sheet.widthRatio
     readonly property int modalZ: Enums.zIndex.modal
 
     width: 800
@@ -166,7 +166,7 @@ def test_bottom_sheet_rests_at_medium_detent_on_window_overlay(sheet_scene):
     expected_height = window.height() * window.property("mediumRatio")
     assert panel.height() == pytest.approx(expected_height)
     assert panel.y() == pytest.approx(window.height() - expected_height)
-    assert panel.width() == min(window.width(), window.property("maxWidth"))
+    assert panel.width() == pytest.approx(window.width() * window.property("widthRatio"))
     assert panel.x() == pytest.approx((window.width() - panel.width()) / 2)
     content = sheet.findChild(QQuickItem, "sheetContent")
     assert content is not None and content.isVisible()
@@ -738,3 +738,53 @@ def test_grabber_press_action_cycles_the_detent(sheet_scene):
 
     assert _wait_for(lambda: _resting(sheet)
                      and sheet.property("detent") == window.property("detentLarge"))
+
+
+# ==================== Width and elevation 宽度与立体感 ====================
+
+
+def test_custom_width_ratio_is_clamped_and_centered(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    sheet.setProperty("sheetWidthRatio", 0.5)
+    _open(sheet)
+    assert panel.width() == pytest.approx(window.width() * 0.5)
+    assert panel.x() == pytest.approx(window.width() * 0.25)
+
+    sheet.setProperty("sheetWidthRatio", 1.5)
+    _pump()
+    assert panel.width() == pytest.approx(window.width())
+
+
+def test_shadows_cast_upward_and_shrink_with_the_panel(nested_scene):
+    _window, sheets, panels, _warnings = nested_scene
+    first, second = sheets["first"], sheets["second"]
+    _open_all(first, second)
+
+    for name in ("bottomSheetAmbientShadow", "bottomSheetContactShadow"):
+        shadow = first.findChild(QQuickItem, name)
+        assert shadow is not None and shadow.isVisible(), name
+        # The panel rises from the host bottom; a downward shadow would be off-screen
+        # 面板从宿主底部升起，向下的阴影会落在屏幕外
+        assert shadow.property("offset").y() < 0, name
+        assert shadow.scale() == pytest.approx(panels["first"].scale()), name
+    edge = first.findChild(QQuickItem, "bottomSheetEdge")
+    assert edge.isVisible()
+    assert edge.height() > panels["first"].height()
+
+
+def test_outlined_skins_skip_the_soft_shadow_stack(qapp):
+    previous_skin = getSkin()
+    setSkin(Skin.NEOBRUTALISM)
+    _pump()
+    engine, component, window, warnings = _create_scene()
+    try:
+        sheet = window.findChild(QQuickItem, "sheet")
+        _open(sheet)
+        for name in ("bottomSheetAmbientShadow", "bottomSheetContactShadow",
+                     "bottomSheetEdge"):
+            assert not sheet.findChild(QQuickItem, name).isVisible(), name
+        assert warnings == []
+    finally:
+        _dispose_scene(engine, component, window)
+        setSkin(previous_skin)
+        _pump()

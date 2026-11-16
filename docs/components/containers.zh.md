@@ -75,7 +75,7 @@ Fluent.BottomSheet {
 | `allowLargeDetent: bool` | 是否允许上拉或点按手柄展开到 `detent_large`，默认 `true` |
 | `showGrabber: bool` | 是否显示顶部手柄，默认 `true` |
 | `expand()` / `collapse()` | 切换到 `detent_large` / `detent_medium` |
-| `sheetMaxWidth: int` | 宽窗口下的最大宽度，弹层水平居中 |
+| `sheetWidthRatio: real` | 弹层宽度占窗口宽度的比例，默认 `0.9`，水平居中 |
 | `opened: bool` | 只读，是否处于打开状态 |
 | `stackIndex: int` | 只读，在当前窗口栈中的位置（自底向上，从 0 开始）；完全关闭后为 `-1` |
 
