@@ -25,6 +25,14 @@ QtObject {
     readonly property real stackZStep: 0.01       // z gap between stacked sheets, stays below the next zIndex level 叠层 z 间隔，不越过下一 zIndex 级
     readonly property real stackDimOpacity: 0.5   // Covered sheet dim layer opacity 被覆盖层压暗不透明度
 
+    // ==================== Motion 动效 ====================
+    // Gentle deceleration: less of the travel lands in the first frames than the
+    // Fluent decelerate curve, so the sheet glides instead of jumping out.
+    // 平缓减速：前几帧走过的行程比 Fluent 减速曲线少，面板是滑出来而不是窜出来。
+    readonly property var enterCurve: [0.32, 0.72, 0, 1, 1, 1]
+    // Soft start and soft landing at the host bottom 起步与落到宿主底边都柔和
+    readonly property var exitCurve: [0.4, 0, 0.6, 1, 1, 1]
+
     // ==================== Drag 拖拽 ====================
     readonly property real dismissRatio: 0.25       // Release distance / detent height that commits 松手生效距离占停靠高度比例
     readonly property int velocityThreshold: 800    // Flick speed in px/s that commits 甩动生效速度（像素/秒）

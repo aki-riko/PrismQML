@@ -360,12 +360,41 @@ def test_bottom_sheet_keeps_surface_modularized():
     assert "DragHandler {" in grabber_source
     assert "BottomSheetGrabber {" in surface_source
     assert ".pragma library" in gesture_source
-    assert 'import "_internal/BottomSheetGesture.js" as SheetGesture' in source
-    assert "SheetGesture.dragState(" in source
-    assert "SheetGesture.releaseTarget(" in source
-    for token in ("function dragState(", "function releaseTarget("):
+    # Gesture handling lives in the drag controller, not the entry
+    # 手势处理归拖拽控制器所有，不在入口
+    controller = _source(internal + "BottomSheetDragController.qml")
+    controller_source = controller.read_text(encoding="utf-8")
+    assert len(controller_source.splitlines()) < 120
+    assert "BottomSheetDragController BottomSheetDragController.qml" in qmldir
+    assert "required property var sheetControl" in controller_source
+    assert 'import "BottomSheetGesture.js" as SheetGesture' in controller_source
+    for call in ("SheetGesture.dragState(", "SheetGesture.releaseTarget(",
+                 "SheetGesture.releaseDuration("):
+        assert call in controller_source
+        assert call not in source
+    assert "SheetInternal.BottomSheetDragController {" in source
+    # property var, not alias: with two aliases declared between the children,
+    # onOpenedChanged never fired and no sheet entered the stack; property var in the
+    # property section fixed it. The underlying cause was not pinned down.
+    # 用 property var 而不是 alias：在子对象之间声明两个 alias 时 onOpenedChanged 从未
+    # 触发，弹层进不了栈；改为属性区的 property var 后恢复。根本原因未查明。
+    assert "readonly property var _drag: dragController" in source
+    assert "property alias _drag" not in source
+    assert "surface.sheetControl._drag.release(" in surface_source
+    for token in ("function dragState(", "function releaseTarget(",
+                  "function releaseDuration("):
         assert token in gesture_source
         assert token not in source
+    assert "BottomSheetGesture.js" not in source
+
+    # The drawn scrim follows the reveal; the base scrim only blocks input
+    # 绘制的遮罩跟随显露进度；基类遮罩只拦截输入
+    assert 'objectName: "bottomSheetScrim"' in surface_source
+    assert "opacity: surface.sheetControl.revealProgress" in surface_source
+    assert "maskColor: _skin.transparent" in source
+    # Reveal duration and curve key off the Behavior target, not _isOpen
+    # 显露动画的时长与曲线以 Behavior 目标值为准，不读 _isOpen
+    assert "revealBehavior.targetValue > 0" in source
 
     # Keyboard and accessibility stay on the entry and the grabber
     # 键盘与无障碍由入口和手柄持有

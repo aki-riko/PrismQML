@@ -2,4 +2,5 @@ module _internal
 
 BottomSheetSurface BottomSheetSurface.qml
 BottomSheetGrabber BottomSheetGrabber.qml
+BottomSheetDragController BottomSheetDragController.qml
 singleton BottomSheetStack BottomSheetStack.qml

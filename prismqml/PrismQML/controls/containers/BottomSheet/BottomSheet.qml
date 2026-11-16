@@ -6,7 +6,6 @@ import QtQuick
 import "../../.."
 import "../../dialogs"
 import "_internal" as SheetInternal
-import "_internal/BottomSheetGesture.js" as SheetGesture
 import "../../utils"
 
 // BottomSheet - Bottom sheet overlay 底部弹层
@@ -53,8 +52,13 @@ OverlayDialogCore {
     property real _heightExtra: 0
     property bool _dragging: false
     property bool _settling: false   // Immediate writes while true 为真时直接写入不走动画
-    property real _dragStartHeight: 0
+    // Velocity-matched duration for the animations one release starts; cleared once they
+    // finish. 一次松手所启动动画的速度匹配时长；动画结束后清零。
+    property int _releaseDuration: 0
     property int _previousDetent: Enums.sheet.detent_medium
+    // Handles for the internal drag controller 供内部拖拽控制器使用的句柄
+    readonly property var _drag: dragController
+    readonly property var _heightAnimation: heightAnimation
     readonly property var _sheetAbove: SheetInternal.BottomSheetStack.above(
         control, SheetInternal.BottomSheetStack.openSheets)
     readonly property real _restTop: height - sheetHeight
@@ -98,49 +102,10 @@ OverlayDialogCore {
         heightAnimation.restart()
     }
 
-    function _beginDrag() {
-        heightAnimation.stop()
-        _dragging = true
-        _dragStartHeight = _revealProgress * sheetHeight
-    }
-
-    function _dragTo(translationY) {
-        var detentHeight = _detentHeight(detent)
-        var maxHeight = allowLargeDetent
-            ? _detentHeight(Enums.sheet.detent_large) : detentHeight
-        var state = SheetGesture.dragState(_dragStartHeight, translationY, detentHeight,
-                                           maxHeight, Enums.sheet.dragResistance)
-        _heightExtra = state.upExtension
-        _revealProgress = detentHeight > 0 ? 1 - state.downOffset / detentHeight : 0
-    }
-
-    function _endDrag(translationY, velocityY) {
-        var closeTarget = -1
-        var target = SheetGesture.releaseTarget({
-            detent: detent,
-            translationY: translationY,
-            velocityY: velocityY,
-            detentHeight: _detentHeight(detent),
-            mediumHeight: _detentHeight(Enums.sheet.detent_medium),
-            largeHeight: _detentHeight(Enums.sheet.detent_large),
-            dismissRatio: Enums.sheet.dismissRatio,
-            velocityThreshold: Enums.sheet.velocityThreshold,
-            allowLargeDetent: allowLargeDetent,
-            detentMedium: Enums.sheet.detent_medium,
-            detentLarge: Enums.sheet.detent_large,
-            closeTarget: closeTarget
-        })
-        _dragging = false
-        if (target === closeTarget) {
-            heightAnimation.stop()
-            close()
-            // Slide out from the dragged position 从拖到的位置继续滑出
-            _revealProgress = Qt.binding(function() { return control._isOpen ? 1 : 0 })
-        } else if (target !== detent) {
-            detent = target
-        } else {
-            _settle()
-        }
+    // A release may start both animations; clear once neither is running.
+    // 一次松手可能同时启动两段动画，两者都结束后再清零。
+    function _clearReleaseDuration() {
+        if (!heightAnimation.running && !revealAnimation.running) _releaseDuration = 0
     }
 
     function _toggleDetent() {
@@ -158,9 +123,9 @@ OverlayDialogCore {
 
     // Overlay overrides 覆盖层配置
     dismissOnScrimClick: true
-    // Only the bottom sheet dims the page, so stacking never darkens it further.
-    // 只有最底层弹层压暗页面，叠多少层背景亮度都不变。
-    maskColor: stackIndex <= 0 ? _skin.stateColor.dialogOverlay : _skin.transparent
+    // The base scrim keeps only its input blocking; BottomSheetSurface draws a scrim that
+    // follows the reveal. 基类遮罩只保留输入拦截；由 BottomSheetSurface 绘制跟随显露进度的遮罩。
+    maskColor: _skin.transparent
     z: _skin.zIndex.modal + Math.max(0, stackIndex + 1) * Enums.sheet.stackZStep
     // The base hides on its restore timer, which is not tied to this slide-out;
     // stay visible until the panel has actually left the host.
@@ -204,27 +169,47 @@ OverlayDialogCore {
         sheetControl: control
     }
 
+    SheetInternal.BottomSheetDragController {
+        id: dragController
+
+        sheetControl: control
+    }
+
     NumberAnimation {
         id: heightAnimation
 
         target: control
         property: "_heightExtra"
         to: 0
-        duration: Enums.motionDuration.gentle
+        duration: control._releaseDuration || Enums.motionDuration.slow
         easing.type: Enums.motionTokens.easingType
-        easing.bezierCurve: Enums.motionCurve.decelerate
+        easing.bezierCurve: Enums.sheet.enterCurve
+        onFinished: control._clearReleaseDuration()
     }
 
-    // Decelerate in, accelerate out; the finger drives it directly while dragging.
-    // 减速进入，加速离开；拖拽期间由手指直接驱动。
+    // Glide in, ease out; a release continues at the finger's speed and decelerates.
+    // The finger drives it directly while dragging.
+    // 平缓滑入、柔和离开；松手后以手指速度接续再减速。拖拽期间由手指直接驱动。
+    // Duration and curve follow the Behavior's targetValue, which is set before the
+    // animation starts. Reading _isOpen instead raced the _revealProgress binding:
+    // measured on a real window, opens ran the exit curve and closes the enter curve.
+    // 时长与曲线跟随 Behavior 的 targetValue，它在动画启动前设置。改读 _isOpen 会与
+    // _revealProgress 的绑定竞争：真实窗口实测打开用了离开曲线、关闭用了进入曲线。
     Behavior on _revealProgress {
+        id: revealBehavior
+
         enabled: !control._dragging && !control._settling
         NumberAnimation {
-            duration: control._isOpen ? Enums.motionDuration.gentle
-                                      : Enums.motionDuration.normal
+            id: revealAnimation
+
+            readonly property bool entering: revealBehavior.targetValue > 0
+
+            duration: control._releaseDuration
+                || (entering ? Enums.motionDuration.slow : Enums.motionDuration.gentle)
             easing.type: Enums.motionTokens.easingType
-            easing.bezierCurve: control._isOpen ? Enums.motionCurve.decelerate
-                                                : Enums.motionCurve.accelerate
+            easing.bezierCurve: entering || control._releaseDuration > 0
+                ? Enums.sheet.enterCurve : Enums.sheet.exitCurve
+            onFinished: control._clearReleaseDuration()
         }
     }
 }

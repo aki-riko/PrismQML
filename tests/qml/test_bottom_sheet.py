@@ -346,8 +346,13 @@ def test_only_the_bottom_sheet_dims_the_page(nested_scene):
 
     _open_all(first, second)
 
-    assert first.property("maskColor") != window.property("transparentColor")
+    # The base scrim only blocks input; the drawn scrim belongs to the bottom sheet
+    # 基类遮罩只拦截输入；绘制的遮罩只属于最底层
+    assert first.property("maskColor") == window.property("transparentColor")
     assert second.property("maskColor") == window.property("transparentColor")
+    scrim = first.findChild(QQuickItem, "bottomSheetScrim")
+    assert scrim.isVisible() and scrim.opacity() == 1
+    assert not second.findChild(QQuickItem, "bottomSheetScrim").isVisible()
     dim = first.findChild(QQuickItem, "bottomSheetDim")
     assert dim.isVisible() and dim.opacity() > 0
     assert not second.findChild(QQuickItem, "bottomSheetDim").isVisible()
@@ -788,3 +793,116 @@ def test_outlined_skins_skip_the_soft_shadow_stack(qapp):
         _dispose_scene(engine, component, window)
         setSkin(previous_skin)
         _pump()
+
+
+
+# ==================== Motion continuity 动效连贯 ====================
+
+
+def test_scrim_tracks_the_reveal_while_dragging(sheet_scene):
+    window, sheet, _panel, _warnings = sheet_scene
+    _open(sheet)
+    scrim = sheet.findChild(QQuickItem, "bottomSheetScrim")
+    start = _grabber_point(window, sheet)
+    QTest.mouseMove(window, start)
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start
+    )
+    try:
+        for step in range(1, 7):
+            _wall_wait(30)
+            QTest.mouseMove(window, QPoint(start.x(), start.y() + 10 * step))
+        reveal = sheet.property("revealProgress")
+        # Mid-drag the page brightens exactly as far as the sheet has dropped
+        # 拖拽中页面变亮的程度与面板下落程度一致
+        assert 0 < reveal < 1
+        assert scrim.opacity() == pytest.approx(reveal)
+    finally:
+        _wall_wait(300)
+        QTest.mouseRelease(
+            window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+            QPoint(start.x(), start.y() + 60),
+        )
+    assert _wait_for(lambda: _resting(sheet))
+    assert scrim.opacity() == 1
+
+
+def test_deep_sheets_fade_without_losing_the_page_scrim(nested_scene):
+    _window, sheets, _panels, _warnings = nested_scene
+    ordered = [sheets[name] for name in SHEET_NAMES]
+    _open_all(*ordered)
+
+    bottom = ordered[0]
+    layer = bottom.findChild(QQuickItem, "bottomSheetPanel").parentItem()
+    scrim = bottom.findChild(QQuickItem, "bottomSheetScrim")
+    assert layer.opacity() == 0
+    assert scrim.isVisible() and scrim.opacity() == 1
+
+
+def test_release_duration_matches_the_finger_speed(qapp):
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(ROOT / "prismqml"))
+    component = QQmlComponent(engine)
+    component.setData(b"""
+import QtQuick
+import "../../prismqml/PrismQML/controls/containers/BottomSheet/_internal/BottomSheetGesture.js" as G
+QtObject {
+    readonly property var curve: [0.32, 0.72, 0, 1, 1, 1]
+    readonly property int fast: G.releaseDuration(300, 2000, curve, 150, 300)
+    readonly property int matched: G.releaseDuration(300, 3000, curve, 150, 300)
+    readonly property int clamped: G.releaseDuration(300, 20000, curve, 150, 300)
+    readonly property int tooSlow: G.releaseDuration(300, 100, curve, 150, 300)
+    readonly property int away: G.releaseDuration(300, -2000, curve, 150, 300)
+    readonly property int reduced: G.releaseDuration(300, 2000, curve, 0, 0)
+}
+""", QUrl.fromLocalFile(str(ROOT / "tests" / "qml" / "release-duration.qml")))
+    obj = component.create()
+    try:
+        assert obj is not None, [e.toString() for e in component.errors()]
+        # 300px at 2000px/s needs 337.5ms (start slope 0.72/0.32 = 2.25), over the cap.
+        # Capped at 300ms the curve starts at 2250px/s, 250 off the finger, versus 2000
+        # off when starting from rest, so the capped curve wins.
+        # 300px、2000px/s 需 337.5ms（起步斜率 2.25），超过上限。截断到 300ms 时起步
+        # 2250px/s，与手指差 250；从静止起步差 2000，故取截断曲线。
+        assert obj.property("fast") == 300
+        # 300px at 3000px/s -> 2.25 * 300 / 3000 s = 225ms, inside [150, 300]
+        # 300px、3000px/s 时为 225ms，落在 [150, 300] 区间内
+        assert obj.property("matched") == 225
+        assert obj.property("clamped") == 150
+        # 100px/s: capped start 2250px/s is 2150 off, rest is 100 off, so default
+        # 100px/s 时截断起步差 2150，静止起步只差 100，故用默认动效
+        assert obj.property("tooSlow") == 0
+        assert obj.property("away") == 0
+        assert obj.property("reduced") == 0
+    finally:
+        obj.deleteLater() if obj is not None else None
+        component.deleteLater()
+        engine.deleteLater()
+
+
+def test_grabbing_mid_open_hands_the_panel_to_the_finger(sheet_scene):
+    window, sheet, panel, _warnings = sheet_scene
+    sheet.metaObject().invokeMethod(sheet, "open")
+    # Catch the panel while it is still rising 在面板仍在上升时抓住它
+    assert _wait_for(lambda: 0.3 < sheet.property("revealProgress") < 0.9, 1000)
+    start = _grabber_point(window, sheet)
+    QTest.mouseMove(window, start)
+    QTest.mousePress(
+        window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start
+    )
+    try:
+        for step in range(1, 5):
+            _wall_wait(20)
+            QTest.mouseMove(window, QPoint(start.x(), start.y() + 10 * step))
+        held_y = panel.y()
+        # Hold still: a leftover open animation would keep pulling the panel up
+        # 保持不动：残留的打开动画会继续把面板往上拉
+        _wall_wait(400)
+        assert panel.y() == pytest.approx(held_y, abs=1)
+        assert sheet.property("revealProgress") < 1
+    finally:
+        QTest.mouseRelease(
+            window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+            QPoint(start.x(), start.y() + 40),
+        )
+    assert _wait_for(lambda: _resting(sheet))
