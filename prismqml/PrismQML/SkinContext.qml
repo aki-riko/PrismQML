@@ -114,6 +114,7 @@ Item {
     readonly property alias chart: _chart
     readonly property alias card: _card
     readonly property alias drawer: _drawer
+    readonly property alias sheet: _sheet
     readonly property alias position: _position
     readonly property alias notification: _notification
     readonly property alias slider: _slider
@@ -343,6 +344,7 @@ Item {
     Chart { id: _chart }
     Card { id: _card }
     Drawer { id: _drawer }
+    Sheet { id: _sheet }
     Position { id: _position }
     Notification { id: _notification }
     Slider { id: _slider }

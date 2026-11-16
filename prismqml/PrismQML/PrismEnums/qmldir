@@ -11,6 +11,7 @@ Flow Flow.qml
 Chart Chart.qml
 Card Card.qml
 Drawer Drawer.qml
+Sheet Sheet.qml
 Position Position.qml
 Notification Notification.qml
 Slider Slider.qml

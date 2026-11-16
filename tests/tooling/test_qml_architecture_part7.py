@@ -300,3 +300,35 @@ def test_scroll_area_nested_hit_testing_stays_in_private_script():
     ):
         assert dispatch in helper_source
     assert "Component {" not in source
+
+
+def test_bottom_sheet_keeps_surface_modularized():
+    entry = _source(
+        "prismqml/PrismQML/controls/containers/BottomSheet/BottomSheet.qml"
+    )
+    surface = _source(
+        "prismqml/PrismQML/controls/containers/BottomSheet/_internal/"
+        "BottomSheetSurface.qml"
+    )
+    source = entry.read_text(encoding="utf-8")
+    surface_source = surface.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 250
+    assert surface.exists()
+    assert len(surface_source.splitlines()) < 220
+    assert "OverlayDialogCore {" in source
+    assert 'import "_internal" as SheetInternal' in source
+    assert "SheetInternal.BottomSheetSurface {" in source
+    assert "sheetControl: control" in source
+    assert "default property alias content: sheetSurface.content" in source
+    assert "required property var sheetControl" in surface_source
+    assert "default property alias content: contentItem.data" in surface_source
+    assert "readonly property alias panel: panel" in surface_source
+    for token in (
+        "RectangularShadow {",
+        "NeumorphicShadow {",
+        "DragHandler {",
+        "\n        id: panel\n",
+        "\n            id: contentItem\n",
+    ):
+        assert token not in source

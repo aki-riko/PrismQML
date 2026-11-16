@@ -61,6 +61,9 @@ ExampleCard controls/containers/Card/ExampleCard.qml
 # Drawer 抽屉
 Drawer controls/containers/Drawer/Drawer.qml
 
+# BottomSheet 底部弹层
+BottomSheet controls/containers/BottomSheet/BottomSheet.qml
+
 # Expander 展开器
 ExpanderCore controls/containers/Expander/ExpanderCore.qml
 Expander controls/containers/Expander/ExpanderEntry.qml
