@@ -144,6 +144,9 @@ Item {
             if (!control.chart.animated || !control.chart.schedulerActive) return
             if (control.horizontal) {
                 Qt.callLater(function() {
+                    // The bar may be destroyed before the deferred call runs
+                    // 延迟调用执行前柱子可能已被销毁
+                    if (!control) return
                     barCanvas.width = control.barRatio * control.width
                 })
             } else {
