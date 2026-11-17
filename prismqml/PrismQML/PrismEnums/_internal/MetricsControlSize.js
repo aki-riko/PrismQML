@@ -71,6 +71,8 @@ function create(touchTargetFloor) {
         cardContentWidth: 300,
         cardHeight: 64,
         galleryCardLabelMaxWidth: 220,
+        // ViewportLoader height before its content exists 内容创建前 ViewportLoader 的占位高度
+        viewportLoaderPlaceholderHeight: 320,
         dropFileHeight: 140,
         splitPaneMinimumSize: 50,
 

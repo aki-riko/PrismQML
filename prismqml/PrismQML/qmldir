@@ -249,6 +249,7 @@ singleton PopupUtils controls/utils/PopupUtils.qml
 PopupWindowCore controls/utils/PopupWindowCore.qml
 ViewportMixin controls/utils/ViewportMixin.qml
 ViewportCulling controls/utils/ViewportCulling.qml
+ViewportLoader controls/utils/ViewportLoader.qml
 HorizontalScrollMixin controls/utils/HorizontalScrollMixin.qml
 WindowDragHandle controls/utils/WindowDragHandle.qml
 DeferredCall controls/utils/DeferredCall.qml

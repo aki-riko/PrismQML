@@ -404,3 +404,27 @@ def test_bottom_sheet_keeps_surface_modularized():
     assert "Enums.accessibility.role_button" in grabber_source
     assert 'Translator.tr("sheet_grabber")' in grabber_source
     assert "Accessible.onPressAction" in grabber_source
+
+
+def test_viewport_loader_defers_creation_until_layout_settles():
+    source = _source(
+        "prismqml/PrismQML/controls/utils/ViewportLoader.qml"
+    ).read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 200
+    assert "default property Component sourceComponent" in source
+    assert "readonly property bool created: loader.status === Loader.Ready" in source
+    assert "function create()" in source
+    # Positions are read only after a settle tick, never straight from onCompleted:
+    # mid-layout every slot sits near the top and would all be created.
+    # 位置只在稳定一拍后读取，不在 onCompleted 里直接判定：布局中途所有槽位都挤在顶部。
+    assert "Component.onCompleted: settleTimer.restart()" in source
+    assert "function _earlierSiblingPending()" in source
+    # Created content is never unloaded, so its state survives scrolling back.
+    # 已创建内容不会卸载，滚回时状态保留。
+    assert "active: control._requested" in source
+    assert "_requested = false" not in source
+    # Must not reuse ViewportCulling: its inViewport starts true before evaluating.
+    # 不得复用 ViewportCulling：其 inViewport 在判定前即为 true。
+    assert "ViewportCulling {" not in source
+    assert "viewportLoaderPlaceholderHeight" in source

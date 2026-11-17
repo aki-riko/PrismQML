@@ -3,6 +3,7 @@ singleton PopupUtils PopupUtils.qml
 PopupWindowCore PopupWindowCore.qml
 ViewportMixin ViewportMixin.qml
 ViewportCulling ViewportCulling.qml
+ViewportLoader ViewportLoader.qml
 HorizontalScrollMixin HorizontalScrollMixin.qml
 WindowDragHandle WindowDragHandle.qml
 singleton AccessibilityHelper AccessibilityHelper.qml
