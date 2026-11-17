@@ -204,7 +204,11 @@ jobs:
   python_compatibility:
     name: Python ${{ matrix.python-version }} abi3 wheel
     needs: build_wheels
-    runs-on: ubuntu-latest
+    # Pinned: setup-python ships no Python 3.9 for Ubuntu 26.04 (ubuntu-latest since
+    # 2026-11), and the abi3 floor is cp39. 24.04 has builds for 3.9 through 3.14.
+    # 固定版本：setup-python 没有 Ubuntu 26.04 的 Python 3.9（ubuntu-latest 自 2026-11
+    # 起即为 26.04），而 abi3 下限是 cp39。24.04 提供 3.9 到 3.14 的全部构建。
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
