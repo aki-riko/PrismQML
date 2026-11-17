@@ -31,11 +31,15 @@ Window {{
     objectName: "window"
 
     property int createdCount: 0
+    property int frameCount: 0
+    // Frame number at which each content item was created 每个内容创建时的帧号
+    property var createdFrames: []
     readonly property real defaultPlaceholder: Enums.controlSize.viewportLoaderPlaceholderHeight
 
     width: 400
     height: 300
     visible: true
+    onFrameSwapped: frameCount += 1
 
     Flickable {{
         id: flick
@@ -62,7 +66,10 @@ Window {{
                         objectName: "content"
                         height: {SLOT_HEIGHT}
                         color: Enums.cardColor
-                        Component.onCompleted: root.createdCount += 1
+                        Component.onCompleted: {{
+                            root.createdCount += 1
+                            root.createdFrames = root.createdFrames.concat([root.frameCount])
+                        }}
                     }}
                 }}
             }}
@@ -142,6 +149,18 @@ def test_only_slots_near_the_viewport_are_created(scene):
     assert window.property("createdCount") == sum(created)
     for slot, made in zip(slots, created):
         assert slot.height() == (SLOT_HEIGHT if made else 100)
+    assert warnings == []
+
+
+def test_first_view_slots_are_created_in_the_same_frame(scene):
+    window, _flick, _slots, warnings = scene
+
+    frames = window.property("createdFrames").toVariant()
+    assert len(frames) >= 3
+    # One pass creates the whole first view, not one slot per frame
+    # 一次遍历创建整个首屏，不是每帧一个
+    assert len(set(frames)) == 1, frames
+    assert _wait_for(lambda: window.property("frameCount") > frames[0])
     assert warnings == []
 
 

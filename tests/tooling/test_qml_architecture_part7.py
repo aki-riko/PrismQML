@@ -419,7 +419,11 @@ def test_viewport_loader_defers_creation_until_layout_settles():
     # mid-layout every slot sits near the top and would all be created.
     # 位置只在稳定一拍后读取，不在 onCompleted 里直接判定：布局中途所有槽位都挤在顶部。
     assert "Component.onCompleted: settleTimer.restart()" in source
-    assert "function _earlierSiblingPending()" in source
+    # First-view slots are created in one in-order pass with an immediate polish,
+    # never one per frame. 首屏槽位一次顺序遍历并立即 polish 创建，不是每帧一个。
+    assert "function _createNearSiblings()" in source
+    assert "host.ensurePolished()" in source
+    assert "_settling" not in source
     # Created content is never unloaded, so its state survives scrolling back.
     # 已创建内容不会卸载，滚回时状态保留。
     assert "active: control._requested" in source

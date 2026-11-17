@@ -12,6 +12,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem
 
+from _viewport_loader_support import create_all_viewport_loaders
 from examples.resources import register_gallery_resources
 from prismqml import register_types
 
@@ -89,6 +90,8 @@ def test_gallery_pages_render_translated_copy(qapp):
     page.setHeight(800)
     try:
         _pump(200)
+        # The SwipeControl card sits far below the first view 滑动卡片远在首屏之外
+        create_all_viewport_loaders(page)
         translator = engine.singletonInstance("PrismQML", "Translator")
         assert translator is not None
 

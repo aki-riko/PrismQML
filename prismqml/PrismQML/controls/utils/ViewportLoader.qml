@@ -40,9 +40,6 @@ Item {
     property Flickable _flickable: null
     // Lets sibling slots recognise each other 供兄弟槽位互相识别
     readonly property bool _viewportLoader: true
-    // True for one tick after creation, until the layout has moved later siblings
-    // 创建后的一拍内为真，直到布局把后面的兄弟槽位挪到新位置
-    property bool _settling: false
 
     // ==================== Public Methods 公开方法 ====================
     // Create now regardless of position, e.g. before scrolling to this slot.
@@ -77,26 +74,40 @@ Item {
         var nearX = origin.x < _flickable.contentX + _flickable.width + spanX
             && origin.x + Math.max(control.width, 1) > _flickable.contentX - spanX
         if (!nearY || !nearX) return
-        // An earlier sibling still at placeholder height may grow and push this slot
-        // out of range: let it settle first, then measure again on the next tick.
-        // 前面仍是占位高度的兄弟槽位可能变高、把本槽位推出范围：先让它稳定，下一拍再量。
-        if (_earlierSiblingPending()) {
-            settleTimer.restart()
-            return
-        }
-        _requested = true
+        _createNearSiblings()
     }
 
-    function _earlierSiblingPending() {
-        var siblings = control.parent ? control.parent.children : []
+    // One pass over the siblings in order: create each one that is near, polish it so
+    // its real height is known at once, then re-lay out the parent so later siblings
+    // are measured at their true position. All first-view content lands in one frame.
+    // 按顺序遍历兄弟槽位：接近的立即创建并 polish，当场拿到真实高度，再让父布局重排，
+    // 后面的槽位按真实位置判定。首屏内容在同一帧内一起出现。
+    function _createNearSiblings() {
+        var host = control.parent
+        var siblings = host.children
         for (var i = 0; i < siblings.length; ++i) {
             var sibling = siblings[i]
-            if (sibling === control) return false
-            if (sibling._viewportLoader !== true) continue
-            if (sibling._settling) return true
-            if (!sibling.created && sibling._nearViewport()) return true
+            if (sibling._viewportLoader !== true || sibling._requested) continue
+            // Async content has no height yet: stop and resume once it is ready
+            // 异步内容尚无高度：停下，等它就绪后继续
+            if (sibling._loading()) return
+            if (!sibling._nearViewport()) continue
+            sibling._requested = true
+            if (!sibling.created) return
+            if (!control.Window.window) continue
+            _polishTree(sibling.item)
+            host.ensurePolished()
         }
-        return false
+    }
+
+    function _loading() { return _requested && !created }
+
+    // Children first, so positioners see their children's final sizes
+    // 先子后父，定位器读取到子项的最终尺寸
+    function _polishTree(item) {
+        var kids = item.children
+        for (var i = 0; i < kids.length; ++i) _polishTree(kids[i])
+        item.ensurePolished()
     }
 
     // Same test as _evaluate, without side effects 与 _evaluate 判定相同，无副作用
@@ -121,10 +132,12 @@ Item {
         settleTimer.restart()
     }
     Component.onCompleted: settleTimer.restart()
+    // Async content just got its height: continue with the following siblings
+    // 异步内容刚有高度：继续处理后面的兄弟槽位
     onCreatedChanged: {
-        if (!created) return
-        _settling = true
-        settledTimer.restart()
+        if (!created || !asynchronous || !control.parent) return
+        control.parent.ensurePolished()
+        _createNearSiblings()
     }
 
     // ==================== Content 内容 ====================
@@ -133,13 +146,6 @@ Item {
 
         interval: Enums.duration.tick
         onTriggered: control._evaluate()
-    }
-
-    Timer {
-        id: settledTimer
-
-        interval: Enums.duration.tick
-        onTriggered: control._settling = false
     }
 
     Connections {
