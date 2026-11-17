@@ -4,6 +4,7 @@
 # 本文件是 PrismQML 的一部分，采用 MIT 许可证授权。
 """BottomSheet runtime contracts. BottomSheet 运行时合同。"""
 
+import gc
 import time
 from pathlib import Path
 
@@ -104,8 +105,13 @@ def _dispose_scene(engine, component, window) -> None:
         window.close()
         window.deleteLater()
     component.deleteLater()
+    engine.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+    # Collect wrapper cycles now: left for a later GC they are torn down inside an
+    # unrelated event loop, which crashed Windows CI (0xC0000005).
+    # 立即回收包装环：留给之后的 GC 会在无关的事件循环中析构，曾让 Windows CI 崩溃。
+    gc.collect()
 
 
 @pytest.fixture

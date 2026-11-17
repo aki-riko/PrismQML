@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import gc
 import time
 from pathlib import Path
 
@@ -128,8 +129,12 @@ def scene(qapp):
             window.close()
             window.deleteLater()
         component.deleteLater()
+        engine.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
+        # Collect wrapper cycles here, not inside a later test's event loop
+        # 在此回收包装环，不留到之后测试的事件循环里
+        gc.collect()
 
 
 def _created(slots):
