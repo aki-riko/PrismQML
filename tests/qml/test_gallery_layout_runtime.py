@@ -62,6 +62,11 @@ def test_gallery_flows_fit_their_content_width_at_standard_gallery_size(qapp):
                 if "GalleryFlow" in item.metaObject().className()
             ]
             for flow in flows:
+                # The host window is never shown, so the scene graph never runs a
+                # polish pass: lay the flow out at its current width before reading
+                # child positions. 宿主窗口从不显示，场景图不会执行 polish：读取子项
+                # 位置前先按当前宽度完成布局。
+                flow.ensurePolished()
                 for child in flow.childItems():
                     assert child.x() >= -0.5, f"{page_path.name}: negative child x"
                     assert child.x() + child.width() <= flow.width() + 0.5, (
