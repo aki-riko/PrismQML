@@ -891,15 +891,21 @@ def test_grabbing_mid_open_hands_the_panel_to_the_finger(sheet_scene):
     sheet.metaObject().invokeMethod(sheet, "open")
     # Catch the panel while it is still rising 在面板仍在上升时抓住它
     assert _wait_for(lambda: 0.3 < sheet.property("revealProgress") < 0.9, 1000)
+    # Press with no event pump between reading the grabber position and pressing:
+    # the panel is still rising, and a mouseMove first let it slip past the pointer
+    # in 4 of 30 runs, so the drag never started.
+    # 读取手柄位置与按下之间不转事件循环：面板仍在上升，先 mouseMove 会让它在 30 次中
+    # 有 4 次越过指针，拖拽根本没开始。
     start = _grabber_point(window, sheet)
-    QTest.mouseMove(window, start)
     QTest.mousePress(
         window, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, start
     )
     try:
+        assert sheet.property("_dragging") is False
         for step in range(1, 5):
             _wall_wait(20)
             QTest.mouseMove(window, QPoint(start.x(), start.y() + 10 * step))
+        assert sheet.property("_dragging") is True
         held_y = panel.y()
         # Hold still: a leftover open animation would keep pulling the panel up
         # 保持不动：残留的打开动画会继续把面板往上拉
