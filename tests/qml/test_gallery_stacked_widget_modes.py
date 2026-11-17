@@ -20,6 +20,7 @@ from PySide6.QtCore import (
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
+from _viewport_loader_support import create_all_viewport_loaders
 from examples.resources import register_gallery_resources
 from prismqml import register_types
 
@@ -152,6 +153,7 @@ def test_gallery_shows_base_animations_with_orientation(qapp):
         page.setWidth(1000)
         page.setHeight(760)
         _pump(200)
+        create_all_viewport_loaders(page)
 
         tiles = _stacked_widget_tiles(page)
         assert [label for label, _stack in tiles] == [

@@ -22,6 +22,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
+from _viewport_loader_support import create_all_viewport_loaders
 from examples.resources import register_gallery_resources
 from prismqml import register_types
 
@@ -438,6 +439,7 @@ def test_input_page_preserves_editable_input_cursors(qapp):
     assert loader is not None
     assert _wait_for(lambda: loader.property("item") is not None)
     page = loader.property("item")
+    create_all_viewport_loaders(page)
     assert isinstance(page, QQuickItem)
     try:
         controls = _gallery_editable_controls(page)

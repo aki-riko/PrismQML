@@ -12,6 +12,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, Property, QMetaObject, QObj
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 
+from _viewport_loader_support import create_all_viewport_loaders
 from prismqml import register_types
 
 
@@ -94,6 +95,7 @@ def _load_page(qapp, backend=None):
     ]
     root = component.create()
     assert root is not None, [error.toString() for error in component.errors()]
+    create_all_viewport_loaders(root)
     return engine, component, root
 
 

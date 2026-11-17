@@ -30,6 +30,7 @@ from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
 from examples.resources import register_gallery_resources
+from _viewport_loader_support import create_all_viewport_loaders
 from prismqml import register_types
 
 
@@ -169,6 +170,7 @@ def _create_scene():
     window.show()
     window.requestActivate()
     assert _wait_for(window.isActive)
+    create_all_viewport_loaders(page)
     assert _wait_for(lambda: len(_matrix_sliders(page)) == 4)
     return windows_before, engine, component, window, page, warnings
 

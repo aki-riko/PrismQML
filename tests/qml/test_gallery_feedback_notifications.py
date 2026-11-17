@@ -15,6 +15,7 @@ from PySide6.QtQml import (
     QQmlExpression,
 )
 
+from _viewport_loader_support import create_all_viewport_loaders
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
 
@@ -103,6 +104,7 @@ def _create_feedback_page():
     root.setWidth(1200)
     root.setHeight(800)
     _pump(100)
+    create_all_viewport_loaders(root)
     return engine, component, root
 
 

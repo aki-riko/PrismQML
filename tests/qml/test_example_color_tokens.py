@@ -13,6 +13,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickView
 
+from _viewport_loader_support import create_all_viewport_loaders
 from prismqml import Skin, Theme, register_types, setSkin, setTheme
 
 
@@ -139,6 +140,7 @@ def _load_page(engine: QQmlApplicationEngine, page_name: str):
     ]
     page = component.create(engine.rootContext())
     assert page is not None, [error.toString() for error in component.errors()]
+    create_all_viewport_loaders(page)
     return component, page
 
 

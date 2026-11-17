@@ -75,167 +75,173 @@ Item {
                 }
             }
 
-            ExampleCard {
-                title: root.dryRunMode
-                    ? Fluent.Translator.tr("gallery_42af2e26ff25e6dd", Fluent.Translator._v)
-                    : Fluent.Translator.tr("gallery_e7a7cc8a258f77dc", Fluent.Translator._v)
-                description: root.dryRunMode
-                    ? Fluent.Translator.tr("gallery_03c05ebdc6e9216f", Fluent.Translator._v)
-                    : Fluent.Translator.tr("gallery_168f3c5f6ee51608", Fluent.Translator._v)
-                orientation: Qt.Vertical
-
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.l
+            ViewportLoader {
+                width: parent ? parent.width : 0
+                ExampleCard {
+                    title: root.dryRunMode
+                        ? Fluent.Translator.tr("gallery_42af2e26ff25e6dd", Fluent.Translator._v)
+                        : Fluent.Translator.tr("gallery_e7a7cc8a258f77dc", Fluent.Translator._v)
+                    description: root.dryRunMode
+                        ? Fluent.Translator.tr("gallery_03c05ebdc6e9216f", Fluent.Translator._v)
+                        : Fluent.Translator.tr("gallery_168f3c5f6ee51608", Fluent.Translator._v)
+                    orientation: Qt.Vertical
 
                     Column {
                         width: parent ? parent.width : 0
-                        spacing: Fluent.Enums.spacing.xs
+                        spacing: Fluent.Enums.spacing.l
+
+                        Column {
+                            width: parent ? parent.width : 0
+                            spacing: Fluent.Enums.spacing.xs
+
+                            Toggle {
+                                objectName: "galleryAutoUpdateDryRunToggle"
+                                controlType: Fluent.Enums.toggle.control_switch
+                                text: checked
+                                    ? Fluent.Translator.tr("gallery_43638d9715e217ac", Fluent.Translator._v)
+                                    : Fluent.Translator.tr("gallery_3aa15fd389abde55", Fluent.Translator._v)
+                                checked: root.dryRunMode
+                                enabled: root.canChangeMode()
+                                onToggled: function(checked) {
+                                    root.dryRunMode = checked
+                                }
+                            }
+
+                            Text {
+                                width: parent ? parent.width : 0
+                                text: root.dryRunMode
+                                    ? Fluent.Translator.tr("gallery_35a4f3eef6a0e6cf", Fluent.Translator._v)
+                                    : Fluent.Translator.tr("gallery_fadb1e1080535c78", Fluent.Translator._v)
+                                font.family: Fluent.Enums.fontFamily
+                                font.pixelSize: Fluent.Enums.typography.caption
+                                color: Fluent.Enums.textColor.tertiary
+                                wrapMode: Text.WordWrap
+                            }
+                        }
 
                         Toggle {
-                            objectName: "galleryAutoUpdateDryRunToggle"
+                            objectName: "galleryAutoUpdatePresenterToggle"
                             controlType: Fluent.Enums.toggle.control_switch
-                            text: checked
-                                ? Fluent.Translator.tr("gallery_43638d9715e217ac", Fluent.Translator._v)
-                                : Fluent.Translator.tr("gallery_3aa15fd389abde55", Fluent.Translator._v)
-                            checked: root.dryRunMode
-                            enabled: root.canChangeMode()
+                            text: checked ? "ProgressDialog" : Fluent.Translator.tr("gallery_0acfb46690c50b2a", Fluent.Translator._v)
+                            checked: root.useProgressDialog
                             onToggled: function(checked) {
-                                root.dryRunMode = checked
+                                root.useProgressDialog = checked
+                            }
+                        }
+
+                        Row {
+                            width: parent ? parent.width : 0
+                            spacing: Fluent.Enums.spacing.xl
+
+                            Column {
+                                width: Math.max(
+                                    Fluent.Enums.controlSize.cardContentWidth,
+                                    parent.width - checkButton.width - Fluent.Enums.spacing.xl
+                                )
+                                spacing: Fluent.Enums.spacing.xs
+
+                                Text {
+                                    text: (root.dryRunMode ? Fluent.Translator.tr("gallery_7dac0a434f2c4ced", Fluent.Translator._v) : Fluent.Translator.tr("gallery_aca80488058c3db1", Fluent.Translator._v))
+                                        + (autoUpdater.repository || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
+                                    font.family: Fluent.Enums.fontFamily
+                                    font.pixelSize: Fluent.Enums.typography.body
+                                    color: Fluent.Enums.textColor.primary
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    text: Fluent.Translator.tr("gallery_435bd0f89db53b12", Fluent.Translator._v) + (autoUpdater.currentVersion || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
+                                    font.family: Fluent.Enums.fontFamily
+                                    font.pixelSize: Fluent.Enums.typography.bodySmall
+                                    color: Fluent.Enums.textColor.secondary
+                                }
+                            }
+
+                            Button {
+                                id: checkButton
+                                objectName: "galleryAutoUpdateCheckButton"
+                                text: autoUpdater._installPreparing
+                                    ? Fluent.Translator.tr("gallery_6dd602065dbc624a", Fluent.Translator._v)
+                                    : (autoUpdater._checking
+                                        ? (root.dryRunMode ? Fluent.Translator.tr("gallery_563bc55f19cf95dc", Fluent.Translator._v) : Fluent.Translator.tr("gallery_fb11aa6f29827095", Fluent.Translator._v))
+                                        : (root.dryRunMode ? Fluent.Translator.tr("gallery_688bfdcebbc5683d", Fluent.Translator._v) : Fluent.Translator.tr("gallery_7f68ebad19ba6bcd", Fluent.Translator._v)))
+                                icon: root.dryRunMode ? "Beaker" : "ArrowSync"
+                                style: Fluent.Enums.button.style_filled
+                                enabled: root.canCheck()
+                                onClicked: autoUpdater.check()
+                            }
+                        }
+
+                        Rectangle {
+                            width: parent ? parent.width : 0
+                            height: statusLabel.implicitHeight + Fluent.Enums.spacing.m * 2
+                            radius: Fluent.Enums.radius.large
+                            color: Fluent.Enums.surfaceColor
+                            border.width: Fluent.Enums.border.thin
+                            border.color: Fluent.Enums.stateColor.cardBorder
+
+                            Text {
+                                id: statusLabel
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: Fluent.Enums.spacing.m
+                                anchors.rightMargin: Fluent.Enums.spacing.m
+                                text: root.statusText
+                                font.family: Fluent.Enums.fontFamily
+                                font.pixelSize: Fluent.Enums.typography.body
+                                color: Fluent.Enums.textColor.primary
+                                wrapMode: Text.WordWrap
                             }
                         }
 
                         Text {
                             width: parent ? parent.width : 0
-                            text: root.dryRunMode
-                                ? Fluent.Translator.tr("gallery_35a4f3eef6a0e6cf", Fluent.Translator._v)
-                                : Fluent.Translator.tr("gallery_fadb1e1080535c78", Fluent.Translator._v)
+                            text: root.latestVersion !== ""
+                                ? Fluent.Translator.tr("gallery_28a283caa1210bfe") + root.latestVersion
+                                : Fluent.Translator.tr("gallery_48c34effb083ee53", Fluent.Translator._v)
                             font.family: Fluent.Enums.fontFamily
                             font.pixelSize: Fluent.Enums.typography.caption
                             color: Fluent.Enums.textColor.tertiary
-                            wrapMode: Text.WordWrap
                         }
-                    }
-
-                    Toggle {
-                        objectName: "galleryAutoUpdatePresenterToggle"
-                        controlType: Fluent.Enums.toggle.control_switch
-                        text: checked ? "ProgressDialog" : Fluent.Translator.tr("gallery_0acfb46690c50b2a", Fluent.Translator._v)
-                        checked: root.useProgressDialog
-                        onToggled: function(checked) {
-                            root.useProgressDialog = checked
-                        }
-                    }
-
-                    Row {
-                        width: parent ? parent.width : 0
-                        spacing: Fluent.Enums.spacing.xl
-
-                        Column {
-                            width: Math.max(
-                                Fluent.Enums.controlSize.cardContentWidth,
-                                parent.width - checkButton.width - Fluent.Enums.spacing.xl
-                            )
-                            spacing: Fluent.Enums.spacing.xs
-
-                            Text {
-                                text: (root.dryRunMode ? Fluent.Translator.tr("gallery_7dac0a434f2c4ced", Fluent.Translator._v) : Fluent.Translator.tr("gallery_aca80488058c3db1", Fluent.Translator._v))
-                                    + (autoUpdater.repository || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
-                                font.family: Fluent.Enums.fontFamily
-                                font.pixelSize: Fluent.Enums.typography.body
-                                color: Fluent.Enums.textColor.primary
-                                elide: Text.ElideRight
-                            }
-                            Text {
-                                text: Fluent.Translator.tr("gallery_435bd0f89db53b12", Fluent.Translator._v) + (autoUpdater.currentVersion || Fluent.Translator.tr("gallery_80a57e03f0717f91", Fluent.Translator._v))
-                                font.family: Fluent.Enums.fontFamily
-                                font.pixelSize: Fluent.Enums.typography.bodySmall
-                                color: Fluent.Enums.textColor.secondary
-                            }
-                        }
-
-                        Button {
-                            id: checkButton
-                            objectName: "galleryAutoUpdateCheckButton"
-                            text: autoUpdater._installPreparing
-                                ? Fluent.Translator.tr("gallery_6dd602065dbc624a", Fluent.Translator._v)
-                                : (autoUpdater._checking
-                                    ? (root.dryRunMode ? Fluent.Translator.tr("gallery_563bc55f19cf95dc", Fluent.Translator._v) : Fluent.Translator.tr("gallery_fb11aa6f29827095", Fluent.Translator._v))
-                                    : (root.dryRunMode ? Fluent.Translator.tr("gallery_688bfdcebbc5683d", Fluent.Translator._v) : Fluent.Translator.tr("gallery_7f68ebad19ba6bcd", Fluent.Translator._v)))
-                            icon: root.dryRunMode ? "Beaker" : "ArrowSync"
-                            style: Fluent.Enums.button.style_filled
-                            enabled: root.canCheck()
-                            onClicked: autoUpdater.check()
-                        }
-                    }
-
-                    Rectangle {
-                        width: parent ? parent.width : 0
-                        height: statusLabel.implicitHeight + Fluent.Enums.spacing.m * 2
-                        radius: Fluent.Enums.radius.large
-                        color: Fluent.Enums.surfaceColor
-                        border.width: Fluent.Enums.border.thin
-                        border.color: Fluent.Enums.stateColor.cardBorder
-
-                        Text {
-                            id: statusLabel
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.leftMargin: Fluent.Enums.spacing.m
-                            anchors.rightMargin: Fluent.Enums.spacing.m
-                            text: root.statusText
-                            font.family: Fluent.Enums.fontFamily
-                            font.pixelSize: Fluent.Enums.typography.body
-                            color: Fluent.Enums.textColor.primary
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-
-                    Text {
-                        width: parent ? parent.width : 0
-                        text: root.latestVersion !== ""
-                            ? Fluent.Translator.tr("gallery_28a283caa1210bfe") + root.latestVersion
-                            : Fluent.Translator.tr("gallery_48c34effb083ee53", Fluent.Translator._v)
-                        font.family: Fluent.Enums.fontFamily
-                        font.pixelSize: Fluent.Enums.typography.caption
-                        color: Fluent.Enums.textColor.tertiary
                     }
                 }
             }
 
-            ExampleCard {
-                title: Fluent.Translator.tr("gallery_50989d57fa728663", Fluent.Translator._v)
-                description: Fluent.Translator.tr("gallery_56df4f714ccb84b5", Fluent.Translator._v)
-                orientation: Qt.Vertical
+            ViewportLoader {
+                width: parent ? parent.width : 0
+                ExampleCard {
+                    title: Fluent.Translator.tr("gallery_50989d57fa728663", Fluent.Translator._v)
+                    description: Fluent.Translator.tr("gallery_56df4f714ccb84b5", Fluent.Translator._v)
+                    orientation: Qt.Vertical
 
-                Column {
-                    width: parent ? parent.width : 0
-                    spacing: Fluent.Enums.spacing.s
+                    Column {
+                        width: parent ? parent.width : 0
+                        spacing: Fluent.Enums.spacing.s
 
-                    Repeater {
-                        model: root.dryRunMode
-                            ? [
-                                Fluent.Translator.tr("gallery_c690f3d0291abc07", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_10c0380b93f668a7", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_ca2ad481307e7199", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_db0d7260525e8cc2", Fluent.Translator._v)
-                            ]
-                            : [
-                                Fluent.Translator.tr("gallery_762fc61305fbb999", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_7e2cc0c8ed7296d6", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_34c08a5b0b855bdc", Fluent.Translator._v),
-                                Fluent.Translator.tr("gallery_8f6e4a4cb2a5c74f", Fluent.Translator._v)
-                            ]
+                        Repeater {
+                            model: root.dryRunMode
+                                ? [
+                                    Fluent.Translator.tr("gallery_c690f3d0291abc07", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_10c0380b93f668a7", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_ca2ad481307e7199", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_db0d7260525e8cc2", Fluent.Translator._v)
+                                ]
+                                : [
+                                    Fluent.Translator.tr("gallery_762fc61305fbb999", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_7e2cc0c8ed7296d6", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_34c08a5b0b855bdc", Fluent.Translator._v),
+                                    Fluent.Translator.tr("gallery_8f6e4a4cb2a5c74f", Fluent.Translator._v)
+                                ]
 
-                        delegate: Text {
-                            required property string modelData
-                            width: parent ? parent.width : 0
-                            text: modelData
-                            font.family: Fluent.Enums.fontFamily
-                            font.pixelSize: Fluent.Enums.typography.body
-                            color: Fluent.Enums.textColor.primary
-                            wrapMode: Text.WordWrap
+                            delegate: Text {
+                                required property string modelData
+                                width: parent ? parent.width : 0
+                                text: modelData
+                                font.family: Fluent.Enums.fontFamily
+                                font.pixelSize: Fluent.Enums.typography.body
+                                color: Fluent.Enums.textColor.primary
+                                wrapMode: Text.WordWrap
+                            }
                         }
                     }
                 }

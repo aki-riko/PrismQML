@@ -28,6 +28,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickWindow
 from PySide6.QtTest import QTest
 
+from _viewport_loader_support import create_all_viewport_loaders
 from prismqml import Skin, configure_qml_environment, getSkin, register_types, setSkin
 
 
@@ -259,6 +260,7 @@ def test_gallery_navigation_page_builds_vertical_panels_without_qml_errors(
         ]
         page = component.create(engine.rootContext())
         assert page is not None, [error.toString() for error in component.errors()]
+        create_all_viewport_loaders(page)
         assert _wait_until(
             lambda: all(
                 len(_panels_of(page, name)) == expected
@@ -321,6 +323,7 @@ def _create_host_scene(qapp):
     # converter. 读取已加载项而不是 Loader.status: 该状态枚举在 Python 侧无转换器。
     assert _wait_until(lambda: loader.property("item") is not None)
     _pump(120)
+    create_all_viewport_loaders(loader.property("item"))
     return engine, component, window, loader.property("item")
 
 
@@ -353,6 +356,7 @@ def _create_window_stack_scene(qapp):
         "NavigationView not found",
         len(window.findChildren(QQuickItem)),
     )
+    create_all_viewport_loaders(window)
     return engine, component, window
 
 

@@ -21,6 +21,7 @@ from PySide6.QtGui import QGuiApplication, QWheelEvent
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickItem, QQuickView
 
+from _viewport_loader_support import create_all_viewport_loaders
 from examples.resources import register_gallery_resources
 from prismqml import register_types
 from scripts.qml_conventions import scan_source_text
@@ -106,6 +107,9 @@ def button_gallery(qapp):
     ]
     view.show()
     _pump(800)
+    # Culling is checked on fully created cards 剔除合同针对全部已创建的卡片
+    create_all_viewport_loaders(view.rootObject())
+    _pump(200)
     try:
         yield view, view.rootObject(), warnings
     finally:

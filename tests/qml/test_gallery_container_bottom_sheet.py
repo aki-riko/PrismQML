@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QMetaObject, QObject, QUrl
 from PySide6.QtQuick import QQuickItem
 
+from _viewport_loader_support import create_all_viewport_loaders
 from tests.qml.test_bottom_sheet import _create_scene, _dispose_scene
 
 
@@ -53,6 +54,7 @@ def test_gallery_bottom_sheet_demo_stacks_three_levels(qapp):
         # Loader.status 没有 Python 转换器，改为等待加载出的 item
         assert _wait_for(qapp, lambda: loader.property("item") is not None), warnings
         page = loader.property("item")
+        create_all_viewport_loaders(page)
         sheets = [page.findChild(QQuickItem, name) for name in SHEET_NAMES]
         assert all(sheets), sheets
         button = page.findChild(QQuickItem, "galleryBottomSheetOpenButton")
